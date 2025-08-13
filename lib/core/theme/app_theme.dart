@@ -38,7 +38,7 @@ class AppTheme {
         ),
       ),
 
-      // Card theme
+      // Card theme  
       cardTheme: CardTheme(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         elevation: isDark ? 2 : 1,

@@ -40,7 +40,10 @@
       "Bash(firebase login:*)",
       "Bash(firebase use:*)",
       "Bash(start test_products.html)",
-      "Bash(firebase auth:export:*)"
+      "Bash(firebase auth:export:*)",
+      "Bash(if [ -f lib/firebase_options.dart ])",
+      "Bash(then echo \"File exists\")",
+      "Bash(else echo \"File not found\")"
     ],
     "deny": [],
     "ask": [
