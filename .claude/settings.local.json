@@ -43,7 +43,13 @@
       "Bash(firebase auth:export:*)",
       "Bash(if [ -f lib/firebase_options.dart ])",
       "Bash(then echo \"File exists\")",
-      "Bash(else echo \"File not found\")"
+      "Bash(else echo \"File not found\")",
+      "Bash(where flutter)",
+      "Bash(powershell:*)",
+      "Bash(start test_auth.html)",
+      "WebFetch(domain:turbo-air-viewer.web.app)",
+      "Bash(dart pub global activate:*)",
+      "Bash(start test_firebase_config.html)"
     ],
     "deny": [],
     "ask": [

@@ -39,7 +39,7 @@ class AppTheme {
       ),
 
       // Card theme  
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         elevation: isDark ? 2 : 1,
         margin: EdgeInsets.zero,
@@ -196,7 +196,7 @@ class AppTheme {
       ),
 
       // Dialog Theme
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
         titleTextStyle: TextStyle(
           color: isDark ? Colors.white : Colors.black,
