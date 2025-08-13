@@ -39,7 +39,8 @@
       "Bash(firebase logout:*)",
       "Bash(firebase login:*)",
       "Bash(firebase use:*)",
-      "Bash(start test_products.html)"
+      "Bash(start test_products.html)",
+      "Bash(firebase auth:export:*)"
     ],
     "deny": [],
     "ask": [

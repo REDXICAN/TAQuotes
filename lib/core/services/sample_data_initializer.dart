@@ -1,6 +1,5 @@
 // lib/core/services/sample_data_initializer.dart
 import 'package:firebase_database/firebase_database.dart';
-import '../models/models.dart';
 import 'app_logger.dart';
 
 class SampleDataInitializer {
