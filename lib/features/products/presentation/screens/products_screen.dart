@@ -457,18 +457,27 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
       );
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-      ),
-      itemCount: products.length,
-      itemBuilder: (context, index) {
-        final product = products[index];
-        return ProductCard(product: product);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Responsive columns: 4 for desktop/tablet, 2 for phone
+        final crossAxisCount = constraints.maxWidth > 600 ? 4 : 2;
+        // Shorter cards with adjusted aspect ratio
+        final childAspectRatio = constraints.maxWidth > 600 ? 0.85 : 0.8;
+        
+        return GridView.builder(
+          padding: const EdgeInsets.all(16),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: childAspectRatio,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: products.length,
+          itemBuilder: (context, index) {
+            final product = products[index];
+            return ProductCard(product: product);
+          },
+        );
       },
     );
   }
@@ -498,9 +507,9 @@ class ProductCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product Image
+            // Product Image - Made smaller
             Expanded(
-              flex: 3,
+              flex: 2,
               child: Container(
                 decoration: BoxDecoration(
                   color: theme.disabledColor.withOpacity(0.1),
@@ -508,20 +517,23 @@ class ProductCard extends ConsumerWidget {
                     top: Radius.circular(8),
                   ),
                 ),
-                child: Image.asset(
-                        imagePath,
-                        fit: BoxFit.contain,
-                        width: double.infinity,
-                        errorBuilder: (_, __, ___) => const Center(
-                          child: Icon(
-                            Icons.image_not_supported,
-                            size: 40,
-                          ),
-                        ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Image.asset(
+                    imagePath,
+                    fit: BoxFit.contain,
+                    width: double.infinity,
+                    errorBuilder: (_, __, ___) => const Center(
+                      child: Icon(
+                        Icons.image_not_supported,
+                        size: 32,
                       ),
+                    ),
+                  ),
+                ),
               ),
             ),
-            // Product Info
+            // Product Info - More compact
             Expanded(
               flex: 2,
               child: Padding(
@@ -531,16 +543,18 @@ class ProductCard extends ConsumerWidget {
                   children: [
                     Text(
                       product.sku ?? product.model,
-                      style: theme.textTheme.titleSmall?.copyWith(
+                      style: TextStyle(
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
+                        color: theme.primaryColor,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       product.displayName,
-                      style: theme.textTheme.bodySmall,
+                      style: const TextStyle(fontSize: 10),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -550,14 +564,20 @@ class ProductCard extends ConsumerWidget {
                       children: [
                         Text(
                           '\$${product.price.toStringAsFixed(2)}',
-                          style: theme.textTheme.titleMedium?.copyWith(
+                          style: TextStyle(
+                            fontSize: 14,
                             color: theme.primaryColor,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.add_shopping_cart),
-                          onPressed: () async {
+                        SizedBox(
+                          height: 28,
+                          width: 28,
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            iconSize: 18,
+                            icon: const Icon(Icons.add_shopping_cart),
+                            onPressed: () async {
                             try {
                               await dbService.addToCart(product.id ?? '', 1);
 
@@ -585,11 +605,9 @@ class ProductCard extends ConsumerWidget {
                                 );
                               }
                             }
-                          },
-                          color: theme.primaryColor,
-                          iconSize: 20,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
+                            },
+                            color: theme.primaryColor,
+                          ),
                         ),
                       ],
                     ),

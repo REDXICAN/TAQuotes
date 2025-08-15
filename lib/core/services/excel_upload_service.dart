@@ -49,12 +49,18 @@ class ExcelUploadService {
             String sku = _getCellValue(row, headerIndex['SKU']);
             if (sku.isEmpty) continue; // Skip rows without SKU
 
+            String description = _getCellValue(row, headerIndex['Description']);
+            String name = description.isEmpty ? sku : description.split(',').first.trim();
+            
             Map<String, dynamic> productData = {
               'sku': sku,
+              'model': sku, // Use SKU as model
+              'name': name, // Required field
+              'displayName': name, // Required field
               'category': _getCellValue(row, headerIndex['Category']),
               'subcategory': _getCellValue(row, headerIndex['Subcategory']),
               'product_type': _getCellValue(row, headerIndex['Product Type']),
-              'description': _getCellValue(row, headerIndex['Description']),
+              'description': description,
               'voltage': _getCellValue(row, headerIndex['Voltage']),
               'amperage': _getCellValue(row, headerIndex['Amperage']),
               'phase': _getCellValue(row, headerIndex['Phase']),
@@ -74,6 +80,7 @@ class ExcelUploadService {
               'features': _getCellValue(row, headerIndex['Features']),
               'certifications': _getCellValue(row, headerIndex['Certifications']),
               'price': _parsePrice(_getCellValue(row, headerIndex['Price'])),
+              'stock': 100, // Default stock value
               'image_url': 'assets/screenshots/$sku/P.1.png',
               'row_number': i + 1,
             };
@@ -147,12 +154,18 @@ class ExcelUploadService {
 
             totalProducts++;
 
+            String description = _getCellValue(row, headerIndex['Description']);
+            String name = description.isEmpty ? sku : description.split(',').first.trim();
+            
             Map<String, dynamic> productData = {
               'sku': sku,
+              'model': sku, // Use SKU as model
+              'name': name, // Required field
+              'displayName': name, // Required field
               'category': _getCellValue(row, headerIndex['Category']),
               'subcategory': _getCellValue(row, headerIndex['Subcategory']),
               'product_type': _getCellValue(row, headerIndex['Product Type']),
-              'description': _getCellValue(row, headerIndex['Description']),
+              'description': description,
               'voltage': _getCellValue(row, headerIndex['Voltage']),
               'amperage': _getCellValue(row, headerIndex['Amperage']),
               'phase': _getCellValue(row, headerIndex['Phase']),
@@ -172,6 +185,7 @@ class ExcelUploadService {
               'features': _getCellValue(row, headerIndex['Features']),
               'certifications': _getCellValue(row, headerIndex['Certifications']),
               'price': _parsePrice(_getCellValue(row, headerIndex['Price'])),
+              'stock': 100, // Default stock value
               'image_url': 'assets/screenshots/$sku/P.1.png', // Auto-generate image path
               'created_at': ServerValue.timestamp,
               'updated_at': ServerValue.timestamp,

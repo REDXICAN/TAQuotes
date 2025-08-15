@@ -1,5 +1,6 @@
 // lib/core/services/offline_service.dart
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/models.dart';
@@ -51,8 +52,8 @@ class PendingOperation {
 }
 
 class OfflineService {
-  static final OfflineService _instance = OfflineService._internal();
-  factory OfflineService() => _instance;
+  static final OfflineService? _instance = kIsWeb ? null : OfflineService._internal();
+  factory OfflineService() => _instance ?? OfflineService._internal();
   OfflineService._internal();
 
   late Box<dynamic> _cacheBox;
@@ -76,10 +77,14 @@ class OfflineService {
   bool get isOnline => _isOnline;
 
   // Static accessors for singleton instance
-  static Stream<bool> get staticConnectionStream => _instance.connectionStream;
-  static Stream<List<PendingOperation>> get staticQueueStream => _instance.queueStream;
-  static List<PendingOperation> get staticPendingOperations => _instance.pendingOperations;
-  static bool get staticIsOnline => _instance.isOnline;
+  static Stream<bool> get staticConnectionStream => 
+      kIsWeb ? Stream.value(true) : _instance!.connectionStream;
+  static Stream<List<PendingOperation>> get staticQueueStream => 
+      kIsWeb ? Stream.value([]) : _instance!.queueStream;
+  static List<PendingOperation> get staticPendingOperations => 
+      kIsWeb ? [] : _instance!.pendingOperations;
+  static bool get staticIsOnline => 
+      kIsWeb ? true : _instance!.isOnline;
 
   SyncStatus _syncStatus = SyncStatus.idle;
   SyncStatus get syncStatus => _syncStatus;
@@ -113,7 +118,8 @@ class OfflineService {
   }
 
   static Future<void> staticInitialize() async {
-    await _instance.initialize();
+    if (kIsWeb) return; // Skip on web
+    await _instance!.initialize();
   }
 
   Future<void> _loadPendingOperations() async {
@@ -179,7 +185,8 @@ class OfflineService {
 
   // Sync methods
   static Future<void> syncPendingChanges() async {
-    await _instance._syncPendingChanges();
+    if (kIsWeb) return; // Skip on web
+    await _instance!._syncPendingChanges();
   }
 
   Future<void> _syncPendingChanges() async {
@@ -212,7 +219,8 @@ class OfflineService {
   }
 
   static Future<void> staticSyncWithFirebase() async {
-    await _instance.syncWithFirebase();
+    if (kIsWeb) return; // Skip on web
+    await _instance!.syncWithFirebase();
   }
 
   // Cache methods expected by main.dart
@@ -241,15 +249,18 @@ class OfflineService {
   }
 
   static Future<bool> staticHasOfflineData() async {
-    return await _instance.hasOfflineData();
+    if (kIsWeb) return false; // No offline data on web
+    return await _instance!.hasOfflineData();
   }
 
   static Future<int> staticGetSyncQueueCount() async {
-    return await _instance.getSyncQueueCount();
+    if (kIsWeb) return 0; // No sync queue on web
+    return await _instance!.getSyncQueueCount();
   }
 
   static Future<Map<String, dynamic>> getCacheInfo() async {
-    return await _instance._getCacheInfo();
+    if (kIsWeb) return {}; // No cache info on web
+    return await _instance!._getCacheInfo();
   }
 
   Future<Map<String, dynamic>> _getCacheInfo() async {

@@ -255,6 +255,24 @@ class Product {
       return parseIntSafely(value) ?? defaultValue;
     }
 
+    // Helper function to parse DateTime from various formats
+    DateTime parseDateTime(dynamic value) {
+      if (value == null) return DateTime.now();
+      if (value is DateTime) return value;
+      if (value is String) {
+        try {
+          return DateTime.parse(value);
+        } catch (_) {
+          return DateTime.now();
+        }
+      }
+      if (value is int) {
+        // Assume it's a timestamp in milliseconds
+        return DateTime.fromMillisecondsSinceEpoch(value);
+      }
+      return DateTime.now();
+    }
+
     return Product(
       id: map['id'],
       model: map['model'] ?? '',
@@ -263,10 +281,10 @@ class Product {
       description: map['description'] ?? '',
       category: map['category'] ?? '',
       subcategory: map['subcategory'],
-      productType: map['productType'],
+      productType: map['productType'] ?? map['product_type'],  // Handle both formats
       sku: map['sku'],
       price: parseDoubleSafely(map['price']),
-      imageUrl: map['imageUrl'],
+      imageUrl: map['imageUrl'] ?? map['image_url'],  // Handle both formats
       stock: parseIntWithDefault(map['stock']),
       dimensions: map['dimensions'],
       weight: map['weight'],
@@ -274,17 +292,17 @@ class Product {
       amperage: map['amperage'],
       phase: map['phase'],
       frequency: map['frequency'],
-      plugType: map['plugType'],
-      temperatureRange: map['temperatureRange'],
+      plugType: map['plugType'] ?? map['plug_type'],  // Handle both formats
+      temperatureRange: map['temperatureRange'] ?? map['temperature_range'],  // Handle both formats
       refrigerant: map['refrigerant'],
       compressor: map['compressor'],
       capacity: map['capacity'],
       doors: parseIntSafely(map['doors']),
       shelves: parseIntSafely(map['shelves']),
-      createdAt:
-          DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
-      updatedAt:
-          map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
+      createdAt: parseDateTime(map['createdAt'] ?? map['created_at']),  // Handle both formats
+      updatedAt: map['updatedAt'] ?? map['updated_at'] != null 
+          ? parseDateTime(map['updatedAt'] ?? map['updated_at']) 
+          : null,
     );
   }
 

@@ -1,4 +1,5 @@
 // lib/core/services/cache_manager.dart
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_database/firebase_database.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:convert';
@@ -13,6 +14,7 @@ class CacheManager {
 
   // Initialize cache boxes - static method
   static Future<void> initialize() async {
+    if (kIsWeb) return; // Skip initialization on web
     _cache = await Hive.openBox(_cacheBox);
     _metadata = await Hive.openBox(_metadataBox);
   }
@@ -23,6 +25,7 @@ class CacheManager {
     required dynamic value,
     Duration expiration = _defaultExpiration,
   }) async {
+    if (kIsWeb) return; // Skip caching on web
     final expirationTime = DateTime.now().add(expiration).toIso8601String();
 
     // Store the value
@@ -37,6 +40,7 @@ class CacheManager {
 
   // Get cached value if not expired
   static dynamic getCachedValue(String key) {
+    if (kIsWeb) return null; // No caching on web
     // Check if cache is initialized
     if (!Hive.isBoxOpen(_metadataBox) || !Hive.isBoxOpen(_cacheBox)) {
       return null;

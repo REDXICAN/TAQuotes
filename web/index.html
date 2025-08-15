@@ -52,8 +52,13 @@
       measurementId: "G-Y7K0X3RRD7"
     };
     
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
+    // Initialize Firebase with error handling
+    try {
+      firebase.initializeApp(firebaseConfig);
+      console.log('Firebase initialized successfully');
+    } catch (error) {
+      console.error('Firebase initialization error:', error);
+    }
   </script>
 </head>
 <body>
@@ -98,8 +103,36 @@
   </script>
   
   <script>
+    // Add error handling
+    window.addEventListener('error', function(event) {
+      console.error('Global error:', event.error);
+    });
+    
+    window.addEventListener('unhandledrejection', function(event) {
+      console.error('Unhandled promise rejection:', event.reason);
+    });
+    
+    // Hide loading screen when Flutter is ready
     window.addEventListener('flutter-first-frame', function () {
-      document.getElementById('loading').style.display = 'none';
+      console.log('Flutter first frame rendered');
+      var loading = document.getElementById('loading');
+      if (loading) {
+        loading.style.display = 'none';
+      }
+    });
+    
+    // Fallback: Hide loading screen after 10 seconds if Flutter doesn't start
+    setTimeout(function() {
+      var loading = document.getElementById('loading');
+      if (loading && loading.style.display !== 'none') {
+        console.warn('Loading timeout - hiding loading screen');
+        loading.style.display = 'none';
+      }
+    }, 10000);
+    
+    // Log Flutter initialization
+    window.addEventListener('load', function() {
+      console.log('Page loaded, initializing Flutter...');
     });
   </script>
   

@@ -49,11 +49,23 @@
       "Bash(start test_auth.html)",
       "WebFetch(domain:turbo-air-viewer.web.app)",
       "Bash(dart pub global activate:*)",
-      "Bash(start test_firebase_config.html)"
+      "Bash(start test_firebase_config.html)",
+      "Bash(firebase database:get:*)",
+      "Bash(if [ -f \"D:\\OneDrive\\Documentos\\-- TurboAir\\7 Bots\\Turbots\\-- Flutter App\\turbo_air_products.xlsx\" ])",
+      "Bash(pip install:*)",
+      "Bash(node:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(for sku in PRO-12R-N PRO-26R-N TSR-23SD-N6 M3R24-1-N PST-28-N)",
+      "Bash(do if [ -d \"D:\\Flutter App\\Turbo-Air-Viewer-Flutter-App\\assets\\screenshots\\$sku\" ])",
+      "Bash(else echo \"$sku: MISSING\")",
+      "Bash(done)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": [
       "Bash(git push:*)"
-    ]
+    ],
+    "defaultMode": "acceptEdits"
   }
 }
