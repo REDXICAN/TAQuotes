@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/services/firebase_auth_service.dart';
 import '../../../../core/services/realtime_database_service.dart';
 import '../../../../core/services/hybrid_database_service.dart';
+import '../../../../core/services/email_service.dart';
 import '../../../../core/models/models.dart';
 
 // Auth Service Provider
@@ -135,12 +136,12 @@ final signInProvider = Provider((ref) {
   };
 });
 
-// Sign Up Method Provider
+// Sign Up Method Provider with Role Support
 final signUpProvider = Provider((ref) {
   final authService = ref.watch(authServiceProvider);
   final dbService = ref.watch(databaseServiceProvider);
 
-  return (String email, String password, String name) async {
+  return (String email, String password, String name, String role) async {
     try {
       final user = await authService.createUserWithEmailAndPassword(
         email: email,
@@ -149,12 +150,23 @@ final signUpProvider = Provider((ref) {
       );
 
       if (user != null) {
+        // Determine account status based on role
+        String status = 'active';
+        if (role == 'Admin') {
+          status = 'pending_approval'; // Admin accounts require approval
+        }
+
         // Create user profile in Realtime Database
         await dbService.createUserProfile(
           uid: user.uid,
           email: email,
           name: name,
+          role: role,
+          status: status,
         );
+
+        // Send emails based on role
+        await _handleRegistrationEmails(email, name, role, user.uid);
       }
 
       return null; // Success
@@ -174,6 +186,176 @@ final signUpProvider = Provider((ref) {
     }
   };
 });
+
+// Handle registration emails
+Future<void> _handleRegistrationEmails(String email, String name, String role, String uid) async {
+  try {
+    // Import email service at the top of the file if not already imported
+    final emailService = EmailService();
+    const adminEmail = 'andres@turboairmexico.com';
+
+    if (role == 'Admin') {
+      // Send approval request to superadmin
+      await emailService.sendQuoteEmail(
+        recipientEmail: adminEmail,
+        recipientName: 'Turbo Air Admin',
+        quoteNumber: 'ADMIN_APPROVAL',
+        htmlContent: '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h2 style="color: #0066cc; text-align: center;">New Admin Account Approval Required</h2>
+    
+    <p>Dear Admin,</p>
+    
+    <p>A new administrator account has been created and requires your approval:</p>
+    
+    <table style="width: 100%; border-collapse: collapse; margin: 20px 0; border: 1px solid #ddd;">
+      <tr style="background-color: #f2f2f2;">
+        <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">Name</td>
+        <td style="padding: 12px; border: 1px solid #ddd;">$name</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">Email</td>
+        <td style="padding: 12px; border: 1px solid #ddd;">$email</td>
+      </tr>
+      <tr style="background-color: #f2f2f2;">
+        <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">Role</td>
+        <td style="padding: 12px; border: 1px solid #ddd;">Administrator</td>
+      </tr>
+      <tr>
+        <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">User ID</td>
+        <td style="padding: 12px; border: 1px solid #ddd;">$uid</td>
+      </tr>
+    </table>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="https://turboair-taq.web.app/admin/approve/$uid" 
+         style="background-color: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+        Approve Account
+      </a>
+      <a href="https://turboair-taq.web.app/admin/reject/$uid" 
+         style="background-color: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin-left: 10px;">
+        Reject Account
+      </a>
+    </div>
+    
+    <p style="color: #666; font-size: 12px; margin-top: 20px;">
+      Please review this request carefully. Once approved, the user will have administrator privileges.
+    </p>
+  </div>
+</body>
+</html>
+        ''',
+        userInfo: {
+          'name': 'Turbo Air System',
+          'email': 'system@turboairmexico.com',
+          'role': 'System',
+        },
+      );
+
+      // Send pending notification to the user
+      await emailService.sendQuoteEmail(
+        recipientEmail: email,
+        recipientName: name,
+        quoteNumber: 'REGISTRATION_PENDING',
+        htmlContent: '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h2 style="color: #0066cc; text-align: center;">Account Registration Received</h2>
+    
+    <p>Dear $name,</p>
+    
+    <p>Thank you for registering for a TurboAir administrator account. Your registration has been received and is currently pending approval.</p>
+    
+    <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ffc107;">
+      <p style="margin: 0; color: #856404;">
+        <strong>⏳ Status:</strong> Your account is pending administrator approval. You will receive an email confirmation once your account has been reviewed and approved.
+      </p>
+    </div>
+    
+    <p>This process typically takes 1-2 business days. If you have any questions, please contact our support team.</p>
+    
+    <p>Best regards,<br>TurboAir Team</p>
+  </div>
+</body>
+</html>
+        ''',
+        userInfo: {
+          'name': 'Turbo Air System',
+          'email': 'system@turboairmexico.com',
+          'role': 'System',
+        },
+      );
+    } else {
+      // Send welcome email for Sales/Distribution users
+      await emailService.sendQuoteEmail(
+        recipientEmail: email,
+        recipientName: name,
+        quoteNumber: 'WELCOME',
+        htmlContent: '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h2 style="color: #0066cc; text-align: center;">Welcome to TurboAir!</h2>
+    
+    <p>Dear $name,</p>
+    
+    <p>Congratulations! Your TurboAir ${role.toLowerCase()} account has been successfully created and activated.</p>
+    
+    <div style="background-color: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #28a745;">
+      <p style="margin: 0; color: #155724;">
+        <strong>✅ Account Status:</strong> Active and ready to use
+      </p>
+    </div>
+    
+    <p>You can now access the TurboAir platform with the following features:</p>
+    <ul>
+      <li>Browse our complete product catalog</li>
+      <li>Create and manage client relationships</li>
+      <li>Generate professional quotes</li>
+      <li>Export data in multiple formats</li>
+    </ul>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="https://turboair-taq.web.app" 
+         style="background-color: #0066cc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+        Access Your Account
+      </a>
+    </div>
+    
+    <p>If you have any questions or need assistance, don't hesitate to reach out to our support team.</p>
+    
+    <p>Best regards,<br>TurboAir Team</p>
+  </div>
+</body>
+</html>
+        ''',
+        userInfo: {
+          'name': 'Turbo Air System',
+          'email': 'system@turboairmexico.com',
+          'role': 'System',
+        },
+      );
+    }
+  } catch (e) {
+    print('Error sending registration emails: $e');
+    // Don't throw error as account creation should still succeed
+  }
+}
 
 // Sign Out Method Provider
 final signOutProvider = Provider((ref) {

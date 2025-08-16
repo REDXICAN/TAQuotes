@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../../../core/services/offline_service.dart';
 import '../../../../core/services/cache_manager.dart';
+import '../../../../core/services/storage_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -58,28 +60,58 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: Colors.white,
-                        child: user?.photoURL != null
-                            ? ClipOval(
-                                child: Image.network(
-                                  user!.photoURL!,
-                                  width: 100,
-                                  height: 100,
-                                  fit: BoxFit.cover,
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundColor: Colors.white,
+                            child: user?.photoURL != null
+                                ? ClipOval(
+                                    child: Image.network(
+                                      user!.photoURL!,
+                                      width: 100,
+                                      height: 100,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : Text(
+                                    user?.displayName != null && user!.displayName!.isNotEmpty
+                                            ? user.displayName!.substring(0, 1).toUpperCase()
+                                            : 'U',
+                                    style: const TextStyle(
+                                      fontSize: 40,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF4169E1),
+                                    ),
+                                  ),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: InkWell(
+                              onTap: () => _showProfilePictureOptions(),
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black26,
+                                      blurRadius: 4,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
-                              )
-                            : Text(
-                                user?.displayName != null && user!.displayName!.isNotEmpty
-                                        ? user.displayName!.substring(0, 1).toUpperCase()
-                                        : 'U',
-                                style: const TextStyle(
-                                  fontSize: 40,
-                                  fontWeight: FontWeight.bold,
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  size: 20,
                                   color: Color(0xFF4169E1),
                                 ),
                               ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -292,6 +324,219 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
       ),
     );
+  }
+
+  // Show profile picture options
+  void _showProfilePictureOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Upload New Picture'),
+              onTap: () {
+                Navigator.pop(context);
+                _uploadProfilePicture();
+              },
+            ),
+            if (ref.read(currentUserProvider)?.photoURL != null)
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('Remove Picture', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _removeProfilePicture();
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: const Text('Cancel'),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Upload profile picture
+  Future<void> _uploadProfilePicture() async {
+    try {
+      // Pick image file
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+
+      if (result == null || result.files.single.bytes == null) return;
+
+      final file = result.files.single;
+      
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Uploading profile picture...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Upload to Firebase Storage
+      final downloadUrl = await StorageService.uploadUserProfilePicture(
+        imageBytes: file.bytes!,
+        fileName: file.name,
+      );
+
+      if (downloadUrl != null) {
+        // Update user profile
+        final user = FirebaseAuth.instance.currentUser!;
+        await user.updatePhotoURL(downloadUrl);
+        
+        // Update in database
+        final authService = ref.read(authServiceProvider);
+        await authService.updateUserProfile(
+          user.uid,
+          {'photoURL': downloadUrl},
+        );
+        
+        // Refresh user state
+        ref.invalidate(currentUserProvider);
+        ref.invalidate(currentUserProfileProvider);
+
+        // Hide loading dialog
+        if (mounted) Navigator.pop(context);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile picture uploaded successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        // Hide loading dialog
+        if (mounted) Navigator.pop(context);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to upload profile picture'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Hide loading dialog if still showing
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading picture: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Remove profile picture
+  Future<void> _removeProfilePicture() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Profile Picture'),
+        content: const Text('Are you sure you want to remove your profile picture?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final user = FirebaseAuth.instance.currentUser!;
+      
+      // Delete from storage if exists
+      if (user.photoURL != null) {
+        await StorageService.deleteProfilePicture(user.photoURL!);
+      }
+
+      // Update user profile
+      await user.updatePhotoURL(null);
+      
+      // Update in database
+      final authService = ref.read(authServiceProvider);
+      await authService.updateUserProfile(
+        user.uid,
+        {'photoURL': null},
+      );
+      
+      // Refresh user state
+      ref.invalidate(currentUserProvider);
+      ref.invalidate(currentUserProfileProvider);
+
+      // Hide loading
+      if (mounted) Navigator.pop(context);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile picture removed'),
+          ),
+        );
+      }
+    } catch (e) {
+      // Hide loading
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error removing picture: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _showEditProfileDialog() {

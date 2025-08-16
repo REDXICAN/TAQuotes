@@ -23,6 +23,13 @@
       }
     },
     
+    "quote_items": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
+        ".write": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')"
+      }
+    },
+    
     "cart_items": {
       "$uid": {
         ".read": "auth != null && auth.uid == $uid",

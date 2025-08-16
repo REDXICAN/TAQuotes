@@ -69,6 +69,7 @@ class Client {
   final String? zipCode;
   final String? country;
   final String? notes;
+  final String? profilePictureUrl;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -85,6 +86,7 @@ class Client {
     this.zipCode,
     this.country,
     this.notes,
+    this.profilePictureUrl,
     required this.createdAt,
     this.updatedAt,
   });
@@ -103,29 +105,38 @@ class Client {
       'zipCode': zipCode,
       'country': country,
       'notes': notes,
+      'profilePictureUrl': profilePictureUrl,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
   }
 
   factory Client.fromMap(Map<String, dynamic> map) {
+    // Handle both snake_case and camelCase field names
     return Client(
       id: map['id'],
       company: map['company'] ?? '',
-      contactName: map['contactName'] ?? '',
-      name: map['name'] ?? '',
+      contactName: map['contact_name'] ?? map['contactName'] ?? '',
+      name: map['name'] ?? map['contact_name'] ?? '',
       email: map['email'] ?? '',
       phone: map['phone'] ?? '',
       address: map['address'],
       city: map['city'],
       state: map['state'],
-      zipCode: map['zipCode'],
+      zipCode: map['zip_code'] ?? map['zipCode'],
       country: map['country'],
       notes: map['notes'],
-      createdAt:
-          DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
-      updatedAt:
-          map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
+      profilePictureUrl: map['profile_picture_url'] ?? map['profilePictureUrl'],
+      createdAt: map['created_at'] != null 
+          ? (map['created_at'] is int 
+              ? DateTime.fromMillisecondsSinceEpoch(map['created_at'])
+              : DateTime.parse(map['created_at']))
+          : DateTime.now(),
+      updatedAt: map['updated_at'] != null 
+          ? (map['updated_at'] is int
+              ? DateTime.fromMillisecondsSinceEpoch(map['updated_at'])
+              : DateTime.parse(map['updated_at']))
+          : null,
     );
   }
 

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Products Loading</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+</head>
+<body>
+    <h1>Testing Products Loading from Firebase</h1>
+    <div id="status">Initializing...</div>
+    <div id="products"></div>
+    
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyByN2I4vjSQO2ptsj8mbkbsqvu94HOtp8c",
+            authDomain: "turbo-air-viewer.firebaseapp.com",
+            databaseURL: "https://turbo-air-viewer-default-rtdb.firebaseio.com",
+            projectId: "turbo-air-viewer",
+            storageBucket: "turbo-air-viewer.appspot.com",
+            messagingSenderId: "988318636738",
+            appId: "1:988318636738:web:3c3e47befc0c3e5c8e3a5f"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        document.getElementById('status').textContent = 'Firebase initialized. Loading products...';
+        
+        // Test 1: Check if products exist
+        database.ref('products').once('value')
+            .then((snapshot) => {
+                const data = snapshot.val();
+                console.log('Raw products data:', data);
+                
+                if (data) {
+                    const productCount = Object.keys(data).length;
+                    document.getElementById('status').textContent = `Found ${productCount} products in database`;
+                    
+                    // Display first 5 products
+                    let html = '<h2>Sample Products:</h2><ul>';
+                    let count = 0;
+                    for (const [key, product] of Object.entries(data)) {
+                        if (count++ >= 5) break;
+                        html += `<li><strong>${product.sku || product.model || 'No SKU'}</strong>: ${product.name || product.description || 'No name'} - $${product.price || 0}</li>`;
+                        console.log('Product:', key, product);
+                    }
+                    html += '</ul>';
+                    document.getElementById('products').innerHTML = html;
+                } else {
+                    document.getElementById('status').textContent = 'No products found in database';
+                }
+            })
+            .catch((error) => {
+                console.error('Error loading products:', error);
+                document.getElementById('status').textContent = `Error: ${error.message}`;
+            });
+            
+        // Test 2: Listen for real-time updates
+        database.ref('products').on('value', (snapshot) => {
+            console.log('Real-time update - Products count:', snapshot.numChildren());
+        });
+    </script>
+</body>
+</html>

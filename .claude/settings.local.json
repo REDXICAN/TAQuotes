@@ -60,7 +60,21 @@
       "Bash(do if [ -d \"D:\\Flutter App\\Turbo-Air-Viewer-Flutter-App\\assets\\screenshots\\$sku\" ])",
       "Bash(else echo \"$sku: MISSING\")",
       "Bash(done)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git log:*)",
+      "Bash(node:*)",
+      "Bash(firebase database:get:*)",
+      "Bash(find:*)",
+      "Bash(dart check_env.dart:*)",
+      "Bash(then echo \"firebase_options.dart EXISTS - SHOULD BE GITIGNORED!\")",
+      "Bash(else echo \"firebase_options.dart not found (good)\")",
+      "Bash(firebase projects:create:*)",
+      "Bash(firebase apps:create:*)",
+      "Bash(firebase apps:sdkconfig:*)",
+      "Bash(firebase init:*)",
+      "Bash(firebase database:instances:create:*)",
+      "Bash(firebase setup:web:*)",
+      "Bash(firebase hosting:sites:create:*)"
     ],
     "deny": [],
     "ask": [

@@ -17,16 +17,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
 
   bool _isLoading = false;
   bool _isSignUp = false;
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  String _selectedRole = 'Sales';
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _nameController.dispose();
     super.dispose();
   }
@@ -43,7 +47,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
       // First create the demo account
       final signUp = ref.read(signUpProvider);
-      final signUpError = await signUp(demoEmail, demoPassword, demoName);
+      final signUpError = await signUp(demoEmail, demoPassword, demoName, 'Sales');
 
       if (signUpError != null && mounted) {
         // If signup failed, try to sign in (account might exist)
@@ -107,16 +111,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           _emailController.text.trim(),
           _passwordController.text,
           _nameController.text.trim(),
+          _selectedRole,
         );
 
         if (error == null && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Account created successfully! Welcome!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          context.go('/');
+          if (_selectedRole == 'Admin') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Admin account created! Pending approval from superadmin. Check your email for details.'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 5),
+              ),
+            );
+            // Don't redirect to home for admin accounts
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Account created successfully! Welcome!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            context.go('/');
+          }
         }
       } else {
         final signIn = ref.read(signInProvider);
@@ -263,6 +279,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
                           decoration: InputDecoration(
                             labelText: 'Email',
                             prefixIcon: const Icon(Icons.email),
@@ -286,6 +303,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) => _handleAuth(),
                           decoration: InputDecoration(
                             labelText: 'Password',
                             prefixIcon: const Icon(Icons.lock),
@@ -317,10 +336,49 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Name field (only for signup)
+                        // Additional signup fields
                         if (_isSignUp) ...[
+                          // Confirm Password field
+                          TextFormField(
+                            controller: _confirmPasswordController,
+                            obscureText: _obscureConfirmPassword,
+                            decoration: InputDecoration(
+                              labelText: 'Confirm Password',
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscureConfirmPassword
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscureConfirmPassword = !_obscureConfirmPassword;
+                                  });
+                                },
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            validator: (value) {
+                              if (_isSignUp) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please confirm your password';
+                                }
+                                if (value != _passwordController.text) {
+                                  return 'Passwords do not match';
+                                }
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          
+                          // Name field
                           TextFormField(
                             controller: _nameController,
+                            textInputAction: TextInputAction.next,
                             decoration: InputDecoration(
                               labelText: 'Your Name',
                               prefixIcon: const Icon(Icons.person),
@@ -336,6 +394,71 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               return null;
                             },
                           ),
+                          const SizedBox(height: 16),
+
+                          // Role selection dropdown
+                          DropdownButtonFormField<String>(
+                            value: _selectedRole,
+                            decoration: InputDecoration(
+                              labelText: 'Account Role',
+                              prefixIcon: const Icon(Icons.work),
+                              helperText: 'Select your account type',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              filled: true,
+                              fillColor: Colors.grey[50],
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'Sales',
+                                child: Text('Sales Representative'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Distribution',
+                                child: Text('Distributor'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Admin',
+                                child: Text('Administrator (Requires Approval)'),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedRole = value!;
+                              });
+                            },
+                            validator: (value) {
+                              if (_isSignUp && (value == null || value.isEmpty)) {
+                                return 'Please select your role';
+                              }
+                              return null;
+                            },
+                          ),
+                          
+                          // Admin role warning
+                          if (_selectedRole == 'Admin')
+                            Container(
+                              margin: const EdgeInsets.only(top: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.orange[50],
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.orange[200]!),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline, size: 20, color: Colors.orange[700]),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Admin accounts require approval from the super admin',
+                                      style: TextStyle(fontSize: 12, color: Colors.orange[800]),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           const SizedBox(height: 16),
                         ],
 
@@ -399,6 +522,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 setState(() {
                                   _isSignUp = !_isSignUp;
                                   _formKey.currentState?.reset();
+                                  // Clear password fields when switching
+                                  _passwordController.clear();
+                                  _confirmPasswordController.clear();
+                                  // Reset role to default
+                                  _selectedRole = 'Sales';
                                 });
                               },
                               child: Text(

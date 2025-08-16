@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/utils/product_image_helper_v2.dart';
 
 class ProductImagesWidget extends StatefulWidget {
   final String sku;
@@ -13,13 +14,8 @@ class ProductImagesWidget extends StatefulWidget {
 }
 
 class _ProductImagesWidgetState extends State<ProductImagesWidget> {
-  // The folder name matches the SKU exactly as stored in DB
-  String get imageFolder => widget.sku;
-  
-  List<String> get imagePaths => [
-    'assets/screenshots/$imageFolder/$imageFolder P.1.png',
-    'assets/screenshots/$imageFolder/$imageFolder P.2.png',
-  ];
+  // Get image paths using the helper
+  List<String> get imagePaths => ProductImageHelper.getAllProductImages(widget.sku);
 
   void _showImagePopup(BuildContext context, int initialIndex) {
     showDialog(

@@ -1,16 +1,40 @@
 // lib/features/quotes/presentation/screens/quotes_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:html' as html;
+import 'dart:typed_data';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
+import '../../../../core/services/export_service.dart';
+import '../../../../core/services/email_service.dart';
 
 // Quotes provider using Realtime Database
-final quotesProvider = StreamProvider<List<Quote>>((ref) {
+final quotesProvider = FutureProvider<List<Quote>>((ref) async {
+  // Check authentication
+  final user = ref.watch(currentUserProvider);
+  if (user == null) {
+    return [];
+  }
+  
   final dbService = ref.watch(databaseServiceProvider);
 
-  return dbService.getQuotes().asyncMap((quotesList) async {
+  try {
+    // Get quotes as a one-time read
+    final database = FirebaseDatabase.instance;
+    final snapshot = await database.ref('quotes/${user.uid}').get();
+    
+    if (!snapshot.exists || snapshot.value == null) {
+      return [];
+    }
+    
+    final data = Map<String, dynamic>.from(snapshot.value as Map);
+    final quotesList = data.entries.map((e) => {
+      ...Map<String, dynamic>.from(e.value),
+      'id': e.key,
+    }).toList();
     // Fetch additional data for each quote
     final List<Quote> quotes = [];
 
@@ -58,7 +82,10 @@ final quotesProvider = StreamProvider<List<Quote>>((ref) {
     }
 
     return quotes;
-  });
+  } catch (e) {
+    print('Error loading quotes: $e');
+    return [];
+  }
 });
 
 class QuotesScreen extends ConsumerStatefulWidget {
@@ -82,6 +109,42 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         title: const Text('Quotes'),
         backgroundColor: theme.primaryColor,
         foregroundColor: theme.appBarTheme.foregroundColor,
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.download),
+            onSelected: (value) async {
+              final user = ref.read(currentUserProvider);
+              if (user == null) return;
+              
+              switch (value) {
+                case 'pdf':
+                  await _exportQuotesToPDF();
+                  break;
+                case 'xlsx':
+                  await _exportQuotesToXLSX(user.uid);
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'pdf',
+                child: ListTile(
+                  leading: Icon(Icons.picture_as_pdf),
+                  title: Text('Export as PDF'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'xlsx',
+                child: ListTile(
+                  leading: Icon(Icons.table_chart),
+                  title: Text('Export as Excel'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -120,10 +183,6 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                       _buildFilterChip('Draft', 'draft'),
                       const SizedBox(width: 8),
                       _buildFilterChip('Sent', 'sent'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Accepted', 'accepted'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Rejected', 'rejected'),
                     ],
                   ),
                 ),
@@ -426,17 +485,110 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
     _showQuoteDetails(quote);
   }
 
-  void _emailQuote(Quote quote) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Email functionality coming soon')),
+  void _emailQuote(Quote quote) async {
+    // Show dialog to get recipient email
+    final emailController = TextEditingController(text: quote.client?.email ?? '');
+    final sendPDF = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Send Quote via Email'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(
+                labelText: 'Recipient Email',
+                hintText: 'Enter email address',
+                prefixIcon: Icon(Icons.email),
+              ),
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 16),
+            const CheckboxListTile(
+              title: Text('Attach PDF'),
+              subtitle: Text('Include quote as PDF attachment'),
+              value: true,
+              onChanged: null, // Always include PDF
+              controlAffinity: ListTileControlAffinity.leading,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Send Email'),
+          ),
+        ],
+      ),
     );
+
+    if (sendPDF != true || emailController.text.isEmpty) return;
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Generate PDF
+      final pdfBytes = await ExportService.generateQuotePDF(quote.id ?? '');
+      
+      // Send email with PDF attachment
+      final emailService = EmailService();
+      await emailService.sendQuoteWithPDFBytes(
+        recipientEmail: emailController.text.trim(),
+        recipientName: quote.client?.contactName ?? 'Customer',
+        quoteNumber: quote.quoteNumber ?? 'N/A',
+        pdfBytes: pdfBytes,
+        userInfo: {
+          'name': ref.read(currentUserProvider)?.displayName ?? 'Sales Representative',
+          'email': ref.read(currentUserProvider)?.email ?? 'turboairquotes@gmail.com',
+          'role': 'Sales',
+        },
+      );
+      
+      // Update quote status to 'sent' if it was 'draft'
+      if (quote.status == 'draft') {
+        final dbService = ref.read(databaseServiceProvider);
+        await dbService.updateQuoteStatus(quote.id ?? '', 'sent');
+        ref.invalidate(quotesProvider);
+      }
+      
+      // Hide loading
+      if (mounted) Navigator.pop(context);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Quote emailed successfully to ${emailController.text}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      // Hide loading
+      if (mounted) Navigator.pop(context);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sending email: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
-  void _exportQuote(Quote quote, String format) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${format.toUpperCase()} export coming soon')),
-    );
-  }
 
   void _deleteQuote(Quote quote) {
     showDialog(
@@ -456,6 +608,9 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
               try {
                 final dbService = ref.read(databaseServiceProvider);
                 await dbService.deleteQuote(quote.id ?? '');
+                
+                // Refresh quotes list
+                ref.invalidate(quotesProvider);
                 
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -481,5 +636,138 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         ],
       ),
     );
+  }
+
+  // Export all quotes to XLSX
+  Future<void> _exportQuotesToXLSX(String userId) async {
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final xlsxBytes = await ExportService.exportQuotesToXLSX(userId);
+      
+      // Hide loading indicator
+      if (mounted) Navigator.pop(context);
+
+      // Download file
+      final blob = html.Blob([xlsxBytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.document.createElement('a') as html.AnchorElement
+        ..href = url
+        ..style.display = 'none'
+        ..download = 'quotes_export_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+      html.document.body?.children.add(anchor);
+      anchor.click();
+      html.document.body?.children.remove(anchor);
+      html.Url.revokeObjectUrl(url);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Quotes exported successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      // Hide loading indicator if still showing
+      if (mounted) Navigator.pop(context);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error exporting quotes: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Export all quotes to PDF (simplified version)
+  Future<void> _exportQuotesToPDF() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('PDF export of all quotes not implemented yet. Use individual quote export.'),
+        backgroundColor: Colors.orange,
+      ),
+    );
+  }
+
+  // Export individual quote
+  Future<void> _exportQuote(Quote quote, String format) async {
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      Uint8List bytes;
+      String filename;
+      String mimeType;
+
+      // Generate filename with client name and date
+      final clientName = quote.client?.company ?? 'Unknown_Client';
+      final cleanClientName = clientName.replaceAll(RegExp(r'[^\w\s-]'), '').replaceAll(' ', '_');
+      final dateStr = DateFormat('yyyy-MM-dd').format(quote.createdAt);
+      
+      if (format == 'pdf') {
+        bytes = await ExportService.generateQuotePDF(quote.id ?? '');
+        filename = 'Quote_${quote.quoteNumber}_${cleanClientName}_$dateStr.pdf';
+        mimeType = 'application/pdf';
+      } else if (format == 'excel') {
+        bytes = await ExportService.exportQuoteToXLSX(quote.id ?? '');
+        filename = 'Quote_${quote.quoteNumber}_${cleanClientName}_$dateStr.xlsx';
+        mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      } else {
+        throw Exception('Unsupported format: $format');
+      }
+      
+      // Hide loading indicator
+      if (mounted) Navigator.pop(context);
+
+      // Download file
+      final blob = html.Blob([bytes], mimeType);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.document.createElement('a') as html.AnchorElement
+        ..href = url
+        ..style.display = 'none'
+        ..download = filename;
+      html.document.body?.children.add(anchor);
+      anchor.click();
+      html.document.body?.children.remove(anchor);
+      html.Url.revokeObjectUrl(url);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Quote exported as ${format.toUpperCase()} successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      // Hide loading indicator if still showing
+      if (mounted) Navigator.pop(context);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error exporting quote: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

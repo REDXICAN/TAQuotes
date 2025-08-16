@@ -1,16 +1,51 @@
-﻿// lib/features/clients/presentation/screens/clients_screen.dart
+// lib/features/clients/presentation/screens/clients_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'dart:html' as html;
+import 'package:file_picker/file_picker.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
+import '../../../../core/services/export_service.dart';
+import '../../../../core/services/storage_service.dart';
 
 // Clients provider using Realtime Database
-final clientsProvider = StreamProvider<List<Client>>((ref) {
+final clientsProvider = FutureProvider<List<Client>>((ref) async {
+  // Clients require authentication
+  final user = ref.watch(currentUserProvider);
+  if (user == null) {
+    return [];
+  }
+  
   final dbService = ref.watch(databaseServiceProvider);
-
-  return dbService.getClients().map((clientsList) {
-    return clientsList.map((json) => Client.fromJson(json)).toList();
-  });
+  
+  try {
+    // Get clients as a one-time read instead of stream
+    final database = FirebaseDatabase.instance;
+    final snapshot = await database.ref('clients/${user.uid}').get();
+    
+    if (snapshot.exists && snapshot.value != null) {
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final List<Client> clients = [];
+      
+      data.forEach((key, value) {
+        final clientMap = Map<String, dynamic>.from(value);
+        clientMap['id'] = key;
+        try {
+          clients.add(Client.fromMap(clientMap));
+        } catch (e) {
+          print('Error parsing client $key: $e');
+        }
+      });
+      
+      return clients;
+    }
+    
+    return [];
+  } catch (e) {
+    print('Error loading clients: $e');
+    return [];
+  }
 });
 
 // Selected client provider
@@ -63,6 +98,29 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
         backgroundColor: theme.primaryColor,
         foregroundColor: theme.appBarTheme.foregroundColor,
         actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.download),
+            onSelected: (value) async {
+              final user = ref.read(currentUserProvider);
+              if (user == null) return;
+              
+              switch (value) {
+                case 'xlsx':
+                  await _exportClientsToXLSX(user.uid);
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'xlsx',
+                child: ListTile(
+                  leading: Icon(Icons.table_chart),
+                  title: Text('Export as Excel'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
+          ),
           IconButton(
             icon: Icon(_showAddForm ? Icons.close : Icons.add),
             onPressed: () {
@@ -270,18 +328,27 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                       color: isSelected
                           ? theme.primaryColor.withOpacity(0.1)
                           : null,
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: isSelected
-                              ? theme.primaryColor
-                              : theme.disabledColor.withOpacity(0.3),
-                          child: Text(
-                            client.company[0].toUpperCase(),
-                            style: TextStyle(
-                              color: isSelected
-                                  ? Colors.white
-                                  : theme.textTheme.bodyLarge?.color,
-                            ),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ExpansionTile(
+                        leading: GestureDetector(
+                          onTap: () => _showProfilePictureOptions(client),
+                          child: CircleAvatar(
+                            backgroundColor: isSelected
+                                ? theme.primaryColor
+                                : theme.disabledColor.withOpacity(0.3),
+                            backgroundImage: client.profilePictureUrl != null
+                                ? NetworkImage(client.profilePictureUrl!)
+                                : null,
+                            child: client.profilePictureUrl == null
+                                ? Text(
+                                    client.company[0].toUpperCase(),
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : theme.textTheme.bodyLarge?.color,
+                                    ),
+                                  )
+                                : null,
                           ),
                         ),
                         title: Text(
@@ -290,74 +357,122 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                             fontWeight: isSelected ? FontWeight.bold : null,
                           ),
                         ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Contact: ${client.contactName}'),
-                            Text('Email: ${client.email}'),
-                            Text('Phone: ${client.phone}'),
-                          ],
+                        subtitle: Text(
+                          client.contactName.isNotEmpty 
+                              ? client.contactName 
+                              : 'No contact name',
+                          style: theme.textTheme.bodySmall,
                         ),
-                        trailing: PopupMenuButton<String>(
-                          itemBuilder: (context) => <PopupMenuEntry<String>>[
-                            const PopupMenuItem<String>(
-                              value: 'select',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.check_circle_outline),
-                                  SizedBox(width: 8),
-                                  Text('Select'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit),
-                                  SizedBox(width: 8),
-                                  Text('Edit'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('Delete',
-                                      style: TextStyle(color: Colors.red)),
-                                ],
-                              ),
-                            ),
-                          ],
-                          onSelected: (value) {
-                            switch (value) {
-                              case 'select':
-                                ref
-                                    .read(selectedClientProvider.notifier)
-                                    .state = client;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content:
-                                        Text('Selected: ${client.company}'),
-                                  ),
-                                );
-                                break;
-                              case 'edit':
-                                _editClient(client);
-                                break;
-                              case 'delete':
-                                _deleteClient(client);
-                                break;
+                        trailing: IconButton(
+                          icon: Icon(
+                            Icons.check,
+                            color: isSelected ? Colors.green : theme.disabledColor,
+                          ),
+                          onPressed: () {
+                            if (isSelected) {
+                              // Deselect if already selected
+                              ref
+                                  .read(selectedClientProvider.notifier)
+                                  .state = null;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content:
+                                      Text('Deselected: ${client.company}'),
+                                ),
+                              );
+                            } else {
+                              // Select if not selected
+                              ref
+                                  .read(selectedClientProvider.notifier)
+                                  .state = client;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content:
+                                      Text('Selected: ${client.company}'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
                             }
                           },
                         ),
-                        onTap: () {
-                          ref.read(selectedClientProvider.notifier).state =
-                              client;
-                        },
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Contact Information
+                                if (client.email.isNotEmpty) ...[
+                                  Row(
+                                    children: [
+                                      Icon(Icons.email, size: 16, color: theme.disabledColor),
+                                      const SizedBox(width: 8),
+                                      Expanded(child: Text(client.email)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
+                                if (client.phone.isNotEmpty) ...[
+                                  Row(
+                                    children: [
+                                      Icon(Icons.phone, size: 16, color: theme.disabledColor),
+                                      const SizedBox(width: 8),
+                                      Expanded(child: Text(client.phone)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
+                                // Address
+                                if (client.address != null && client.address!.isNotEmpty) ...[
+                                  Row(
+                                    children: [
+                                      Icon(Icons.location_on, size: 16, color: theme.disabledColor),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          '${client.address}${client.city != null ? ', ${client.city}' : ''}${client.state != null ? ', ${client.state}' : ''}${client.zipCode != null ? ' ${client.zipCode}' : ''}',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
+                                // Notes
+                                if (client.notes != null && client.notes!.isNotEmpty) ...[
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(Icons.note, size: 16, color: theme.disabledColor),
+                                      const SizedBox(width: 8),
+                                      Expanded(child: Text(client.notes!)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
+                                // Action Buttons
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    TextButton.icon(
+                                      onPressed: () => _editClient(client),
+                                      icon: const Icon(Icons.edit, size: 18),
+                                      label: const Text('Edit'),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    TextButton.icon(
+                                      onPressed: () => _deleteClient(client),
+                                      icon: const Icon(Icons.delete, size: 18, color: Colors.red),
+                                      label: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Colors.red,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -435,6 +550,9 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
         await dbService.addClient(clientData);
       }
 
+      // Refresh the clients list
+      ref.invalidate(clientsProvider);
+      
       setState(() {
         _showAddForm = false;
         _clearForm();
@@ -505,6 +623,9 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
     try {
       final dbService = ref.read(databaseServiceProvider);
       await dbService.deleteClient(client.id ?? '');
+      
+      // Refresh the clients list
+      ref.invalidate(clientsProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -518,6 +639,328 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error deleting client: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Show profile picture options
+  void _showProfilePictureOptions(Client client) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (client.profilePictureUrl != null)
+              ListTile(
+                leading: const Icon(Icons.visibility),
+                title: const Text('View Profile Picture'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _viewProfilePicture(client);
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Upload New Picture'),
+              onTap: () {
+                Navigator.pop(context);
+                _uploadProfilePicture(client);
+              },
+            ),
+            if (client.profilePictureUrl != null)
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('Remove Picture', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _removeProfilePicture(client);
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: const Text('Cancel'),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // View profile picture in a dialog
+  void _viewProfilePicture(Client client) {
+    if (client.profilePictureUrl == null) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 500, maxHeight: 500),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppBar(
+                title: Text('${client.company} Profile'),
+                automaticallyImplyLeading: false,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: InteractiveViewer(
+                  child: Image.network(
+                    client.profilePictureUrl!,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.error, size: 48, color: Colors.red),
+                            SizedBox(height: 8),
+                            Text('Failed to load image'),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Upload profile picture
+  Future<void> _uploadProfilePicture(Client client) async {
+    try {
+      // Pick image file
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+
+      if (result == null || result.files.single.bytes == null) return;
+
+      final file = result.files.single;
+      
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Uploading profile picture...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Upload to Firebase Storage
+      final downloadUrl = await StorageService.uploadClientProfilePicture(
+        clientId: client.id ?? '',
+        imageBytes: file.bytes!,
+        fileName: file.name,
+      );
+
+      if (downloadUrl != null) {
+        // Update client in database
+        final dbService = ref.read(databaseServiceProvider);
+        await dbService.updateClient(client.id ?? '', {
+          'profile_picture_url': downloadUrl,
+        });
+
+        // Refresh clients list
+        ref.invalidate(clientsProvider);
+
+        // Hide loading dialog
+        if (mounted) Navigator.pop(context);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile picture uploaded successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        // Hide loading dialog
+        if (mounted) Navigator.pop(context);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to upload profile picture'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Hide loading dialog if still showing
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading picture: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Remove profile picture
+  Future<void> _removeProfilePicture(Client client) async {
+    if (client.profilePictureUrl == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Profile Picture'),
+        content: const Text('Are you sure you want to remove the profile picture?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      // Delete from storage
+      await StorageService.deleteProfilePicture(client.profilePictureUrl!);
+
+      // Update client in database
+      final dbService = ref.read(databaseServiceProvider);
+      await dbService.updateClient(client.id ?? '', {
+        'profile_picture_url': null,
+      });
+
+      // Refresh clients list
+      ref.invalidate(clientsProvider);
+
+      // Hide loading
+      if (mounted) Navigator.pop(context);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile picture removed'),
+          ),
+        );
+      }
+    } catch (e) {
+      // Hide loading
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error removing picture: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Export clients to XLSX
+  Future<void> _exportClientsToXLSX(String userId) async {
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final xlsxBytes = await ExportService.exportClientsToXLSX(userId);
+      
+      // Hide loading indicator
+      if (mounted) Navigator.pop(context);
+
+      // Download file
+      final blob = html.Blob([xlsxBytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.document.createElement('a') as html.AnchorElement
+        ..href = url
+        ..style.display = 'none'
+        ..download = 'clients_export_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+      html.document.body?.children.add(anchor);
+      anchor.click();
+      html.document.body?.children.remove(anchor);
+      html.Url.revokeObjectUrl(url);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Clients exported successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      // Hide loading indicator if still showing
+      if (mounted) Navigator.pop(context);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error exporting clients: $e'),
             backgroundColor: Colors.red,
           ),
         );

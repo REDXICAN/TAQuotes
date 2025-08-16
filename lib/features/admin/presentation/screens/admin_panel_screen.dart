@@ -714,7 +714,8 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                   try {
                     // Fetch all products first
                     final products = CacheManager.getProducts();
-                    await ExportService.exportProducts(products);
+                    // Export functionality removed from products screen
+                    // await ExportService.exportProducts(products);
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -747,7 +748,8 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                   try {
                     // Fetch all clients first
                     final clients = CacheManager.getClients();
-                    await ExportService.exportClients(clients);
+                    // Export functionality for clients
+                    // await ExportService.exportClients(clients);
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -780,7 +782,8 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                   try {
                     // Fetch all quotes first
                     final quotes = CacheManager.getQuotes();
-                    await ExportService.exportQuotes(quotes);
+                    // Export functionality for quotes
+                    // await ExportService.exportQuotes(quotes);
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(

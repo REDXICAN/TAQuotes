@@ -1,4 +1,4 @@
-# Turbo Air Equipment Viewer - Flutter Application
+# Turbo Air Quotes (TAQ) - Flutter Application
 
 A comprehensive B2B equipment catalog and quote management system built with Flutter and Firebase, featuring offline-first architecture, real-time synchronization, and full email integration with PDF attachments.
 
@@ -45,7 +45,7 @@ A comprehensive B2B equipment catalog and quote management system built with Flu
 ## 📁 Project Structure
 
 ```
-turbo-air-flutter/
+turbo-air-quotes/
 ├── lib/
 │   ├── main.dart                         # App entry point with Firebase init
 │   ├── app.dart                          # Main application widget

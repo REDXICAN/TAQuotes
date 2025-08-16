@@ -17,7 +17,7 @@ class TurboAirApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'TurboAir Quote System',
+      title: 'Turbo Air Quotes (TAQ)',
       theme: AppTheme.getTheme(Brightness.light),
       darkTheme: AppTheme.getTheme(Brightness.dark),
       themeMode: themeMode,

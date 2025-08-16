@@ -43,8 +43,8 @@ class EnvConfig {
   static String get adminPassword => _getEnv('ADMIN_PASSWORD');
   
   // Firebase Configuration
-  static String get firebaseProjectId => _getEnv('FIREBASE_PROJECT_ID', 'turbo-air-viewer');
-  static String get firebaseDatabaseUrl => _getEnv('FIREBASE_DATABASE_URL', 'https://turbo-air-viewer-default-rtdb.firebaseio.com');
+  static String get firebaseProjectId => _getEnv('FIREBASE_PROJECT_ID', 'turboair-taq');
+  static String get firebaseDatabaseUrl => _getEnv('FIREBASE_DATABASE_URL', 'https://turboair-taq-default-rtdb.firebaseio.com');
   
   // Platform-specific API Keys
   static String get firebaseApiKeyWeb => _getEnv('FIREBASE_API_KEY_WEB');
@@ -59,8 +59,8 @@ class EnvConfig {
   static String get firebaseAppIdWindows => _getEnv('FIREBASE_APP_ID_WINDOWS');
   
   // Common Firebase Config
-  static String get firebaseAuthDomain => _getEnv('FIREBASE_AUTH_DOMAIN', 'turbo-air-viewer.firebaseapp.com');
-  static String get firebaseStorageBucket => _getEnv('FIREBASE_STORAGE_BUCKET', 'turbo-air-viewer.firebasestorage.app');
+  static String get firebaseAuthDomain => _getEnv('FIREBASE_AUTH_DOMAIN', 'turboair-taq.firebaseapp.com');
+  static String get firebaseStorageBucket => _getEnv('FIREBASE_STORAGE_BUCKET', 'turboair-taq.firebasestorage.app');
   static String get firebaseMessagingSenderId => _getEnv('FIREBASE_MESSAGING_SENDER_ID', '118954210086');
   static String get firebaseMeasurementId => _getEnv('FIREBASE_MEASUREMENT_ID');
   
@@ -68,7 +68,7 @@ class EnvConfig {
   static String get emailSenderAddress => _getEnv('EMAIL_SENDER_ADDRESS', 'turboairquotes@gmail.com');
   static String get emailAppPassword => _getEnv('EMAIL_APP_PASSWORD');
   static String get emailSenderName => _getEnv('EMAIL_SENDER_NAME', 'TurboAir Quote System');
-  static String get emailAppUrl => _getEnv('EMAIL_APP_URL', 'https://turbo-air-viewer.web.app');
+  static String get emailAppUrl => _getEnv('EMAIL_APP_URL', 'https://turboair-taq.web.app');
   
   // SMTP Configuration
   static String get smtpHost => _getEnv('SMTP_HOST', 'smtp.gmail.com');

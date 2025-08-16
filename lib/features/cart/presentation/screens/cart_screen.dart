@@ -1,22 +1,43 @@
 // lib/features/cart/presentation/screens/cart_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_database/firebase_database.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
-import '../../../../core/utils/product_image_helper.dart';
+import '../../../../core/utils/product_image_helper_v2.dart';
 
 // Cart provider using Realtime Database
-final cartProvider = StreamProvider<List<CartItem>>((ref) {
+final cartProvider = FutureProvider<List<CartItem>>((ref) async {
+  // Check authentication
+  final user = ref.watch(currentUserProvider);
+  if (user == null) {
+    return [];
+  }
+  
   final dbService = ref.watch(databaseServiceProvider);
-
-  return dbService.getCartItems().asyncMap((items) async {
+  
+  try {
+    // Get cart items as a one-time read
+    final database = FirebaseDatabase.instance;
+    final snapshot = await database.ref('cart_items/${user.uid}').get();
+    
+    if (!snapshot.exists || snapshot.value == null) {
+      return [];
+    }
+    
+    final data = Map<String, dynamic>.from(snapshot.value as Map);
+    final items = data.entries.map((e) => {
+      ...Map<String, dynamic>.from(e.value),
+      'id': e.key,
+    }).toList();
+    
     // Fetch product details for each cart item
     final List<CartItem> cartItems = [];
 
     for (final item in items) {
       final productData = await dbService.getProduct(item['product_id']);
 
-      final product = productData != null ? Product.fromJson(productData) : null;
+      final product = productData != null ? Product.fromMap(productData) : null;
       final unitPrice = product?.price ?? item['unit_price']?.toDouble() ?? 0.0;
       final quantity = item['quantity'] ?? 1;
       
@@ -36,16 +57,39 @@ final cartProvider = StreamProvider<List<CartItem>>((ref) {
     }
 
     return cartItems;
-  });
+  } catch (e) {
+    print('Error loading cart: $e');
+    return [];
+  }
 });
 
 // Clients provider
-final clientsProvider = StreamProvider<List<Client>>((ref) {
+final clientsProvider = FutureProvider<List<Client>>((ref) async {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) {
+    return [];
+  }
+  
   final dbService = ref.watch(databaseServiceProvider);
-
-  return dbService.getClients().map((clientsList) {
-    return clientsList.map((json) => Client.fromJson(json)).toList();
-  });
+  
+  try {
+    final database = FirebaseDatabase.instance;
+    final snapshot = await database.ref('clients/${user.uid}').get();
+    
+    if (snapshot.exists && snapshot.value != null) {
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      return data.entries.map((e) {
+        final clientMap = Map<String, dynamic>.from(e.value);
+        clientMap['id'] = e.key;
+        return Client.fromMap(clientMap);
+      }).toList();
+    }
+    
+    return [];
+  } catch (e) {
+    print('Error loading clients: $e');
+    return [];
+  }
 });
 
 // Cart client provider
@@ -235,6 +279,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         subtitle: Text(
                           '\$${((product?.price ?? 0) * item.quantity).toStringAsFixed(2)}',
                         ),
+                        onTap: product != null ? () => _showProductSpecs(product, context, theme) : null,
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -466,6 +511,137 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         const SnackBar(content: Text('Cart cleared')),
       );
     }
+  }
+
+  void _showProductSpecs(Product product, BuildContext context, ThemeData theme) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            product.displayName,
+            style: TextStyle(
+              color: theme.primaryColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.8,
+            height: MediaQuery.of(context).size.height * 0.7,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left side - Product Image
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: theme.disabledColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Image.asset(
+                        ProductImageHelper.getImagePath(product.sku ?? product.model),
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Image.asset(
+                          'assets/logos/turbo_air_logo.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.image_not_supported,
+                            size: 64,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Right side - Product Specifications
+                Expanded(
+                  flex: 3,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSpecRow('SKU', product.sku ?? product.model, theme),
+                        _buildSpecRow('Price', '\$${product.price.toStringAsFixed(2)}', theme),
+                        _buildSpecRow('Category', product.category, theme),
+                        if (product.subcategory != null && product.subcategory!.isNotEmpty)
+                          _buildSpecRow('Subcategory', product.subcategory!, theme),
+                        _buildSpecRow('Description', product.description, theme),
+                        if (product.dimensions != null && product.dimensions!.isNotEmpty)
+                          _buildSpecRow('Dimensions', product.dimensions!, theme),
+                        if (product.weight != null && product.weight!.isNotEmpty)
+                          _buildSpecRow('Weight', product.weight!, theme),
+                        if (product.voltage != null && product.voltage!.isNotEmpty)
+                          _buildSpecRow('Voltage', product.voltage!, theme),
+                        if (product.amperage != null && product.amperage!.isNotEmpty)
+                          _buildSpecRow('Amperage', product.amperage!, theme),
+                        if (product.phase != null && product.phase!.isNotEmpty)
+                          _buildSpecRow('Phase', product.phase!, theme),
+                        if (product.frequency != null && product.frequency!.isNotEmpty)
+                          _buildSpecRow('Frequency', product.frequency!, theme),
+                        if (product.plugType != null && product.plugType!.isNotEmpty)
+                          _buildSpecRow('Plug Type', product.plugType!, theme),
+                        if (product.temperatureRange != null && product.temperatureRange!.isNotEmpty)
+                          _buildSpecRow('Temperature Range', product.temperatureRange!, theme),
+                        if (product.refrigerant != null && product.refrigerant!.isNotEmpty)
+                          _buildSpecRow('Refrigerant', product.refrigerant!, theme),
+                        if (product.compressor != null && product.compressor!.isNotEmpty)
+                          _buildSpecRow('Compressor', product.compressor!, theme),
+                        if (product.capacity != null && product.capacity!.isNotEmpty)
+                          _buildSpecRow('Capacity', product.capacity!, theme),
+                        if (product.doors != null && product.doors! > 0)
+                          _buildSpecRow('Doors', product.doors.toString(), theme),
+                        if (product.shelves != null && product.shelves! > 0)
+                          _buildSpecRow('Shelves', product.shelves.toString(), theme),
+                        _buildSpecRow('Stock', product.stock.toString(), theme),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSpecRow(String label, String value, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: theme.primaryColor,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 14),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _createQuote(List<CartItem> items, Client client) async {

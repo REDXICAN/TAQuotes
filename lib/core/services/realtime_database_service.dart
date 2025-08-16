@@ -173,6 +173,12 @@ class RealtimeDatabaseService {
   Future<void> addToCart(String productId, int quantity) async {
     if (userId == null) throw Exception('User not authenticated');
 
+    // If quantity is 0 or negative, remove from cart
+    if (quantity <= 0) {
+      await removeProductFromCart(productId);
+      return;
+    }
+
     // Check if item already exists in cart
     final existingSnapshot = await _db
         .ref('cart_items/$userId')
@@ -184,10 +190,9 @@ class RealtimeDatabaseService {
       for (var entry in data.entries) {
         final item = Map<String, dynamic>.from(entry.value);
         if (item['product_id'] == productId) {
-          // Update existing quantity
-          final newQuantity = (item['quantity'] ?? 0) + quantity;
+          // Set the absolute quantity (not add to existing)
           await _db.ref('cart_items/$userId/${entry.key}').update({
-            'quantity': newQuantity,
+            'quantity': quantity,
             'updated_at': ServerValue.timestamp,
           });
           return;
@@ -203,6 +208,27 @@ class RealtimeDatabaseService {
       'created_at': ServerValue.timestamp,
       'updated_at': ServerValue.timestamp,
     });
+  }
+
+  Future<void> removeProductFromCart(String productId) async {
+    if (userId == null) return;
+    
+    // Find and remove the cart item with this product ID
+    final existingSnapshot = await _db
+        .ref('cart_items/$userId')
+        .once();
+
+    if (existingSnapshot.snapshot.value != null) {
+      final data =
+          Map<String, dynamic>.from(existingSnapshot.snapshot.value as Map);
+      for (var entry in data.entries) {
+        final item = Map<String, dynamic>.from(entry.value);
+        if (item['product_id'] == productId) {
+          await _db.ref('cart_items/$userId/${entry.key}').remove();
+          return;
+        }
+      }
+    }
   }
 
   Future<void> updateCartItem(String cartItemId, int quantity) async {
@@ -282,26 +308,16 @@ class RealtimeDatabaseService {
     await newQuoteRef.set({
       'client_id': clientId,
       'quote_number': quoteNumber,
+      'quote_items': items,  // Store items directly in the quote
       'subtotal': subtotal,
       'tax_rate': taxRate,
       'tax_amount': taxAmount,
       'total_amount': totalAmount,
       'status': 'draft',
+      'user_id': userId,  // Add user ID for reference
       'created_at': ServerValue.timestamp,
       'updated_at': ServerValue.timestamp,
     });
-
-    // Add quote items
-    for (final item in items) {
-      await _db.ref('quote_items/$userId').push().set({
-        'quote_id': newQuoteRef.key,
-        'product_id': item['product_id'],
-        'quantity': item['quantity'],
-        'unit_price': item['unit_price'],
-        'total_price': item['total_price'],
-        'created_at': ServerValue.timestamp,
-      });
-    }
 
     return newQuoteRef.key!;
   }
@@ -332,9 +348,6 @@ class RealtimeDatabaseService {
       // Delete the quote
       await quoteRef.remove();
       
-      // Also delete associated quote items if they exist
-      await _db.ref('quote_items/$quoteId').remove();
-      
     } catch (e) {
       // Log error and rethrow
       rethrow;
@@ -357,12 +370,14 @@ class RealtimeDatabaseService {
     required String email,
     required String name,
     String role = 'distributor',
+    String status = 'active',
   }) async {
     await _db.ref('user_profiles/$uid').set({
       'uid': uid,
       'email': email,
       'name': name,
       'role': role,
+      'status': status,
       'created_at': ServerValue.timestamp,
       'updated_at': ServerValue.timestamp,
     });

@@ -6,7 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/models/models.dart';
-import '../../../../core/utils/product_image_helper.dart';
+import '../../../../core/utils/product_image_helper_v2.dart' as ImageHelper;
 import '../../../../core/services/excel_upload_service.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -14,13 +14,15 @@ import '../../widgets/excel_preview_dialog.dart';
 
 // Products provider using Firebase directly
 final productsProvider =
-    StreamProvider.family<List<Product>, String?>((ref, category) {
-  final database = FirebaseDatabase.instance;
-  
-  return database.ref('products').onValue.map((event) {
+    FutureProvider.family<List<Product>, String?>((ref, category) async {
+  // Products don't require authentication (public read access)
+  try {
+    final database = FirebaseDatabase.instance;
+    final snapshot = await database.ref('products').get();
+    
     final List<Product> products = [];
-    if (event.snapshot.value != null) {
-      final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+    if (snapshot.exists && snapshot.value != null) {
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
       data.forEach((key, value) {
         final productMap = Map<String, dynamic>.from(value);
         productMap['id'] = key;
@@ -36,8 +38,44 @@ final productsProvider =
     }
     products.sort((a, b) => (a.sku ?? '').compareTo(b.sku ?? ''));
     return products;
-  });
+  } catch (e) {
+    AppLogger.error('Error loading products', error: e, category: LogCategory.database);
+    return [];
+  }
 });
+
+// Cart quantities provider to track quantity for each product
+final productQuantitiesProvider = StateNotifierProvider<ProductQuantitiesNotifier, Map<String, int>>((ref) {
+  return ProductQuantitiesNotifier();
+});
+
+class ProductQuantitiesNotifier extends StateNotifier<Map<String, int>> {
+  ProductQuantitiesNotifier() : super({});
+
+  void setQuantity(String productId, int quantity) {
+    if (quantity <= 0) {
+      state = {...state}..remove(productId);
+    } else {
+      state = {...state, productId: quantity};
+    }
+  }
+
+  int getQuantity(String productId) {
+    return state[productId] ?? 0;
+  }
+
+  void increment(String productId) {
+    final current = getQuantity(productId);
+    setQuantity(productId, current + 1);
+  }
+
+  void decrement(String productId) {
+    final current = getQuantity(productId);
+    if (current > 0) {
+      setQuantity(productId, current - 1);
+    }
+  }
+}
 
 // Search provider
 final searchQueryProvider = StateProvider<String>((ref) => '');
@@ -72,6 +110,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
   bool _isUploading = false;
+  bool _isTableView = false;
 
   @override
   void dispose() {
@@ -354,6 +393,33 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
+                  // Grid/Table Toggle Button
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: IconButton(
+                      icon: Icon(
+                        _isTableView ? Icons.grid_view : Icons.table_chart,
+                        color: theme.primaryColor,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isTableView = !_isTableView;
+                        });
+                      },
+                      tooltip: _isTableView ? 'Grid View' : 'Table View',
+                      style: IconButton.styleFrom(
+                        backgroundColor: theme.primaryColor.withOpacity(0.1),
+                      ),
+                    ),
+                  ),
+                  // Divider
+                  Container(
+                    width: 1,
+                    height: 30,
+                    color: theme.dividerColor,
+                    margin: const EdgeInsets.only(right: 12),
+                  ),
+                  // All Filter
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: FilterChip(
@@ -384,12 +450,12 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
 
           const SizedBox(height: 8),
 
-          // Products Grid
+          // Products Grid or Table
           Expanded(
             child: _isSearching
-                ? _buildProductsGrid(searchResults ?? [])
+                ? (_isTableView ? _buildProductsTable(searchResults ?? []) : _buildProductsGrid(searchResults ?? []))
                 : productsAsync.when(
-                    data: (products) => _buildProductsGrid(products),
+                    data: (products) => _isTableView ? _buildProductsTable(products) : _buildProductsGrid(products),
                     loading: () => const Center(
                       child: CircularProgressIndicator(),
                     ),
@@ -415,6 +481,156 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                       ),
                     ),
                   ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuantitySelector(Product product, WidgetRef ref, BuildContext context, ThemeData theme, dynamic dbService) {
+    final quantities = ref.watch(productQuantitiesProvider);
+    final quantity = quantities[product.id] ?? 0;
+    final quantityNotifier = ref.read(productQuantitiesProvider.notifier);
+    final textController = TextEditingController(text: quantity.toString());
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.dividerColor),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Minus button
+          InkWell(
+            onTap: () async {
+              if (quantity > 0) {
+                quantityNotifier.decrement(product.id ?? '');
+                try {
+                  await dbService.addToCart(product.id ?? '', quantity - 1);
+                  if (context.mounted && quantity == 1) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${product.displayName} removed from cart'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error updating cart: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              child: Icon(
+                Icons.remove,
+                size: 16,
+                color: quantity > 0 ? theme.primaryColor : theme.disabledColor,
+              ),
+            ),
+          ),
+          // Quantity input
+          Container(
+            width: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: TextField(
+              controller: textController,
+              textAlign: TextAlign.center,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+              style: const TextStyle(fontSize: 14),
+              onChanged: (value) async {
+                final newQuantity = int.tryParse(value) ?? 0;
+                quantityNotifier.setQuantity(product.id ?? '', newQuantity);
+                
+                if (newQuantity > 0) {
+                  try {
+                    await dbService.addToCart(product.id ?? '', newQuantity);
+                    if (context.mounted && newQuantity > quantity) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${product.displayName} quantity updated'),
+                          action: SnackBarAction(
+                            label: 'View Cart',
+                            onPressed: () {
+                              context.go('/cart');
+                            },
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error updating cart: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                } else if (quantity > 0) {
+                  // Remove from cart if quantity is 0
+                  try {
+                    await dbService.addToCart(product.id ?? '', 0);
+                  } catch (e) {
+                    // Handle error silently
+                  }
+                }
+              },
+            ),
+          ),
+          // Plus button
+          InkWell(
+            onTap: () async {
+              quantityNotifier.increment(product.id ?? '');
+              final newQuantity = quantity + 1;
+              
+              try {
+                await dbService.addToCart(product.id ?? '', newQuantity);
+                if (context.mounted && quantity == 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${product.sku ?? product.model} added to cart'),
+                      action: SnackBarAction(
+                        label: 'View Cart',
+                        onPressed: () {
+                          context.go('/cart');
+                        },
+                      ),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error adding to cart: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              child: Icon(
+                Icons.add,
+                size: 16,
+                color: theme.primaryColor,
+              ),
+            ),
           ),
         ],
       ),
@@ -459,10 +675,11 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Responsive columns: 4 for desktop/tablet, 2 for phone
-        final crossAxisCount = constraints.maxWidth > 600 ? 4 : 2;
-        // Shorter cards with adjusted aspect ratio
-        final childAspectRatio = constraints.maxWidth > 600 ? 0.85 : 0.8;
+        // Responsive columns: 6 for desktop, 5 for tablet, 2 for phone
+        final crossAxisCount = constraints.maxWidth > 900 ? 6 : 
+                              constraints.maxWidth > 600 ? 5 : 2;
+        // Portrait aspect ratio for cards (like paper sheet)
+        final childAspectRatio = constraints.maxWidth > 600 ? 0.65 : 0.7;
         
         return GridView.builder(
           padding: const EdgeInsets.all(16),
@@ -481,6 +698,124 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
       },
     );
   }
+  
+  Widget _buildProductsTable(List<Product> products) {
+    final theme = Theme.of(context);
+    
+    if (products.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              _isSearching
+                  ? Icons.search_off
+                  : Icons.inventory_2_outlined,
+              size: 80,
+              color: theme.disabledColor,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _isSearching
+                  ? 'No products found'
+                  : 'No products in this category',
+              style: theme.textTheme.headlineSmall,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: SingleChildScrollView(
+        child: DataTable(
+          columnSpacing: 30,
+          headingRowColor: WidgetStateProperty.all(theme.primaryColor.withOpacity(0.1)),
+          columns: const [
+            DataColumn(label: Text('Image', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('SKU', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Name', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Category', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Price', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Stock', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+          ],
+          rows: products.map((product) {
+            final imagePath = ImageHelper.ProductImageHelper.getImagePath(product.sku ?? product.model);
+            return DataRow(
+              cells: [
+                DataCell(
+                  Container(
+                    width: 80,
+                    height: 80,
+                    padding: const EdgeInsets.all(4),
+                    child: Image.asset(
+                      imagePath,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Image.asset(
+                        'assets/logos/turbo_air_logo.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.image_not_supported,
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                DataCell(
+                  Text(
+                    product.sku ?? product.model,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: theme.primaryColor,
+                    ),
+                  ),
+                ),
+                DataCell(
+                  Container(
+                    constraints: const BoxConstraints(maxWidth: 300),
+                    child: Text(
+                      product.displayName,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                DataCell(Text(product.category)),
+                DataCell(
+                  Text(
+                    '\$${product.price.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: theme.primaryColor,
+                    ),
+                  ),
+                ),
+                DataCell(Text(product.stock.toString())),
+                DataCell(
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.visibility, size: 20),
+                        onPressed: () {
+                          context.push('/products/${product.id}');
+                        },
+                        tooltip: 'View Details',
+                      ),
+                      const SizedBox(width: 8),
+                      _buildQuantitySelector(product, ref, context, theme, ref.read(databaseServiceProvider)),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
 }
 
 class ProductCard extends ConsumerWidget {
@@ -491,10 +826,160 @@ class ProductCard extends ConsumerWidget {
     required this.product,
   });
 
+  Widget _buildQuantitySelector(Product product, WidgetRef ref, BuildContext context, ThemeData theme, dynamic dbService) {
+    final quantities = ref.watch(productQuantitiesProvider);
+    final quantity = quantities[product.id] ?? 0;
+    final quantityNotifier = ref.read(productQuantitiesProvider.notifier);
+    final textController = TextEditingController(text: quantity.toString());
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.dividerColor),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Minus button
+          InkWell(
+            onTap: () async {
+              if (quantity > 0) {
+                quantityNotifier.decrement(product.id ?? '');
+                try {
+                  await dbService.addToCart(product.id ?? '', quantity - 1);
+                  if (context.mounted && quantity == 1) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${product.displayName} removed from cart'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error updating cart: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              child: Icon(
+                Icons.remove,
+                size: 16,
+                color: quantity > 0 ? theme.primaryColor : theme.disabledColor,
+              ),
+            ),
+          ),
+          // Quantity input
+          Container(
+            width: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: TextField(
+              controller: textController,
+              textAlign: TextAlign.center,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+              style: const TextStyle(fontSize: 14),
+              onChanged: (value) async {
+                final newQuantity = int.tryParse(value) ?? 0;
+                quantityNotifier.setQuantity(product.id ?? '', newQuantity);
+                
+                if (newQuantity > 0) {
+                  try {
+                    await dbService.addToCart(product.id ?? '', newQuantity);
+                    if (context.mounted && newQuantity > quantity) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${product.displayName} quantity updated'),
+                          action: SnackBarAction(
+                            label: 'View Cart',
+                            onPressed: () {
+                              context.go('/cart');
+                            },
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error updating cart: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                } else if (quantity > 0) {
+                  // Remove from cart if quantity is 0
+                  try {
+                    await dbService.addToCart(product.id ?? '', 0);
+                  } catch (e) {
+                    // Handle error silently
+                  }
+                }
+              },
+            ),
+          ),
+          // Plus button
+          InkWell(
+            onTap: () async {
+              quantityNotifier.increment(product.id ?? '');
+              final newQuantity = quantity + 1;
+              
+              try {
+                await dbService.addToCart(product.id ?? '', newQuantity);
+                if (context.mounted && quantity == 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${product.sku ?? product.model} added to cart'),
+                      action: SnackBarAction(
+                        label: 'View Cart',
+                        onPressed: () {
+                          context.go('/cart');
+                        },
+                      ),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error adding to cart: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              child: Icon(
+                Icons.add,
+                size: 16,
+                color: theme.primaryColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final imagePath = ProductImageHelper.getImagePath(product.sku ?? product.model);
+    final imagePath = ImageHelper.ProductImageHelper.getImagePath(product.sku ?? product.model);
     final dbService = ref.read(databaseServiceProvider);
 
     return Card(
@@ -507,9 +992,9 @@ class ProductCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product Image - Made smaller
+            // Product Image - Portrait orientation, covering most of column
             Expanded(
-              flex: 2,
+              flex: 4,
               child: Container(
                 decoration: BoxDecoration(
                   color: theme.disabledColor.withOpacity(0.1),
@@ -521,21 +1006,25 @@ class ProductCard extends ConsumerWidget {
                   padding: const EdgeInsets.all(8),
                   child: Image.asset(
                     imagePath,
-                    fit: BoxFit.contain,
+                    fit: BoxFit.cover,
                     width: double.infinity,
-                    errorBuilder: (_, __, ___) => const Center(
-                      child: Icon(
-                        Icons.image_not_supported,
-                        size: 32,
+                    errorBuilder: (_, __, ___) => Image.asset(
+                      'assets/logos/turbo_air_logo.png',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Center(
+                        child: Icon(
+                          Icons.image_not_supported,
+                          size: 48,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
             ),
-            // Product Info - More compact
+            // Product Info - More compact but readable
             Expanded(
-              flex: 2,
+              flex: 3,
               child: Padding(
                 padding: const EdgeInsets.all(8),
                 child: Column(
@@ -544,71 +1033,35 @@ class ProductCard extends ConsumerWidget {
                     Text(
                       product.sku ?? product.model,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: theme.primaryColor,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
                       product.displayName,
-                      style: const TextStyle(fontSize: 10),
+                      style: const TextStyle(fontSize: 13),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const Spacer(),
+                    // Price and Quantity Selector
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           '\$${product.price.toStringAsFixed(2)}',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 18,
                             color: theme.primaryColor,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        SizedBox(
-                          height: 28,
-                          width: 28,
-                          child: IconButton(
-                            padding: EdgeInsets.zero,
-                            iconSize: 18,
-                            icon: const Icon(Icons.add_shopping_cart),
-                            onPressed: () async {
-                            try {
-                              await dbService.addToCart(product.id ?? '', 1);
-
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                        '${product.displayName} added to cart'),
-                                    action: SnackBarAction(
-                                      label: 'View Cart',
-                                      onPressed: () {
-                                        context.go('/cart');
-                                      },
-                                    ),
-                                  ),
-                                );
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Error adding to cart: $e'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            }
-                            },
-                            color: theme.primaryColor,
-                          ),
-                        ),
+                        // Quantity Selector
+                        _buildQuantitySelector(product, ref, context, theme, dbService),
                       ],
                     ),
                   ],

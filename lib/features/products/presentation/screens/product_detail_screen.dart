@@ -105,12 +105,19 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.grey[200],
+                              color: theme.brightness == Brightness.dark 
+                                  ? Colors.grey[800] 
+                                  : Colors.grey[200],
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               product.category,
-                              style: const TextStyle(fontSize: 12),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.brightness == Brightness.dark 
+                                    ? Colors.white 
+                                    : Colors.black87,
+                              ),
                             ),
                           ),
                         ],
@@ -199,7 +206,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
-                                            'Added $_quantity ${product.displayName} to cart'),
+                                            'Added $_quantity ${product.sku ?? product.model} to cart'),
                                         backgroundColor: Colors.green,
                                         action: SnackBarAction(
                                           label: 'View Cart',
@@ -379,7 +386,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
                                             content: Text(
-                                                'Added $_quantity ${product.displayName} to cart'),
+                                                'Added $_quantity ${product.sku ?? product.model} to cart'),
                                             backgroundColor: Colors.green,
                                             action: SnackBarAction(
                                               label: 'View Cart',
