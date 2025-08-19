@@ -2,7 +2,9 @@
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:typed_data';
+import 'dart:html' as html;
 import 'app_logger.dart';
 import '../config/email_config.dart';
 
@@ -70,6 +72,31 @@ class EmailServiceV2 {
     }
   }
 
+  /// Open email client with pre-filled content (Web fallback)
+  static void openEmailClient({
+    required String recipientEmail,
+    required String subject,
+    required String body,
+  }) {
+    if (kIsWeb) {
+      // For web, open default email client
+      final Uri emailUri = Uri(
+        scheme: 'mailto',
+        path: recipientEmail,
+        queryParameters: {
+          'subject': subject,
+          'body': body,
+        },
+      );
+      
+      // Open in default email client
+      html.window.open(emailUri.toString(), '_blank');
+      
+      AppLogger.info('Opened email client for user to send manually', 
+        category: LogCategory.business);
+    }
+  }
+  
   /// Send quote email with optional PDF attachment
   Future<bool> sendQuoteEmail({
     required String recipientEmail,
@@ -81,6 +108,37 @@ class EmailServiceV2 {
     bool attachExcel = false,
     Uint8List? excelBytes,
   }) async {
+    // For web platform, open email client instead
+    if (kIsWeb) {
+      final subject = 'Quote #$quoteNumber from TurboAir';
+      final body = '''
+Dear $recipientName,
+
+Please find your quote details below:
+
+Quote Number: $quoteNumber
+Total Amount: \$${totalAmount.toStringAsFixed(2)}
+Date: ${DateTime.now().toString().split(' ')[0]}
+
+Note: Please download the PDF and Excel attachments from the quotes section of the app.
+
+Thank you for your business!
+
+Best regards,
+TurboAir Quote System
+      ''';
+      
+      openEmailClient(
+        recipientEmail: recipientEmail,
+        subject: subject,
+        body: body,
+      );
+      
+      // Return true to indicate the email client was opened
+      return true;
+    }
+    
+    // Original SMTP code for non-web platforms
     try {
       final message = Message()
         ..from = Address(
