@@ -39,7 +39,7 @@ class EnvConfig {
   }
   
   // Admin Credentials - with safe fallbacks
-  static String get adminEmail => _getEnv('ADMIN_EMAIL', 'andres@turboairmexico.com');
+  static String get adminEmail => _getEnv('ADMIN_EMAIL', '');
   static String get adminPassword => _getEnv('ADMIN_PASSWORD');
   
   // Firebase Configuration
@@ -76,7 +76,7 @@ class EnvConfig {
   static bool get smtpSecure => _getEnvBool('SMTP_SECURE', false);
   
   // Demo Account
-  static String get demoPassword => _getEnv('DEMO_PASSWORD', 'demo123456');
+  static String get demoPassword => _getEnv('DEMO_PASSWORD', '');
   
   // Check if environment is properly loaded
   static bool get isLoaded {

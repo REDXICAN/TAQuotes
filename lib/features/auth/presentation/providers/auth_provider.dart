@@ -192,7 +192,7 @@ Future<void> _handleRegistrationEmails(String email, String name, String role, S
   try {
     // Import email service at the top of the file if not already imported
     final emailService = EmailService();
-    const adminEmail = 'andres@turboairmexico.com';
+    final adminEmail = dotenv.env['ADMIN_EMAIL'] ?? '';
 
     if (role == 'Admin') {
       // Send approval request to superadmin
