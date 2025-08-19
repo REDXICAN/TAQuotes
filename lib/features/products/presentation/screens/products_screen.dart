@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_database/firebase_database.dart';
-import '../../../../core/config/app_config.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/utils/product_image_helper_v3.dart';
 import '../../../../core/utils/responsive_helper.dart';
@@ -12,6 +11,7 @@ import '../../../../core/services/excel_upload_service.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../widgets/excel_preview_dialog.dart';
+import '../../widgets/zoomable_image_viewer.dart';
 
 // Products provider using Firebase
 final productsProvider =
@@ -1343,17 +1343,6 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                   ],
                 ),
               ),
-              // Add to cart button with better positioning
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: _buildQuantitySelector(
-                  product, 
-                  ref, 
-                  context, 
-                  theme, 
-                  ref.read(databaseServiceProvider),
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -1424,9 +1413,29 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
     final isTablet = ResponsiveHelper.isTablet(context);
     final imagePath1 = ProductImageHelperV3.getImagePathWithFallback(product.sku ?? product.model ?? '');
     
-    // Generate P.2 image path
+    // Generate multiple image paths (P.1, P.2, P.3, P.4)
     final sku = product.sku ?? product.model ?? '';
     final imagePath2 = 'assets/screenshots/$sku/$sku P.2.png';
+    final List<String> imagePaths = [
+      imagePath1,
+      imagePath2,
+      'assets/screenshots/$sku/$sku P.3.png',
+      'assets/screenshots/$sku/$sku P.4.png',
+    ];
+    
+    // Function to open zoomable viewer
+    void openImageViewer(int initialIndex) {
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        barrierColor: Colors.black87,
+        builder: (context) => ZoomableImageViewer(
+          imagePaths: imagePaths,
+          initialIndex: initialIndex,
+          productName: '${product.sku ?? product.model} - ${product.displayName}',
+        ),
+      );
+    }
     
     // For mobile, use PageView for slider
     if (isMobile) {
@@ -1444,40 +1453,70 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
               controller: pageController,
               children: [
             // Page 1
-            Container(
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: Image.asset(
-                      imagePath1,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Image.asset(
-                        'assets/logos/turbo_air_logo.png',
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Icon(
-                          Icons.image_not_supported,
-                          size: 100,
-                          color: theme.disabledColor,
-                        ),
+            GestureDetector(
+              onTap: () => openImageViewer(0),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          Center(
+                            child: Image.asset(
+                              imagePath1,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => Image.asset(
+                                'assets/logos/turbo_air_logo.png',
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => Icon(
+                                  Icons.image_not_supported,
+                                  size: 100,
+                                  color: theme.disabledColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Icon(
+                                Icons.zoom_in,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Page 1', style: theme.textTheme.bodySmall),
-                ],
+                    const SizedBox(height: 8),
+                    Text('Page 1', style: theme.textTheme.bodySmall),
+                  ],
+                ),
               ),
             ),
             // Page 2
-            Container(
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: Image.asset(
-                      imagePath2,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Container(
+            GestureDetector(
+              onTap: () => openImageViewer(1),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          Center(
+                            child: Image.asset(
+                              imagePath2,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => Container(
                         color: Colors.grey[200],
                         child: Center(
                           child: Column(
@@ -1502,9 +1541,29 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text('Page 2', style: theme.textTheme.bodySmall),
-                ],
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Icon(
+                                Icons.zoom_in,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Page 2', style: theme.textTheme.bodySmall),
+                  ],
+                ),
               ),
             ),
           ],
@@ -1569,17 +1628,42 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                   ),
                   const SizedBox(height: 8),
                   Expanded(
-                    child: Image.asset(
-                      imagePath1,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Image.asset(
-                        'assets/logos/turbo_air_logo.png',
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Icon(
-                          Icons.image_not_supported,
-                          size: 100,
-                          color: theme.disabledColor,
-                        ),
+                    child: GestureDetector(
+                      onTap: () => openImageViewer(0),
+                      child: Stack(
+                        children: [
+                          Center(
+                            child: Image.asset(
+                              imagePath1,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => Image.asset(
+                                'assets/logos/turbo_air_logo.png',
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => Icon(
+                                  Icons.image_not_supported,
+                                  size: 100,
+                                  color: theme.disabledColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Icon(
+                                Icons.zoom_in,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1772,7 +1856,38 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                         tooltip: 'View Details',
                       ),
                       const SizedBox(width: 8),
-                      _buildQuantitySelector(product, ref, context, theme, ref.read(databaseServiceProvider)),
+                      IconButton(
+                        icon: const Icon(Icons.add_shopping_cart, size: 20),
+                        onPressed: () async {
+                          final dbService = ref.read(databaseServiceProvider);
+                          try {
+                            await dbService.addToCart(product.id ?? '', 1);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('${product.sku ?? product.model} added to cart'),
+                                  action: SnackBarAction(
+                                    label: 'View Cart',
+                                    onPressed: () {
+                                      context.go('/cart');
+                                    },
+                                  ),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error adding to cart: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        tooltip: 'Add to Cart',
+                      ),
                     ],
                   ),
                 ),

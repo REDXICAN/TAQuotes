@@ -46,7 +46,7 @@ void main() {
   final appPassword = config['EMAIL_APP_PASSWORD'];
   if (appPassword != null && appPassword.isNotEmpty) {
     final passwordLength = appPassword.replaceAll(' ', '').length;
-    print('✅ EMAIL_APP_PASSWORD: Set (${passwordLength} characters)');
+    print('✅ EMAIL_APP_PASSWORD: Set ($passwordLength characters)');
     
     // Google App passwords are 16 characters
     if (passwordLength != 16) {

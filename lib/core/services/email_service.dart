@@ -5,15 +5,27 @@ import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 import '../config/secure_email_config.dart';
 import 'export_service.dart';
+import 'app_logger.dart';
 
 class EmailService {
   late SmtpServer _smtpServer;
 
   EmailService() {
-    _smtpServer = gmail(SecureEmailConfig.gmailAddress, SecureEmailConfig.gmailAppPassword);
+    // Use manual SMTP configuration instead of gmail() helper for better control
+    _smtpServer = SmtpServer(
+      SecureEmailConfig.smtpHost,
+      port: SecureEmailConfig.smtpPort,
+      username: SecureEmailConfig.gmailAddress,
+      password: SecureEmailConfig.gmailAppPassword,
+      ssl: SecureEmailConfig.smtpSecure,
+      allowInsecure: !SecureEmailConfig.smtpSecure,
+    );
+    
+    AppLogger.info('Email service initialized with SMTP server: ${SecureEmailConfig.smtpHost}:${SecureEmailConfig.smtpPort}',
+        category: LogCategory.email);
   }
 
-  /// Send quote email with user information
+  /// Send quote email with user information and comprehensive error handling
   Future<bool> sendQuoteEmail({
     required String recipientEmail,
     required String recipientName,
@@ -22,7 +34,19 @@ class EmailService {
     required Map<String, dynamic> userInfo, // User/salesman info
     List<Attachment>? attachments,
   }) async {
+    AppLogger.debug('Preparing to send email to $recipientEmail', category: LogCategory.email);
+    
     try {
+      // Validate inputs
+      if (recipientEmail.isEmpty || !recipientEmail.contains('@')) {
+        throw Exception('Invalid recipient email: $recipientEmail');
+      }
+      if (quoteNumber.isEmpty) {
+        throw Exception('Quote number is required');
+      }
+      if (htmlContent.isEmpty) {
+        throw Exception('Email content is required');
+      }
       // Build user signature block
       final userSignature = _buildUserSignature(userInfo);
 
@@ -56,17 +80,39 @@ $userSignature
         message.attachments.addAll(attachments);
       }
 
-      // Send email
-      await send(message, _smtpServer,
+      AppLogger.debug('Attempting to send email via SMTP', category: LogCategory.email);
+      
+      // Send email with timeout
+      final sendReport = await send(message, _smtpServer,
           timeout: const Duration(seconds: SecureEmailConfig.emailTimeoutSeconds));
 
       if (SecureEmailConfig.enableEmailLogging) {
-        // Email sent successfully
+        AppLogger.info('Email sent successfully to $recipientEmail',
+            category: LogCategory.email,
+            data: {
+              'recipient': recipientEmail,
+              'subject': '${SecureEmailConfig.quoteEmailSubject}$quoteNumber',
+              'messageId': sendReport.toString(),
+              'attachmentCount': attachments?.length ?? 0,
+            });
       }
 
       return true;
-    } catch (e) {
-      // Error sending email
+    } catch (e, stackTrace) {
+      AppLogger.error('Error sending email to $recipientEmail',
+          error: e,
+          stackTrace: stackTrace,
+          category: LogCategory.email,
+          data: {
+            'recipient': recipientEmail,
+            'smtpHost': SecureEmailConfig.smtpHost,
+            'smtpPort': SecureEmailConfig.smtpPort,
+            'subject': '${SecureEmailConfig.quoteEmailSubject}$quoteNumber',
+            'attachmentCount': attachments?.length ?? 0,
+            'errorType': e.runtimeType.toString(),
+          });
+      
+      // Return false instead of throwing to allow proper error handling
       return false;
     }
   }
@@ -145,7 +191,7 @@ $userSignature
     return buffer.toString();
   }
 
-  /// Send quote with PDF attachment (fully functional)
+  /// Send quote with PDF attachment (fully functional with comprehensive error handling)
   Future<bool> sendQuoteWithPDF({
     required String recipientEmail,
     required String recipientName,
@@ -154,6 +200,9 @@ $userSignature
     required Map<String, dynamic> userInfo,
     String? customMessage,
   }) async {
+    AppLogger.info('Starting email send with PDF for quote $quoteNumber to $recipientEmail', 
+        category: LogCategory.email);
+    final stopwatch = AppLogger.startTimer();
     // Build responsive email HTML content with table
     final htmlContent = '''
 <!DOCTYPE html>
@@ -201,13 +250,30 @@ $userSignature
 </html>
     ''';
 
-    // Generate PDF attachment
+    // Generate PDF attachment with proper error handling
     List<Attachment> attachments = [];
     String enhancedHtmlContent = htmlContent;
     
     try {
+      AppLogger.debug('Generating PDF for quote $quoteId', category: LogCategory.email);
+      
+      // Validate inputs
+      if (quoteId.isEmpty) {
+        throw Exception('Quote ID is empty');
+      }
+      if (recipientEmail.isEmpty) {
+        throw Exception('Recipient email is empty');
+      }
+      
       // Generate PDF bytes from ExportService
       final Uint8List pdfBytes = await ExportService.generateQuotePDF(quoteId);
+      
+      if (pdfBytes.isEmpty) {
+        throw Exception('Generated PDF is empty');
+      }
+      
+      AppLogger.debug('PDF generated successfully, size: ${pdfBytes.length} bytes', 
+          category: LogCategory.email);
       
       // Create attachment from bytes using StreamAttachment
       final attachment = StreamAttachment(
@@ -217,25 +283,35 @@ $userSignature
       );
       
       attachments.add(attachment);
-    } catch (e) {
-      // If PDF generation fails, don't send email without attachment
-      // But include error details in the response
+      AppLogger.debug('PDF attachment created successfully', category: LogCategory.email);
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to generate PDF attachment for quote $quoteNumber', 
+          error: e, stackTrace: stackTrace, category: LogCategory.email);
       
-      // Don't send email without proper attachment - return false
+      // Don't send email without proper attachment - return false with detailed error
       return false;
     }
 
-    return await sendQuoteEmail(
-      recipientEmail: recipientEmail,
-      recipientName: recipientName,
-      quoteNumber: quoteNumber,
-      htmlContent: enhancedHtmlContent,
-      userInfo: userInfo,
-      attachments: attachments,
-    );
+    try {
+      final result = await sendQuoteEmail(
+        recipientEmail: recipientEmail,
+        recipientName: recipientName,
+        quoteNumber: quoteNumber,
+        htmlContent: enhancedHtmlContent,
+        userInfo: userInfo,
+        attachments: attachments,
+      );
+      
+      AppLogger.logTimer('Email with PDF sent successfully', stopwatch);
+      return result;
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to send email with PDF for quote $quoteNumber', 
+          error: e, stackTrace: stackTrace, category: LogCategory.email);
+      return false;
+    }
   }
   
-  /// Send quote with provided PDF bytes (alternative method)
+  /// Send quote with provided PDF bytes (alternative method with enhanced error handling)
   Future<bool> sendQuoteWithPDFBytes({
     required String recipientEmail,
     required String recipientName,
@@ -245,6 +321,24 @@ $userSignature
     String? customMessage,
     String? quoteId,
   }) async {
+    AppLogger.info('Starting email send with provided PDF bytes for quote $quoteNumber to $recipientEmail', 
+        category: LogCategory.email);
+    final stopwatch = AppLogger.startTimer();
+    
+    try {
+      // Validate inputs
+      if (recipientEmail.isEmpty) {
+        throw Exception('Recipient email is empty');
+      }
+      if (pdfBytes.isEmpty) {
+        throw Exception('PDF bytes are empty');
+      }
+      if (quoteNumber.isEmpty) {
+        throw Exception('Quote number is empty');
+      }
+      
+      AppLogger.debug('PDF bytes validation passed, size: ${pdfBytes.length} bytes', 
+          category: LogCategory.email);
     // Build responsive email HTML content with table
     final htmlContent = '''
 <!DOCTYPE html>
@@ -292,20 +386,30 @@ $userSignature
 </html>
     ''';
 
-    // Create attachment from provided bytes
-    final attachment = StreamAttachment(
-      Stream.value(pdfBytes),
-      'application/pdf',
-      fileName: 'Quote_$quoteNumber.pdf',
-    );
+      // Create attachment from provided bytes
+      final attachment = StreamAttachment(
+        Stream.value(pdfBytes),
+        'application/pdf',
+        fileName: 'Quote_$quoteNumber.pdf',
+      );
+      
+      AppLogger.debug('PDF attachment created from provided bytes', category: LogCategory.email);
 
-    return await sendQuoteEmail(
-      recipientEmail: recipientEmail,
-      recipientName: recipientName,
-      quoteNumber: quoteNumber,
-      htmlContent: htmlContent,
-      userInfo: userInfo,
-      attachments: [attachment],
-    );
+      final result = await sendQuoteEmail(
+        recipientEmail: recipientEmail,
+        recipientName: recipientName,
+        quoteNumber: quoteNumber,
+        htmlContent: htmlContent,
+        userInfo: userInfo,
+        attachments: [attachment],
+      );
+      
+      AppLogger.logTimer('Email with PDF bytes sent successfully', stopwatch);
+      return result;
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to send email with PDF bytes for quote $quoteNumber', 
+          error: e, stackTrace: stackTrace, category: LogCategory.email);
+      return false;
+    }
   }
 }

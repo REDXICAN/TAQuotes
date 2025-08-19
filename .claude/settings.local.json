@@ -89,7 +89,9 @@
       "Bash(firebase hosting:releases:list:*)",
       "Bash(firebase hosting:clone:*)",
       "Bash(cat:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(dart:*)",
+      "Bash(else echo \"firebase_options.dart not found (good)\")"
     ],
     "deny": [],
     "ask": [

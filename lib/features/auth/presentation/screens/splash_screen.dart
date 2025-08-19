@@ -9,9 +9,11 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  late AnimationController _dotsController;
+  String _dots = '';
 
   @override
   void initState() {
@@ -28,11 +30,25 @@ class _SplashScreenState extends State<SplashScreen>
       curve: Curves.easeIn,
     ));
     _animationController.forward();
+    
+    // Dots animation
+    _dotsController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    )..repeat();
+    
+    _dotsController.addListener(() {
+      setState(() {
+        final progress = (_dotsController.value * 4).floor();
+        _dots = '.' * (progress % 4);
+      });
+    });
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _dotsController.dispose();
     super.dispose();
   }
 
@@ -88,12 +104,27 @@ class _SplashScreenState extends State<SplashScreen>
                 strokeWidth: 2,
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Loading...',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Loading',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                  SizedBox(
+                    width: 20,
+                    child: Text(
+                      _dots,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

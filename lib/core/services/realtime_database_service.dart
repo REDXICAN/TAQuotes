@@ -204,6 +204,7 @@ class RealtimeDatabaseService {
     // Add new item
     final newCartRef = _db.ref('cart_items/$userId').push();
     await newCartRef.set({
+      'user_id': userId,
       'product_id': productId,
       'quantity': quantity,
       'created_at': ServerValue.timestamp,
@@ -348,6 +349,26 @@ class RealtimeDatabaseService {
       'status': status,
       'updated_at': ServerValue.timestamp,
     });
+  }
+
+  Future<void> updateQuote(String quoteId, Map<String, dynamic> updates) async {
+    if (userId == null) throw Exception('User not authenticated');
+    
+    try {
+      await _db.ref('quotes/$userId/$quoteId').update(updates);
+      
+      AppLogger.info(
+        'Quote updated: $quoteId',
+        category: LogCategory.database,
+      );
+    } catch (e) {
+      AppLogger.error(
+        'Failed to update quote',
+        error: e,
+        category: LogCategory.database,
+      );
+      rethrow;
+    }
   }
 
   Future<void> deleteQuote(String quoteId) async {

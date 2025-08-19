@@ -1,5 +1,4 @@
 // lib/core/utils/product_image_helper_v3.dart
-import 'dart:io';
 
 class ProductImageHelperV3 {
   // Cache for directory listings
@@ -13,12 +12,12 @@ class ProductImageHelperV3 {
     String cleanSku = sku.trim();
     
     // First try exact match with the actual naming pattern (with space)
-    String exactPath = 'assets/screenshots/$cleanSku/${cleanSku} P.1.png';
+    String exactPath = 'assets/screenshots/$cleanSku/$cleanSku P.1.png';
     
     // For web/Flutter, we can't check file existence, so we'll use a fallback approach
     // Try different naming patterns
     List<String> possiblePaths = [
-      'assets/screenshots/$cleanSku/${cleanSku} P.1.png',  // Actual format with space
+      'assets/screenshots/$cleanSku/$cleanSku P.1.png',  // Actual format with space
       'assets/screenshots/$cleanSku/$cleanSku P.1.png',    // Without braces
       'assets/screenshots/$cleanSku/P.1.png',              // Without SKU prefix
       'assets/screenshots/$cleanSku/${cleanSku}_P.1.png',  // With underscore
@@ -29,7 +28,7 @@ class ProductImageHelperV3 {
     String baseSkuPattern = _extractBaseSku(cleanSku);
     if (baseSkuPattern.isNotEmpty && baseSkuPattern != cleanSku) {
       possiblePaths.addAll([
-        'assets/screenshots/$baseSkuPattern/${baseSkuPattern} P.1.png',
+        'assets/screenshots/$baseSkuPattern/$baseSkuPattern P.1.png',
         'assets/screenshots/$baseSkuPattern/P.1.png',
       ]);
     }
@@ -45,7 +44,7 @@ class ProductImageHelperV3 {
     
     // Try to get up to 5 images with the actual naming pattern
     for (int i = 1; i <= 5; i++) {
-      imagePaths.add('assets/screenshots/$cleanSku/${cleanSku} P.$i.png');
+      imagePaths.add('assets/screenshots/$cleanSku/$cleanSku P.$i.png');
     }
     
     return imagePaths;

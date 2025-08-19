@@ -10,62 +10,62 @@ import '../../../../core/utils/product_image_helper_v3.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/services/export_service.dart';
 import '../../../../core/services/email_service.dart';
+import '../../../../core/widgets/searchable_client_dropdown.dart';
 
-// Cart provider using Realtime Database
-final cartProvider = FutureProvider<List<CartItem>>((ref) async {
+// Cart provider using Realtime Database with real-time updates
+final cartProvider = StreamProvider<List<CartItem>>((ref) {
   // Check authentication
   final user = ref.watch(currentUserProvider);
   if (user == null) {
-    return [];
+    return Stream.value([]);
   }
   
   final dbService = ref.watch(databaseServiceProvider);
+  final database = FirebaseDatabase.instance;
   
-  try {
-    // Get cart items as a one-time read
-    final database = FirebaseDatabase.instance;
-    final snapshot = await database.ref('cart_items/${user.uid}').get();
-    
-    if (!snapshot.exists || snapshot.value == null) {
-      return [];
-    }
-    
-    final data = Map<String, dynamic>.from(snapshot.value as Map);
-    final items = data.entries.map((e) => {
-      ...Map<String, dynamic>.from(e.value),
-      'id': e.key,
-    }).toList();
-    
-    // Fetch product details for each cart item
-    final List<CartItem> cartItems = [];
-
-    for (final item in items) {
-      final productData = await dbService.getProduct(item['product_id']);
-
-      final product = productData != null ? Product.fromMap(productData) : null;
-      final unitPrice = product?.price ?? item['unit_price']?.toDouble() ?? 0.0;
-      final quantity = item['quantity'] ?? 1;
+  return database.ref('cart_items/${user.uid}').onValue.asyncMap((event) async {
+    try {
+      if (!event.snapshot.exists || event.snapshot.value == null) {
+        return <CartItem>[];
+      }
       
-      cartItems.add(CartItem(
-        id: item['id'],
-        userId: item['user_id'],
-        productId: item['product_id'],
-        productName: product?.description ?? item['product_name'] ?? '',
-        quantity: quantity,
-        unitPrice: unitPrice,
-        total: unitPrice * quantity,
-        product: product,
-        addedAt: item['created_at'] != null
-            ? DateTime.fromMillisecondsSinceEpoch(item['created_at'])
-            : DateTime.now(),
-      ));
-    }
+      final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+      final items = data.entries.map((e) => {
+        ...Map<String, dynamic>.from(e.value),
+        'id': e.key,
+      }).toList();
+      
+      // Fetch product details for each cart item
+      final List<CartItem> cartItems = [];
 
-    return cartItems;
-  } catch (e) {
-    print('Error loading cart: $e');
-    return [];
-  }
+      for (final item in items) {
+        final productData = await dbService.getProduct(item['product_id']);
+
+        final product = productData != null ? Product.fromMap(productData) : null;
+        final unitPrice = product?.price ?? item['unit_price']?.toDouble() ?? 0.0;
+        final quantity = item['quantity'] ?? 1;
+        
+        cartItems.add(CartItem(
+          id: item['id'],
+          userId: item['user_id'] ?? user.uid,
+          productId: item['product_id'],
+          productName: product?.description ?? item['product_name'] ?? '',
+          quantity: quantity,
+          unitPrice: unitPrice,
+          total: unitPrice * quantity,
+          product: product,
+          addedAt: item['created_at'] != null
+              ? DateTime.fromMillisecondsSinceEpoch(item['created_at'])
+              : DateTime.now(),
+        ));
+      }
+
+      return cartItems;
+    } catch (e) {
+      print('Error loading cart: $e');
+      return <CartItem>[];
+    }
+  });
 });
 
 // Clients provider with real-time updates
@@ -231,31 +231,44 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Client',
-                      style: theme.textTheme.titleMedium,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Client',
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        if (selectedClient != null)
+                          TextButton.icon(
+                            icon: const Icon(Icons.info_outline, size: 16),
+                            label: const Text('View Details'),
+                            onPressed: () => _showClientDetails(selectedClient),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 8),
-                    ListTile(
-                      leading: CircleAvatar(
-                        child: Icon(
-                          selectedClient != null
-                              ? Icons.business
-                              : Icons.person_add,
-                        ),
-                      ),
-                      title: Text(
-                        selectedClient?.company ?? 'Select Client',
-                      ),
-                      subtitle: selectedClient?.contactName != null
-                          ? Text(selectedClient!.contactName)
-                          : null,
-                      trailing: const Icon(Icons.arrow_forward_ios),
-                      onTap: _selectClient,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: BorderSide(color: theme.dividerColor),
-                      ),
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final clientsAsync = ref.watch(clientsStreamProvider);
+                        
+                        return clientsAsync.when(
+                          data: (clients) => SearchableClientDropdown(
+                            clients: clients,
+                            selectedClient: selectedClient,
+                            onClientSelected: (client) {
+                              ref.read(cartClientProvider.notifier).state = client;
+                            },
+                            hintText: 'Search by company, contact, email, or phone...',
+                            showAddButton: true,
+                            onAddClient: _addNewClient,
+                          ),
+                          loading: () => const LinearProgressIndicator(),
+                          error: (error, stack) => Text(
+                            'Error loading clients: $error',
+                            style: TextStyle(color: theme.colorScheme.error),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -403,16 +416,34 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                   ),
                                 ),
                               ),
-                              subtitle: Text(
-                                _formatPrice((product?.price ?? 0) * item.quantity),
-                                style: TextStyle(
-                                  fontSize: ResponsiveHelper.getValue(
-                                    context,
-                                    mobile: 13,
-                                    tablet: 14,
-                                    desktop: 14,
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${_formatPrice(product?.price ?? 0)} per unit',
+                                    style: TextStyle(
+                                      fontSize: ResponsiveHelper.getValue(
+                                        context,
+                                        mobile: 12,
+                                        tablet: 13,
+                                        desktop: 13,
+                                      ),
+                                      color: theme.textTheme.bodySmall?.color,
+                                    ),
                                   ),
-                                ),
+                                  Text(
+                                    'Total: ${_formatPrice((product?.price ?? 0) * item.quantity)}',
+                                    style: TextStyle(
+                                      fontSize: ResponsiveHelper.getValue(
+                                        context,
+                                        mobile: 13,
+                                        tablet: 14,
+                                        desktop: 14,
+                                      ),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
                               onTap: product != null ? () => _showProductSpecs(product, context, theme) : null,
                               trailing: isMobile
@@ -526,21 +557,62 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    // Summary
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Subtotal', style: theme.textTheme.bodyMedium),
-                        Text(_formatPrice(subtotal)),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Tax', style: theme.textTheme.bodyMedium),
-                        Text(_formatPrice(taxAmount)),
-                      ],
+                    // Detailed Breakdown
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.cardColor,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: theme.dividerColor.withOpacity(0.2)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Order Summary',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          // Items breakdown
+                          ...items.map((item) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${item.quantity}x ${item.product?.displayName ?? item.productName}',
+                                    style: theme.textTheme.bodySmall,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Text(
+                                  _formatPrice((item.product?.price ?? 0) * item.quantity),
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          )).toList(),
+                          const Divider(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Subtotal', style: theme.textTheme.bodyMedium),
+                              Text(_formatPrice(subtotal), style: theme.textTheme.bodyMedium),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Tax ($taxRate%)', style: theme.textTheme.bodyMedium),
+                              Text(_formatPrice(taxAmount), style: theme.textTheme.bodyMedium),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                     const Divider(height: 16),
                     Row(
@@ -669,13 +741,13 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
     final dbService = ref.read(databaseServiceProvider);
     await dbService.updateCartItem(item.id ?? '', newQuantity);
-    ref.invalidate(cartProvider);
+    // No need to invalidate as we use StreamProvider for real-time updates
   }
 
   Future<void> _removeItem(CartItem item) async {
     final dbService = ref.read(databaseServiceProvider);
     await dbService.removeFromCart(item.id ?? '');
-    ref.invalidate(cartProvider);
+    // No need to invalidate as we use StreamProvider for real-time updates
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -708,7 +780,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
     final dbService = ref.read(databaseServiceProvider);
     await dbService.clearCart();
-    ref.invalidate(cartProvider);
+    // No need to invalidate as we use StreamProvider for real-time updates
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -892,7 +964,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
       // Clear cart after creating quote
       await dbService.clearCart();
-      ref.invalidate(cartProvider);
+      // No need to invalidate as we use StreamProvider for real-time updates
 
       if (mounted) {
         // Show success dialog with options
@@ -987,6 +1059,61 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     } finally {
       setState(() => _isCreatingQuote = false);
     }
+  }
+
+  void _showClientDetails(Client client) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(client.company),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (client.contactName.isNotEmpty)
+              _buildDetailRow('Contact', client.contactName),
+            if (client.email.isNotEmpty)
+              _buildDetailRow('Email', client.email),
+            if (client.phone.isNotEmpty)
+              _buildDetailRow('Phone', client.phone),
+            if (client.address != null && client.address!.isNotEmpty)
+              _buildDetailRow('Address', client.address!),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$label: ',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Expanded(
+            child: Text(value),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addNewClient() {
+    // Navigate to clients screen to add a new client
+    Navigator.pushNamed(context, '/clients').then((value) {
+      // Refresh the client list after returning
+      ref.invalidate(clientsStreamProvider);
+    });
   }
 
   void _showEmailQuoteDialog(String quoteId, Client client) {

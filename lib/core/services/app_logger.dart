@@ -26,6 +26,7 @@ enum LogCategory {
   quote,
   client,
   product,
+  email,
   error,
   general,
 }

@@ -2,11 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'dart:html' as html;
 import 'package:file_picker/file_picker.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
-import '../../../../core/services/export_service.dart';
 import '../../../../core/services/storage_service.dart';
 
 // Clients provider using Realtime Database
@@ -63,6 +61,8 @@ class ClientsScreen extends ConsumerStatefulWidget {
 class _ClientsScreenState extends ConsumerState<ClientsScreen> {
   bool _showAddForm = false;
   String? _editingClientId;
+  String _searchQuery = '';
+  final _searchController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final _companyController = TextEditingController();
   final _contactNameController = TextEditingController();
@@ -76,6 +76,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     _companyController.dispose();
     _contactNameController.dispose();
     _emailController.dispose();
@@ -138,6 +139,67 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
       ),
       body: Column(
         children: [
+          // Selected Client Display
+          if (selectedClient != null)
+            Container(
+              padding: const EdgeInsets.all(12),
+              color: Colors.green.withOpacity(0.1),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Selected: ${selectedClient.company}',
+                      style: TextStyle(
+                        color: Colors.green[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      ref.read(selectedClientProvider.notifier).state = null;
+                    },
+                    child: Text('Clear', style: TextStyle(color: Colors.green[700])),
+                  ),
+                ],
+              ),
+            ),
+          // Search Bar
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: theme.cardColor,
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search by company, contact, email, or phone...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          setState(() {
+                            _searchController.clear();
+                            _searchQuery = '';
+                          });
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+                fillColor: theme.inputDecorationTheme.fillColor,
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.toLowerCase();
+                });
+              },
+            ),
+          ),
           // Add Client Form
           if (_showAddForm)
             Card(
@@ -318,11 +380,53 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                   );
                 }
 
+                // Filter clients based on search query
+                final filteredClients = _searchQuery.isEmpty
+                    ? clients
+                    : clients.where((client) {
+                        final companyLower = client.company.toLowerCase();
+                        final contactLower = (client.contactName ?? '').toLowerCase();
+                        final emailLower = (client.email ?? '').toLowerCase();
+                        final phoneLower = (client.phone ?? '').toLowerCase();
+                        
+                        return companyLower.contains(_searchQuery) ||
+                               contactLower.contains(_searchQuery) ||
+                               emailLower.contains(_searchQuery) ||
+                               phoneLower.contains(_searchQuery);
+                      }).toList();
+
+                if (filteredClients.isEmpty && _searchQuery.isNotEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 80,
+                          color: theme.disabledColor,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No clients found',
+                          style: theme.textTheme.headlineSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Try adjusting your search terms',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.disabledColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: clients.length,
+                  itemCount: filteredClients.length,
                   itemBuilder: (context, index) {
-                    final client = clients[index];
+                    final client = filteredClients[index];
                     final isSelected = selectedClient?.id == client.id;
 
                     return Card(
@@ -375,47 +479,44 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                                   Navigator.pop(context, client);
                                 },
                                 child: const Text('Select'),
-                              ),
-                            TextButton.icon(
-                              icon: Icon(
-                                Icons.check,
-                                color: isSelected ? Colors.green : theme.disabledColor,
-                                size: 20,
-                              ),
-                              label: Text(
-                                'Select Client',
-                                style: TextStyle(
+                              )
+                            else
+                              // Selection checkbox/button
+                              IconButton(
+                                icon: Icon(
+                                  isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
                                   color: isSelected ? Colors.green : theme.disabledColor,
-                                  fontSize: 13,
+                                  size: 28,
                                 ),
+                                onPressed: () {
+                                  if (isSelected) {
+                                    // Deselect if already selected
+                                    ref
+                                        .read(selectedClientProvider.notifier)
+                                        .state = null;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text('Deselected: ${client.company}'),
+                                        duration: const Duration(seconds: 1),
+                                      ),
+                                    );
+                                  } else {
+                                    // Select if not selected
+                                    ref
+                                        .read(selectedClientProvider.notifier)
+                                        .state = client;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text('Selected: ${client.company}'),
+                                        backgroundColor: Colors.green,
+                                        duration: const Duration(seconds: 1),
+                                      ),
+                                    );
+                                  }
+                                },
                               ),
-                              onPressed: () {
-                                if (isSelected) {
-                                  // Deselect if already selected
-                                  ref
-                                      .read(selectedClientProvider.notifier)
-                                      .state = null;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content:
-                                          Text('Deselected: ${client.company}'),
-                                    ),
-                                  );
-                                } else {
-                                  // Select if not selected
-                                  ref
-                                      .read(selectedClientProvider.notifier)
-                                      .state = client;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content:
-                                          Text('Selected: ${client.company}'),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
                           ],
                         ),
                         children: [
