@@ -717,7 +717,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
           pdfBytes: pdfBytes,
           userInfo: {
             'name': ref.read(currentUserProvider)?.displayName ?? 'Sales Representative',
-            'email': ref.read(currentUserProvider)?.email ?? 'turboairquotes@gmail.com',
+            'email': ref.read(currentUserProvider)?.email ?? '',
             'role': 'Sales',
           },
         ).timeout(

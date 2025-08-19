@@ -15,8 +15,12 @@ class EmailServiceV2 {
   
   SmtpServer get smtpServer {
     if (_smtpServer == null) {
-      final username = dotenv.env['EMAIL_SENDER_ADDRESS'] ?? 'turboairquotes@gmail.com';
-      final password = dotenv.env['EMAIL_APP_PASSWORD'] ?? 'ioejhaylapwdxred';
+      final username = dotenv.env['EMAIL_SENDER_ADDRESS'] ?? '';
+      final password = dotenv.env['EMAIL_APP_PASSWORD'] ?? '';
+      
+      if (username.isEmpty || password.isEmpty) {
+        throw Exception('Email configuration missing. Please set EMAIL_SENDER_ADDRESS and EMAIL_APP_PASSWORD in .env file');
+      }
       
       _smtpServer = gmail(username, password);
       
@@ -32,7 +36,7 @@ class EmailServiceV2 {
     try {
       final message = Message()
         ..from = Address(
-          dotenv.env['EMAIL_SENDER_ADDRESS'] ?? 'turboairquotes@gmail.com',
+          dotenv.env['EMAIL_SENDER_ADDRESS'] ?? '',
           dotenv.env['EMAIL_SENDER_NAME'] ?? 'TurboAir Quote System'
         )
         ..recipients.add(recipientEmail)
@@ -79,7 +83,7 @@ class EmailServiceV2 {
     try {
       final message = Message()
         ..from = Address(
-          dotenv.env['EMAIL_SENDER_ADDRESS'] ?? 'turboairquotes@gmail.com',
+          dotenv.env['EMAIL_SENDER_ADDRESS'] ?? '',
           dotenv.env['EMAIL_SENDER_NAME'] ?? 'TurboAir Quote System'
         )
         ..recipients.add(recipientEmail)
@@ -203,7 +207,7 @@ TurboAir Quote System
     try {
       final message = Message()
         ..from = Address(
-          dotenv.env['EMAIL_SENDER_ADDRESS'] ?? 'turboairquotes@gmail.com',
+          dotenv.env['EMAIL_SENDER_ADDRESS'] ?? '',
           dotenv.env['EMAIL_SENDER_NAME'] ?? 'TurboAir Quote System'
         )
         ..recipients.add(recipientEmail)

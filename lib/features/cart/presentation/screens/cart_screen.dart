@@ -1211,7 +1211,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           pdfBytes: pdfBytes ?? Uint8List(0),
                           userInfo: {
                             'name': ref.read(currentUserProvider)?.displayName ?? 'Sales Representative',
-                            'email': ref.read(currentUserProvider)?.email ?? 'turboairquotes@gmail.com',
+                            'email': ref.read(currentUserProvider)?.email ?? '',
                             'role': 'Sales',
                           },
                         );

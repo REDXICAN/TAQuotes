@@ -65,7 +65,7 @@ class EnvConfig {
   static String get firebaseMeasurementId => _getEnv('FIREBASE_MEASUREMENT_ID');
   
   // Email Configuration
-  static String get emailSenderAddress => _getEnv('EMAIL_SENDER_ADDRESS', 'turboairquotes@gmail.com');
+  static String get emailSenderAddress => _getEnv('EMAIL_SENDER_ADDRESS', '');
   static String get emailAppPassword => _getEnv('EMAIL_APP_PASSWORD');
   static String get emailSenderName => _getEnv('EMAIL_SENDER_NAME', 'TurboAir Quote System');
   static String get emailAppUrl => _getEnv('EMAIL_APP_URL', 'https://turboair-taq.web.app');
