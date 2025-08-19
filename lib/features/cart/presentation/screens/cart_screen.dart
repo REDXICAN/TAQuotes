@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:html' as html;
 import 'dart:typed_data';
+import 'dart:async';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/utils/product_image_helper_v3.dart';
@@ -11,6 +12,7 @@ import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/services/export_service.dart';
 import '../../../../core/services/email_service_v2.dart';
 import '../../../../core/widgets/searchable_client_dropdown.dart';
+import '../../../../core/services/app_logger.dart';
 
 // Cart provider using Realtime Database with real-time updates
 final cartProvider = StreamProvider<List<CartItem>>((ref) {
@@ -1196,23 +1198,61 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       );
                       
                       try {
+                        AppLogger.info('Starting email send from cart', category: LogCategory.business);
+                        
                         // Generate PDF if needed
                         Uint8List? pdfBytes;
                         if (attachPDF) {
+                          AppLogger.info('Generating PDF for quote $quoteId', category: LogCategory.business);
                           pdfBytes = await ExportService.generateQuotePDF(quoteId);
+                          AppLogger.info('PDF generated: ${pdfBytes.length} bytes', category: LogCategory.business);
                         }
                         
-                        // Send email
+                        // Generate Excel if needed
+                        Uint8List? excelBytes;
+                        if (attachExcel) {
+                          AppLogger.info('Generating Excel for quote $quoteId', category: LogCategory.business);
+                          excelBytes = await ExportService.generateQuoteExcel(quoteId);
+                          AppLogger.info('Excel generated: ${excelBytes.length} bytes', category: LogCategory.business);
+                        }
+                        
+                        // Get quote data to get the actual total
+                        // Since cart is already cleared, we need to get the quote from database
+                        final database = FirebaseDatabase.instance;
+                        final user = ref.read(currentUserProvider);
+                        double totalAmount = 0;
+                        
+                        if (user != null) {
+                          try {
+                            final quoteSnapshot = await database.ref('quotes/${user.uid}/$quoteId').get();
+                            if (quoteSnapshot.exists) {
+                              final quoteData = Map<String, dynamic>.from(quoteSnapshot.value as Map);
+                              totalAmount = (quoteData['total_amount'] ?? quoteData['total'] ?? 0).toDouble();
+                              AppLogger.info('Got total from quote: $totalAmount', category: LogCategory.business);
+                            }
+                          } catch (e) {
+                            AppLogger.error('Failed to get quote total', error: e, category: LogCategory.business);
+                            // Fallback to a default value if we can't get the quote
+                            totalAmount = 0;
+                          }
+                        }
+                        
+                        // Send email with timeout
                         final emailService = EmailServiceV2();
                         final success = await emailService.sendQuoteEmail(
                           recipientEmail: emailController.text.trim(),
                           recipientName: client.contactName ?? 'Customer',
                           quoteNumber: 'Q${DateTime.now().millisecondsSinceEpoch}',
-                          totalAmount: total,
+                          totalAmount: totalAmount,
                           pdfBytes: pdfBytes,
-                          attachPdf: attachPDF,
-                          attachExcel: attachExcel,
-                          excelBytes: attachExcel ? await ExportService.generateQuoteExcel(quoteId) : null,
+                          attachPdf: attachPDF && pdfBytes != null,
+                          attachExcel: attachExcel && excelBytes != null,
+                          excelBytes: excelBytes,
+                        ).timeout(
+                          const Duration(seconds: 30),
+                          onTimeout: () {
+                            throw Exception('Email sending timed out after 30 seconds');
+                          },
                         );
                         
                         if (!success) {
@@ -1230,15 +1270,21 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                             ),
                           );
                         }
-                      } catch (e) {
+                      } catch (e, stackTrace) {
+                        AppLogger.error('Failed to send email from cart', 
+                          error: e, 
+                          stackTrace: stackTrace,
+                          category: LogCategory.business);
+                        
                         // Hide loading
                         if (mounted) Navigator.pop(context);
                         
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Error sending email: $e'),
+                              content: Text('Error sending email: ${e.toString()}'),
                               backgroundColor: Colors.red,
+                              duration: const Duration(seconds: 5),
                             ),
                           );
                         }
