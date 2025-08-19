@@ -85,6 +85,9 @@ class OfflineService {
       kIsWeb ? [] : _instance!.pendingOperations;
   static bool get staticIsOnline => 
       kIsWeb ? true : _instance!.isOnline;
+  
+  // Check if service is initialized
+  static bool get isInitialized => kIsWeb || _instance != null;
 
   SyncStatus _syncStatus = SyncStatus.idle;
   SyncStatus get syncStatus => _syncStatus;
@@ -185,7 +188,7 @@ class OfflineService {
 
   // Static method to get cart
   static List<CartItem> getStaticCart() {
-    if (_instance == null || !_isInitialized) {
+    if (_instance == null || !isInitialized) {
       return [];
     }
     try {

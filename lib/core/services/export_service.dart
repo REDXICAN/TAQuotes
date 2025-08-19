@@ -83,7 +83,7 @@ class ExportService {
         logoImage = pw.MemoryImage(logoBytes.buffer.asUint8List());
       } catch (e) {
         // Logo not found, continue without it
-        AppLogger.debug('Logo not found, continuing without it', category: LogCategory.export);
+        AppLogger.debug('Logo not found, continuing without it', category: LogCategory.business);
       }
     
       // Build PDF

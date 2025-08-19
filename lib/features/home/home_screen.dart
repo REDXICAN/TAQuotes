@@ -56,7 +56,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         OfflineService.syncPendingChanges();
       }
     } catch (e) {
-      AppLogger.error('Error initializing services', error: e, category: LogCategory.system);
+      AppLogger.error('Error initializing services', error: e, category: LogCategory.database);
     }
   }
 
