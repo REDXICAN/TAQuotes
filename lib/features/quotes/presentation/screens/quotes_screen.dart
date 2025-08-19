@@ -740,7 +740,8 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
       Uint8List? excelBytes;
       if (sendExcel) {
         try {
-          excelBytes = await _generateQuoteExcel(quote);
+          // Use ExportService instead of local method
+          excelBytes = await ExportService.generateQuoteExcel(quote.id ?? '');
         } catch (excelError) {
           // Close loading dialog
           if (mounted && isLoadingDialogShowing) {
@@ -1067,9 +1068,9 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
           isLoadingDialogShowing = false;
         }
         
-        // Generate Excel export
+        // Generate Excel export using ExportService
         try {
-          bytes = await _generateQuoteExcel(quote);
+          bytes = await ExportService.generateQuoteExcel(quote.id ?? '');
           filename = 'Quote_${quote.quoteNumber}_${cleanClientName}_$dateStr.xlsx';
           mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
         } catch (excelError) {
@@ -1141,77 +1142,5 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
       // Log error for debugging
       AppLogger.error('Export failed for quote ${quote.id}', error: e, category: LogCategory.business);
     }
-  }
-
-  // Generate Excel file for quote
-  Future<Uint8List> _generateQuoteExcel(Quote quote) async {
-    final workbook = excel.Excel.createExcel();
-    final sheet = workbook['Quote'];
-    
-    // Helper to create text cell value
-    excel.TextCellValue textCell(String text) => excel.TextCellValue(text);
-    excel.IntCellValue intCell(int value) => excel.IntCellValue(value);
-    excel.DoubleCellValue doubleCell(double value) => excel.DoubleCellValue(value);
-    
-    // Add headers
-    sheet.appendRow([textCell('Quote #${quote.quoteNumber}')]);
-    sheet.appendRow([textCell('Date: ${DateFormat('MMMM dd, yyyy').format(quote.createdAt)}')]);
-    sheet.appendRow([textCell('')]);
-    
-    // Client info
-    sheet.appendRow([textCell('Client Information')]);
-    sheet.appendRow([textCell('Company:'), textCell(quote.client?.company ?? 'N/A')]);
-    sheet.appendRow([textCell('Contact:'), textCell(quote.client?.contactName ?? 'N/A')]);
-    sheet.appendRow([textCell('Email:'), textCell(quote.client?.email ?? 'N/A')]);
-    sheet.appendRow([textCell('Phone:'), textCell(quote.client?.phone ?? 'N/A')]);
-    sheet.appendRow([textCell('')]);
-    
-    // Items header
-    sheet.appendRow([
-      textCell('Item'),
-      textCell('Description'),
-      textCell('Quantity'),
-      textCell('Unit Price'),
-      textCell('Total')
-    ]);
-    
-    // Add items
-    for (var item in quote.items) {
-      sheet.appendRow([
-        textCell(item.productId),
-        textCell(item.productName),
-        intCell(item.quantity),
-        textCell('\$${item.unitPrice.toStringAsFixed(2)}'),
-        textCell('\$${item.total.toStringAsFixed(2)}')
-      ]);
-    }
-    
-    sheet.appendRow([textCell('')]);
-    sheet.appendRow([
-      textCell(''),
-      textCell(''),
-      textCell(''),
-      textCell('Subtotal:'),
-      textCell('\$${quote.subtotal.toStringAsFixed(2)}')
-    ]);
-    sheet.appendRow([
-      textCell(''),
-      textCell(''),
-      textCell(''),
-      textCell('Tax:'),
-      textCell('\$${quote.tax.toStringAsFixed(2)}')
-    ]);
-    sheet.appendRow([
-      textCell(''),
-      textCell(''),
-      textCell(''),
-      textCell('Total:'),
-      textCell('\$${quote.total.toStringAsFixed(2)}')
-    ]);
-    
-    // Save and return bytes
-    final bytes = workbook.save();
-    if (bytes == null) throw Exception('Failed to generate Excel file');
-    return Uint8List.fromList(bytes);
   }
 }
