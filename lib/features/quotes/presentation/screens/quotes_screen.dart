@@ -10,7 +10,7 @@ import 'dart:async';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/services/export_service.dart';
-import '../../../../core/services/email_service.dart';
+import '../../../../core/services/email_service_v2.dart';
 import '../../../../core/services/app_logger.dart';
 import 'package:excel/excel.dart' as excel;
 import 'edit_quote_screen.dart';
@@ -604,46 +604,66 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
   Future<void> _emailQuote(Quote quote) async {
     // Show dialog to get recipient email
     final emailController = TextEditingController(text: quote.client?.email ?? '');
-    final sendPDF = await showDialog<bool>(
+    bool attachPdf = true;
+    bool attachExcel = false;
+    
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Send Quote via Email'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(
-                labelText: 'Recipient Email',
-                hintText: 'Enter email address',
-                prefixIcon: Icon(Icons.email),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Send Quote via Email'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Recipient Email',
+                  hintText: 'Enter email address',
+                  prefixIcon: Icon(Icons.email),
+                ),
+                keyboardType: TextInputType.emailAddress,
               ),
-              keyboardType: TextInputType.emailAddress,
+              const SizedBox(height: 16),
+              CheckboxListTile(
+                title: const Text('Attach PDF'),
+                subtitle: const Text('Include quote as PDF attachment'),
+                value: attachPdf,
+                onChanged: (value) => setState(() => attachPdf = value ?? true),
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+              CheckboxListTile(
+                title: const Text('Attach Excel'),
+                subtitle: const Text('Include quote as Excel spreadsheet'),
+                value: attachExcel,
+                onChanged: (value) => setState(() => attachExcel = value ?? false),
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, null),
+              child: const Text('Cancel'),
             ),
-            const SizedBox(height: 16),
-            const CheckboxListTile(
-              title: Text('Attach PDF'),
-              subtitle: Text('Include quote as PDF attachment'),
-              value: true,
-              onChanged: null, // Always include PDF
-              controlAffinity: ListTileControlAffinity.leading,
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, {
+                'email': emailController.text,
+                'attachPdf': attachPdf,
+                'attachExcel': attachExcel,
+              }),
+              child: const Text('Send Email'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Send Email'),
-          ),
-        ],
       ),
     );
 
-    if (sendPDF != true) return;
+    if (result == null) return;
+    
+    final email = result['email'] as String;
+    final sendPDF = result['attachPdf'] as bool;
+    final sendExcel = result['attachExcel'] as bool;
     
     // Track loading dialog state
     bool isLoadingDialogShowing = false;
@@ -692,34 +712,35 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
       await Future.delayed(const Duration(milliseconds: 100));
       
       // Generate PDF with error handling
-      Uint8List pdfBytes;
-      try {
-        pdfBytes = await ExportService.generateQuotePDF(quote.id ?? '');
-      } catch (pdfError) {
-        // Close loading dialog
-        if (mounted && isLoadingDialogShowing) {
-          Navigator.of(context, rootNavigator: true).pop();
-          isLoadingDialogShowing = false;
+      Uint8List? pdfBytes;
+      if (sendPDF) {
+        try {
+          pdfBytes = await ExportService.generateQuotePDF(quote.id ?? '');
+        } catch (pdfError) {
+          // Close loading dialog
+          if (mounted && isLoadingDialogShowing) {
+            Navigator.of(context, rootNavigator: true).pop();
+            isLoadingDialogShowing = false;
+          }
+          throw Exception('Failed to generate PDF: $pdfError');
         }
-        throw Exception('Failed to generate PDF: $pdfError');
       }
       
       // Send email with PDF attachment with timeout
-      final emailService = EmailService();
+      final emailService = EmailServiceV2();
       bool success = false;
       
       try {
         // Add timeout to prevent hanging
-        success = await emailService.sendQuoteWithPDFBytes(
+        success = await emailService.sendQuoteEmail(
           recipientEmail: email,
           recipientName: quote.client?.contactName ?? 'Customer',
           quoteNumber: quote.quoteNumber ?? 'N/A',
+          totalAmount: quote.totalAmount,
           pdfBytes: pdfBytes,
-          userInfo: {
-            'name': ref.read(currentUserProvider)?.displayName ?? 'Sales Representative',
-            'email': ref.read(currentUserProvider)?.email ?? '',
-            'role': 'Sales',
-          },
+          attachPdf: true,
+          attachExcel: sendExcel,  // Add Excel attachment if requested
+          excelBytes: sendExcel ? await _generateQuoteExcel(quote) : null,
         ).timeout(
           const Duration(seconds: 30),
           onTimeout: () {

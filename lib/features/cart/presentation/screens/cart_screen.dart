@@ -9,7 +9,7 @@ import '../../../../core/models/models.dart';
 import '../../../../core/utils/product_image_helper_v3.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/services/export_service.dart';
-import '../../../../core/services/email_service.dart';
+import '../../../../core/services/email_service_v2.dart';
 import '../../../../core/widgets/searchable_client_dropdown.dart';
 
 // Cart provider using Realtime Database with real-time updates
@@ -1203,18 +1203,21 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         }
                         
                         // Send email
-                        final emailService = EmailService();
-                        await emailService.sendQuoteWithPDFBytes(
+                        final emailService = EmailServiceV2();
+                        final success = await emailService.sendQuoteEmail(
                           recipientEmail: emailController.text.trim(),
                           recipientName: client.contactName ?? 'Customer',
                           quoteNumber: 'Q${DateTime.now().millisecondsSinceEpoch}',
-                          pdfBytes: pdfBytes ?? Uint8List(0),
-                          userInfo: {
-                            'name': ref.read(currentUserProvider)?.displayName ?? 'Sales Representative',
-                            'email': ref.read(currentUserProvider)?.email ?? '',
-                            'role': 'Sales',
-                          },
+                          totalAmount: total,
+                          pdfBytes: pdfBytes,
+                          attachPdf: attachPDF,
+                          attachExcel: attachExcel,
+                          excelBytes: attachExcel ? await ExportService.generateQuoteExcel(quoteId) : null,
                         );
+                        
+                        if (!success) {
+                          throw Exception('Failed to send email');
+                        }
                         
                         // Hide loading
                         if (mounted) Navigator.pop(context);
