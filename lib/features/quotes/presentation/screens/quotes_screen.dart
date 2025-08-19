@@ -469,6 +469,16 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _exportQuote(quote, 'xlsx'),
+                        child: Icon(Icons.table_chart, size: 18, color: Colors.green),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.all(8),
+                        ),
+                      ),
+                    ),
                   ],
                 )
               else
@@ -535,26 +545,26 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () => _duplicateQuote(quote),
-                            icon: Icon(Icons.copy, size: isTablet ? 14 : 16),
-                            label: Text('Copy', style: TextStyle(fontSize: isTablet ? 12 : 14)),
+                            onPressed: () => _exportQuote(quote, 'xlsx'),
+                            icon: Icon(Icons.table_chart, size: isTablet ? 14 : 16),
+                            label: Text('Excel', style: TextStyle(fontSize: isTablet ? 12 : 14)),
                             style: OutlinedButton.styleFrom(
                               padding: EdgeInsets.symmetric(vertical: isTablet ? 6 : 8),
                               minimumSize: Size(0, isTablet ? 32 : 36),
-                              foregroundColor: Colors.blue,
+                              foregroundColor: Colors.green,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _deleteQuote(quote),
-                          icon: Icon(Icons.delete, size: isTablet ? 14 : 16),
-                          label: Text('Delete', style: TextStyle(fontSize: isTablet ? 12 : 14)),
-                          style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: isTablet ? 6 : 8),
-                            minimumSize: Size(0, isTablet ? 32 : 36),
-                            foregroundColor: Colors.red,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _deleteQuote(quote),
+                            icon: Icon(Icons.delete, size: isTablet ? 14 : 16),
+                            label: Text('Delete', style: TextStyle(fontSize: isTablet ? 12 : 14)),
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(vertical: isTablet ? 6 : 8),
+                              minimumSize: Size(0, isTablet ? 32 : 36),
+                              foregroundColor: Colors.red,
                           ),
                         ),
                       ),
