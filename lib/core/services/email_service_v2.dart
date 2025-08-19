@@ -4,6 +4,7 @@ import 'package:mailer/smtp_server.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:typed_data';
 import 'app_logger.dart';
+import '../config/email_config.dart';
 
 class EmailServiceV2 {
   static final EmailServiceV2 _instance = EmailServiceV2._internal();
@@ -15,11 +16,11 @@ class EmailServiceV2 {
   
   SmtpServer get smtpServer {
     if (_smtpServer == null) {
-      final username = dotenv.env['EMAIL_SENDER_ADDRESS'] ?? '';
-      final password = dotenv.env['EMAIL_APP_PASSWORD'] ?? '';
+      final username = EmailConfig.senderAddress;
+      final password = EmailConfig.appPassword;
       
-      if (username.isEmpty || password.isEmpty) {
-        throw Exception('Email configuration missing. Please set EMAIL_SENDER_ADDRESS and EMAIL_APP_PASSWORD in .env file');
+      if (!EmailConfig.isConfigured) {
+        throw Exception('Email configuration missing. Please configure email settings.');
       }
       
       _smtpServer = gmail(username, password);
@@ -36,8 +37,8 @@ class EmailServiceV2 {
     try {
       final message = Message()
         ..from = Address(
-          dotenv.env['EMAIL_SENDER_ADDRESS'] ?? '',
-          dotenv.env['EMAIL_SENDER_NAME'] ?? 'TurboAir Quote System'
+          EmailConfig.senderAddress,
+          EmailConfig.senderName
         )
         ..recipients.add(recipientEmail)
         ..subject = 'Test Email from TurboAir Quote System'
@@ -83,8 +84,8 @@ class EmailServiceV2 {
     try {
       final message = Message()
         ..from = Address(
-          dotenv.env['EMAIL_SENDER_ADDRESS'] ?? '',
-          dotenv.env['EMAIL_SENDER_NAME'] ?? 'TurboAir Quote System'
+          EmailConfig.senderAddress,
+          EmailConfig.senderName
         )
         ..recipients.add(recipientEmail)
         ..subject = 'Quote #$quoteNumber from TurboAir'
@@ -214,8 +215,8 @@ TurboAir Quote System
     try {
       final message = Message()
         ..from = Address(
-          dotenv.env['EMAIL_SENDER_ADDRESS'] ?? '',
-          dotenv.env['EMAIL_SENDER_NAME'] ?? 'TurboAir Quote System'
+          EmailConfig.senderAddress,
+          EmailConfig.senderName
         )
         ..recipients.add(recipientEmail)
         ..subject = subject

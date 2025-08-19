@@ -446,7 +446,7 @@ class ExportService {
       }
       
       AppLogger.logTimer('Excel generation completed', stopwatch);
-      final bytes = excel.encode();
+      final bytes = excel.save();
       if (bytes == null) throw Exception('Failed to encode Excel file');
       return Uint8List.fromList(bytes);
     } catch (e, stackTrace) {
@@ -465,8 +465,10 @@ class ExportService {
       errorCell.value = TextCellValue('Error generating Excel: ${e.toString()}');
       errorCell.cellStyle = CellStyle(bold: true);
       
-      final errorBytes = errorExcel.encode();
-      if (errorBytes == null) throw Exception('Failed to encode error Excel');
+      final errorBytes = errorExcel.save();
+      if (errorBytes == null || errorBytes.isEmpty) {
+        throw Exception('Failed to encode error Excel');
+      }
       return Uint8List.fromList(errorBytes);
     }
   }
@@ -603,8 +605,18 @@ class ExportService {
       sheet.setColumnWidth(4, 15.0);
       
       AppLogger.logTimer('Quote Excel generation completed', stopwatch);
-      final bytes = excel.encode();
-      if (bytes == null) throw Exception('Failed to encode Excel file');
+      
+      // Save the Excel file
+      final bytes = excel.save();
+      if (bytes == null || bytes.isEmpty) {
+        throw Exception('Failed to encode Excel file');
+      }
+      
+      AppLogger.info('Excel file generated successfully', category: LogCategory.business, data: {
+        'size': bytes.length,
+        'sheets': excel.sheets.keys.toList(),
+      });
+      
       return Uint8List.fromList(bytes);
     } catch (e, stackTrace) {
       AppLogger.error('Error generating quote Excel for $quoteId', 
@@ -622,8 +634,10 @@ class ExportService {
       errorCell.value = TextCellValue('Error generating Excel for quote $quoteId: ${e.toString()}');
       errorCell.cellStyle = CellStyle(bold: true);
       
-      final errorBytes = errorExcel.encode();
-      if (errorBytes == null) throw Exception('Failed to encode error Excel');
+      final errorBytes = errorExcel.save();
+      if (errorBytes == null || errorBytes.isEmpty) {
+        throw Exception('Failed to encode error Excel');
+      }
       return Uint8List.fromList(errorBytes);
     }
   }
