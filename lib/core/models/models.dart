@@ -300,7 +300,7 @@ class Product {
       dimensions: map['dimensions'],
       weight: map['weight'],
       voltage: map['voltage'],
-      amperage: map['amperage'],
+      amperage: map['amperage'] ?? map['Amps'] ?? map['amps'],  // Handle multiple field names
       phase: map['phase'],
       frequency: map['frequency'],
       plugType: map['plugType'] ?? map['plug_type'],  // Handle both formats

@@ -468,7 +468,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       'Dimensions': product.dimensions,
       'Weight': product.weight,
       'Voltage': product.voltage,
-      'Amperage': product.amperage,
+      'Amps': product.amperage,  // Display as "Amps" for better readability
       'Phase': product.phase,
       'Frequency': product.frequency,
       'Plug Type': product.plugType,

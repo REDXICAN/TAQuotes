@@ -132,10 +132,10 @@ TurboAir Quote System
         <p><strong>Date:</strong> ${DateTime.now().toString().split(' ')[0]}</p>
       </div>
       
-      ${attachPdf || attachExcel ? '<p><strong>Attachments:</strong></p><ul>' : ''}
-      ${attachPdf ? '<li>Quote PDF Document</li>' : ''}
-      ${attachExcel ? '<li>Quote Excel Spreadsheet</li>' : ''}
-      ${attachPdf || attachExcel ? '</ul>' : ''}
+      ${(attachPdf && pdfBytes != null) || (attachExcel && excelBytes != null) ? '<p><strong>Attachments:</strong></p><ul>' : ''}
+      ${(attachPdf && pdfBytes != null) ? '<li>Quote PDF Document</li>' : ''}
+      ${(attachExcel && excelBytes != null) ? '<li>Quote Excel Spreadsheet</li>' : ''}
+      ${(attachPdf && pdfBytes != null) || (attachExcel && excelBytes != null) ? '</ul>' : ''}
       
       <p>If you have any questions, please don't hesitate to contact us.</p>
       
@@ -152,7 +152,9 @@ TurboAir Quote System
         ''';
 
       // Add PDF attachment if provided
-      if (attachPdf && pdfBytes != null) {
+      if (attachPdf && pdfBytes != null && pdfBytes.isNotEmpty) {
+        AppLogger.info('Adding PDF attachment: ${pdfBytes.length} bytes',
+          category: LogCategory.business);
         final attachment = StreamAttachment(
           Stream.value(pdfBytes),
           'application/pdf',
@@ -162,7 +164,9 @@ TurboAir Quote System
       }
 
       // Add Excel attachment if provided
-      if (attachExcel && excelBytes != null) {
+      if (attachExcel && excelBytes != null && excelBytes.isNotEmpty) {
+        AppLogger.info('Adding Excel attachment: ${excelBytes.length} bytes',
+          category: LogCategory.business);
         final attachment = StreamAttachment(
           Stream.value(excelBytes),
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -171,6 +175,9 @@ TurboAir Quote System
         message.attachments.add(attachment);
       }
 
+      AppLogger.info('Sending email with ${message.attachments.length} attachments',
+        category: LogCategory.business);
+      
       final sendReport = await send(message, smtpServer);
       
       AppLogger.info('Quote email sent successfully', 

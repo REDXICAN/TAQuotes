@@ -726,7 +726,22 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         }
       }
       
-      // Send email with PDF attachment with timeout
+      // Generate Excel if requested
+      Uint8List? excelBytes;
+      if (sendExcel) {
+        try {
+          excelBytes = await _generateQuoteExcel(quote);
+        } catch (excelError) {
+          // Close loading dialog
+          if (mounted && isLoadingDialogShowing) {
+            Navigator.of(context, rootNavigator: true).pop();
+            isLoadingDialogShowing = false;
+          }
+          throw Exception('Failed to generate Excel: $excelError');
+        }
+      }
+      
+      // Send email with attachments
       final emailService = EmailServiceV2();
       bool success = false;
       
@@ -738,9 +753,9 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
           quoteNumber: quote.quoteNumber ?? 'N/A',
           totalAmount: quote.totalAmount,
           pdfBytes: pdfBytes,
-          attachPdf: true,
-          attachExcel: sendExcel,  // Add Excel attachment if requested
-          excelBytes: sendExcel ? await _generateQuoteExcel(quote) : null,
+          attachPdf: sendPDF && pdfBytes != null,
+          attachExcel: sendExcel && excelBytes != null,
+          excelBytes: excelBytes,
         ).timeout(
           const Duration(seconds: 30),
           onTimeout: () {
