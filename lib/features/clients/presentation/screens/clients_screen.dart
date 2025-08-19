@@ -20,28 +20,30 @@ final clientsProvider = FutureProvider<List<Client>>((ref) async {
   final dbService = ref.watch(databaseServiceProvider);
   
   try {
-    // Get clients as a one-time read instead of stream
+    // Get clients as a one-time read
     final database = FirebaseDatabase.instance;
     final snapshot = await database.ref('clients/${user.uid}').get();
     
-    if (snapshot.exists && snapshot.value != null) {
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
-      final List<Client> clients = [];
-      
-      data.forEach((key, value) {
-        final clientMap = Map<String, dynamic>.from(value);
-        clientMap['id'] = key;
-        try {
-          clients.add(Client.fromMap(clientMap));
-        } catch (e) {
-          print('Error parsing client $key: $e');
-        }
-      });
-      
-      return clients;
+    if (!snapshot.exists || snapshot.value == null) {
+      return [];
     }
     
-    return [];
+    final data = Map<String, dynamic>.from(snapshot.value as Map);
+    final List<Client> clients = [];
+    
+    data.forEach((key, value) {
+      final clientMap = Map<String, dynamic>.from(value);
+      clientMap['id'] = key;
+      try {
+        clients.add(Client.fromMap(clientMap));
+      } catch (e) {
+        print('Error parsing client $key: $e');
+      }
+    });
+    
+    // Sort by company name
+    clients.sort((a, b) => a.company.compareTo(b.company));
+    return clients;
   } catch (e) {
     print('Error loading clients: $e');
     return [];
@@ -363,37 +365,58 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                               : 'No contact name',
                           style: theme.textTheme.bodySmall,
                         ),
-                        trailing: IconButton(
-                          icon: Icon(
-                            Icons.check,
-                            color: isSelected ? Colors.green : theme.disabledColor,
-                          ),
-                          onPressed: () {
-                            if (isSelected) {
-                              // Deselect if already selected
-                              ref
-                                  .read(selectedClientProvider.notifier)
-                                  .state = null;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content:
-                                      Text('Deselected: ${client.company}'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Check if we're in selection mode (came from cart)
+                            if (ModalRoute.of(context)?.settings.arguments == 'select')
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context, client);
+                                },
+                                child: const Text('Select'),
+                              ),
+                            TextButton.icon(
+                              icon: Icon(
+                                Icons.check,
+                                color: isSelected ? Colors.green : theme.disabledColor,
+                                size: 20,
+                              ),
+                              label: Text(
+                                'Select Client',
+                                style: TextStyle(
+                                  color: isSelected ? Colors.green : theme.disabledColor,
+                                  fontSize: 13,
                                 ),
-                              );
-                            } else {
-                              // Select if not selected
-                              ref
-                                  .read(selectedClientProvider.notifier)
-                                  .state = client;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content:
-                                      Text('Selected: ${client.company}'),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-                            }
-                          },
+                              ),
+                              onPressed: () {
+                                if (isSelected) {
+                                  // Deselect if already selected
+                                  ref
+                                      .read(selectedClientProvider.notifier)
+                                      .state = null;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content:
+                                          Text('Deselected: ${client.company}'),
+                                    ),
+                                  );
+                                } else {
+                                  // Select if not selected
+                                  ref
+                                      .read(selectedClientProvider.notifier)
+                                      .state = client;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content:
+                                          Text('Selected: ${client.company}'),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ],
                         ),
                         children: [
                           Container(
@@ -928,31 +951,8 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
         ),
       );
 
-      final xlsxBytes = await ExportService.exportClientsToXLSX(userId);
-      
-      // Hide loading indicator
-      if (mounted) Navigator.pop(context);
-
-      // Download file
-      final blob = html.Blob([xlsxBytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.document.createElement('a') as html.AnchorElement
-        ..href = url
-        ..style.display = 'none'
-        ..download = 'clients_export_${DateTime.now().millisecondsSinceEpoch}.xlsx';
-      html.document.body?.children.add(anchor);
-      anchor.click();
-      html.document.body?.children.remove(anchor);
-      html.Url.revokeObjectUrl(url);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Clients exported successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      // For now, show not implemented message
+      throw Exception('Excel export not yet implemented');
     } catch (e) {
       // Hide loading indicator if still showing
       if (mounted) Navigator.pop(context);

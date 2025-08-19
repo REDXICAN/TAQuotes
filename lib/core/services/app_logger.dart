@@ -139,11 +139,12 @@ class CategoryLogFilter extends LogFilter {
 
 /// Main application logger
 class AppLogger {
-  static late Logger _logger;
+  static Logger? _logger;
   static late DeviceInfoPlugin _deviceInfo;
   static late PackageInfo _packageInfo;
   static Map<String, dynamic>? _deviceData;
   static Map<String, dynamic>? _appData;
+  static bool _isInitialized = false;
   
   /// Initialize the logger
   static Future<void> initialize({
@@ -249,25 +250,39 @@ class AppLogger {
       output: MultiOutput(outputs),
     );
     
+    _isInitialized = true;
+    
     // Log initialization
-    _logger.i('Logger initialized', error: LogCategory.general);
-    _logger.d('Device Info: $_deviceData', error: LogCategory.general);
-    _logger.d('App Info: $_appData', error: LogCategory.general);
+    _logger?.i('Logger initialized', error: LogCategory.general);
+    _logger?.d('Device Info: $_deviceData', error: LogCategory.general);
+    _logger?.d('App Info: $_appData', error: LogCategory.general);
   }
   
   /// Log debug message
   static void debug(String message, {LogCategory category = LogCategory.general, dynamic data}) {
-    _logger.d(_formatMessage(message, data), error: category);
+    if (!_isInitialized) {
+      print('[DEBUG] $message');
+      return;
+    }
+    _logger?.d(_formatMessage(message, data), error: category);
   }
   
   /// Log info message
   static void info(String message, {LogCategory category = LogCategory.general, dynamic data}) {
-    _logger.i(_formatMessage(message, data), error: category);
+    if (!_isInitialized) {
+      print('[INFO] $message');
+      return;
+    }
+    _logger?.i(_formatMessage(message, data), error: category);
   }
   
   /// Log warning message
   static void warning(String message, {LogCategory category = LogCategory.general, dynamic data}) {
-    _logger.w(_formatMessage(message, data), error: category);
+    if (!_isInitialized) {
+      print('[WARNING] $message');
+      return;
+    }
+    _logger?.w(_formatMessage(message, data), error: category);
   }
   
   /// Log error message
@@ -277,7 +292,12 @@ class AppLogger {
     StackTrace? stackTrace,
     dynamic data,
   }) {
-    _logger.e(
+    if (!_isInitialized) {
+      print('[ERROR] $message${error != null ? ': $error' : ''}');
+      if (stackTrace != null) print(stackTrace);
+      return;
+    }
+    _logger?.e(
       _formatMessage(message, data),
       error: error ?? category,
       stackTrace: stackTrace,
@@ -300,7 +320,12 @@ class AppLogger {
     StackTrace? stackTrace,
     dynamic data,
   }) {
-    _logger.f(
+    if (!_isInitialized) {
+      print('[CRITICAL] $message${error != null ? ': $error' : ''}');
+      if (stackTrace != null) print(stackTrace);
+      return;
+    }
+    _logger?.f(
       _formatMessage(message, data),
       error: error ?? category,
       stackTrace: stackTrace,
@@ -322,11 +347,15 @@ class AppLogger {
       'duration_ms': durationMs,
       ...?metrics,
     };
-    _logger.i('Performance: $operation took ${durationMs}ms, metrics: $data', error: LogCategory.performance);
+    if (!_isInitialized) {
+      print('[PERFORMANCE] $operation took ${durationMs}ms');
+      return;
+    }
+    _logger?.i('Performance: $operation took ${durationMs}ms, metrics: $data', error: LogCategory.performance);
     
     // Send to Firebase Performance Monitoring if needed
     if (!kDebugMode && durationMs > 1000) {
-      _logger.w('Slow operation detected: $operation (${durationMs}ms)', error: LogCategory.performance);
+      _logger?.w('Slow operation detected: $operation (${durationMs}ms)', error: LogCategory.performance);
     }
   }
   
@@ -347,10 +376,15 @@ class AppLogger {
       'duration_ms': durationMs,
     };
     
+    if (!_isInitialized) {
+      print('[NETWORK] $method $url -> $statusCode');
+      return;
+    }
+    
     if (statusCode != null && statusCode >= 400) {
-      _logger.e('Network Error: $method $url returned $statusCode, data: $data', error: LogCategory.network);
+      _logger?.e('Network Error: $method $url returned $statusCode, data: $data', error: LogCategory.network);
     } else {
-      _logger.d('Network: $method $url${statusCode != null ? ' ($statusCode)' : ''}, data: $data', error: LogCategory.network);
+      _logger?.d('Network: $method $url${statusCode != null ? ' ($statusCode)' : ''}, data: $data', error: LogCategory.network);
     }
   }
   
@@ -362,7 +396,11 @@ class AppLogger {
       'email': email,
       ...?data,
     };
-    _logger.i('Auth: $event${email != null ? ' for $email' : ''}, details: $logData', error: LogCategory.auth);
+    if (!_isInitialized) {
+      print('[AUTH] $event${email != null ? ' for $email' : ''}');
+      return;
+    }
+    _logger?.i('Auth: $event${email != null ? ' for $email' : ''}, details: $logData', error: LogCategory.auth);
   }
   
   /// Log database operations
@@ -373,10 +411,15 @@ class AppLogger {
     Map<String, dynamic>? data,
     dynamic error,
   }) {
+    if (!_isInitialized) {
+      print('[DATABASE] $operation on $collection${error != null ? ' - ERROR: $error' : ''}');
+      return;
+    }
+    
     if (error != null) {
-      _logger.e('Database Error: $operation on $collection failed', error: error);
+      _logger?.e('Database Error: $operation on $collection failed', error: error);
     } else {
-      _logger.d('Database: $operation on $collection${documentId != null ? '/$documentId' : ''}', error: LogCategory.database);
+      _logger?.d('Database: $operation on $collection${documentId != null ? '/$documentId' : ''}', error: LogCategory.database);
     }
   }
   

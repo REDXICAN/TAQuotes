@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
+import 'app_logger.dart';
 
 class RealtimeDatabaseService {
   final FirebaseDatabase _db = FirebaseDatabase.instance;
@@ -301,25 +302,44 @@ class RealtimeDatabaseService {
     required double totalAmount,
   }) async {
     if (userId == null) throw Exception('User not authenticated');
+    
+    // Validate inputs
+    if (clientId.isEmpty) throw Exception('Client ID cannot be empty');
+    if (items.isEmpty) throw Exception('Cannot create quote with no items');
 
-    final quoteNumber = 'Q${DateTime.now().millisecondsSinceEpoch}';
-    final newQuoteRef = _db.ref('quotes/$userId').push();
+    try {
+      final quoteNumber = 'Q${DateTime.now().millisecondsSinceEpoch}';
+      final newQuoteRef = _db.ref('quotes/$userId').push();
 
-    await newQuoteRef.set({
-      'client_id': clientId,
-      'quote_number': quoteNumber,
-      'quote_items': items,  // Store items directly in the quote
-      'subtotal': subtotal,
-      'tax_rate': taxRate,
-      'tax_amount': taxAmount,
-      'total_amount': totalAmount,
-      'status': 'draft',
-      'user_id': userId,  // Add user ID for reference
-      'created_at': ServerValue.timestamp,
-      'updated_at': ServerValue.timestamp,
-    });
+      await newQuoteRef.set({
+        'client_id': clientId,
+        'quote_number': quoteNumber,
+        'quote_items': items,  // Store items directly in the quote
+        'subtotal': subtotal,
+        'tax_rate': taxRate,
+        'tax_amount': taxAmount,
+        'total_amount': totalAmount,
+        'status': 'draft',
+        'user_id': userId,  // Add user ID for reference
+        'created_at': ServerValue.timestamp,
+        'updated_at': ServerValue.timestamp,
+      });
 
-    return newQuoteRef.key!;
+      final key = newQuoteRef.key;
+      if (key == null) throw Exception('Failed to generate quote ID');
+      
+      return key;
+    } catch (e) {
+      AppLogger.error('Error creating quote', 
+        error: e, 
+        category: LogCategory.quote,
+        data: {
+          'clientId': clientId,
+          'itemsCount': items.length,
+          'total': totalAmount,
+        });
+      throw Exception('Failed to create quote: $e');
+    }
   }
 
   Future<void> updateQuoteStatus(String quoteId, String status) async {

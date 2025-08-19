@@ -193,7 +193,9 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     final selectedIndex = _calculateSelectedIndex(currentLocation);
     
     // Check if we should show navigation rail for larger screens
-    final bool showNavigationRail = !ResponsiveHelper.isMobile(context);
+    // Use navigation rail for tablets and desktop, bottom nav for phones
+    final bool showNavigationRail = ResponsiveHelper.isDesktop(context) || 
+        (ResponsiveHelper.isTablet(context) && !ResponsiveHelper.isPortrait(context));
 
     if (showNavigationRail) {
       // Desktop/Tablet layout with NavigationRail
@@ -207,7 +209,11 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                   context.go(routes[index]);
                 }
               },
-              labelType: NavigationRailLabelType.all,
+              labelType: ResponsiveHelper.isTablet(context) 
+                  ? NavigationRailLabelType.selected 
+                  : NavigationRailLabelType.all,
+              extended: ResponsiveHelper.isLargeDesktop(context),
+              minWidth: ResponsiveHelper.isTablet(context) ? 56 : 72,
               destinations: [
                 const NavigationRailDestination(
                   icon: Icon(Icons.home_outlined),
@@ -257,14 +263,14 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             ),
             const VerticalDivider(thickness: 1, width: 1),
             Expanded(
-              child: ResponsiveWrapper(child: widget.child),
+              child: widget.child,  // Full width - no wrapper
             ),
           ],
         ),
       );
     }
 
-    // Mobile layout with bottom navigation
+    // Mobile and tablet portrait layout with bottom navigation
     return Scaffold(
       body: widget.child,
       bottomNavigationBar: NavigationBar(
@@ -274,6 +280,10 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             context.go(routes[index]);
           }
         },
+        height: ResponsiveHelper.useCompactLayout(context) ? 56 : null,
+        labelBehavior: ResponsiveHelper.useCompactLayout(context)
+            ? NavigationDestinationLabelBehavior.alwaysHide
+            : NavigationDestinationLabelBehavior.alwaysShow,
         destinations: [
           const NavigationDestination(
             icon: Icon(Icons.home_outlined),

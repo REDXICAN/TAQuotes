@@ -2,9 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'dart:html' as html;
+import 'dart:typed_data';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
-import '../../../../core/utils/product_image_helper_v2.dart';
+import '../../../../core/utils/product_image_helper_v3.dart';
+import '../../../../core/utils/responsive_helper.dart';
+import '../../../../core/services/export_service.dart';
+import '../../../../core/services/email_service.dart';
 
 // Cart provider using Realtime Database
 final cartProvider = FutureProvider<List<CartItem>>((ref) async {
@@ -63,33 +68,36 @@ final cartProvider = FutureProvider<List<CartItem>>((ref) async {
   }
 });
 
-// Clients provider
-final clientsProvider = FutureProvider<List<Client>>((ref) async {
+// Clients provider with real-time updates
+final clientsStreamProvider = StreamProvider<List<Client>>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) {
-    return [];
+    return Stream.value([]);
   }
   
-  final dbService = ref.watch(databaseServiceProvider);
-  
-  try {
-    final database = FirebaseDatabase.instance;
-    final snapshot = await database.ref('clients/${user.uid}').get();
+  final database = FirebaseDatabase.instance;
+  return database.ref('clients/${user.uid}').onValue.map((event) {
+    if (!event.snapshot.exists || event.snapshot.value == null) {
+      return [];
+    }
     
-    if (snapshot.exists && snapshot.value != null) {
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+    try {
+      final data = Map<String, dynamic>.from(event.snapshot.value as Map);
       return data.entries.map((e) {
         final clientMap = Map<String, dynamic>.from(e.value);
         clientMap['id'] = e.key;
         return Client.fromMap(clientMap);
-      }).toList();
+      }).toList()..sort((a, b) => a.company.compareTo(b.company));
+    } catch (e) {
+      print('Error loading clients: $e');
+      return [];
     }
-    
-    return [];
-  } catch (e) {
-    print('Error loading clients: $e');
-    return [];
-  }
+  });
+});
+
+// Keep backward compatibility
+final clientsProvider = Provider<AsyncValue<List<Client>>>((ref) {
+  return ref.watch(clientsStreamProvider);
 });
 
 // Cart client provider
@@ -123,7 +131,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         children: [
           // Custom header without AppBar
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(
+              ResponsiveHelper.getValue(context, mobile: 12, tablet: 16, desktop: 16),
+            ),
             decoration: BoxDecoration(
               color: theme.primaryColor,
               boxShadow: [
@@ -141,13 +151,23 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   Text(
                     'Cart',
                     style: theme.textTheme.headlineSmall?.copyWith(
-                      color: theme.colorScheme.onPrimary,
+                      color: Colors.white,
                       fontWeight: FontWeight.bold,
+                      fontSize: ResponsiveHelper.getValue(
+                        context,
+                        mobile: 20,
+                        tablet: 24,
+                        desktop: 24,
+                      ),
                     ),
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: Icon(Icons.delete_outline, color: theme.colorScheme.onPrimary),
+                    icon: Icon(
+                      Icons.delete_outline,
+                      color: Colors.white,
+                      size: ResponsiveHelper.getIconSize(context),
+                    ),
                     onPressed: cartAsync.when(
                       data: (items) => items.isNotEmpty ? () => _clearCart() : null,
                       loading: () => null,
@@ -244,64 +264,224 @@ class _CartScreenState extends ConsumerState<CartScreen> {
               // Cart Items
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: ResponsiveHelper.getScreenPadding(context),
                   itemCount: items.length,
                   itemBuilder: (context, index) {
                     final item = items[index];
                     final product = item.product;
                     final imagePath = product != null
-                        ? ProductImageHelper.getImagePath(product.sku ?? '')
+                        ? ProductImageHelperV3.getImagePathWithFallback(product.sku ?? '')
                         : null;
+                    final isCompact = ResponsiveHelper.useCompactLayout(context);
+                    final isMobile = ResponsiveHelper.isMobile(context);
 
                     return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        leading: imagePath != null
-                            ? Image.asset(
-                                imagePath,
-                                width: 50,
-                                height: 50,
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => Container(
-                                  width: 50,
-                                  height: 50,
-                                  color: theme.disabledColor.withOpacity(0.1),
-                                  child: const Icon(Icons.image_not_supported),
-                                ),
-                              )
-                            : Container(
-                                width: 50,
-                                height: 50,
-                                color: theme.disabledColor.withOpacity(0.1),
-                                child: const Icon(Icons.inventory_2),
-                              ),
-                        title: Text(product?.displayName ?? 'Unknown Product'),
-                        subtitle: Text(
-                          '\$${((product?.price ?? 0) * item.quantity).toStringAsFixed(2)}',
-                        ),
-                        onTap: product != null ? () => _showProductSpecs(product, context, theme) : null,
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.remove),
-                              onPressed: () => _updateQuantity(item, -1),
-                            ),
-                            Text(
-                              item.quantity.toString(),
-                              style: theme.textTheme.titleMedium,
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.add),
-                              onPressed: () => _updateQuantity(item, 1),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline),
-                              onPressed: () => _removeItem(item),
-                            ),
-                          ],
-                        ),
+                      margin: EdgeInsets.only(
+                        bottom: ResponsiveHelper.getValue(context, mobile: 8, tablet: 10, desktop: 12),
                       ),
+                      child: isCompact
+                          ? // Compact layout for very small screens
+                            Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      // Image
+                                      if (imagePath != null)
+                                        Image.asset(
+                                          imagePath,
+                                          width: 60,
+                                          height: 60,
+                                          fit: BoxFit.contain,
+                                          errorBuilder: (_, __, ___) => Container(
+                                            width: 60,
+                                            height: 60,
+                                            color: theme.disabledColor.withOpacity(0.1),
+                                            child: const Icon(Icons.image_not_supported, size: 20),
+                                          ),
+                                        )
+                                      else
+                                        Container(
+                                          width: 60,
+                                          height: 60,
+                                          color: theme.disabledColor.withOpacity(0.1),
+                                          child: const Icon(Icons.inventory_2, size: 20),
+                                        ),
+                                      const SizedBox(width: 12),
+                                      // Product info
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              product?.displayName ?? 'Unknown Product',
+                                              style: theme.textTheme.bodyMedium?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              _formatPrice((product?.price ?? 0) * item.quantity),
+                                              style: TextStyle(
+                                                color: theme.primaryColor,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      // Delete button
+                                      IconButton(
+                                        icon: const Icon(Icons.delete_outline, size: 20),
+                                        onPressed: () => _removeItem(item),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // Quantity controls
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.remove, size: 20),
+                                        onPressed: () => _updateQuantity(item, -1),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                                        child: Text(
+                                          item.quantity.toString(),
+                                          style: theme.textTheme.titleMedium,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.add, size: 20),
+                                        onPressed: () => _updateQuantity(item, 1),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            )
+                          : // Normal layout
+                            ListTile(
+                              leading: imagePath != null
+                                  ? Image.asset(
+                                      imagePath,
+                                      width: isMobile ? 50 : 60,
+                                      height: isMobile ? 50 : 60,
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        width: isMobile ? 50 : 60,
+                                        height: isMobile ? 50 : 60,
+                                        color: theme.disabledColor.withOpacity(0.1),
+                                        child: Icon(
+                                          Icons.image_not_supported,
+                                          size: ResponsiveHelper.getIconSize(context, baseSize: 24),
+                                        ),
+                                      ),
+                                    )
+                                  : Container(
+                                      width: isMobile ? 50 : 60,
+                                      height: isMobile ? 50 : 60,
+                                      color: theme.disabledColor.withOpacity(0.1),
+                                      child: Icon(
+                                        Icons.inventory_2,
+                                        size: ResponsiveHelper.getIconSize(context, baseSize: 24),
+                                      ),
+                                    ),
+                              title: Text(
+                                product?.displayName ?? 'Unknown Product',
+                                style: TextStyle(
+                                  fontSize: ResponsiveHelper.getValue(
+                                    context,
+                                    mobile: 14,
+                                    tablet: 16,
+                                    desktop: 16,
+                                  ),
+                                ),
+                              ),
+                              subtitle: Text(
+                                _formatPrice((product?.price ?? 0) * item.quantity),
+                                style: TextStyle(
+                                  fontSize: ResponsiveHelper.getValue(
+                                    context,
+                                    mobile: 13,
+                                    tablet: 14,
+                                    desktop: 14,
+                                  ),
+                                ),
+                              ),
+                              onTap: product != null ? () => _showProductSpecs(product, context, theme) : null,
+                              trailing: isMobile
+                                  ? Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              icon: Icon(
+                                                Icons.remove,
+                                                size: ResponsiveHelper.getIconSize(context, baseSize: 20),
+                                              ),
+                                              padding: const EdgeInsets.all(4),
+                                              constraints: const BoxConstraints(),
+                                              onPressed: () => _updateQuantity(item, -1),
+                                            ),
+                                            Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                                              child: Text(
+                                                item.quantity.toString(),
+                                                style: theme.textTheme.titleMedium,
+                                              ),
+                                            ),
+                                            IconButton(
+                                              icon: Icon(
+                                                Icons.add,
+                                                size: ResponsiveHelper.getIconSize(context, baseSize: 20),
+                                              ),
+                                              padding: const EdgeInsets.all(4),
+                                              constraints: const BoxConstraints(),
+                                              onPressed: () => _updateQuantity(item, 1),
+                                            ),
+                                          ],
+                                        ),
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.delete_outline,
+                                            size: ResponsiveHelper.getIconSize(context, baseSize: 20),
+                                          ),
+                                          padding: const EdgeInsets.all(4),
+                                          constraints: const BoxConstraints(),
+                                          onPressed: () => _removeItem(item),
+                                        ),
+                                      ],
+                                    )
+                                  : Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.remove),
+                                          onPressed: () => _updateQuantity(item, -1),
+                                        ),
+                                        Text(
+                                          item.quantity.toString(),
+                                          style: theme.textTheme.titleMedium,
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.add),
+                                          onPressed: () => _updateQuantity(item, 1),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.delete_outline),
+                                          onPressed: () => _removeItem(item),
+                                        ),
+                                      ],
+                                    ),
+                            ),
                     );
                   },
                 ),
@@ -351,7 +531,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Subtotal', style: theme.textTheme.bodyMedium),
-                        Text('\$${subtotal.toStringAsFixed(2)}'),
+                        Text(_formatPrice(subtotal)),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -359,7 +539,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Tax', style: theme.textTheme.bodyMedium),
-                        Text('\$${taxAmount.toStringAsFixed(2)}'),
+                        Text(_formatPrice(taxAmount)),
                       ],
                     ),
                     const Divider(height: 16),
@@ -368,7 +548,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       children: [
                         Text('Total', style: theme.textTheme.titleLarge),
                         Text(
-                          '\$${total.toStringAsFixed(2)}',
+                          _formatPrice(total),
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: theme.primaryColor,
@@ -442,17 +622,41 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       return sum + ((item.product?.price ?? 0) * item.quantity);
     });
   }
+  
+  String _formatPrice(double price) {
+    final parts = price.toStringAsFixed(2).split('.');
+    final wholePart = parts[0].replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+    return '\$$wholePart.${parts[1]}';
+  }
 
   Future<void> _selectClient() async {
-    final client = await Navigator.push<Client>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const ClientSelectorScreen(),
+    // Show the client selector dialog
+    final client = await showModalBottomSheet<Client>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => ClientSelectorSheet(
+          scrollController: scrollController,
+        ),
       ),
     );
 
-    if (client != null) {
+    if (client != null && mounted) {
       ref.read(cartClientProvider.notifier).state = client;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Selected client: ${client.company}'),
+          backgroundColor: Colors.green,
+        ),
+      );
     }
   }
 
@@ -542,7 +746,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Image.asset(
-                        ProductImageHelper.getImagePath(product.sku ?? product.model),
+                        ProductImageHelperV3.getImagePathWithFallback(product.sku ?? product.model ?? ''),
                         fit: BoxFit.contain,
                         errorBuilder: (_, __, ___) => Image.asset(
                           'assets/logos/turbo_air_logo.png',
@@ -565,7 +769,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildSpecRow('SKU', product.sku ?? product.model, theme),
-                        _buildSpecRow('Price', '\$${product.price.toStringAsFixed(2)}', theme),
+                        _buildSpecRow('Price', _formatPrice(product.price), theme),
                         _buildSpecRow('Category', product.category, theme),
                         if (product.subcategory != null && product.subcategory!.isNotEmpty)
                           _buildSpecRow('Subcategory', product.subcategory!, theme),
@@ -596,7 +800,6 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           _buildSpecRow('Doors', product.doors.toString(), theme),
                         if (product.shelves != null && product.shelves! > 0)
                           _buildSpecRow('Shelves', product.shelves.toString(), theme),
-                        _buildSpecRow('Stock', product.stock.toString(), theme),
                       ],
                     ),
                   ),
@@ -645,6 +848,19 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   }
 
   Future<void> _createQuote(List<CartItem> items, Client client) async {
+    // Validate client ID
+    if (client.id == null || client.id!.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error: Invalid client selected. Please select a valid client.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+    
     setState(() => _isCreatingQuote = true);
 
     try {
@@ -666,7 +882,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
       // Create quote
       final quoteId = await dbService.createQuote(
-        clientId: client.id ?? '',
+        clientId: client.id!,  // Now we know it's not null
         items: quoteItems,
         subtotal: subtotal,
         taxRate: taxRate,
@@ -679,17 +895,84 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       ref.invalidate(cartProvider);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Quote created successfully'),
-            backgroundColor: Colors.green,
+        // Show success dialog with options
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => AlertDialog(
+            icon: const Icon(Icons.check_circle, color: Colors.green, size: 64),
+            title: const Text('Quote Created Successfully!'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Quote #${DateTime.now().millisecondsSinceEpoch} has been created'),
+                const SizedBox(height: 16),
+                const Text('What would you like to do next?'),
+              ],
+            ),
+            actions: [
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  Navigator.pushReplacementNamed(context, '/quotes/$quoteId');
+                },
+                icon: const Icon(Icons.visibility),
+                label: const Text('View Quote'),
+              ),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  Navigator.pop(dialogContext);
+                  // Download PDF
+                  try {
+                    final pdfBytes = await ExportService.generateQuotePDF(quoteId);
+                    // Download the PDF
+                    final blob = html.Blob([pdfBytes], 'application/pdf');
+                    final url = html.Url.createObjectUrlFromBlob(blob);
+                    final anchor = html.document.createElement('a') as html.AnchorElement
+                      ..href = url
+                      ..style.display = 'none'
+                      ..download = 'Quote_${DateTime.now().millisecondsSinceEpoch}.pdf';
+                    html.document.body?.children.add(anchor);
+                    anchor.click();
+                    html.document.body?.children.remove(anchor);
+                    html.Url.revokeObjectUrl(url);
+                    
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Quote PDF downloaded successfully'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error downloading PDF: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+                icon: const Icon(Icons.download),
+                label: const Text('Download PDF'),
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  // Show email dialog
+                  _showEmailQuoteDialog(quoteId, client);
+                },
+                icon: const Icon(Icons.email),
+                label: const Text('Send via Email'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                ),
+              ),
+            ],
           ),
-        );
-
-        // Navigate to quote details
-        Navigator.pushReplacementNamed(
-          context,
-          '/quotes/$quoteId',
         );
       }
     } catch (e) {
@@ -705,42 +988,354 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       setState(() => _isCreatingQuote = false);
     }
   }
+
+  void _showEmailQuoteDialog(String quoteId, Client client) {
+    final emailController = TextEditingController(text: client.email ?? '');
+    bool attachPDF = true;
+    bool attachExcel = false;
+    
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Send Quote via Email'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Recipient Email',
+                  hintText: 'Enter email address',
+                  prefixIcon: Icon(Icons.email),
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              CheckboxListTile(
+                title: const Text('Attach PDF'),
+                subtitle: const Text('Include quote as PDF attachment'),
+                value: attachPDF,
+                onChanged: (value) {
+                  setDialogState(() {
+                    attachPDF = value ?? false;
+                  });
+                },
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+              CheckboxListTile(
+                title: const Text('Attach Excel'),
+                subtitle: const Text('Include quote as Excel attachment'),
+                value: attachExcel,
+                onChanged: (value) {
+                  setDialogState(() {
+                    attachExcel = value ?? false;
+                  });
+                },
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: emailController.text.isEmpty
+                  ? null
+                  : () async {
+                      Navigator.pop(dialogContext);
+                      
+                      // Show loading
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => const AlertDialog(
+                          content: SizedBox(
+                            height: 100,
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircularProgressIndicator(),
+                                  SizedBox(height: 16),
+                                  Text('Sending email...'),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                      
+                      try {
+                        // Generate PDF if needed
+                        Uint8List? pdfBytes;
+                        if (attachPDF) {
+                          pdfBytes = await ExportService.generateQuotePDF(quoteId);
+                        }
+                        
+                        // Send email
+                        final emailService = EmailService();
+                        await emailService.sendQuoteWithPDFBytes(
+                          recipientEmail: emailController.text.trim(),
+                          recipientName: client.contactName ?? 'Customer',
+                          quoteNumber: 'Q${DateTime.now().millisecondsSinceEpoch}',
+                          pdfBytes: pdfBytes ?? Uint8List(0),
+                          userInfo: {
+                            'name': ref.read(currentUserProvider)?.displayName ?? 'Sales Representative',
+                            'email': ref.read(currentUserProvider)?.email ?? 'turboairquotes@gmail.com',
+                            'role': 'Sales',
+                          },
+                        );
+                        
+                        // Hide loading
+                        if (mounted) Navigator.pop(context);
+                        
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Quote emailed successfully to ${emailController.text}'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        // Hide loading
+                        if (mounted) Navigator.pop(context);
+                        
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error sending email: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              child: const Text('Send Email'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-// Client selector screen
-class ClientSelectorScreen extends ConsumerWidget {
-  const ClientSelectorScreen({super.key});
+// Client selector sheet
+class ClientSelectorSheet extends ConsumerStatefulWidget {
+  final ScrollController scrollController;
+  
+  const ClientSelectorSheet({
+    super.key,
+    required this.scrollController,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final clientsAsync = ref.watch(clientsProvider);
+  ConsumerState<ClientSelectorSheet> createState() => _ClientSelectorSheetState();
+}
+
+class _ClientSelectorSheetState extends ConsumerState<ClientSelectorSheet> {
+  List<Client> _clients = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadClients();
+  }
+
+  Future<void> _loadClients() async {
+    try {
+      final user = ref.read(currentUserProvider);
+      if (user == null) {
+        setState(() {
+          _error = 'You must be logged in to view clients';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final database = FirebaseDatabase.instance;
+      final snapshot = await database.ref('clients/${user.uid}').get();
+      
+      final List<Client> clients = [];
+      if (snapshot.exists && snapshot.value != null) {
+        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        data.forEach((key, value) {
+          try {
+            final clientMap = Map<String, dynamic>.from(value);
+            clientMap['id'] = key;
+            clients.add(Client.fromMap(clientMap));
+          } catch (e) {
+            print('Error parsing client $key: $e');
+          }
+        });
+      }
+      
+      clients.sort((a, b) => a.company.compareTo(b.company));
+      
+      if (mounted) {
+        setState(() {
+          _clients = clients;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Error loading clients: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Select Client'),
-        backgroundColor: theme.primaryColor,
-        foregroundColor: theme.appBarTheme.foregroundColor,
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      body: clientsAsync.when(
-        data: (clients) => ListView.builder(
-          itemCount: clients.length,
-          itemBuilder: (context, index) {
-            final client = clients[index];
-            return ListTile(
-              leading: CircleAvatar(
-                child: Text(client.company[0].toUpperCase()),
-              ),
-              title: Text(client.company),
-              subtitle: Text(client.contactName),
-              onTap: () => Navigator.pop(context, client),
-            );
-          },
-        ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Text('Error loading clients: $error'),
-        ),
+      child: Column(
+        children: [
+          // Handle bar
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[400],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Text(
+                  'Select Client',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          // Client list
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.error_outline, 
+                                size: 64, 
+                                color: Colors.red,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                _error!,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.red[700]),
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _isLoading = true;
+                                    _error = null;
+                                  });
+                                  _loadClients();
+                                },
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : _clients.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.people_outline, 
+                                  size: 64, 
+                                  color: Colors.grey,
+                                ),
+                                const SizedBox(height: 16),
+                                const Text('No clients found'),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Add clients from the Clients screen',
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            controller: widget.scrollController,
+                            itemCount: _clients.length,
+                            itemBuilder: (context, index) {
+                              final client = _clients[index];
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: theme.primaryColor,
+                                  foregroundColor: Colors.white,
+                                  child: Text(
+                                    client.company.isNotEmpty 
+                                        ? client.company[0].toUpperCase()
+                                        : '?',
+                                  ),
+                                ),
+                                title: Text(
+                                  client.company,
+                                  style: const TextStyle(fontWeight: FontWeight.w500),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(client.contactName),
+                                    if (client.email.isNotEmpty)
+                                      Text(
+                                        client.email,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                isThreeLine: client.email.isNotEmpty,
+                                trailing: ElevatedButton(
+                                  onPressed: () => Navigator.pop(context, client),
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  ),
+                                  child: const Text('Select'),
+                                ),
+                                onTap: () => Navigator.pop(context, client),
+                              );
+                            },
+                          ),
+          ),
+        ],
       ),
     );
   }

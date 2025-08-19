@@ -103,11 +103,11 @@ ADMIN_EMAIL=andres@turboairmexico.com
 ADMIN_PASSWORD=secure_password_here
 
 # Firebase Configuration
-FIREBASE_PROJECT_ID=turbo-air-viewer
-FIREBASE_DATABASE_URL=https://turbo-air-viewer-default-rtdb.firebaseio.com
+FIREBASE_PROJECT_ID=taquotes
+FIREBASE_DATABASE_URL=https://taquotes-default-rtdb.firebaseio.com
 FIREBASE_API_KEY_WEB=your_api_key
-FIREBASE_AUTH_DOMAIN=turbo-air-viewer.firebaseapp.com
-FIREBASE_STORAGE_BUCKET=turbo-air-viewer.appspot.com
+FIREBASE_AUTH_DOMAIN=taquotes.firebaseapp.com
+FIREBASE_STORAGE_BUCKET=taquotes.firebasestorage.app
 FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 FIREBASE_APP_ID_WEB=your_app_id
 

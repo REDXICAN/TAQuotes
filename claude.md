@@ -5,8 +5,8 @@
 Enterprise B2B equipment catalog and quote management system with offline-first architecture, real-time synchronization, and complete email integration with PDF attachments.
 
 ### Production Status: ✅ DEPLOYED
-- **Live URL**: https://turboair-taq.web.app
-- **Firebase Console**: https://console.firebase.google.com/project/turboair-taq/overview
+- **Live URL**: https://taquotes.web.app
+- **Firebase Console**: https://console.firebase.google.com/project/taquotes/overview
 - All critical features implemented and tested
 - Security audit passed
 - Email with PDF attachments functional
@@ -83,8 +83,8 @@ ADMIN_EMAIL=andres@turboairmexico.com
 ADMIN_PASSWORD=[secure-password]
 EMAIL_SENDER_ADDRESS=turboairquotes@gmail.com
 EMAIL_APP_PASSWORD=[app-specific-password]
-FIREBASE_PROJECT_ID=turboair-taq
-FIREBASE_DATABASE_URL=https://turboair-taq-default-rtdb.firebaseio.com
+FIREBASE_PROJECT_ID=taquotes
+FIREBASE_DATABASE_URL=https://taquotes-default-rtdb.firebaseio.com
 ```
 
 ### Firebase Security Rules
@@ -181,9 +181,9 @@ FIREBASE_DATABASE_URL=https://turboair-taq-default-rtdb.firebaseio.com
 ## 🚀 Deployment
 
 ### Live Deployment Information
-- **Production URL**: https://turboair-taq.web.app
-- **Alternative URL**: https://turboair-taq.firebaseapp.com
-- **Firebase Project**: turboair-taq
+- **Production URL**: https://taquotes.web.app
+- **Alternative URL**: https://taquotes.firebaseapp.com
+- **Firebase Project**: taquotes
 - **Deployment Account**: andres.xbgo@gmail.com
 - **Last Deployed**: December 2025
 
@@ -369,7 +369,7 @@ git push origin main
 Application successfully deployed to Firebase Hosting and fully operational.
 
 ### Access the Application
-- **URL**: https://turboair-taq.web.app
+- **URL**: https://taquotes.web.app
 - **Login**: Use admin credentials from .env file
 - **Support**: andres@turboairmexico.com
 
@@ -384,4 +384,4 @@ Application successfully deployed to Firebase Hosting and fully operational.
 
 Last Updated: January 2025
 Version: 1.0.0
-Deployment: Firebase Hosting (turboair-taq)
+Deployment: Firebase Hosting (taquotes)

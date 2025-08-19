@@ -22,8 +22,21 @@ final quoteDetailProvider =
 
   // Fetch quote items with product details
   final List<QuoteItem> items = [];
-  // Note: In a real implementation, you'd fetch quote_items from the database
-  // For now, we'll use empty list as placeholder
+  if (quoteData['quote_items'] != null) {
+    for (final itemData in quoteData['quote_items']) {
+      // Fetch product data for each item
+      final productData = await dbService.getProduct(itemData['product_id']);
+      items.add(QuoteItem(
+        productId: itemData['product_id'] ?? '',
+        productName: productData?['name'] ?? 'Unknown Product',
+        quantity: itemData['quantity'] ?? 1,
+        unitPrice: (itemData['unit_price'] ?? 0).toDouble(),
+        total: (itemData['total_price'] ?? 0).toDouble(),
+        product: productData != null ? Product.fromMap(productData) : null,
+        addedAt: DateTime.now(),
+      ));
+    }
+  }
 
   return Quote(
     id: quoteData['id'],

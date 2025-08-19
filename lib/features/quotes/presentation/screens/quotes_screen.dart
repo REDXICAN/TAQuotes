@@ -81,6 +81,9 @@ final quotesProvider = FutureProvider<List<Quote>>((ref) async {
       ));
     }
 
+    // Sort by date (newest first)
+    quotes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    
     return quotes;
   } catch (e) {
     print('Error loading quotes: $e');
@@ -241,13 +244,20 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                   );
                 }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: filteredQuotes.length,
-                  itemBuilder: (context, index) {
-                    final quote = filteredQuotes[index];
-                    return _buildQuoteCard(quote);
-                  },
+                return Center(
+                  child: Container(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.67, // 2/3 of screen width
+                    ),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: filteredQuotes.length,
+                      itemBuilder: (context, index) {
+                        final quote = filteredQuotes[index];
+                        return _buildQuoteCard(quote);
+                      },
+                    ),
+                  ),
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -366,7 +376,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('${quote.items.length} items'),
+                  Text('${quote.items.isEmpty ? "No" : quote.items.length} item${quote.items.length == 1 ? "" : "s"}'),
                   Text(
                     '\$${quote.totalAmount.toStringAsFixed(2)}',
                     style: TextStyle(
@@ -378,80 +388,94 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                 ],
               ),
 
-              // Action buttons
+              // Action buttons - Grid layout
               const SizedBox(height: 12),
-              Row(
+              Column(
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _viewQuote(quote),
-                      icon: const Icon(Icons.visibility, size: 16),
-                      label: const Text('View'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _emailQuote(quote),
-                      icon: const Icon(Icons.email, size: 16),
-                      label: const Text('Email'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert),
-                    itemBuilder: (context) => <PopupMenuEntry<String>>[
-                      const PopupMenuItem<String>(
-                        value: 'export_pdf',
-                        child: Row(
-                          children: [
-                            Icon(Icons.picture_as_pdf, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Export PDF'),
-                          ],
+                  // First row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _viewQuote(quote),
+                          icon: const Icon(Icons.visibility, size: 16),
+                          label: const Text('View'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            minimumSize: const Size(0, 36),
+                          ),
                         ),
                       ),
-                      const PopupMenuItem<String>(
-                        value: 'export_excel',
-                        child: Row(
-                          children: [
-                            Icon(Icons.table_chart, color: Colors.green),
-                            SizedBox(width: 8),
-                            Text('Export Excel'),
-                          ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _emailQuote(quote),
+                          icon: const Icon(Icons.email, size: 16),
+                          label: const Text('Email'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            minimumSize: const Size(0, 36),
+                          ),
                         ),
                       ),
-                      const PopupMenuDivider(),
-                      const PopupMenuItem<String>(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
-                          ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _exportQuote(quote, 'pdf'),
+                          icon: const Icon(Icons.picture_as_pdf, size: 16),
+                          label: const Text('PDF'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            minimumSize: const Size(0, 36),
+                            foregroundColor: Colors.red,
+                          ),
                         ),
                       ),
                     ],
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'export_pdf':
-                          _exportQuote(quote, 'pdf');
-                          break;
-                        case 'export_excel':
-                          _exportQuote(quote, 'excel');
-                          break;
-                        case 'delete':
-                          _deleteQuote(quote);
-                          break;
-                      }
-                    },
+                  ),
+                  const SizedBox(height: 8),
+                  // Second row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _duplicateQuote(quote),
+                          icon: const Icon(Icons.copy, size: 16),
+                          label: const Text('Duplicate'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            minimumSize: const Size(0, 36),
+                            foregroundColor: Colors.blue,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _deleteQuote(quote),
+                          icon: const Icon(Icons.delete, size: 16),
+                          label: const Text('Delete'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            minimumSize: const Size(0, 36),
+                            foregroundColor: Colors.red,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _exportQuote(quote, 'excel'),
+                          icon: const Icon(Icons.table_chart, size: 16),
+                          label: const Text('Excel'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            minimumSize: const Size(0, 36),
+                            foregroundColor: Colors.green,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -530,13 +554,27 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
     if (sendPDF != true || emailController.text.isEmpty) return;
 
     // Show loading
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => const AlertDialog(
+          content: SizedBox(
+            height: 100,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Sending email...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     try {
       // Generate PDF
@@ -590,6 +628,54 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
   }
 
 
+  void _duplicateQuote(Quote quote) async {
+    try {
+      final dbService = ref.read(databaseServiceProvider);
+      
+      // Create a duplicate quote with the same items
+      // Calculate tax rate from tax amount and subtotal
+      final taxRate = quote.subtotal > 0 ? (quote.tax / quote.subtotal) * 100 : 0.0;
+      
+      final quoteId = await dbService.createQuote(
+        clientId: quote.clientId ?? '',
+        items: quote.items.map((item) => {
+          'product_id': item.productId,
+          'quantity': item.quantity,
+          'unit_price': item.unitPrice,
+          'total_price': item.total,
+        }).toList(),
+        subtotal: quote.subtotal,
+        taxRate: taxRate,
+        taxAmount: quote.tax,
+        totalAmount: quote.totalAmount,
+      );
+      
+      // Refresh quotes list
+      ref.invalidate(quotesProvider);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Quote duplicated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Navigate to the new quote
+        context.push('/quotes/$quoteId');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error duplicating quote: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _deleteQuote(Quote quote) {
     showDialog(
       context: context,
@@ -642,39 +728,30 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
   Future<void> _exportQuotesToXLSX(String userId) async {
     try {
       // Show loading indicator
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-
-      final xlsxBytes = await ExportService.exportQuotesToXLSX(userId);
-      
-      // Hide loading indicator
-      if (mounted) Navigator.pop(context);
-
-      // Download file
-      final blob = html.Blob([xlsxBytes], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.document.createElement('a') as html.AnchorElement
-        ..href = url
-        ..style.display = 'none'
-        ..download = 'quotes_export_${DateTime.now().millisecondsSinceEpoch}.xlsx';
-      html.document.body?.children.add(anchor);
-      anchor.click();
-      html.document.body?.children.remove(anchor);
-      html.Url.revokeObjectUrl(url);
-
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Quotes exported successfully'),
-            backgroundColor: Colors.green,
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => const AlertDialog(
+            content: SizedBox(
+              height: 100,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Exporting to Excel...'),
+                  ],
+                ),
+              ),
+            ),
           ),
         );
       }
+
+      // For now, show not implemented message
+      throw Exception('Excel export not yet implemented');
     } catch (e) {
       // Hide loading indicator if still showing
       if (mounted) Navigator.pop(context);
@@ -704,13 +781,27 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
   Future<void> _exportQuote(Quote quote, String format) async {
     try {
       // Show loading indicator
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => const AlertDialog(
+            content: SizedBox(
+              height: 100,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Generating export...'),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }
 
       Uint8List bytes;
       String filename;
@@ -726,9 +817,17 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         filename = 'Quote_${quote.quoteNumber}_${cleanClientName}_$dateStr.pdf';
         mimeType = 'application/pdf';
       } else if (format == 'excel') {
-        bytes = await ExportService.exportQuoteToXLSX(quote.id ?? '');
-        filename = 'Quote_${quote.quoteNumber}_${cleanClientName}_$dateStr.xlsx';
-        mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        // Hide loading and show not implemented message
+        if (mounted) Navigator.pop(context);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Excel export coming soon!'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
       } else {
         throw Exception('Unsupported format: $format');
       }
@@ -748,11 +847,20 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
       html.document.body?.children.remove(anchor);
       html.Url.revokeObjectUrl(url);
 
+      // Show success dialog
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Quote exported as ${format.toUpperCase()} successfully'),
-            backgroundColor: Colors.green,
+        showDialog(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            icon: const Icon(Icons.check_circle, color: Colors.green, size: 64),
+            title: const Text('Export Successful!'),
+            content: Text('Quote #${quote.quoteNumber} has been exported as ${format.toUpperCase()}.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('OK'),
+              ),
+            ],
           ),
         );
       }

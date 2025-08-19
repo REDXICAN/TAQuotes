@@ -74,7 +74,22 @@
       "Bash(firebase init:*)",
       "Bash(firebase database:instances:create:*)",
       "Bash(firebase setup:web:*)",
-      "Bash(firebase hosting:sites:create:*)"
+      "Bash(firebase hosting:sites:create:*)",
+      "Bash(firebase projects:delete:*)",
+      "Bash(firebase auth:import:*)",
+      "Bash(start setup_auth.html)",
+      "Bash(start create_database.html)",
+      "Bash(start copy_database_data.html)",
+      "Bash(start fix_database_permissions.html)",
+      "Bash(start upload_to_firebase.html)",
+      "Bash(start upload_products_direct.html)",
+      "WebFetch(domain:taquotes-default-rtdb.firebaseio.com)",
+      "Bash(for dir in assets/screenshots/*/)",
+      "Bash(do echo \"    - $dir\")",
+      "Bash(firebase hosting:releases:list:*)",
+      "Bash(firebase hosting:clone:*)",
+      "Bash(cat:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": [

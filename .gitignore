@@ -212,3 +212,11 @@ web/firebase-config.js
 
 # === EXCEPTIONS ===
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
+# Sensitive setup files - DO NOT COMMIT
+*.html
+setup*.js
+migrate*.js
+init*.bat
+*backup*.json
+*import*.py
+generate*.py
