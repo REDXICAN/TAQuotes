@@ -153,20 +153,20 @@ TurboAir Quote System
 
       // Add PDF attachment if provided
       if (attachPdf && pdfBytes != null) {
-        final attachment = FileAttachment(
-          pdfBytes,
+        final attachment = StreamAttachment(
+          Stream.value(pdfBytes),
+          'application/pdf',
           fileName: 'Quote_$quoteNumber.pdf',
-          contentType: 'application/pdf',
         );
         message.attachments.add(attachment);
       }
 
       // Add Excel attachment if provided
       if (attachExcel && excelBytes != null) {
-        final attachment = FileAttachment(
-          excelBytes,
+        final attachment = StreamAttachment(
+          Stream.value(excelBytes),
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           fileName: 'Quote_$quoteNumber.xlsx',
-          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         );
         message.attachments.add(attachment);
       }

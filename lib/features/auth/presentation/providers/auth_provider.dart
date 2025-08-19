@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../../../core/services/firebase_auth_service.dart';
 import '../../../../core/services/realtime_database_service.dart';
 import '../../../../core/services/hybrid_database_service.dart';
