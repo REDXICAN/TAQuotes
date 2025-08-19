@@ -32,7 +32,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void initState() {
     super.initState();
     _offlineService = OfflineService();
-    _initializeServices();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    // Initialize services first
+    await _initializeServices();
+    
+    // Then load data
     _checkConnectivity();
     _loadStatistics();
     _listenToSyncStatus();
@@ -40,12 +47,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _initializeServices() async {
-    await OfflineService.staticInitialize();
-    await CacheManager.initialize();
+    try {
+      await OfflineService.staticInitialize();
+      await CacheManager.initialize();
 
-    final connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult != ConnectivityResult.none) {
-      OfflineService.syncPendingChanges();
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult != ConnectivityResult.none) {
+        OfflineService.syncPendingChanges();
+      }
+    } catch (e) {
+      AppLogger.error('Error initializing services', error: e, category: LogCategory.system);
     }
   }
 
@@ -76,10 +87,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _loadStatistics() async {
     try {
+      // Ensure cache manager is initialized before accessing
+      if (!CacheManager.isInitialized) {
+        await CacheManager.initialize();
+      }
+      
       final clients = CacheManager.getClients();
       final quotes = CacheManager.getQuotes();
       final products = CacheManager.getProducts();
-      final cart = _offlineService.getCart();
+      
+      // Use OfflineService static method instead of instance
+      final cart = OfflineService.getStaticCart();
 
       if (mounted) {
         setState(() {
@@ -91,6 +109,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     } catch (e) {
       AppLogger.error('Error loading statistics', error: e, category: LogCategory.database);
+      // Set default values on error
+      if (mounted) {
+        setState(() {
+          _totalClients = 0;
+          _totalQuotes = 0;
+          _totalProducts = 0;
+          _cartItems = 0;
+        });
+      }
     }
   }
 

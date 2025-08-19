@@ -79,11 +79,11 @@ class ExportService {
       // Try to load logo
       pw.ImageProvider? logoImage;
       try {
-        final logoBytes = await rootBundle.load('assets/app_logo.png');
+        final logoBytes = await rootBundle.load('assets/logos/turbo_air_logo.png');
         logoImage = pw.MemoryImage(logoBytes.buffer.asUint8List());
       } catch (e) {
         // Logo not found, continue without it
-        print('Logo not found: $e');
+        AppLogger.debug('Logo not found, continuing without it', category: LogCategory.export);
       }
     
       // Build PDF

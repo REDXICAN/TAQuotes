@@ -11,12 +11,28 @@ class CacheManager {
 
   static late Box _cache;
   static late Box _metadata;
+  static bool _isInitialized = false;
+
+  // Check if CacheManager is initialized
+  static bool get isInitialized => _isInitialized || kIsWeb;
 
   // Initialize cache boxes - static method
   static Future<void> initialize() async {
-    if (kIsWeb) return; // Skip initialization on web
-    _cache = await Hive.openBox(_cacheBox);
-    _metadata = await Hive.openBox(_metadataBox);
+    if (kIsWeb) {
+      _isInitialized = true;
+      return; // Skip initialization on web
+    }
+    if (_isInitialized) return; // Already initialized
+    
+    try {
+      _cache = await Hive.openBox(_cacheBox);
+      _metadata = await Hive.openBox(_metadataBox);
+      _isInitialized = true;
+    } catch (e) {
+      // Log error but don't crash
+      print('Error initializing CacheManager: $e');
+      _isInitialized = false;
+    }
   }
 
   // Cache a value with expiration

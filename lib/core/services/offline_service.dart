@@ -183,6 +183,18 @@ class OfflineService {
     }).toList();
   }
 
+  // Static method to get cart
+  static List<CartItem> getStaticCart() {
+    if (_instance == null || !_isInitialized) {
+      return [];
+    }
+    try {
+      return _instance!.getCart();
+    } catch (e) {
+      return [];
+    }
+  }
+
   // Sync methods
   static Future<void> syncPendingChanges() async {
     if (kIsWeb) return; // Skip on web
