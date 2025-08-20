@@ -10,6 +10,7 @@ import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/services/excel_upload_service.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/services/product_cache_service.dart';
+import '../../../../core/services/pinned_products_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../widgets/excel_preview_dialog.dart';
 import '../../widgets/zoomable_image_viewer.dart';
@@ -158,6 +159,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final ScrollController _detailsScrollController = ScrollController();
+  final ScrollController _tabScrollController = ScrollController();
   bool _isSearching = false;
   bool _isUploading = false;
   bool _isTableView = false;
@@ -165,6 +167,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
   TabController? _tabController;
   List<String> _productTypes = ['All'];
   String _selectedProductType = 'All';
+  String? _selectedCategory;
   
   @override
   void initState() {
@@ -231,6 +234,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
     _searchController.dispose();
     _scrollController.dispose();
     _detailsScrollController.dispose();
+    _tabScrollController.dispose();
     _tabController?.dispose();
     super.dispose();
   }
@@ -485,49 +489,80 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
             ),
           ),
 
-          // Product Type Tabs (only show when not searching)
+          // Product Type Tabs with Pinned Products (only show when not searching)
           if (!_isSearching)
-            productsAsync.when(
-              data: (products) {
-                // Get unique product types
-                final types = _getProductTypes(products).toList()..sort();
-                final allTypes = ['All', ...types];
+            Consumer(
+              builder: (context, ref, child) {
+                final pinnedProductsAsync = ref.watch(pinnedProductsProvider);
                 
-                // Initialize or update tab controller if needed
-                if (_tabController == null || _tabController!.length != allTypes.length) {
-                  _tabController?.dispose();
-                  _tabController = TabController(
-                    length: allTypes.length,
-                    vsync: this,
-                    initialIndex: 0,
-                  );
-                  _productTypes = allTypes;
-                }
-                
-                return Container(
-                  color: theme.primaryColor.withOpacity(0.1),
-                  child: TabBar(
-                    controller: _tabController,
-                    isScrollable: true,
-                    labelColor: theme.primaryColor,
-                    unselectedLabelColor: Colors.grey[600],
-                    indicatorColor: theme.primaryColor,
-                    indicatorWeight: 3,
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 16),
-                    onTap: (index) {
-                      setState(() {
-                        _selectedProductType = _productTypes[index];
-                        _visibleItemCount = 24; // Reset visible items
-                      });
-                    },
-                    tabs: _productTypes.map((type) => Tab(
-                      text: type == 'All' ? 'All Products' : type,
-                    )).toList(),
-                  ),
+                return productsAsync.when(
+                  data: (products) {
+                    // Get pinned products
+                    final pinnedIds = pinnedProductsAsync.value ?? {};
+                    final pinnedProducts = products.where((p) => 
+                      pinnedIds.contains(p.id ?? p.sku)).toList();
+                    
+                    // Get unique product types
+                    final types = _getProductTypes(products).toList()..sort();
+                    
+                    // Build tab list: All, Pinned products (if any), then types
+                    final List<String> allTypes = ['All'];
+                    final List<Product> pinnedList = [];
+                    
+                    // Add individual pinned product tabs
+                    for (final product in pinnedProducts) {
+                      allTypes.add('📌 ${product.sku ?? product.model}');
+                      pinnedList.add(product);
+                    }
+                    
+                    // Add product types
+                    allTypes.addAll(types);
+                    
+                    // Initialize or update tab controller if needed
+                    if (_tabController == null || _tabController!.length != allTypes.length) {
+                      final currentIndex = _tabController?.index ?? 0;
+                      _tabController?.dispose();
+                      _tabController = TabController(
+                        length: allTypes.length,
+                        vsync: this,
+                        initialIndex: currentIndex < allTypes.length ? currentIndex : 0,
+                      );
+                      _productTypes = allTypes;
+                    }
+                    
+                    return Container(
+                      color: theme.primaryColor.withOpacity(0.1),
+                      child: TabBar(
+                        controller: _tabController,
+                        isScrollable: true,
+                        labelColor: theme.primaryColor,
+                        unselectedLabelColor: Colors.grey[600],
+                        indicatorColor: theme.primaryColor,
+                        indicatorWeight: 3,
+                        labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+                        onTap: (index) {
+                          setState(() {
+                            if (index == 0) {
+                              _selectedProductType = 'All';
+                            } else if (index > 0 && index <= pinnedList.length) {
+                              // Pinned product tab selected
+                              _selectedProductType = 'Pinned_${pinnedList[index - 1].id}';
+                            } else {
+                              _selectedProductType = _productTypes[index];
+                            }
+                            _visibleItemCount = 24; // Reset visible items
+                          });
+                        },
+                        tabs: _productTypes.map((type) => Tab(
+                          text: type == 'All' ? 'All Products' : type,
+                        )).toList(),
+                      ),
+                    );
+                  },
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
                 );
               },
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
             ),
           
           // Filters Row (only show when not searching)
@@ -694,10 +729,109 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                     loading: () => const SizedBox.shrink(),
                     error: (_, __) => const SizedBox.shrink(),
                   ),
+                  
+                  const SizedBox(width: 8),
+                  
+                  // Category Dropdown (e.g., "Countertop Display Case")
+                  if (_selectedProductType != 'All' && !_selectedProductType.startsWith('Pinned_') && !_selectedProductType.startsWith('📌'))
+                    productsAsync.when(
+                      data: (allProducts) {
+                        // Get products of selected type
+                        final typeProducts = _filterByProductType(allProducts, 
+                          _selectedProductType.startsWith('📌') 
+                            ? _selectedProductType.substring(2) 
+                            : _selectedProductType);
+                        
+                        // Get unique categories from these products
+                        final categories = typeProducts
+                          .map((p) => p.category)
+                          .where((c) => c.isNotEmpty)
+                          .toSet()
+                          .toList()..sort();
+                        
+                        if (categories.isEmpty) return const SizedBox.shrink();
+                        
+                        return Container(
+                          constraints: BoxConstraints(
+                            maxWidth: ResponsiveHelper.getValue(
+                              context,
+                              mobile: 140,
+                              tablet: 180,
+                              desktop: 220,
+                            ),
+                          ),
+                          child: PopupMenuButton<String?>(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _selectedCategory != null 
+                                    ? theme.primaryColor.withOpacity(0.2)
+                                    : theme.dividerColor.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: _selectedCategory != null
+                                      ? theme.primaryColor
+                                      : theme.dividerColor,
+                                  width: _selectedCategory != null ? 2 : 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.category,
+                                    size: 18,
+                                    color: _selectedCategory != null
+                                        ? theme.primaryColor
+                                        : null,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      _selectedCategory ?? 'Category',
+                                      style: TextStyle(
+                                        fontSize: ResponsiveHelper.isMobile(context) ? 13 : 14,
+                                        fontWeight: _selectedCategory != null
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const Icon(Icons.arrow_drop_down, size: 18),
+                                ],
+                              ),
+                            ),
+                            onSelected: (value) {
+                              setState(() {
+                                _selectedCategory = value;
+                                _visibleItemCount = 24; // Reset pagination
+                              });
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem<String?>(
+                                value: null,
+                                child: Text('All Categories'),
+                              ),
+                              const PopupMenuDivider(),
+                              ...categories.map((category) => 
+                                PopupMenuItem<String>(
+                                  value: category,
+                                  child: Text(category),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
+                    ),
+                  
                   const Spacer(),
                   
                   // Clear/Reset button
-                  if (selectedProductLine != null || _searchController.text.isNotEmpty)
+                  if (selectedProductLine != null || _selectedCategory != null || _searchController.text.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: IconButton(
@@ -709,6 +843,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                         onPressed: () {
                           setState(() {
                             selectedProductLine = null;
+                            _selectedCategory = null;
                             _isSearching = false;
                           });
                           _searchController.clear();
@@ -769,12 +904,30 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                   )
                 : productsAsync.when(
                     data: (products) {
-                      // Apply product type filter first
-                      List<Product> filteredProducts = _filterByProductType(products, _selectedProductType);
+                      List<Product> filteredProducts;
+                      
+                      // Check if it's a pinned product tab
+                      if (_selectedProductType.startsWith('Pinned_')) {
+                        // Show only the specific pinned product
+                        final productId = _selectedProductType.substring(7);
+                        filteredProducts = products.where((p) => p.id == productId || p.sku == productId).toList();
+                      } else if (_selectedProductType.startsWith('📌')) {
+                        // Show only the specific pinned product (with emoji)
+                        final sku = _selectedProductType.substring(2).trim();
+                        filteredProducts = products.where((p) => p.sku == sku || p.model == sku).toList();
+                      } else {
+                        // Apply product type filter first
+                        filteredProducts = _filterByProductType(products, _selectedProductType);
+                      }
                       
                       // Then apply product line filter if selected
                       if (selectedProductLine != null) {
                         filteredProducts = _filterByProductLine(filteredProducts, selectedProductLine);
+                      }
+                      
+                      // Apply category filter if selected
+                      if (_selectedCategory != null) {
+                        filteredProducts = filteredProducts.where((p) => p.category == _selectedCategory).toList();
                       }
                       
                       if (filteredProducts.isEmpty) {
@@ -806,6 +959,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                                 onPressed: () {
                                   setState(() {
                                     selectedProductLine = null;
+                                    _selectedCategory = null;
                                     _visibleItemCount = 24;
                                   });
                                 },
@@ -2151,6 +2305,12 @@ class ProductCard extends ConsumerWidget {
     final isCompact = ResponsiveHelper.useCompactLayout(context);
     final isMobile = ResponsiveHelper.isMobile(context);
     final fontScale = ResponsiveHelper.getFontScale(context);
+    
+    // Watch pinned products
+    final pinnedProductsAsync = ref.watch(pinnedProductsProvider);
+    final pinnedProducts = pinnedProductsAsync.value ?? {};
+    final isPinned = pinnedProducts.contains(product.id ?? product.sku);
+    final pinnedService = ref.read(pinnedProductsServiceProvider);
 
     // Format price with commas
     String formatPrice(double price) {
@@ -2172,35 +2332,77 @@ class ProductCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product Image - Smaller to make card shorter
-            AspectRatio(
-              aspectRatio: isMobile ? 1.2 : 1.0, // More rectangular on mobile
-              child: Container(
-                decoration: BoxDecoration(
-                  color: theme.disabledColor.withOpacity(0.1),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(8),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: Image.asset(
-                    imagePath,
-                    fit: BoxFit.contain,
-                    width: double.infinity,
-                    errorBuilder: (_, __, ___) => Image.asset(
-                      'assets/logos/turbo_air_logo.png',
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Center(
-                        child: Icon(
-                          Icons.image_not_supported,
-                          size: ResponsiveHelper.getIconSize(context, baseSize: 36),
+            // Product Image with Pin Button
+            Stack(
+              children: [
+                AspectRatio(
+                  aspectRatio: isMobile ? 1.2 : 1.0, // More rectangular on mobile
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: theme.disabledColor.withOpacity(0.1),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(8),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Image.asset(
+                        imagePath,
+                        fit: BoxFit.contain,
+                        width: double.infinity,
+                        errorBuilder: (_, __, ___) => Image.asset(
+                          'assets/logos/turbo_air_logo.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Center(
+                            child: Icon(
+                              Icons.image_not_supported,
+                              size: ResponsiveHelper.getIconSize(context, baseSize: 36),
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
+                // Pin button
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Material(
+                    color: isPinned 
+                      ? theme.primaryColor 
+                      : Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(20),
+                    elevation: 2,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () async {
+                        await pinnedService.toggleProductPin(product.id ?? product.sku ?? '');
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                isPinned 
+                                  ? 'Removed ${product.sku} from pinned products'
+                                  : 'Pinned ${product.sku} for quick access',
+                              ),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Icon(
+                          isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                          size: isMobile ? 18 : 16,
+                          color: isPinned ? Colors.white : theme.primaryColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             // Product Info - Compact with larger text
             Padding(
