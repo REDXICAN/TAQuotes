@@ -10,7 +10,6 @@ import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/services/excel_upload_service.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/services/product_cache_service.dart';
-import '../../../../core/services/pinned_products_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../widgets/excel_preview_dialog.dart';
 import '../../widgets/zoomable_image_viewer.dart';
@@ -505,32 +504,18 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
             ),
           ),
 
-          // Product Type Tabs with Pinned Products and Categories
+          // Category Tabs
           if (!_isSearching)
-            Consumer(
-              builder: (context, ref, child) {
-                final pinnedProductsAsync = ref.watch(pinnedProductsProvider);
+            productsAsync.when(
+              data: (products) {
+                // Get unique categories
+                final categories = _getCategories(products).toList()..sort();
                 
-                return productsAsync.when(
-                  data: (products) {
-                    // Get pinned products
-                    final pinnedIds = pinnedProductsAsync.value ?? {};
-                    final pinnedProducts = products.where((p) => 
-                      pinnedIds.contains(p.id ?? p.sku)).toList();
-                    
-                    // Get unique categories (not product types)
-                    final categories = _getCategories(products).toList()..sort();
-                    
-                    // Build tab list: All, Pinned products (if any), then categories
-                    final List<String> allTypes = ['All'];
-                    
-                    // Add individual pinned product tabs IMMEDIATELY after All
-                    for (final product in pinnedProducts) {
-                      allTypes.add('📌 ${product.sku ?? product.model}');
-                    }
-                    
-                    // Add categories (like "Countertop Display Case", "Economy Freezer", etc.)
-                    allTypes.addAll(categories);
+                // Build tab list: All, then categories
+                final List<String> allTypes = ['All'];
+                
+                // Add categories (like "Countertop Display Case", "Economy Freezer", etc.)
+                allTypes.addAll(categories);
                     
                     // Initialize or update tab controller if needed
                     if (_tabController == null || _tabController!.length != allTypes.length) {
@@ -558,10 +543,6 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                           setState(() {
                             if (index == 0) {
                               _selectedProductType = 'All';
-                            } else if (index > 0 && index <= pinnedProducts.length) {
-                              // Pinned product tab selected
-                              final pinnedProduct = pinnedProducts[index - 1];
-                              _selectedProductType = '📌 ${pinnedProduct.sku ?? pinnedProduct.model}';
                             } else {
                               // Category tab selected
                               _selectedProductType = _productTypes[index];
@@ -575,10 +556,8 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                       ),
                     );
                   },
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
-                );
-              },
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
             ),
           
           // Filters Row (only show when not searching)
@@ -821,21 +800,8 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                   )
                 : productsAsync.when(
                     data: (products) {
-                      List<Product> filteredProducts;
-                      
-                      // Check if it's a pinned product tab
-                      if (_selectedProductType.startsWith('Pinned_')) {
-                        // Show only the specific pinned product
-                        final productId = _selectedProductType.substring(7);
-                        filteredProducts = products.where((p) => p.id == productId || p.sku == productId).toList();
-                      } else if (_selectedProductType.startsWith('📌')) {
-                        // Show only the specific pinned product (with emoji)
-                        final sku = _selectedProductType.substring(2).trim();
-                        filteredProducts = products.where((p) => p.sku == sku || p.model == sku).toList();
-                      } else {
-                        // Apply product type filter first
-                        filteredProducts = _filterByProductType(products, _selectedProductType);
-                      }
+                      // Apply category filter
+                      List<Product> filteredProducts = _filterByProductType(products, _selectedProductType);
                       
                       // Then apply product line filter if selected
                       if (selectedProductLine != null) {
@@ -968,6 +934,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
           // Quantity input
           Container(
             width: 40,
+            alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: TextField(
               controller: textController,
@@ -2110,6 +2077,7 @@ class ProductCard extends ConsumerWidget {
           // Quantity input
           Container(
             width: 40,
+            alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: TextField(
               controller: textController,
@@ -2216,12 +2184,6 @@ class ProductCard extends ConsumerWidget {
     final isCompact = ResponsiveHelper.useCompactLayout(context);
     final isMobile = ResponsiveHelper.isMobile(context);
     final fontScale = ResponsiveHelper.getFontScale(context);
-    
-    // Watch pinned products
-    final pinnedProductsAsync = ref.watch(pinnedProductsProvider);
-    final pinnedProducts = pinnedProductsAsync.value ?? {};
-    final isPinned = pinnedProducts.contains(product.id ?? product.sku);
-    final pinnedService = ref.read(pinnedProductsServiceProvider);
 
     // Format price with commas
     String formatPrice(double price) {
@@ -2243,77 +2205,35 @@ class ProductCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product Image with Pin Button
-            Stack(
-              children: [
-                AspectRatio(
-                  aspectRatio: isMobile ? 1.2 : 1.0, // More rectangular on mobile
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: theme.disabledColor.withOpacity(0.1),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(8),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: Image.asset(
-                        imagePath,
-                        fit: BoxFit.contain,
-                        width: double.infinity,
-                        errorBuilder: (_, __, ___) => Image.asset(
-                          'assets/logos/turbo_air_logo.png',
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => Center(
-                            child: Icon(
-                              Icons.image_not_supported,
-                              size: ResponsiveHelper.getIconSize(context, baseSize: 36),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+            // Product Image
+            AspectRatio(
+              aspectRatio: isMobile ? 1.2 : 1.0, // More rectangular on mobile
+              child: Container(
+                decoration: BoxDecoration(
+                  color: theme.disabledColor.withOpacity(0.1),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(8),
                   ),
                 ),
-                // Pin button
-                Positioned(
-                  top: 4,
-                  right: 4,
-                  child: Material(
-                    color: isPinned 
-                      ? theme.primaryColor 
-                      : Colors.white.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(20),
-                    elevation: 2,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(20),
-                      onTap: () async {
-                        await pinnedService.toggleProductPin(product.id ?? product.sku ?? '');
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                isPinned 
-                                  ? 'Removed ${product.sku} from pinned products'
-                                  : 'Pinned ${product.sku} for quick access',
-                              ),
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        }
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(6),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Image.asset(
+                    imagePath,
+                    fit: BoxFit.contain,
+                    width: double.infinity,
+                    errorBuilder: (_, __, ___) => Image.asset(
+                      'assets/logos/turbo_air_logo.png',
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Center(
                         child: Icon(
-                          isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                          size: isMobile ? 18 : 16,
-                          color: isPinned ? Colors.white : theme.primaryColor,
+                          Icons.image_not_supported,
+                          size: ResponsiveHelper.getIconSize(context, baseSize: 36),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ],
+              ),
             ),
             // Product Info - Compact with larger text
             Padding(
