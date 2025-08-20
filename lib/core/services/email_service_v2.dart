@@ -1,10 +1,8 @@
 // lib/core/services/email_service_v2.dart
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:typed_data';
-import 'dart:html' as html;
 import 'app_logger.dart';
 import '../config/email_config.dart';
 

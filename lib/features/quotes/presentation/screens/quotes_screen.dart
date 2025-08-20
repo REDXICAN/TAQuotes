@@ -13,6 +13,7 @@ import '../../../../core/services/export_service.dart';
 import '../../../../core/services/firebase_email_service.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/utils/responsive_helper.dart';
+import '../../../../core/utils/price_formatter.dart';
 import 'package:excel/excel.dart' as excel;
 import 'edit_quote_screen.dart';
 
@@ -417,7 +418,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '\$${quote.totalAmount.toStringAsFixed(2)}',
+                    PriceFormatter.formatPrice(quote.totalAmount),
                     style: TextStyle(
                       fontSize: isMobile ? 16 : 18,
                       fontWeight: FontWeight.bold,
@@ -700,8 +701,8 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (dialogContext) => WillPopScope(
-            onWillPop: () async => false,
+          builder: (dialogContext) => PopScope(
+            canPop: false,
             child: const AlertDialog(
               content: SizedBox(
                 height: 100,
@@ -1032,8 +1033,8 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (dialogContext) => WillPopScope(
-            onWillPop: () async => false,
+          builder: (dialogContext) => PopScope(
+            canPop: false,
             child: const AlertDialog(
               content: SizedBox(
                 height: 100,

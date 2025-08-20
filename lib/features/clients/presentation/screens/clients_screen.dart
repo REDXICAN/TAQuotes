@@ -890,6 +890,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
       final file = result.files.single;
       
       // Show loading dialog
+      if (!mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,

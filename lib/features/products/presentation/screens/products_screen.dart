@@ -152,7 +152,7 @@ class ProductsScreen extends ConsumerStatefulWidget {
   ConsumerState<ProductsScreen> createState() => _ProductsScreenState();
 }
 
-class _ProductsScreenState extends ConsumerState<ProductsScreen> {
+class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTickerProviderStateMixin {
   String? selectedProductLine;
   Product? selectedProduct;
   final TextEditingController _searchController = TextEditingController();
@@ -162,11 +162,15 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
   bool _isUploading = false;
   bool _isTableView = false;
   int _visibleItemCount = 24; // Initial items to show
+  TabController? _tabController;
+  List<String> _productTypes = ['All'];
+  String _selectedProductType = 'All';
   
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    // Tab controller will be initialized when product types are loaded
   }
   
   void _onScroll() {
@@ -194,6 +198,25 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
     return lines;
   }
   
+  // Extract unique product types from products
+  Set<String> _getProductTypes(List<Product> products) {
+    final types = <String>{};
+    for (final product in products) {
+      if (product.productType != null && product.productType!.isNotEmpty) {
+        types.add(product.productType!);
+      }
+    }
+    return types;
+  }
+  
+  // Filter products by product type
+  List<Product> _filterByProductType(List<Product> products, String type) {
+    if (type == 'All') return products;
+    return products.where((product) {
+      return product.productType == type;
+    }).toList();
+  }
+  
   // Filter products by product line
   List<Product> _filterByProductLine(List<Product> products, String? line) {
     if (line == null) return products;
@@ -208,6 +231,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
     _searchController.dispose();
     _scrollController.dispose();
     _detailsScrollController.dispose();
+    _tabController?.dispose();
     super.dispose();
   }
 
@@ -461,6 +485,51 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
             ),
           ),
 
+          // Product Type Tabs (only show when not searching)
+          if (!_isSearching)
+            productsAsync.when(
+              data: (products) {
+                // Get unique product types
+                final types = _getProductTypes(products).toList()..sort();
+                final allTypes = ['All', ...types];
+                
+                // Initialize or update tab controller if needed
+                if (_tabController == null || _tabController!.length != allTypes.length) {
+                  _tabController?.dispose();
+                  _tabController = TabController(
+                    length: allTypes.length,
+                    vsync: this,
+                    initialIndex: 0,
+                  );
+                  _productTypes = allTypes;
+                }
+                
+                return Container(
+                  color: theme.primaryColor.withOpacity(0.1),
+                  child: TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    labelColor: theme.primaryColor,
+                    unselectedLabelColor: Colors.grey[600],
+                    indicatorColor: theme.primaryColor,
+                    indicatorWeight: 3,
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    onTap: (index) {
+                      setState(() {
+                        _selectedProductType = _productTypes[index];
+                        _visibleItemCount = 24; // Reset visible items
+                      });
+                    },
+                    tabs: _productTypes.map((type) => Tab(
+                      text: type == 'All' ? 'All Products' : type,
+                    )).toList(),
+                  ),
+                );
+              },
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+          
           // Filters Row (only show when not searching)
           if (!_isSearching)
             Container(
@@ -700,10 +769,12 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                   )
                 : productsAsync.when(
                     data: (products) {
-                      // Apply product line filter if selected
-                      List<Product> filteredProducts = products;
+                      // Apply product type filter first
+                      List<Product> filteredProducts = _filterByProductType(products, _selectedProductType);
+                      
+                      // Then apply product line filter if selected
                       if (selectedProductLine != null) {
-                        filteredProducts = _filterByProductLine(products, selectedProductLine);
+                        filteredProducts = _filterByProductLine(filteredProducts, selectedProductLine);
                       }
                       
                       if (filteredProducts.isEmpty) {

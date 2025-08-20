@@ -149,9 +149,9 @@ class MainNavigationShell extends ConsumerStatefulWidget {
 class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   final List<String> _routes = [
     '/',
+    '/clients',
     '/products',
     '/cart',
-    '/clients',
     '/quotes',
     '/profile',
   ];
@@ -221,6 +221,11 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                   label: Text('Home'),
                 ),
                 const NavigationRailDestination(
+                  icon: Icon(Icons.people_outline),
+                  selectedIcon: Icon(Icons.people),
+                  label: Text('Clients'),
+                ),
+                const NavigationRailDestination(
                   icon: Icon(Icons.inventory_2_outlined),
                   selectedIcon: Icon(Icons.inventory_2),
                   label: Text('Products'),
@@ -237,11 +242,6 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                     child: const Icon(Icons.shopping_cart),
                   ),
                   label: const Text('Cart'),
-                ),
-                const NavigationRailDestination(
-                  icon: Icon(Icons.people_outline),
-                  selectedIcon: Icon(Icons.people),
-                  label: Text('Clients'),
                 ),
                 const NavigationRailDestination(
                   icon: Icon(Icons.receipt_long_outlined),
@@ -291,6 +291,11 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             label: 'Home',
           ),
           const NavigationDestination(
+            icon: Icon(Icons.people_outline),
+            selectedIcon: Icon(Icons.people),
+            label: 'Clients',
+          ),
+          const NavigationDestination(
             icon: Icon(Icons.inventory_2_outlined),
             selectedIcon: Icon(Icons.inventory_2),
             label: 'Products',
@@ -307,11 +312,6 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
               child: const Icon(Icons.shopping_cart),
             ),
             label: 'Cart',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.people_outline),
-            selectedIcon: Icon(Icons.people),
-            label: 'Clients',
           ),
           const NavigationDestination(
             icon: Icon(Icons.receipt_long_outlined),

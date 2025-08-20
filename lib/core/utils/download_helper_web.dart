@@ -1,6 +1,8 @@
 // lib/core/utils/download_helper_web.dart
+// ignore: avoid_web_libraries_in_flutter
 
 import 'dart:typed_data';
+// ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 
 void downloadFileWeb(Uint8List bytes, String fileName) {

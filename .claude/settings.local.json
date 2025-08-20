@@ -105,7 +105,8 @@
       "Bash(git check-ignore:*)",
       "Bash(firebase functions:config:set:*)",
       "Bash(where java)",
-      "Bash(set JAVA_HOME=C:Program FilesMicrosoftjdk-17.0.16.8-hotspot)"
+      "Bash(set JAVA_HOME=C:Program FilesMicrosoftjdk-17.0.16.8-hotspot)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": [

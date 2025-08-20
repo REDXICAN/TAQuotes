@@ -7,6 +7,12 @@ const cors = require('cors')({ origin: true });
 // Initialize Firebase Admin
 admin.initializeApp();
 
+// Helper function to format currency with commas
+function formatCurrency(amount) {
+  const num = parseFloat(amount) || 0;
+  return '$' + num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 // Gmail SMTP configuration
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -161,7 +167,7 @@ TurboAir Quote System
       <div class="details">
         <h3>Quote Details</h3>
         <p><strong>Quote Number:</strong> ${quoteNumber}</p>
-        <p><strong>Total Amount:</strong> $${parseFloat(totalAmount).toFixed(2)}</p>
+        <p><strong>Total Amount:</strong> ${formatCurrency(totalAmount)}</p>
         <p><strong>Date:</strong> ${new Date().toISOString().split('T')[0]}</p>
       </div>
       
