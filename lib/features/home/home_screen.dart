@@ -314,7 +314,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 crossAxisSpacing: 16,
                 childAspectRatio: ResponsiveHelper.getValue(
                   context,
-                  mobile: 1.5,
+                  mobile: 1.0,  // More square for mobile to fit text
                   tablet: 1.3,
                   desktop: 1.2,
                 ),
@@ -363,40 +363,55 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     Color color,
     VoidCallback onTap,
   ) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = ResponsiveHelper.isMobile(context);
+        final iconSize = isMobile ? 32.0 : 40.0;
+        final valueSize = isMobile ? 24.0 : 28.0;
+        final titleSize = isMobile ? 12.0 : 14.0;
+        final padding = isMobile ? 12.0 : 16.0;
+        
+        return InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 40, color: color),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+          child: Container(
+            padding: EdgeInsets.all(padding),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: color.withOpacity(0.3)),
             ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 14,
-                color: color.withOpacity(0.8),
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: iconSize, color: color),
+                SizedBox(height: isMobile ? 8 : 12),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: valueSize,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: titleSize,
+                    color: color.withOpacity(0.8),
+                  ),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

@@ -10,7 +10,7 @@ import '../../../../core/models/models.dart';
 import '../../../../core/utils/product_image_helper_v3.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/services/export_service.dart';
-import '../../../../core/services/email_service_v2.dart';
+import '../../../../core/services/firebase_email_service.dart';
 import '../../../../core/widgets/searchable_client_dropdown.dart';
 import '../../../../core/services/app_logger.dart';
 
@@ -1216,11 +1216,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           AppLogger.info('Excel generated: ${excelBytes.length} bytes', category: LogCategory.business);
                         }
                         
-                        // Get quote data to get the actual total
+                        // Get quote data to get the actual total and products
                         // Since cart is already cleared, we need to get the quote from database
                         final database = FirebaseDatabase.instance;
                         final user = ref.read(currentUserProvider);
                         double totalAmount = 0;
+                        List<Map<String, dynamic>> productsList = [];
                         
                         if (user != null) {
                           try {
@@ -1228,17 +1229,49 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                             if (quoteSnapshot.exists) {
                               final quoteData = Map<String, dynamic>.from(quoteSnapshot.value as Map);
                               totalAmount = (quoteData['total_amount'] ?? quoteData['total'] ?? 0).toDouble();
-                              AppLogger.info('Got total from quote: $totalAmount', category: LogCategory.business);
+                              
+                              // Get products from quote items
+                              if (quoteData['quote_items'] != null) {
+                                final items = quoteData['quote_items'] is List 
+                                  ? quoteData['quote_items'] as List
+                                  : (quoteData['quote_items'] as Map).values.toList();
+                                  
+                                for (var item in items) {
+                                  if (item != null && item is Map) {
+                                    // Get product details
+                                    String productName = 'Unknown Product';
+                                    String productSku = 'N/A';
+                                    
+                                    if (item['product_id'] != null) {
+                                      final productSnapshot = await database.ref('products/${item['product_id']}').get();
+                                      if (productSnapshot.exists) {
+                                        final productData = Map<String, dynamic>.from(productSnapshot.value as Map);
+                                        productName = productData['name'] ?? productData['display_name'] ?? 'Unknown Product';
+                                        productSku = productData['sku'] ?? productData['model'] ?? 'N/A';
+                                      }
+                                    }
+                                    
+                                    productsList.add({
+                                      'name': productName,
+                                      'sku': productSku,
+                                      'quantity': item['quantity'] ?? 1,
+                                      'unitPrice': item['unit_price'] ?? 0,
+                                    });
+                                  }
+                                }
+                              }
+                              
+                              AppLogger.info('Got quote data: total=$totalAmount, products=${productsList.length}', 
+                                category: LogCategory.business);
                             }
                           } catch (e) {
-                            AppLogger.error('Failed to get quote total', error: e, category: LogCategory.business);
-                            // Fallback to a default value if we can't get the quote
+                            AppLogger.error('Failed to get quote data', error: e, category: LogCategory.business);
                             totalAmount = 0;
                           }
                         }
                         
-                        // Send email with timeout
-                        final emailService = EmailServiceV2();
+                        // Send email via Firebase Function
+                        final emailService = FirebaseEmailService();
                         final success = await emailService.sendQuoteEmail(
                           recipientEmail: emailController.text.trim(),
                           recipientName: client.contactName ?? 'Customer',
@@ -1248,6 +1281,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           attachPdf: attachPDF && pdfBytes != null,
                           attachExcel: attachExcel && excelBytes != null,
                           excelBytes: excelBytes,
+                          products: productsList,
                         ).timeout(
                           const Duration(seconds: 30),
                           onTimeout: () {

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/services/sample_data_service.dart';
 import '../../../../core/config/env_config.dart';
+import '../../../../core/utils/responsive_helper.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -240,8 +241,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               padding: const EdgeInsets.all(24),
               child: Container(
                 constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width / 3,
-                  minWidth: 350, // Minimum width for mobile devices
+                  maxWidth: ResponsiveHelper.isMobile(context) 
+                    ? MediaQuery.of(context).size.width * 0.9  // 90% width on mobile
+                    : MediaQuery.of(context).size.width / 3,   // 33% width on desktop
+                  minWidth: ResponsiveHelper.isMobile(context) 
+                    ? MediaQuery.of(context).size.width * 0.8  // 80% min width on mobile
+                    : 350, // Minimum width for desktop
                 ),
                 child: Card(
                   elevation: 8,
@@ -404,28 +409,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           // Role selection dropdown
                           DropdownButtonFormField<String>(
                             value: _selectedRole,
+                            style: TextStyle(
+                              color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87,
+                              fontSize: 16,
+                            ),
+                            dropdownColor: Theme.of(context).cardColor,
                             decoration: InputDecoration(
                               labelText: 'Account Role',
                               prefixIcon: const Icon(Icons.work),
                               helperText: 'Select your account type',
+                              helperMaxLines: 2,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               filled: true,
-                              fillColor: Colors.grey[50],
+                              fillColor: Theme.of(context).inputDecorationTheme.fillColor ?? Colors.grey[50],
                             ),
-                            items: const [
+                            items: [
                               DropdownMenuItem(
                                 value: 'Sales',
-                                child: Text('Sales Representative'),
+                                child: Text(
+                                  'Sales Representative',
+                                  style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87),
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'Distribution',
-                                child: Text('Distributor'),
+                                child: Text(
+                                  'Distributor',
+                                  style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87),
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'Admin',
-                                child: Text('Administrator (Requires Approval)'),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    'Administrator (Requires Approval)',
+                                    style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87),
+                                  ),
+                                ),
                               ),
                             ],
                             onChanged: (value) {

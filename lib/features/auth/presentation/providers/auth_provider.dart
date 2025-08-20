@@ -128,6 +128,10 @@ final signInProvider = Provider((ref) {
           return 'Invalid email address';
         case 'user-disabled':
           return 'This user has been disabled';
+        case 'too-many-requests':
+          return 'Too many failed login attempts. Please try again later or reset your password';
+        case 'network-request-failed':
+          return 'Network error. Please check your internet connection';
         default:
           return e.message ?? 'An error occurred during sign in';
       }
@@ -179,6 +183,10 @@ final signUpProvider = Provider((ref) {
           return 'An account already exists with this email';
         case 'invalid-email':
           return 'Invalid email address';
+        case 'too-many-requests':
+          return 'Too many attempts. Please wait a few minutes and try again';
+        case 'network-request-failed':
+          return 'Network error. Please check your internet connection';
         default:
           return e.message ?? 'An error occurred during sign up';
       }

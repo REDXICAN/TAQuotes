@@ -10,8 +10,9 @@ import 'dart:async';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/services/export_service.dart';
-import '../../../../core/services/email_service_v2.dart';
+import '../../../../core/services/firebase_email_service.dart';
 import '../../../../core/services/app_logger.dart';
+import '../../../../core/utils/responsive_helper.dart';
 import 'package:excel/excel.dart' as excel;
 import 'edit_quote_screen.dart';
 
@@ -257,10 +258,12 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                 return Center(
                   child: Container(
                     constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.67, // 2/3 of screen width
+                      maxWidth: ResponsiveHelper.isMobile(context)
+                        ? MediaQuery.of(context).size.width  // Full width on mobile
+                        : MediaQuery.of(context).size.width * 0.67, // 2/3 of screen width on desktop
                     ),
                     child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(ResponsiveHelper.isMobile(context) ? 8 : 16),
                       itemCount: filteredQuotes.length,
                       itemBuilder: (context, index) {
                         final quote = filteredQuotes[index];
@@ -752,8 +755,21 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         }
       }
       
-      // Send email with attachments
-      final emailService = EmailServiceV2();
+      // Prepare products list for email
+      List<Map<String, dynamic>> productsList = [];
+      if (quote.items != null) {
+        for (var item in quote.items!) {
+          productsList.add({
+            'name': item.productName ?? 'Unknown Product',
+            'sku': item.product?.sku ?? item.product?.model ?? 'N/A',
+            'quantity': item.quantity,
+            'unitPrice': item.unitPrice,
+          });
+        }
+      }
+      
+      // Send email via Firebase Function
+      final emailService = FirebaseEmailService();
       bool success = false;
       
       try {
@@ -767,6 +783,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
           attachPdf: sendPDF && pdfBytes != null,
           attachExcel: sendExcel && excelBytes != null,
           excelBytes: excelBytes,
+          products: productsList,
         ).timeout(
           const Duration(seconds: 30),
           onTimeout: () {
@@ -1071,9 +1088,26 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         // Generate Excel export using ExportService
         try {
           bytes = await ExportService.generateQuoteExcel(quote.id ?? '');
+          
+          // Verify bytes are not empty
+          if (bytes.isEmpty) {
+            AppLogger.error('Excel bytes are empty', category: LogCategory.business);
+            throw Exception('Generated Excel file is empty');
+          }
+          
           filename = 'Quote_${quote.quoteNumber}_${cleanClientName}_$dateStr.xlsx';
+          if (filename.isEmpty || filename == '.xlsx') {
+            filename = 'Quote_Export_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+          }
+          
           mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+          
+          AppLogger.info('Excel ready for download', category: LogCategory.business, data: {
+            'filename': filename,
+            'size': bytes.length,
+          });
         } catch (excelError) {
+          AppLogger.error('Excel generation failed', error: excelError, category: LogCategory.business);
           throw Exception('Failed to generate Excel: $excelError');
         }
       } else {

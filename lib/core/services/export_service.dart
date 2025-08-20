@@ -60,21 +60,50 @@ class ExportService {
       
       // Get quote items from the quote data itself
       List<Map<String, dynamic>> items = [];
+      
+      // Handle both array and map structures for quote_items
       if (quoteData['quote_items'] != null) {
-        for (var itemData in quoteData['quote_items']) {
-          final item = Map<String, dynamic>.from(itemData);
-          
-          // Fetch product details
-          if (item['product_id'] != null) {
-            final productSnapshot = await _database.ref('products/${item['product_id']}').get();
-            if (productSnapshot.exists) {
-              item['product'] = Map<String, dynamic>.from(productSnapshot.value as Map);
+        if (quoteData['quote_items'] is List) {
+          // Items stored as array
+          for (var itemData in quoteData['quote_items']) {
+            if (itemData != null) {
+              final item = Map<String, dynamic>.from(itemData);
+              
+              // Fetch product details
+              if (item['product_id'] != null) {
+                final productSnapshot = await _database.ref('products/${item['product_id']}').get();
+                if (productSnapshot.exists) {
+                  item['product'] = Map<String, dynamic>.from(productSnapshot.value as Map);
+                }
+              }
+              
+              items.add(item);
             }
           }
-          
-          items.add(item);
+        } else if (quoteData['quote_items'] is Map) {
+          // Items stored as map
+          final itemsMap = Map<String, dynamic>.from(quoteData['quote_items']);
+          for (var entry in itemsMap.entries) {
+            if (entry.value != null) {
+              final item = Map<String, dynamic>.from(entry.value);
+              
+              // Fetch product details
+              if (item['product_id'] != null) {
+                final productSnapshot = await _database.ref('products/${item['product_id']}').get();
+                if (productSnapshot.exists) {
+                  item['product'] = Map<String, dynamic>.from(productSnapshot.value as Map);
+                }
+              }
+              
+              items.add(item);
+            }
+          }
         }
       }
+      
+      // Log items found for debugging
+      AppLogger.info('PDF Generation: Found ${items.length} items for quote $quoteId', 
+        category: LogCategory.business);
     
       // Try to load logo
       pw.ImageProvider? logoImage;
@@ -564,9 +593,16 @@ class ExportService {
       
       // Items data
       if (quoteData['quote_items'] != null) {
-        final items = quoteData['quote_items'] is List 
-            ? quoteData['quote_items'] as List
-            : (quoteData['quote_items'] as Map).values.toList();
+        List<dynamic> items = [];
+        
+        // Handle both array and map structures
+        if (quoteData['quote_items'] is List) {
+          items = quoteData['quote_items'] as List;
+        } else if (quoteData['quote_items'] is Map) {
+          items = (quoteData['quote_items'] as Map).values.toList();
+        }
+        
+        AppLogger.info('Excel Generation: Processing ${items.length} items', category: LogCategory.business);
             
         for (final itemData in items) {
           if (itemData is Map) {
@@ -606,15 +642,38 @@ class ExportService {
       
       AppLogger.logTimer('Quote Excel generation completed', stopwatch);
       
-      // Save the Excel file
-      final bytes = excel.save();
-      if (bytes == null || bytes.isEmpty) {
-        throw Exception('Failed to encode Excel file');
+      // Save the Excel file - try with encode if save doesn't work
+      List<int>? bytes;
+      try {
+        bytes = excel.save();
+      } catch (e) {
+        AppLogger.error('Excel save() failed, trying encode()', error: e, category: LogCategory.business);
+        // Fallback to encode method if save fails
+        try {
+          bytes = excel.encode();
+        } catch (encodeError) {
+          AppLogger.error('Excel encode() also failed', error: encodeError, category: LogCategory.business);
+          throw Exception('Failed to save Excel file: ${e.toString()}');
+        }
+      }
+      
+      if (bytes == null) {
+        AppLogger.error('Excel save/encode returned null', category: LogCategory.business);
+        throw Exception('Excel save returned null');
+      }
+      
+      if (bytes.isEmpty) {
+        AppLogger.error('Excel save returned empty bytes', category: LogCategory.business, data: {
+          'sheets': excel.sheets.keys.toList(),
+          'rowCount': currentRow,
+        });
+        throw Exception('Excel file is empty');
       }
       
       AppLogger.info('Excel file generated successfully', category: LogCategory.business, data: {
         'size': bytes.length,
         'sheets': excel.sheets.keys.toList(),
+        'rowCount': currentRow,
       });
       
       return Uint8List.fromList(bytes);

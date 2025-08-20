@@ -91,7 +91,13 @@
       "Bash(cat:*)",
       "Bash(git reset:*)",
       "Bash(dart:*)",
-      "Bash(else echo \"firebase_options.dart not found (good)\")"
+      "Bash(else echo \"firebase_options.dart not found (good)\")",
+      "Bash(firebase emulators:start:*)",
+      "Bash(curl:*)",
+      "Bash(firebase functions:log:*)",
+      "Bash(taskkill:*)",
+      "Bash(then echo \"WARNING: firebase_options.dart exists - SHOULD BE GITIGNORED!\")",
+      "Bash(else echo \"✓ firebase_options.dart not found (good)\")"
     ],
     "deny": [],
     "ask": [
