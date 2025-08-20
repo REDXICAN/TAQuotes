@@ -167,7 +167,6 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
   TabController? _tabController;
   List<String> _productTypes = ['All'];
   String _selectedProductType = 'All';
-  String? _selectedCategory;
   
   @override
   void initState() {
@@ -212,11 +211,28 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
     return types;
   }
   
-  // Filter products by product type
+  // Extract unique categories from products
+  Set<String> _getCategories(List<Product> products) {
+    final categories = <String>{};
+    for (final product in products) {
+      if (product.category.isNotEmpty) {
+        categories.add(product.category);
+      }
+    }
+    return categories;
+  }
+  
+  // Filter products by product type or category
   List<Product> _filterByProductType(List<Product> products, String type) {
     if (type == 'All') return products;
+    
+    // Check if it's a category filter instead of product type
     return products.where((product) {
-      return product.productType == type;
+      // First check if it matches a category
+      if (product.category == type) return true;
+      // Then check product type
+      if (product.productType == type) return true;
+      return false;
     }).toList();
   }
   
@@ -489,7 +505,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
             ),
           ),
 
-          // Product Type Tabs with Pinned Products (only show when not searching)
+          // Product Type Tabs with Pinned Products and Categories
           if (!_isSearching)
             Consumer(
               builder: (context, ref, child) {
@@ -502,21 +518,19 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                     final pinnedProducts = products.where((p) => 
                       pinnedIds.contains(p.id ?? p.sku)).toList();
                     
-                    // Get unique product types
-                    final types = _getProductTypes(products).toList()..sort();
+                    // Get unique categories (not product types)
+                    final categories = _getCategories(products).toList()..sort();
                     
-                    // Build tab list: All, Pinned products (if any), then types
+                    // Build tab list: All, Pinned products (if any), then categories
                     final List<String> allTypes = ['All'];
-                    final List<Product> pinnedList = [];
                     
-                    // Add individual pinned product tabs
+                    // Add individual pinned product tabs IMMEDIATELY after All
                     for (final product in pinnedProducts) {
                       allTypes.add('📌 ${product.sku ?? product.model}');
-                      pinnedList.add(product);
                     }
                     
-                    // Add product types
-                    allTypes.addAll(types);
+                    // Add categories (like "Countertop Display Case", "Economy Freezer", etc.)
+                    allTypes.addAll(categories);
                     
                     // Initialize or update tab controller if needed
                     if (_tabController == null || _tabController!.length != allTypes.length) {
@@ -544,10 +558,12 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                           setState(() {
                             if (index == 0) {
                               _selectedProductType = 'All';
-                            } else if (index > 0 && index <= pinnedList.length) {
+                            } else if (index > 0 && index <= pinnedProducts.length) {
                               // Pinned product tab selected
-                              _selectedProductType = 'Pinned_${pinnedList[index - 1].id}';
+                              final pinnedProduct = pinnedProducts[index - 1];
+                              _selectedProductType = '📌 ${pinnedProduct.sku ?? pinnedProduct.model}';
                             } else {
+                              // Category tab selected
                               _selectedProductType = _productTypes[index];
                             }
                             _visibleItemCount = 24; // Reset visible items
@@ -730,108 +746,10 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                     error: (_, __) => const SizedBox.shrink(),
                   ),
                   
-                  const SizedBox(width: 8),
-                  
-                  // Category Dropdown (e.g., "Countertop Display Case")
-                  if (_selectedProductType != 'All' && !_selectedProductType.startsWith('Pinned_') && !_selectedProductType.startsWith('📌'))
-                    productsAsync.when(
-                      data: (allProducts) {
-                        // Get products of selected type
-                        final typeProducts = _filterByProductType(allProducts, 
-                          _selectedProductType.startsWith('📌') 
-                            ? _selectedProductType.substring(2) 
-                            : _selectedProductType);
-                        
-                        // Get unique categories from these products
-                        final categories = typeProducts
-                          .map((p) => p.category)
-                          .where((c) => c.isNotEmpty)
-                          .toSet()
-                          .toList()..sort();
-                        
-                        if (categories.isEmpty) return const SizedBox.shrink();
-                        
-                        return Container(
-                          constraints: BoxConstraints(
-                            maxWidth: ResponsiveHelper.getValue(
-                              context,
-                              mobile: 140,
-                              tablet: 180,
-                              desktop: 220,
-                            ),
-                          ),
-                          child: PopupMenuButton<String?>(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: _selectedCategory != null 
-                                    ? theme.primaryColor.withOpacity(0.2)
-                                    : theme.dividerColor.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: _selectedCategory != null
-                                      ? theme.primaryColor
-                                      : theme.dividerColor,
-                                  width: _selectedCategory != null ? 2 : 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.category,
-                                    size: 18,
-                                    color: _selectedCategory != null
-                                        ? theme.primaryColor
-                                        : null,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Flexible(
-                                    child: Text(
-                                      _selectedCategory ?? 'Category',
-                                      style: TextStyle(
-                                        fontSize: ResponsiveHelper.isMobile(context) ? 13 : 14,
-                                        fontWeight: _selectedCategory != null
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const Icon(Icons.arrow_drop_down, size: 18),
-                                ],
-                              ),
-                            ),
-                            onSelected: (value) {
-                              setState(() {
-                                _selectedCategory = value;
-                                _visibleItemCount = 24; // Reset pagination
-                              });
-                            },
-                            itemBuilder: (context) => [
-                              const PopupMenuItem<String?>(
-                                value: null,
-                                child: Text('All Categories'),
-                              ),
-                              const PopupMenuDivider(),
-                              ...categories.map((category) => 
-                                PopupMenuItem<String>(
-                                  value: category,
-                                  child: Text(category),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                      loading: () => const SizedBox.shrink(),
-                      error: (_, __) => const SizedBox.shrink(),
-                    ),
-                  
                   const Spacer(),
                   
                   // Clear/Reset button
-                  if (selectedProductLine != null || _selectedCategory != null || _searchController.text.isNotEmpty)
+                  if (selectedProductLine != null || _searchController.text.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: IconButton(
@@ -843,7 +761,6 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                         onPressed: () {
                           setState(() {
                             selectedProductLine = null;
-                            _selectedCategory = null;
                             _isSearching = false;
                           });
                           _searchController.clear();
@@ -925,11 +842,6 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                         filteredProducts = _filterByProductLine(filteredProducts, selectedProductLine);
                       }
                       
-                      // Apply category filter if selected
-                      if (_selectedCategory != null) {
-                        filteredProducts = filteredProducts.where((p) => p.category == _selectedCategory).toList();
-                      }
-                      
                       if (filteredProducts.isEmpty) {
                         return Center(
                           child: Column(
@@ -959,7 +871,6 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                                 onPressed: () {
                                   setState(() {
                                     selectedProductLine = null;
-                                    _selectedCategory = null;
                                     _visibleItemCount = 24;
                                   });
                                 },
