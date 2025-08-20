@@ -361,7 +361,7 @@ Future<void> _handleRegistrationEmails(String email, String name, String role, S
       );
     }
   } catch (e) {
-    print('Error sending registration emails: $e');
+    AppLogger.error('Error sending registration emails', error: e);
     // Don't throw error as account creation should still succeed
   }
 }

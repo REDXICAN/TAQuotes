@@ -96,7 +96,7 @@ final quotesProvider = StreamProvider<List<Quote>>((ref) {
       
       return quotes;
     } catch (e) {
-      print('Error loading quotes: $e');
+      AppLogger.error('Error loading quotes', error: e);
       return <Quote>[];
     }
   });

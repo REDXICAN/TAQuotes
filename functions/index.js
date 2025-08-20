@@ -49,7 +49,7 @@ exports.sendQuoteEmail = functions.https.onRequest((req, res) => {
       const attachments = [];
       
       if (attachPdf && pdfBase64) {
-        console.log(`Adding PDF attachment: ${pdfBase64.length} chars`);
+        // PDF attachment added
         attachments.push({
           filename: `Quote_${quoteNumber}.pdf`,
           content: pdfBase64,
@@ -59,7 +59,7 @@ exports.sendQuoteEmail = functions.https.onRequest((req, res) => {
       }
       
       if (attachExcel && excelBase64) {
-        console.log(`Adding Excel attachment: ${excelBase64.length} chars`);
+        // Excel attachment added
         attachments.push({
           filename: `Quote_${quoteNumber}.xlsx`,
           content: excelBase64,
@@ -68,7 +68,7 @@ exports.sendQuoteEmail = functions.https.onRequest((req, res) => {
         });
       }
       
-      console.log(`Total attachments: ${attachments.length}`);
+      // Attachments prepared
 
       // Format products list for text email
       let productsText = '';
@@ -196,7 +196,7 @@ TurboAir Quote System
       // Send email
       const info = await transporter.sendMail(mailOptions);
       
-      console.log('Email sent successfully:', info.messageId);
+      // Email sent successfully
       
       return res.status(200).json({ 
         success: true, 
@@ -205,7 +205,7 @@ TurboAir Quote System
       });
       
     } catch (error) {
-      console.error('Error sending email:', error);
+      // Error logged internally by Firebase Functions
       return res.status(500).json({ 
         error: 'Failed to send email',
         details: error.message 
@@ -247,7 +247,7 @@ exports.testEmail = functions.https.onRequest((req, res) => {
       });
       
     } catch (error) {
-      console.error('Test email error:', error);
+      // Error logged internally by Firebase Functions
       return res.status(500).json({ 
         error: 'Failed to send test email',
         details: error.message 

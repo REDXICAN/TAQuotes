@@ -64,7 +64,7 @@ final cartProvider = StreamProvider<List<CartItem>>((ref) {
 
       return cartItems;
     } catch (e) {
-      print('Error loading cart: $e');
+      AppLogger.error('Error loading cart', error: e);
       return <CartItem>[];
     }
   });
@@ -91,7 +91,7 @@ final clientsStreamProvider = StreamProvider<List<Client>>((ref) {
         return Client.fromMap(clientMap);
       }).toList()..sort((a, b) => a.company.compareTo(b.company));
     } catch (e) {
-      print('Error loading clients: $e');
+      AppLogger.error('Error loading clients', error: e);
       return [];
     }
   });
@@ -1380,7 +1380,7 @@ class _ClientSelectorSheetState extends ConsumerState<ClientSelectorSheet> {
             clientMap['id'] = key;
             clients.add(Client.fromMap(clientMap));
           } catch (e) {
-            print('Error parsing client $key: $e');
+            AppLogger.error('Error parsing client $key', error: e);
           }
         });
       }

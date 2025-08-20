@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/services/storage_service.dart';
+import '../../../../core/services/app_logger.dart';
 
 // Clients provider using Realtime Database
 final clientsProvider = FutureProvider<List<Client>>((ref) async {
@@ -35,7 +36,7 @@ final clientsProvider = FutureProvider<List<Client>>((ref) async {
       try {
         clients.add(Client.fromMap(clientMap));
       } catch (e) {
-        print('Error parsing client $key: $e');
+        AppLogger.error('Error parsing client $key', error: e);
       }
     });
     
@@ -43,7 +44,7 @@ final clientsProvider = FutureProvider<List<Client>>((ref) async {
     clients.sort((a, b) => a.company.compareTo(b.company));
     return clients;
   } catch (e) {
-    print('Error loading clients: $e');
+    AppLogger.error('Error loading clients', error: e);
     return [];
   }
 });

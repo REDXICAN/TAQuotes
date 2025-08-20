@@ -12,7 +12,7 @@ void main() async {
   try {
     await dotenv.load(fileName: '.env');
   } catch (e) {
-    print('Warning: Could not load .env file. Using default values.');
+    // .env file is optional, continue without it
   }
   
   // Initialize Firebase

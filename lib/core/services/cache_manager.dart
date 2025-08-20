@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_database/firebase_database.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'dart:convert';
+import 'app_logger.dart';
 
 class CacheManager {
   static const String _cacheBox = 'app_cache';
@@ -30,7 +31,7 @@ class CacheManager {
       _isInitialized = true;
     } catch (e) {
       // Log error but don't crash
-      print('Error initializing CacheManager: $e');
+      AppLogger.error('Error initializing CacheManager', error: e);
       _isInitialized = false;
     }
   }
