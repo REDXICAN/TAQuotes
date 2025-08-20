@@ -122,7 +122,7 @@ For truly portable setup, data is stored in:
 ## 🌐 Offline Functionality
 
 ### Full Offline Features:
-- ✅ Browse all 48 products
+- ✅ Browse all 835 products
 - ✅ Create and edit quotes
 - ✅ Manage clients
 - ✅ Shopping cart

@@ -110,7 +110,7 @@ flutter run --release
 Once installed, the app works offline with these features:
 
 ### ✅ Full Offline Capabilities:
-- **Browse Products** - All 48 products with images cached
+- **Browse Products** - All 835 products with images cached
 - **Create Quotes** - Build quotes without internet
 - **Manage Clients** - Add/edit client information
 - **Shopping Cart** - Items persist across sessions
@@ -137,7 +137,7 @@ Password: [Your secure password]
 
 ### 3. Initial Data Sync
 - **Connect to WiFi** for first login
-- App will download product catalog (48 products)
+- App will download product catalog (835 products)
 - Takes about 30 seconds
 - After sync, app works fully offline
 

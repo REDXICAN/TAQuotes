@@ -36,6 +36,7 @@ class ProductCacheService {
         category: LogCategory.business,
         data: {
           'cached_products': _productsBox.length,
+          'expected_products': 835,
           'cached_images': _productImagesBox.length,
         });
         
@@ -53,7 +54,7 @@ class ProductCacheService {
     if (!_isInitialized && !kIsWeb) await initialize();
     
     try {
-      AppLogger.info('Starting to cache all products', 
+      AppLogger.info('Starting to cache all 835 products', 
         category: LogCategory.business,
         data: {'force_refresh': forceRefresh});
       
@@ -83,25 +84,44 @@ class ProductCacheService {
       
       final data = Map<String, dynamic>.from(snapshot.value as Map);
       int cachedCount = 0;
+      final int totalProducts = data.length;
       
-      // Cache each product
-      for (var entry in data.entries) {
-        try {
-          final productMap = Map<String, dynamic>.from(entry.value);
-          productMap['id'] = entry.key;
-          
-          // Cache product data
-          await _productsBox.put(entry.key, productMap);
-          
-          // Cache product image URL if available
-          if (productMap['image_url'] != null) {
-            await _productImagesBox.put(entry.key, productMap['image_url']);
+      AppLogger.info('Processing $totalProducts products for caching...', 
+        category: LogCategory.business);
+      
+      // Batch process products for better performance
+      final List<MapEntry<String, dynamic>> entries = data.entries.toList();
+      const int batchSize = 50; // Process 50 products at a time
+      
+      for (int i = 0; i < entries.length; i += batchSize) {
+        final int end = (i + batchSize < entries.length) ? i + batchSize : entries.length;
+        final batch = entries.sublist(i, end);
+        
+        // Process batch
+        for (var entry in batch) {
+          try {
+            final productMap = Map<String, dynamic>.from(entry.value);
+            productMap['id'] = entry.key;
+            
+            // Cache product data
+            await _productsBox.put(entry.key, productMap);
+            
+            // Cache product image URL if available
+            if (productMap['image_url'] != null) {
+              await _productImagesBox.put(entry.key, productMap['image_url']);
+            }
+            
+            cachedCount++;
+          } catch (e) {
+            AppLogger.error('Failed to cache product ${entry.key}', 
+              error: e, 
+              category: LogCategory.business);
           }
-          
-          cachedCount++;
-        } catch (e) {
-          AppLogger.error('Failed to cache product ${entry.key}', 
-            error: e, 
+        }
+        
+        // Log progress
+        if (cachedCount % 100 == 0) {
+          AppLogger.info('Cached $cachedCount/$totalProducts products...', 
             category: LogCategory.business);
         }
       }
@@ -114,6 +134,7 @@ class ProductCacheService {
         category: LogCategory.business,
         data: {
           'total_cached': cachedCount,
+          'expected': 835,
           'cache_time': DateTime.now().toIso8601String(),
         });
         
@@ -192,10 +213,20 @@ class ProductCacheService {
     }
   }
   
-  // Check if cache needs refresh (older than 24 hours)
+  // Check if cache needs refresh (older than 24 hours or incomplete)
   Future<void> _checkAndRefreshCache() async {
     try {
       final lastCacheTime = _cacheMetaBox.get('last_cache_time');
+      final cachedCount = _productsBox.length;
+      
+      // Check if we have all 835 products cached
+      if (cachedCount < 835) {
+        AppLogger.info('Incomplete cache detected: $cachedCount/835 products. Refreshing...', 
+          category: LogCategory.business);
+        await cacheAllProducts(forceRefresh: true);
+        return;
+      }
+      
       if (lastCacheTime == null) {
         // No cache time recorded, refresh cache
         await cacheAllProducts();
