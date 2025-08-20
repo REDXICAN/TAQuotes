@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
 import '../widgets/product_images_widget.dart';
+import '../../../../core/utils/price_formatter.dart';
 
 // Product detail provider
 final productDetailProvider =
@@ -65,19 +66,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 final isWideScreen = constraints.maxWidth > 768;
                 
                 if (isWideScreen) {
-                  // Desktop/Tablet: Images on left, info on right
+                  // Desktop/Tablet: Specs on left, images on right
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Left column: Images
-                      SizedBox(
-                        width: 400,
-                        child: ProductImagesWidget(
-                          sku: product.sku ?? product.model,
-                        ),
-                      ),
-                      const SizedBox(width: 24),
-                      // Right column: Product info
+                      // Left column: Product info and specs
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,7 +139,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                             ),
                           ),
                           Text(
-                            product.price.toStringAsFixed(2),
+                            PriceFormatter.formatNumber(product.price),
                             style: theme.textTheme.headlineMedium?.copyWith(
                               color: theme.primaryColor,
                               fontWeight: FontWeight.bold,
@@ -232,7 +225,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                               label: const Text('Add to Cart'),
                               style: ElevatedButton.styleFrom(
                                 padding:
-                                    const EdgeInsets.symmetric(vertical: 16),
+                                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                               ),
                             ),
                           ),
@@ -251,6 +244,14 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
                       _buildSpecSection(product),
                           ],
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      // Right column: Images (bigger)
+                      SizedBox(
+                        width: 500,
+                        child: ProductImagesWidget(
+                          sku: product.sku ?? product.model,
                         ),
                       ),
                     ],
@@ -326,7 +327,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                 ),
                               ),
                               Text(
-                                product.price.toStringAsFixed(2),
+                                PriceFormatter.formatNumber(product.price),
                                 style: theme.textTheme.headlineMedium?.copyWith(
                                   color: theme.primaryColor,
                                   fontWeight: FontWeight.bold,
@@ -412,7 +413,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                   label: const Text('Add to Cart'),
                                   style: ElevatedButton.styleFrom(
                                     padding:
-                                        const EdgeInsets.symmetric(vertical: 16),
+                                        const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                                   ),
                                 ),
                               ),

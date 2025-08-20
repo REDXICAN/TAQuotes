@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/services/sample_data_service.dart';
 import '../../../../core/config/env_config.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../providers/auth_provider.dart';
@@ -69,13 +68,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // Wait a moment for authentication to complete
       await Future.delayed(const Duration(seconds: 1));
 
-      // Initialize sample data for the demo account
-      await SampleDataService.initializeSampleData();
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Welcome to the demo! Sample data has been loaded.'),
+            content: Text('Welcome to the demo!'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 3),
           ),

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/utils/product_image_helper.dart';
+import '../../../../core/utils/price_formatter.dart';
 
 // Quote detail provider
 final quoteDetailProvider =
@@ -429,10 +430,21 @@ class QuoteDetailScreen extends ConsumerWidget {
       child: Row(
         children: [
           // Product image thumbnail
-          if (item.product != null)
-            ProductImageHelper.buildProductThumbnail(
-              item.product!.sku ?? '',
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade300),
             ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: ProductImageHelper.buildProductThumbnail(
+                item.product?.sku ?? item.productId,
+                size: 60,
+              ),
+            ),
+          ),
           const SizedBox(width: 12),
           // Product details
           Expanded(
@@ -440,11 +452,19 @@ class QuoteDetailScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.product?.sku ?? 'Unknown Product',
+                  item.product?.sku ?? item.productName,
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
+                if (item.product?.productType != null)
+                  Text(
+                    item.product!.productType!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
                 Text(
-                  item.product?.productType ?? '',
+                  'Unit Price: ${PriceFormatter.formatPrice(item.unitPrice)}',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -462,7 +482,7 @@ class QuoteDetailScreen extends ConsumerWidget {
                 style: const TextStyle(fontWeight: FontWeight.w500),
               ),
               Text(
-                '\$${item.totalPrice.toStringAsFixed(2)}',
+                PriceFormatter.formatPrice(item.totalPrice),
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: theme.primaryColor,
