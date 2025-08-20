@@ -8,6 +8,7 @@ import '../../../../core/services/realtime_database_service.dart';
 import '../../../../core/services/hybrid_database_service.dart';
 import '../../../../core/services/email_service.dart';
 import '../../../../core/services/product_cache_service.dart';
+import '../../../../core/services/app_logger.dart';
 import '../../../../core/models/models.dart';
 
 // Auth Service Provider

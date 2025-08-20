@@ -2,9 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'dart:html' as html;
 import 'dart:typed_data';
 import 'dart:async';
+import '../../../../core/utils/download_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/utils/product_image_helper_v3.dart';
@@ -999,17 +999,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   // Download PDF
                   try {
                     final pdfBytes = await ExportService.generateQuotePDF(quoteId);
-                    // Download the PDF
-                    final blob = html.Blob([pdfBytes], 'application/pdf');
-                    final url = html.Url.createObjectUrlFromBlob(blob);
-                    final anchor = html.document.createElement('a') as html.AnchorElement
-                      ..href = url
-                      ..style.display = 'none'
-                      ..download = 'Quote_${DateTime.now().millisecondsSinceEpoch}.pdf';
-                    html.document.body?.children.add(anchor);
-                    anchor.click();
-                    html.document.body?.children.remove(anchor);
-                    html.Url.revokeObjectUrl(url);
+                    // Download the PDF using cross-platform helper
+                    DownloadHelper.downloadFile(
+                      pdfBytes, 
+                      'Quote_${DateTime.now().millisecondsSinceEpoch}.pdf'
+                    );
                     
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(

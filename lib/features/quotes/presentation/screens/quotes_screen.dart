@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:html' as html;
 import 'dart:typed_data';
 import 'dart:async';
+import '../../../../core/utils/download_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/services/export_service.dart';
@@ -1125,17 +1125,8 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         isLoadingDialogShowing = false;
       }
 
-      // Download file
-      final blob = html.Blob([bytes], mimeType);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.document.createElement('a') as html.AnchorElement
-        ..href = url
-        ..style.display = 'none'
-        ..download = filename;
-      html.document.body?.children.add(anchor);
-      anchor.click();
-      html.document.body?.children.remove(anchor);
-      html.Url.revokeObjectUrl(url);
+      // Download file using cross-platform helper
+      DownloadHelper.downloadFile(bytes, filename);
 
       // Show success message
       if (mounted) {

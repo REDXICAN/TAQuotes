@@ -22,10 +22,10 @@ final productsProvider =
     // First try to get from cache for immediate display
     final cachedProducts = await ProductCacheService.instance.getCachedProducts(category: category);
     if (cachedProducts.isNotEmpty) {
-      AppLogger.info('Using cached products', category: LogCategory.cache, data: {'count': cachedProducts.length});
+      AppLogger.info('Using cached products', category: LogCategory.business, data: {'count': cachedProducts.length});
       // Still try to refresh from Firebase in background
       ProductCacheService.instance.cacheAllProducts().catchError((e) {
-        AppLogger.error('Background cache refresh failed', error: e, category: LogCategory.cache);
+        AppLogger.error('Background cache refresh failed', error: e, category: LogCategory.business);
       });
       return cachedProducts;
     }

@@ -33,7 +33,7 @@ class ProductCacheService {
       _isInitialized = true;
       
       AppLogger.info('ProductCacheService initialized', 
-        category: LogCategory.cache,
+        category: LogCategory.business,
         data: {
           'cached_products': _productsBox.length,
           'cached_images': _productImagesBox.length,
@@ -44,7 +44,7 @@ class ProductCacheService {
     } catch (e) {
       AppLogger.error('Failed to initialize ProductCacheService', 
         error: e, 
-        category: LogCategory.cache);
+        category: LogCategory.business);
     }
   }
   
@@ -54,14 +54,14 @@ class ProductCacheService {
     
     try {
       AppLogger.info('Starting to cache all products', 
-        category: LogCategory.cache,
+        category: LogCategory.business,
         data: {'force_refresh': forceRefresh});
       
       // Check connectivity
       final connectivityResult = await Connectivity().checkConnectivity();
       if (connectivityResult == ConnectivityResult.none) {
         AppLogger.info('No internet connection, using cached products', 
-          category: LogCategory.cache);
+          category: LogCategory.business);
         return;
       }
       
@@ -69,7 +69,7 @@ class ProductCacheService {
       if (forceRefresh) {
         await _productsBox.clear();
         await _productImagesBox.clear();
-        AppLogger.info('Cleared product cache for refresh', category: LogCategory.cache);
+        AppLogger.info('Cleared product cache for refresh', category: LogCategory.business);
       }
       
       // Fetch all products from Firebase
@@ -77,7 +77,7 @@ class ProductCacheService {
       final snapshot = await database.ref('products').get();
       
       if (!snapshot.exists || snapshot.value == null) {
-        AppLogger.warning('No products found in Firebase', category: LogCategory.cache);
+        AppLogger.warning('No products found in Firebase', category: LogCategory.business);
         return;
       }
       
@@ -102,7 +102,7 @@ class ProductCacheService {
         } catch (e) {
           AppLogger.error('Failed to cache product ${entry.key}', 
             error: e, 
-            category: LogCategory.cache);
+            category: LogCategory.business);
         }
       }
       
@@ -111,7 +111,7 @@ class ProductCacheService {
       await _cacheMetaBox.put('total_products_cached', cachedCount);
       
       AppLogger.info('Successfully cached all products', 
-        category: LogCategory.cache,
+        category: LogCategory.business,
         data: {
           'total_cached': cachedCount,
           'cache_time': DateTime.now().toIso8601String(),
@@ -120,7 +120,7 @@ class ProductCacheService {
     } catch (e) {
       AppLogger.error('Failed to cache products', 
         error: e, 
-        category: LogCategory.cache);
+        category: LogCategory.business);
     }
   }
   
@@ -146,7 +146,7 @@ class ProductCacheService {
         }
         
         AppLogger.info('Retrieved products from cache', 
-          category: LogCategory.cache,
+          category: LogCategory.business,
           data: {
             'count': products.length,
             'category': category ?? 'all',
@@ -155,7 +155,7 @@ class ProductCacheService {
       
       // If cache is empty, try to fetch from Firebase
       if (products.isEmpty) {
-        AppLogger.info('Cache empty, fetching from Firebase', category: LogCategory.cache);
+        AppLogger.info('Cache empty, fetching from Firebase', category: LogCategory.business);
         await cacheAllProducts();
         
         // Retry getting from cache
@@ -169,7 +169,7 @@ class ProductCacheService {
     } catch (e) {
       AppLogger.error('Failed to get cached products', 
         error: e, 
-        category: LogCategory.cache);
+        category: LogCategory.business);
       return [];
     }
   }
@@ -187,7 +187,7 @@ class ProductCacheService {
     } catch (e) {
       AppLogger.error('Failed to get cached product $productId', 
         error: e, 
-        category: LogCategory.cache);
+        category: LogCategory.business);
       return null;
     }
   }
@@ -209,16 +209,16 @@ class ProductCacheService {
       // Refresh if cache is older than 24 hours
       if (difference.inHours > 24) {
         AppLogger.info('Cache is stale (${difference.inHours} hours old), refreshing', 
-          category: LogCategory.cache);
+          category: LogCategory.business);
         await cacheAllProducts(forceRefresh: true);
       } else {
         AppLogger.info('Cache is fresh (${difference.inHours} hours old)', 
-          category: LogCategory.cache);
+          category: LogCategory.business);
       }
     } catch (e) {
       AppLogger.error('Failed to check cache freshness', 
         error: e, 
-        category: LogCategory.cache);
+        category: LogCategory.business);
     }
   }
   
@@ -266,11 +266,11 @@ class ProductCacheService {
       await _productImagesBox.clear();
       await _cacheMetaBox.clear();
       
-      AppLogger.info('Cleared all product cache', category: LogCategory.cache);
+      AppLogger.info('Cleared all product cache', category: LogCategory.business);
     } catch (e) {
       AppLogger.error('Failed to clear cache', 
         error: e, 
-        category: LogCategory.cache);
+        category: LogCategory.business);
     }
   }
   
