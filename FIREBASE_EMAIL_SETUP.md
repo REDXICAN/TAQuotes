@@ -82,8 +82,8 @@ firebase deploy --only hosting
 
 ### Gmail App Password
 - **Email**: turboairquotes@gmail.com
-- **App Password**: hnem xhez njmg pxcc
-- **Note**: This is configured in `functions/index.js`
+- **App Password**: [REDACTED - Use environment variable]
+- **Note**: Configure via Firebase Functions config or .env file
 
 ### Testing
 ```bash
