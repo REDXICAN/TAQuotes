@@ -66,12 +66,13 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 final isWideScreen = constraints.maxWidth > 768;
                 
                 if (isWideScreen) {
-                  // Desktop/Tablet: Specs on left, images on right
+                  // Desktop/Tablet: Specs on left (25%), images on right (75%)
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Left column: Product info and specs
-                      Expanded(
+                      // Left column: Product info and specs (25%)
+                      SizedBox(
+                        width: constraints.maxWidth * 0.25,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -247,9 +248,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         ),
                       ),
                       const SizedBox(width: 24),
-                      // Right column: Images (bigger)
-                      SizedBox(
-                        width: 500,
+                      // Right column: Images (75%)
+                      Expanded(
                         child: ProductImagesWidget(
                           sku: product.sku ?? product.model,
                         ),
@@ -257,16 +257,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                     ],
                   );
                 } else {
-                  // Mobile: Stack vertically
+                  // Mobile: Stack vertically with specs first, then images
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Images
-                      ProductImagesWidget(
-                        sku: product.sku ?? product.model,
-                      ),
-                      const SizedBox(height: 16),
-                      // Product info
+                      // Product info and specifications first
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -431,6 +426,21 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           const SizedBox(height: 16),
 
                           _buildSpecSection(product),
+                          const SizedBox(height: 32),
+                          
+                          // Product Images section - placed below specifications
+                          Text(
+                            'Product Images',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          
+                          // Images widget
+                          ProductImagesWidget(
+                            sku: product.sku ?? product.model,
+                          ),
                         ],
                       ),
                     ],
