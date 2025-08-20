@@ -9,15 +9,28 @@ import '../../../../core/utils/product_image_helper_v3.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/services/excel_upload_service.dart';
 import '../../../../core/services/app_logger.dart';
+import '../../../../core/services/product_cache_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../widgets/excel_preview_dialog.dart';
 import '../../widgets/zoomable_image_viewer.dart';
 
-// Products provider using Firebase
+// Products provider using Firebase with offline cache
 final productsProvider =
     FutureProvider.family<List<Product>, String?>((ref, category) async {
-  // Products don't require authentication (public read access)
+  // Try to get cached products first for faster loading
   try {
+    // First try to get from cache for immediate display
+    final cachedProducts = await ProductCacheService.instance.getCachedProducts(category: category);
+    if (cachedProducts.isNotEmpty) {
+      AppLogger.info('Using cached products', category: LogCategory.cache, data: {'count': cachedProducts.length});
+      // Still try to refresh from Firebase in background
+      ProductCacheService.instance.cacheAllProducts().catchError((e) {
+        AppLogger.error('Background cache refresh failed', error: e, category: LogCategory.cache);
+      });
+      return cachedProducts;
+    }
+    
+    // If no cache, fetch from Firebase
     final database = FirebaseDatabase.instance;
     final snapshot = await database.ref('products').get();
     

@@ -7,6 +7,7 @@ import '../../../../core/services/firebase_auth_service.dart';
 import '../../../../core/services/realtime_database_service.dart';
 import '../../../../core/services/hybrid_database_service.dart';
 import '../../../../core/services/email_service.dart';
+import '../../../../core/services/product_cache_service.dart';
 import '../../../../core/models/models.dart';
 
 // Auth Service Provider
@@ -117,6 +118,16 @@ final signInProvider = Provider((ref) {
         email: email,
         password: password,
       );
+      
+      // Cache all products after successful login
+      try {
+        AppLogger.info('Caching products after login', category: LogCategory.auth);
+        await ProductCacheService.instance.cacheAllProducts();
+      } catch (e) {
+        AppLogger.error('Failed to cache products after login', error: e, category: LogCategory.auth);
+        // Don't fail login if caching fails
+      }
+      
       return null; // Success
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
