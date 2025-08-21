@@ -32,13 +32,8 @@ class ProductCacheService {
       _cacheMetaBox = await Hive.openBox(_cacheMetaBoxName);
       _isInitialized = true;
       
-      AppLogger.info('ProductCacheService initialized', 
-        category: LogCategory.business,
-        data: {
-          'cached_products': _productsBox.length,
-          'expected_products': 835,
-          'cached_images': _productImagesBox.length,
-        });
+      AppLogger.info('ProductCacheService initialized - cached: ${_productsBox.length}/835 products', 
+        category: LogCategory.business);
         
       // Check if we need to refresh cache
       await _checkAndRefreshCache();
@@ -54,12 +49,12 @@ class ProductCacheService {
     if (!_isInitialized && !kIsWeb) await initialize();
     
     try {
-      AppLogger.info('Starting to cache all 835 products', 
-        category: LogCategory.business,
-        data: {'force_refresh': forceRefresh});
+      AppLogger.info('Starting to cache all 835 products (forceRefresh: $forceRefresh)', 
+        category: LogCategory.business);
       
       // Check connectivity
-      final connectivityResult = await Connectivity().checkConnectivity();
+      final connectivityResults = await Connectivity().checkConnectivity();
+      final connectivityResult = connectivityResults.isNotEmpty ? connectivityResults.first : ConnectivityResult.none;
       if (connectivityResult == ConnectivityResult.none) {
         AppLogger.info('No internet connection, using cached products', 
           category: LogCategory.business);
@@ -130,13 +125,8 @@ class ProductCacheService {
       await _cacheMetaBox.put('last_cache_time', DateTime.now().toIso8601String());
       await _cacheMetaBox.put('total_products_cached', cachedCount);
       
-      AppLogger.info('Successfully cached all products', 
-        category: LogCategory.business,
-        data: {
-          'total_cached': cachedCount,
-          'expected': 835,
-          'cache_time': DateTime.now().toIso8601String(),
-        });
+      AppLogger.info('Successfully cached all products - total: $cachedCount/835', 
+        category: LogCategory.business);
         
     } catch (e) {
       AppLogger.error('Failed to cache products', 
@@ -166,12 +156,8 @@ class ProductCacheService {
           }
         }
         
-        AppLogger.info('Retrieved products from cache', 
-          category: LogCategory.business,
-          data: {
-            'count': products.length,
-            'category': category ?? 'all',
-          });
+        AppLogger.info('Retrieved ${products.length} products from cache (category: ${category ?? 'all'})', 
+          category: LogCategory.business);
       }
       
       // If cache is empty, try to fetch from Firebase

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/widgets/offline_status_widget.dart';
+import 'core/widgets/active_client_banner.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/auth/presentation/screens/splash_screen.dart';
 
@@ -27,7 +28,9 @@ class TurboAirApp extends ConsumerWidget {
         // Handle auth state and wrap with offline status
         return authState.when(
           data: (user) => OfflineStatusWidget(
-            child: child ?? const SizedBox.shrink(),
+            child: ActiveClientBanner(
+              child: child ?? const SizedBox.shrink(),
+            ),
           ),
           loading: () => const SplashScreen(),
           error: (error, stack) => MaterialApp(

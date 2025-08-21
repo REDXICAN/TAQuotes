@@ -61,7 +61,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _checkConnectivity() {
-    Connectivity().onConnectivityChanged.listen((ConnectivityResult result) {
+    Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
+      final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
       if (mounted) {
         setState(() {
           _isOnline = result != ConnectivityResult.none;

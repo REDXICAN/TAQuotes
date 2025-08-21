@@ -16,6 +16,7 @@ import '../../../../core/services/firebase_email_service.dart';
 import '../../../../core/widgets/searchable_client_dropdown.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../clients/presentation/screens/clients_screen.dart'; // Import for selectedClientProvider
+import '../../../../core/utils/price_formatter.dart';
 
 // Cart provider using Realtime Database with real-time updates
 final cartProvider = StreamProvider<List<CartItem>>((ref) {
@@ -122,18 +123,35 @@ class CartScreen extends ConsumerStatefulWidget {
 
 class _CartScreenState extends ConsumerState<CartScreen> {
   final _taxRateController = TextEditingController(text: '8.0');
+  final _discountController = TextEditingController(text: '0');
+  final _commentController = TextEditingController();
+  bool _isDiscountPercentage = true; // true for percentage, false for fixed amount
+  bool _includeCommentInEmail = false;
   bool _isCreatingQuote = false;
 
   @override
   void dispose() {
     _taxRateController.dispose();
+    _discountController.dispose();
+    _commentController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final cartAsync = ref.watch(cartProvider);
-    final selectedClient = ref.watch(cartClientProvider);
+    // Watch both providers and sync them
+    final cartClient = ref.watch(cartClientProvider);
+    final clientsScreenClient = ref.watch(selectedClientProvider);
+    
+    // Sync if they're different
+    if (clientsScreenClient != null && cartClient?.id != clientsScreenClient.id) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(cartClientProvider.notifier).state = clientsScreenClient;
+      });
+    }
+    
+    final selectedClient = cartClient ?? clientsScreenClient;
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -219,9 +237,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           }
 
           final subtotal = _calculateSubtotal(items);
+          final discountValue = double.tryParse(_discountController.text) ?? 0;
+          final discountAmount = _isDiscountPercentage 
+              ? subtotal * (discountValue / 100)
+              : discountValue;
+          final subtotalAfterDiscount = subtotal - discountAmount;
           final taxRate = double.tryParse(_taxRateController.text) ?? 0;
-          final taxAmount = subtotal * (taxRate / 100);
-          final total = subtotal + taxAmount;
+          final taxAmount = subtotalAfterDiscount * (taxRate / 100);
+          final total = subtotalAfterDiscount + taxAmount;
 
           return Column(
             children: [
@@ -268,7 +291,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                             onClientSelected: (client) {
                               ref.read(cartClientProvider.notifier).state = client;
                               // Also sync with clients screen
-                              ref.read(cartClientProvider.notifier).state = client;
+                              ref.read(selectedClientProvider.notifier).state = client;
                             },
                             hintText: 'Search by company, contact, email, or phone...',
                             showAddButton: true,
@@ -334,7 +357,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              product?.displayName ?? 'Unknown Product',
+                                              product?.sku ?? product?.model ?? 'Unknown Product',
                                               style: theme.textTheme.bodyMedium?.copyWith(
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -406,7 +429,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                       ),
                                     ),
                               title: Text(
-                                product?.displayName ?? 'Unknown Product',
+                                product?.sku ?? product?.model ?? 'Unknown Product',
                                 style: TextStyle(
                                   fontSize: ResponsiveHelper.getValue(
                                     context,
@@ -556,6 +579,53 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    // Discount Input
+                    Row(
+                      children: [
+                        Text('Discount', style: theme.textTheme.bodyMedium),
+                        const SizedBox(width: 16),
+                        SizedBox(
+                          width: 80,
+                          child: TextField(
+                            controller: _discountController,
+                            keyboardType: TextInputType.number,
+                            textAlign: TextAlign.center,
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 8,
+                              ),
+                            ),
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ToggleButtons(
+                          isSelected: [_isDiscountPercentage, !_isDiscountPercentage],
+                          onPressed: (index) {
+                            setState(() {
+                              _isDiscountPercentage = index == 0;
+                            });
+                          },
+                          constraints: const BoxConstraints(
+                            minHeight: 32,
+                            minWidth: 40,
+                          ),
+                          children: const [
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              child: Text('%'),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              child: Text('\$'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 16),
                     // Detailed Breakdown
                     Container(
@@ -603,6 +673,24 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                               Text(_formatPrice(subtotal), style: theme.textTheme.bodyMedium),
                             ],
                           ),
+                          if (discountAmount > 0) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  _isDiscountPercentage 
+                                    ? 'Discount ($discountValue%)' 
+                                    : 'Discount',
+                                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.green),
+                                ),
+                                Text(
+                                  '-${_formatPrice(discountAmount)}',
+                                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.green),
+                                ),
+                              ],
+                            ),
+                          ],
                           const SizedBox(height: 4),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -613,6 +701,34 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           ),
                         ],
                       ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Comment Section
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Comments', style: theme.textTheme.bodyMedium),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _commentController,
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            hintText: 'Add any notes or special instructions...',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            contentPadding: const EdgeInsets.all(12),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        CheckboxListTile(
+                          title: const Text('Include comments in email'),
+                          value: _includeCommentInEmail,
+                          onChanged: (value) => setState(() => _includeCommentInEmail = value ?? false),
+                          contentPadding: EdgeInsets.zero,
+                          controlAffinity: ListTileControlAffinity.leading,
+                        ),
+                      ],
                     ),
                     const Divider(height: 16),
                     Row(
@@ -696,12 +812,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   }
   
   String _formatPrice(double price) {
-    final parts = price.toStringAsFixed(2).split('.');
-    final wholePart = parts[0].replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
-    return '\$$wholePart.${parts[1]}';
+    return PriceFormatter.formatPrice(price);
   }
 
   Future<void> _selectClient() async {
@@ -812,7 +923,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(
-            product.displayName,
+            product.sku ?? product.model,
             style: TextStyle(
               color: theme.primaryColor,
               fontWeight: FontWeight.bold,
@@ -882,6 +993,16 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           _buildSpecRow('Doors', product.doors.toString(), theme),
                         if (product.shelves != null && product.shelves! > 0)
                           _buildSpecRow('Shelves', product.shelves.toString(), theme),
+                        if (product.dimensionsMetric != null && product.dimensionsMetric!.isNotEmpty)
+                          _buildSpecRow('Dimensions (Metric)', product.dimensionsMetric!, theme),
+                        if (product.weightMetric != null && product.weightMetric!.isNotEmpty)
+                          _buildSpecRow('Weight (Metric)', product.weightMetric!, theme),
+                        if (product.temperatureRangeMetric != null && product.temperatureRangeMetric!.isNotEmpty)
+                          _buildSpecRow('Temp Range (Metric)', product.temperatureRangeMetric!, theme),
+                        if (product.features != null && product.features!.isNotEmpty)
+                          _buildSpecRow('Features', product.features!, theme),
+                        if (product.certifications != null && product.certifications!.isNotEmpty)
+                          _buildSpecRow('Certifications', product.certifications!, theme),
                       ],
                     ),
                   ),
@@ -948,9 +1069,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     try {
       final dbService = ref.read(databaseServiceProvider);
       final subtotal = _calculateSubtotal(items);
+      final discountValue = double.tryParse(_discountController.text) ?? 0;
+      final discountAmount = _isDiscountPercentage 
+          ? subtotal * (discountValue / 100)
+          : discountValue;
+      final subtotalAfterDiscount = subtotal - discountAmount;
       final taxRate = double.tryParse(_taxRateController.text) ?? 0;
-      final taxAmount = subtotal * (taxRate / 100);
-      final total = subtotal + taxAmount;
+      final taxAmount = subtotalAfterDiscount * (taxRate / 100);
+      final total = subtotalAfterDiscount + taxAmount;
 
       // Prepare quote items
       final quoteItems = items
@@ -962,7 +1088,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
               })
           .toList();
 
-      // Create quote
+      // Create quote with discount and comments
       final quoteId = await dbService.createQuote(
         clientId: client.id!,  // Now we know it's not null
         items: quoteItems,
@@ -970,6 +1096,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         taxRate: taxRate,
         taxAmount: taxAmount,
         totalAmount: total,
+        discountAmount: discountAmount,
+        discountType: _isDiscountPercentage ? 'percentage' : 'fixed',
+        discountValue: discountValue,
+        comments: _commentController.text,
+        includeCommentInEmail: _includeCommentInEmail,
       );
 
       // Clear cart after creating quote
@@ -1114,11 +1245,117 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   }
 
   void _addNewClient() {
-    // Navigate to clients screen to add a new client
-    Navigator.pushNamed(context, '/clients').then((value) {
-      // Refresh the client list after returning
-      ref.invalidate(clientsStreamProvider);
-    });
+    // Show quick add dialog
+    final companyController = TextEditingController();
+    final contactNameController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Quick Add Client'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: companyController,
+              decoration: const InputDecoration(
+                labelText: 'Company Name*',
+                hintText: 'Enter company name',
+                prefixIcon: Icon(Icons.business),
+              ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: contactNameController,
+              decoration: const InputDecoration(
+                labelText: 'Contact Person*',
+                hintText: 'Enter contact name',
+                prefixIcon: Icon(Icons.person),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'You can add more details later',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.add),
+            label: const Text('Add Client'),
+            onPressed: () async {
+              if (companyController.text.isEmpty || contactNameController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter both company name and contact person'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+              
+              try {
+                final dbService = ref.read(databaseServiceProvider);
+                final clientId = await dbService.addClient({
+                  'company': companyController.text.trim(),
+                  'contact_name': contactNameController.text.trim(),
+                  'name': contactNameController.text.trim(),
+                  'email': '', // Can be added later
+                  'phone': '', // Can be added later
+                });
+                
+                // Refresh clients list
+                ref.invalidate(clientsStreamProvider);
+                
+                // Get the newly created client
+                final clientsAsync = await ref.read(clientsStreamProvider.future);
+                final newClient = clientsAsync.firstWhere(
+                  (c) => c.id == clientId,
+                  orElse: () => Client(
+                    id: clientId,
+                    company: companyController.text.trim(),
+                    contactName: contactNameController.text.trim(),
+                    name: contactNameController.text.trim(),
+                    email: '',
+                    phone: '',
+                    createdAt: DateTime.now(),
+                  ),
+                );
+                
+                // Select the new client
+                ref.read(cartClientProvider.notifier).state = newClient;
+                ref.read(selectedClientProvider.notifier).state = newClient;
+                
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Client "${companyController.text}" added and selected'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } catch (e) {
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error adding client: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   void _showEmailQuoteDialog(String quoteId, Client client) {

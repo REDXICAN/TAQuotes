@@ -120,6 +120,13 @@
       "Bash(cmd /c:*)",
       "Bash(else echo \"✓ .env file not found (good)\")",
       "Bash(else echo \"✓ firebase_options.dart not found (good)\")",
+      "Bash(else echo \"✓ functions/.env not found (good)\")",
+      "Bash(cp:*)",
+      "WebFetch(domain:taquotes.web.app)",
+      "Bash(firebase hosting:sites:*)",
+      "Bash(else echo \"✓ .env file not found (good)\")",
+      "Bash(if [ -f firebase_options.dart ])",
+      "Bash(else echo \"✓ firebase_options.dart not found (good)\")",
       "Bash(else echo \"✓ functions/.env not found (good)\")"
     ],
     "deny": [],

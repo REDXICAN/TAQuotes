@@ -1121,4 +1121,23 @@ class ProductImageHelper {
       },
     );
   }
+  
+  // Missing methods that are being called from products_screen.dart
+  static String getImagePathWithFallback(String sku) {
+    // First try exact match
+    if (_productImages.containsKey(sku)) {
+      return _productImages[sku]!;
+    }
+    
+    // Try to find image in thumbnails
+    final thumbnailPath = 'assets/thumbnails/$sku/$sku.jpg';
+    
+    // Return thumbnail path or placeholder
+    return thumbnailPath;
+  }
+  
+  static String getThumbnailPath(String sku) {
+    // Return thumbnail path directly
+    return 'assets/thumbnails/$sku/$sku.jpg';
+  }
 }

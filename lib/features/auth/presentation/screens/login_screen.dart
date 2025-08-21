@@ -197,16 +197,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         // Logo
-                        Image.asset(
-                          'assets/logos/turbo_air_logo.png',
-                          height: 80,
-                          errorBuilder: (_, __, ___) => const Text(
-                            'TURBO AIR',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF20429C),
-                            ),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF20429C).withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Image.asset(
+                            'assets/logos/turbo_air_logo.png',
+                            height: 80,
+                            errorBuilder: (context, error, stackTrace) {
+                              print('Login logo error: $error');
+                              return const Text(
+                                'TURBO AIR',
+                                style: TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF20429C),
+                                ),
+                              );
+                            },
                           ),
                         ),
                         const SizedBox(height: 16),

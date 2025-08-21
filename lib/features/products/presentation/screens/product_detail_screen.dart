@@ -476,19 +476,24 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       'Category': product.category,
       'Subcategory': product.subcategory,
       'Type': product.productType,
-      'Dimensions': product.dimensions,
-      'Weight': product.weight,
       'Voltage': product.voltage,
-      'Amps': product.amperage,  // Display as "Amps" for better readability
+      'Amperage': product.amperage,
       'Phase': product.phase,
       'Frequency': product.frequency,
       'Plug Type': product.plugType,
+      'Dimensions': product.dimensions,
+      'Dimensions (Metric)': product.dimensionsMetric,
+      'Weight': product.weight,
+      'Weight (Metric)': product.weightMetric,
       'Temperature Range': product.temperatureRange,
+      'Temperature Range (Metric)': product.temperatureRangeMetric,
       'Refrigerant': product.refrigerant,
       'Compressor': product.compressor,
       'Capacity': product.capacity,
       'Doors': product.doors?.toString(),
       'Shelves': product.shelves?.toString(),
+      'Features': product.features,
+      'Certifications': product.certifications,
     };
 
     final validSpecs = specs.entries.where((e) => e.value != null).toList();
@@ -518,6 +523,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 child: Text(
                   spec.value!,
                   style: const TextStyle(fontWeight: FontWeight.w500),
+                  maxLines: spec.key == 'Features' || spec.key == 'Certifications' ? null : 2,
+                  overflow: spec.key == 'Features' || spec.key == 'Certifications' 
+                    ? TextOverflow.visible 
+                    : TextOverflow.ellipsis,
                 ),
               ),
             ],

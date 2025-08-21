@@ -1,5 +1,10 @@
 # Turbo Air Quotes (TAQ) - Enterprise B2B Quote Management System
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-taquotes.web.app-blue)](https://taquotes.web.app)
+[![Version](https://img.shields.io/badge/Version-1.3.0-green)](https://github.com/REDXICAN/Turbo-Air-Viewer-Flutter-App)
+[![Security](https://img.shields.io/badge/Security-Enhanced-red)](##-security-features)
+[![Platform](https://img.shields.io/badge/Platform-Web%20|%20iOS%20|%20Android%20|%20Windows-orange)]()
+
 > **For Non-Technical Users (Age 50+):** This is a business application that helps you manage product catalogs, create quotes for customers, and send them professional PDFs via email. Think of it like a digital version of a paper catalog combined with a quote calculator and email system - all in one easy-to-use app that works on any device.
 
 ## 🎯 What This App Does (Simple Explanation)
@@ -132,6 +137,27 @@ This app helps Turbo Air sales teams and distributors:
 - ✅ System health monitoring
 - ✅ Database backup/restore
 - ✅ Email configuration
+
+## 🔒 Security Features
+
+### Enhanced Security (v1.3.0 - December 2025)
+- ✅ **CSRF Protection** - Prevents cross-site request forgery attacks
+- ✅ **Rate Limiting** - API throttling to prevent abuse
+- ✅ **Input Validation** - Comprehensive sanitization against SQL injection & XSS
+- ✅ **Secure Logging** - PII redaction and encrypted audit trails
+- ✅ **Role-Based Access Control (RBAC)** - Granular permission system
+- ✅ **Environment Variables** - All secrets stored securely
+- ✅ **Firebase Security Rules** - Database-level access control
+- ✅ **HTTPS Only** - Encrypted data transmission
+- ✅ **Auto-Logout** - Session timeout for security
+- ✅ **Password Reset Flow** - Secure email-based recovery
+
+### Security Best Practices
+- Never commit `.env` files or API keys
+- All sensitive files are gitignored
+- Regular security audits performed
+- Content Security Policy headers implemented
+- Database rules enforce user isolation
 
 ## 🔧 Technical Setup (For IT Staff)
 

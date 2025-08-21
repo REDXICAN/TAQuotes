@@ -1103,10 +1103,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
           
           mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
           
-          AppLogger.info('Excel ready for download', category: LogCategory.business, data: {
-            'filename': filename,
-            'size': bytes.length,
-          });
+          AppLogger.info('Excel ready for download - filename: $filename, size: ${bytes.length}', category: LogCategory.business);
         } catch (excelError) {
           AppLogger.error('Excel generation failed', error: excelError, category: LogCategory.business);
           throw Exception('Failed to generate Excel: $excelError');

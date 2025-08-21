@@ -167,11 +167,16 @@ class Product {
   final String? frequency;
   final String? plugType;
   final String? temperatureRange;
+  final String? temperatureRangeMetric;
   final String? refrigerant;
   final String? compressor;
   final String? capacity;
   final int? doors;
   final int? shelves;
+  final String? dimensionsMetric;
+  final String? weightMetric;
+  final String? features;
+  final String? certifications;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -196,11 +201,16 @@ class Product {
     this.frequency,
     this.plugType,
     this.temperatureRange,
+    this.temperatureRangeMetric,
     this.refrigerant,
     this.compressor,
     this.capacity,
     this.doors,
     this.shelves,
+    this.dimensionsMetric,
+    this.weightMetric,
+    this.features,
+    this.certifications,
     required this.createdAt,
     this.updatedAt,
   });
@@ -227,11 +237,16 @@ class Product {
       'frequency': frequency,
       'plugType': plugType,
       'temperatureRange': temperatureRange,
+      'temperatureRangeMetric': temperatureRangeMetric,
       'refrigerant': refrigerant,
       'compressor': compressor,
       'capacity': capacity,
       'doors': doors,
       'shelves': shelves,
+      'dimensionsMetric': dimensionsMetric,
+      'weightMetric': weightMetric,
+      'features': features,
+      'certifications': certifications,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -303,13 +318,18 @@ class Product {
       amperage: map['amperage'] ?? map['Amps'] ?? map['amps'],  // Handle multiple field names
       phase: map['phase'],
       frequency: map['frequency'],
-      plugType: map['plugType'] ?? map['plug_type'],  // Handle both formats
-      temperatureRange: map['temperatureRange'] ?? map['temperature_range'],  // Handle both formats
-      refrigerant: map['refrigerant'],
-      compressor: map['compressor'],
-      capacity: map['capacity'],
-      doors: parseIntSafely(map['doors']),
-      shelves: parseIntSafely(map['shelves']),
+      plugType: map['plugType'] ?? map['plug_type'] ?? map['Plug Type'],  // Handle multiple formats
+      temperatureRange: map['temperatureRange'] ?? map['temperature_range'] ?? map['Temperature Range'],
+      temperatureRangeMetric: map['temperatureRangeMetric'] ?? map['temperature_range_metric'] ?? map['Temperature Range (Metric)'],
+      refrigerant: map['refrigerant'] ?? map['Refrigerant'],
+      compressor: map['compressor'] ?? map['Compressor'],
+      capacity: map['capacity'] ?? map['Capacity'],
+      doors: parseIntSafely(map['doors'] ?? map['Doors']),
+      shelves: parseIntSafely(map['shelves'] ?? map['Shelves']),
+      dimensionsMetric: map['dimensionsMetric'] ?? map['dimensions_metric'] ?? map['Dimensions (Metric)'],
+      weightMetric: map['weightMetric'] ?? map['weight_metric'] ?? map['Weight (Metric)'],
+      features: map['features'] ?? map['Features'],
+      certifications: map['certifications'] ?? map['Certifications'],
       createdAt: parseDateTime(map['createdAt'] ?? map['created_at']),  // Handle both formats
       updatedAt: map['updatedAt'] ?? map['updated_at'] != null 
           ? parseDateTime(map['updatedAt'] ?? map['updated_at']) 
@@ -331,11 +351,16 @@ class Quote {
   final Client? client;
   final List<QuoteItem> items;
   final double subtotal;
+  final double discountAmount;
+  final String discountType; // 'percentage' or 'fixed'
+  final double discountValue;
   final double tax;
   final double total;
   final double totalAmount;
   final String status;
   final String? notes;
+  final String? comments;
+  final bool includeCommentInEmail;
   final DateTime createdAt;
   final DateTime? expiresAt;
   final String createdBy;
@@ -348,11 +373,16 @@ class Quote {
     this.client,
     required this.items,
     required this.subtotal,
+    this.discountAmount = 0,
+    this.discountType = 'fixed',
+    this.discountValue = 0,
     required this.tax,
     required this.total,
     double? totalAmount,
     required this.status,
     this.notes,
+    this.comments,
+    this.includeCommentInEmail = false,
     required this.createdAt,
     this.expiresAt,
     required this.createdBy,
@@ -367,11 +397,16 @@ class Quote {
       'client': client?.toMap(),
       'items': items.map((x) => x.toMap()).toList(),
       'subtotal': subtotal,
+      'discountAmount': discountAmount,
+      'discountType': discountType,
+      'discountValue': discountValue,
       'tax': tax,
       'total': total,
       'totalAmount': totalAmount,
       'status': status,
       'notes': notes,
+      'comments': comments,
+      'includeCommentInEmail': includeCommentInEmail,
       'createdAt': createdAt.toIso8601String(),
       'expiresAt': expiresAt?.toIso8601String(),
       'createdBy': createdBy,
@@ -389,11 +424,16 @@ class Quote {
         (map['items'] ?? []).map((x) => QuoteItem.fromMap(x)),
       ),
       subtotal: (map['subtotal'] ?? 0).toDouble(),
-      tax: (map['tax'] ?? 0).toDouble(),
-      total: (map['total'] ?? 0).toDouble(),
-      totalAmount: (map['totalAmount'] ?? map['total'] ?? 0).toDouble(),
+      discountAmount: (map['discountAmount'] ?? map['discount_amount'] ?? 0).toDouble(),
+      discountType: map['discountType'] ?? map['discount_type'] ?? 'fixed',
+      discountValue: (map['discountValue'] ?? map['discount_value'] ?? 0).toDouble(),
+      tax: (map['tax'] ?? map['tax_amount'] ?? 0).toDouble(),
+      total: (map['total'] ?? map['total_amount'] ?? 0).toDouble(),
+      totalAmount: (map['totalAmount'] ?? map['total_amount'] ?? map['total'] ?? 0).toDouble(),
       status: map['status'] ?? 'draft',
       notes: map['notes'],
+      comments: map['comments'],
+      includeCommentInEmail: map['includeCommentInEmail'] ?? map['include_comment_in_email'] ?? false,
       createdAt:
           DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
       expiresAt:

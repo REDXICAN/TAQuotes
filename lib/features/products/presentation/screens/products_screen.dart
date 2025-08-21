@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/models/models.dart';
-import '../../../../core/utils/product_image_helper_v3.dart';
+import '../../../../core/utils/product_image_helper.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/widgets/product_image_widget.dart';
 import '../../../../core/services/excel_upload_service.dart';
@@ -15,66 +15,50 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../widgets/excel_preview_dialog.dart';
 import '../../widgets/zoomable_image_viewer.dart';
 
-// Products provider using Firebase with offline cache
+// Products provider using StreamProvider for real-time updates without heavy caching
 final productsProvider =
-    FutureProvider.family<List<Product>, String?>((ref, category) async {
-  // Try to get cached products first for faster loading
+    StreamProvider.family<List<Product>, String?>((ref, category) {
   try {
-    // First try to get from cache for immediate display
-    final cachedProducts = await ProductCacheService.instance.getCachedProducts(category: category);
-    if (cachedProducts.isNotEmpty) {
-      AppLogger.info('Using cached products', category: LogCategory.business, data: {'count': cachedProducts.length});
-      // Still try to refresh from Firebase in background
-      ProductCacheService.instance.cacheAllProducts().catchError((e) {
-        AppLogger.error('Background cache refresh failed', error: e, category: LogCategory.business);
-      });
-      return cachedProducts;
-    }
-    
-    // If no cache, fetch from Firebase
     final database = FirebaseDatabase.instance;
-    final snapshot = await database.ref('products').get();
     
-    final List<Product> products = [];
-    if (snapshot.exists && snapshot.value != null) {
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
-      data.forEach((key, value) {
-        final productMap = Map<String, dynamic>.from(value);
-        productMap['id'] = key;
-        try {
-          final product = Product.fromMap(productMap);
-          // Filter by category if specified
-          if (category == null || category.isEmpty) {
-            products.add(product);
-          } else {
-            // Check if product category matches (case-insensitive and trim whitespace)
-            final productCategory = product.category.trim().toLowerCase();
-            final filterCategory = category.trim().toLowerCase();
-            
-            // Also check for partial matches (e.g., "Refrigeration" matches "REACH-IN REFRIGERATION")
-            if (productCategory == filterCategory || 
-                productCategory.contains(filterCategory) ||
-                filterCategory.contains(productCategory)) {
+    // Return a stream that listens to products changes
+    return database.ref('products').onValue.map((event) {
+      final List<Product> products = [];
+      
+      if (event.snapshot.exists && event.snapshot.value != null) {
+        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        
+        data.forEach((key, value) {
+          final productMap = Map<String, dynamic>.from(value);
+          productMap['id'] = key;
+          try {
+            final product = Product.fromMap(productMap);
+            // Filter by category if specified
+            if (category == null || category.isEmpty) {
               products.add(product);
+            } else {
+              // Check if product category matches
+              final productCategory = product.category.trim().toLowerCase();
+              final filterCategory = category.trim().toLowerCase();
+              
+              if (productCategory == filterCategory || 
+                  productCategory.contains(filterCategory) ||
+                  filterCategory.contains(productCategory)) {
+                products.add(product);
+              }
             }
+          } catch (e) {
+            AppLogger.error('Error parsing product $key', error: e, category: LogCategory.database);
           }
-        } catch (e) {
-          AppLogger.error('Error parsing product $key', error: e, category: LogCategory.database);
-        }
-      });
-    }
-    
-    // Log categories found for debugging
-    if (products.isNotEmpty) {
-      final uniqueCategories = products.map((p) => p.category).toSet().toList();
-      AppLogger.info('Found categories in products: $uniqueCategories', category: LogCategory.database);
-    }
-    
-    products.sort((a, b) => (a.sku ?? '').compareTo(b.sku ?? ''));
-    return products;
+        });
+      }
+      
+      products.sort((a, b) => (a.sku ?? '').compareTo(b.sku ?? ''));
+      return products;
+    });
   } catch (e) {
-    AppLogger.error('Error loading products: $e', category: LogCategory.database);
-    return [];
+    AppLogger.error('Error streaming products: $e', category: LogCategory.database);
+    return Stream.value([]);
   }
 });
 
@@ -163,7 +147,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
   bool _isSearching = false;
   bool _isUploading = false;
   bool _isTableView = false;
-  int _visibleItemCount = 24; // Initial items to show
+  int _visibleItemCount = 12; // Start with fewer items for faster initial load
   TabController? _tabController;
   List<String> _productTypes = ['All'];
   String _selectedProductType = 'All';
@@ -179,7 +163,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
     if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 500) {
       // Load more items when near bottom
       setState(() {
-        _visibleItemCount += 24; // Load 24 more items
+        _visibleItemCount += 12; // Load 12 more items at a time for smoother experience
       });
     }
   }
@@ -554,7 +538,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                     onSelected: (_) {
                       setState(() {
                         selectedProductLine = null;
-                        _visibleItemCount = 24;
+                        _visibleItemCount = 12;
                       });
                       ref.invalidate(productsProvider);
                     },
@@ -623,7 +607,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                             onSelected: (value) {
                               setState(() {
                                 selectedProductLine = value;
-                                _visibleItemCount = 24; // Reset pagination
+                                _visibleItemCount = 12; // Reset pagination
                               });
                             },
                             itemBuilder: (context) => [
@@ -782,7 +766,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                                 onPressed: () {
                                   setState(() {
                                     selectedProductLine = null;
-                                    _visibleItemCount = 24;
+                                    _visibleItemCount = 12;
                                   });
                                 },
                                 child: const Text('Clear Filters'),
@@ -1061,7 +1045,9 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
             mainAxisSpacing: spacing,
           ),
           itemCount: itemsToShow.length,
-          cacheExtent: 200, // Cache items slightly off-screen
+          cacheExtent: 100, // Reduced cache to prevent loading too many images at once
+          addAutomaticKeepAlives: false, // Don't keep items alive when scrolled away
+          addRepaintBoundaries: true, // Optimize repainting
           itemBuilder: (context, index) {
             final product = itemsToShow[index];
             return ProductCard(
@@ -1364,7 +1350,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
   // Product details panel for split view
   Widget _buildProductDetailsPanel(Product product) {
     final theme = Theme.of(context);
-    final imagePath = ProductImageHelperV3.getImagePathWithFallback(
+    final imagePath = ProductImageHelper.getImagePathWithFallback(
       product.sku ?? product.model ?? '',
     );
     
@@ -1473,7 +1459,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
   Widget _buildProductImagesSection(Product product, ThemeData theme) {
     final isMobile = ResponsiveHelper.isMobile(context);
     final isTablet = ResponsiveHelper.isTablet(context);
-    final imagePath1 = ProductImageHelperV3.getImagePathWithFallback(product.sku ?? product.model ?? '');
+    final imagePath1 = ProductImageHelper.getImagePathWithFallback(product.sku ?? product.model ?? '');
     
     // Generate multiple image paths (P.1, P.2, P.3, P.4)
     final sku = product.sku ?? product.model ?? '';
@@ -1859,7 +1845,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
           ],
           rows: products.map((product) {
             // Use thumbnail for table view (compressed, fast loading)
-            final imagePath = ProductImageHelperV3.getThumbnailPath(product.sku ?? product.model ?? '');
+            final imagePath = ProductImageHelper.getThumbnailPath(product.sku ?? product.model ?? '');
             return DataRow(
               cells: [
                 DataCell(

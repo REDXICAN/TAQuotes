@@ -301,6 +301,11 @@ class RealtimeDatabaseService {
     required double taxRate,
     required double taxAmount,
     required double totalAmount,
+    double? discountAmount,
+    String? discountType,
+    double? discountValue,
+    String? comments,
+    bool? includeCommentInEmail,
   }) async {
     if (userId == null) throw Exception('User not authenticated');
     
@@ -317,9 +322,14 @@ class RealtimeDatabaseService {
         'quote_number': quoteNumber,
         'quote_items': items,  // Store items directly in the quote
         'subtotal': subtotal,
+        'discount_amount': discountAmount ?? 0,
+        'discount_type': discountType ?? 'fixed',
+        'discount_value': discountValue ?? 0,
         'tax_rate': taxRate,
         'tax_amount': taxAmount,
         'total_amount': totalAmount,
+        'comments': comments ?? '',
+        'include_comment_in_email': includeCommentInEmail ?? false,
         'status': 'draft',
         'user_id': userId,  // Add user ID for reference
         'created_at': ServerValue.timestamp,
@@ -331,14 +341,9 @@ class RealtimeDatabaseService {
       
       return key;
     } catch (e) {
-      AppLogger.error('Error creating quote', 
+      AppLogger.error('Error creating quote - clientId: $clientId, items: ${items.length}, total: $totalAmount', 
         error: e, 
-        category: LogCategory.quote,
-        data: {
-          'clientId': clientId,
-          'itemsCount': items.length,
-          'total': totalAmount,
-        });
+        category: LogCategory.quote);
       throw Exception('Failed to create quote: $e');
     }
   }

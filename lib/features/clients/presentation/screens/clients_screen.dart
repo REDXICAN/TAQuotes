@@ -10,6 +10,7 @@ import '../../../../core/services/storage_service.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/services/export_service.dart';
 import '../../../../core/utils/download_helper.dart';
+import '../../../cart/presentation/screens/cart_screen.dart'; // For cartClientProvider
 
 // Clients provider using Realtime Database
 final clientsProvider = FutureProvider<List<Client>>((ref) async {
@@ -465,11 +466,35 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                                 : null,
                           ),
                         ),
-                        title: Text(
-                          client.company,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: isSelected ? FontWeight.bold : null,
-                          ),
+                        title: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                client.company,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: isSelected ? FontWeight.bold : null,
+                                ),
+                              ),
+                            ),
+                            // Show incomplete info tag if email or phone is missing
+                            if (client.email.isEmpty || client.phone.isEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.orange.withOpacity(0.5)),
+                                ),
+                                child: Text(
+                                  'Incomplete',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.orange[700],
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         subtitle: Text(
                           client.contactName.isNotEmpty 
@@ -498,6 +523,10 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                                     ref
                                         .read(selectedClientProvider.notifier)
                                         .state = client;
+                                    // Also sync with cart screen
+                                    ref
+                                        .read(cartClientProvider.notifier)
+                                        .state = client;
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content:
@@ -510,6 +539,10 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                                     // Deselect
                                     ref
                                         .read(selectedClientProvider.notifier)
+                                        .state = null;
+                                    // Also sync with cart screen
+                                    ref
+                                        .read(cartClientProvider.notifier)
                                         .state = null;
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(

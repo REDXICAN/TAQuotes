@@ -63,17 +63,36 @@ class _SplashScreenState extends State<SplashScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Logo with fallback
-              Image.asset(
-                'assets/logos/turbo_air_logo.png',
+              Container(
                 height: 150,
-                color: Colors.white,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Icon(
-                    Icons.ac_unit,
-                    size: 150,
-                    color: Colors.white,
-                  );
-                },
+                width: 150,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(20),
+                child: Image.asset(
+                  'assets/logos/turbo_air_logo.png',
+                  height: 110,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Text(
+                      'TURBO\nAIR',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF20429C),
+                      ),
+                    );
+                  },
+                ),
               ),
               const SizedBox(height: 48),
 

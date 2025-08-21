@@ -455,9 +455,120 @@ Application successfully deployed to Firebase Hosting and fully operational.
 - **Database**: Firebase Realtime Database
 - **Authentication**: Firebase Auth
 
+## 🔒 Security Enhancements (December 2025)
+
+### Critical Security Implementations
+1. **CSRF Protection Service** (`csrf_protection_service.dart`)
+   - Token generation and validation for all state-changing operations
+   - Prevents cross-site request forgery attacks
+   - Automatic token refresh mechanism
+
+2. **Rate Limiting Service** (`rate_limiter_service.dart`)
+   - API call throttling to prevent abuse
+   - Configurable limits per endpoint
+   - User-specific rate tracking
+
+3. **Enhanced Logging System** (`secure_app_logger.dart`)
+   - Secure logging with PII redaction
+   - Audit trail for security events
+   - Encrypted log storage for sensitive operations
+
+4. **Input Validation Service** (`validation_service.dart`)
+   - Comprehensive input sanitization
+   - SQL injection prevention
+   - XSS attack mitigation
+
+5. **Active Client Banner** (`active_client_banner.dart`)
+   - Visual indicator for current client selection
+   - Prevents accidental data mixing between clients
+
+### Security Best Practices Implemented
+- ✅ All sensitive files in .gitignore
+- ✅ Environment variables for secrets
+- ✅ Firebase security rules enforced
+- ✅ Role-based access control (RBAC)
+- ✅ Secure password reset flow
+- ✅ Session management with auto-logout
+- ✅ HTTPS-only communication
+- ✅ Content Security Policy headers
+
+### Database Security Rules
+```json
+{
+  "rules": {
+    "products": {
+      ".read": "auth != null",
+      ".write": "auth.token.email == 'andres@turboairmexico.com'"
+    },
+    "clients": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid"
+      }
+    },
+    "quotes": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid"
+      }
+    }
+  }
+}
+```
+
+## 🎨 UI/UX Improvements (December 2025)
+
+### Logo Implementation
+- **Splash Screen**: Enhanced logo display with white background container
+- **Login Screen**: Logo with subtle background for better visibility
+- **Web Loading**: Configured in index.html with fallback text
+- **Asset Management**: Proper logo path configuration in pubspec.yaml
+
+### Visual Enhancements
+- Improved loading animations with dots
+- Better error state displays
+- Consistent branding across all screens
+- Responsive design optimizations
+
+## ⚠️ IMPORTANT NOTES FOR DEVELOPERS
+
+### Things That Already Work - DO NOT MODIFY
+1. **Client Selection in Cart** (cart_screen.dart:258)
+   - SearchableClientDropdown implementation is perfect
+   - AsyncValue.when pattern works correctly
+   - DO NOT change the loading/error handling
+
+2. **Cart Notifications**
+   - Always use SKU for notifications: `product.sku ?? product.model ?? 'Item'`
+   - Never use product.displayName (too generic)
+
+3. **Static Service Methods**
+   - OfflineService uses static methods - DO NOT convert to instance
+   - CacheManager uses static initialization - DO NOT change pattern
+
+4. **Image Handling**
+   - ProductImageWidget fallback system works perfectly
+   - 1000+ SKU mappings are correct
+   - Thumbnail/screenshot paths are validated
+
+### Common Issues and Solutions
+- **White Screen on Deploy**: Clear browser cache (Ctrl+Shift+R)
+- **Products Not Loading**: Check authentication status
+- **Email Not Sending**: Verify Gmail SMTP settings in .env
+- **Offline Not Working**: Ensure 100MB cache space available
+
 ## 🔄 Version History
 
-### Version 1.2.0 (Current - August 2025)
+### Version 1.3.0 (Current - December 2025)
+- Implemented comprehensive security enhancements
+- Added CSRF protection and rate limiting
+- Enhanced logging with security audit trails
+- Improved logo display on splash and login screens
+- Fixed login screen logo rendering issue
+- Added input validation service
+- Updated Firebase security rules
+
+### Version 1.2.0 (August 2025)
 - Added product type filtering tabs
 - Implemented price comma formatting  
 - Fixed Excel attachment functionality

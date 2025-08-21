@@ -105,7 +105,8 @@ class OfflineService {
 
     // Listen to connectivity changes
     _connectivity.onConnectivityChanged
-        .listen((ConnectivityResult result) {
+        .listen((List<ConnectivityResult> results) {
+      final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
       final wasOffline = !_isOnline;
       _isOnline = result != ConnectivityResult.none;
       _connectivityController.add(_isOnline);
@@ -116,7 +117,8 @@ class OfflineService {
     });
 
     // Check initial connectivity
-    final connectivityResult = await _connectivity.checkConnectivity();
+    final connectivityResults = await _connectivity.checkConnectivity();
+    final connectivityResult = connectivityResults.isNotEmpty ? connectivityResults.first : ConnectivityResult.none;
     _isOnline = connectivityResult != ConnectivityResult.none;
   }
 
