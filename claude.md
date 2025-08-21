@@ -410,7 +410,7 @@ git push origin main
 
 - **Lead Developer**: andres@turboairmexico.com
 - **Support Email**: turboairquotes@gmail.com
-- **GitHub**: [Repository](https://github.com/REDXICAN/Turbo-Air-Viewer-Flutter-App)
+- **GitHub**: [Repository](https://github.com/REDXICAN/TAQuotes)
 
 ## ✅ Production Checklist
 
@@ -594,4 +594,4 @@ Application successfully deployed to Firebase Hosting and fully operational.
 **Last Updated**: August 2025  
 **Current Version**: 1.2.0  
 **Deployment**: Firebase Hosting (taquotes)  
-**Repository**: https://github.com/REDXICAN/Turbo-Air-Viewer-Flutter-App
+**Repository**: https://github.com/REDXICAN/TAQuotes

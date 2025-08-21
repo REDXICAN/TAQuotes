@@ -1,7 +1,7 @@
 # Turbo Air Quotes (TAQ) - Enterprise B2B Quote Management System
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-taquotes.web.app-blue)](https://taquotes.web.app)
-[![Version](https://img.shields.io/badge/Version-1.3.0-green)](https://github.com/REDXICAN/Turbo-Air-Viewer-Flutter-App)
+[![Version](https://img.shields.io/badge/Version-1.3.0-green)](https://github.com/REDXICAN/TAQuotes)
 [![Security](https://img.shields.io/badge/Security-Enhanced-red)](##-security-features)
 [![Platform](https://img.shields.io/badge/Platform-Web%20|%20iOS%20|%20Android%20|%20Windows-orange)]()
 
@@ -175,8 +175,8 @@ This app helps Turbo Air sales teams and distributors:
 
 1. **Clone Repository**
 ```bash
-git clone https://github.com/REDXICAN/Turbo-Air-Viewer-Flutter-App.git
-cd Turbo-Air-Viewer-Flutter-App
+git clone https://github.com/REDXICAN/TAQuotes.git
+cd TAQuotes
 ```
 
 2. **Install Dependencies**
