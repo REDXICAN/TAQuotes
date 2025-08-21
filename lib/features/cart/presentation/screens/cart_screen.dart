@@ -155,6 +155,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          context.go('/products');
+        },
+        label: const Text('Browse Products'),
+        icon: const Icon(Icons.add_shopping_cart),
+        backgroundColor: theme.primaryColor,
+      ),
       body: Column(
         children: [
           // Custom header without AppBar
