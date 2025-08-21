@@ -198,25 +198,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       children: [
                         // Logo
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          height: 100,
+                          width: 200,
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: const Color(0xFF20429C).withOpacity(0.05),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Image.asset(
-                            'assets/logos/turbo_air_logo.png',
-                            height: 80,
-                            errorBuilder: (context, error, stackTrace) {
-                              print('Login logo error: $error');
-                              return const Text(
-                                'TURBO AIR',
-                                style: TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF20429C),
-                                ),
-                              );
-                            },
+                          child: Center(
+                            child: Image.asset(
+                              'assets/logos/turbo_air_logo.png',
+                              height: 76,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const FittedBox(
+                                  fit: BoxFit.contain,
+                                  child: Text(
+                                    'TURBO AIR',
+                                    style: TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF20429C),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                         ),
                         const SizedBox(height: 16),
