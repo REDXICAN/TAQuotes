@@ -25,6 +25,7 @@ Enterprise B2B equipment catalog and quote management system with offline-first 
 - **Hive** - Local storage for offline mode
 - **Mailer 6.0.1** - Email service with attachment support
 - **PDF Package** - Professional PDF generation
+- **Image Optimization** - 1000+ thumbnails (400x400 JPEG 85% quality)
 
 ### Key Services
 
@@ -63,6 +64,8 @@ lib/
 │   │   ├── offline_service.dart       # ✅ Static methods fixed
 │   │   ├── app_logger.dart           # ✅ Comprehensive logging
 │   │   └── cache_manager.dart        # ✅ Static access patterns
+│   ├── widgets/
+│   │   └── product_image_widget.dart  # ✅ Smart fallback system
 │   └── utils/
 │       ├── product_image_helper.dart  # ✅ 1000+ SKU mappings
 │       └── responsive_helper.dart     # ✅ Multi-platform support
@@ -72,7 +75,8 @@ lib/
 │   ├── products/                      # ✅ Excel import ready
 │   └── admin/                         # ✅ Super admin panel
 └── assets/
-    └── screenshots/                    # ✅ All product images
+    ├── thumbnails/                     # ✅ 1000+ optimized thumbnails
+    └── screenshots/                    # ✅ Full resolution specs
 ```
 
 ## 🔐 Security Configuration
@@ -109,6 +113,28 @@ FIREBASE_DATABASE_URL=https://taquotes-default-rtdb.firebaseio.com
     }
   }
 }
+```
+
+## ⚠️ CRITICAL: DO NOT BREAK THESE
+
+### Client Selection in Cart
+```dart
+// cart_screen.dart - Line 258
+// DO NOT CHANGE THIS - IT WORKS!
+return clientsAsync.when(
+  data: (clients) => SearchableClientDropdown(...),
+  loading: () => const LinearProgressIndicator(),
+  error: (error, stack) => Text('Error loading clients: $error'),
+);
+```
+
+### Cart Notifications - Show SKU
+```dart
+// Always use: product.sku ?? product.model ?? 'Item'
+// NOT: product.displayName (generic name)
+ScaffoldMessenger.of(context).showSnackBar(
+  SnackBar(content: Text('$sku removed from cart')),
+);
 ```
 
 ## 🎯 Recent Implementations

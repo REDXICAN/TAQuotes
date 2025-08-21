@@ -851,7 +851,8 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                   if (context.mounted && quantity == 1) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('${product.displayName} removed from cart'),
+                        content: Text('${product.sku ?? product.model} removed from cart'),
+                        duration: const Duration(seconds: 2),
                       ),
                     );
                   }
@@ -1995,7 +1996,8 @@ class ProductCard extends ConsumerWidget {
                   if (context.mounted && quantity == 1) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('${product.displayName} removed from cart'),
+                        content: Text('${product.sku ?? product.model} removed from cart'),
+                        duration: const Duration(seconds: 2),
                       ),
                     );
                   }

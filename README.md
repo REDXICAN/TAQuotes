@@ -47,14 +47,15 @@ This app helps Turbo Air sales teams and distributors:
 - ✅ Client history tracking
 
 ### 📦 **Product Catalog**
-- ✅ **835+ Products** with high-resolution images
-- ✅ **Product Type Tabs** - Filter by Ice Cream Freezers, Display Cases, etc.
+- ✅ **835+ Products** with optimized images
+- ✅ **Fast Loading Thumbnails** - 400x400 compressed images
+- ✅ **Full Resolution Screenshots** - Swipeable carousel in product details
 - ✅ **Smart Search** - Find products by SKU, name, or description
 - ✅ **Product Lines** - Filter by TSR, PRO, MSF, etc.
 - ✅ **Detailed Specs** - View dimensions, power requirements, capacity
 - ✅ **Grid/Table Views** - Choose your preferred layout
 - ✅ **Price Formatting** - All prices shown with commas ($1,234.50)
-- ✅ **Image Gallery** - Multiple product images per item
+- ✅ **Image Fallback System** - Always shows an image or icon
 
 ### 🛒 **Shopping Cart**
 - ✅ Add/remove products with one click

@@ -114,7 +114,13 @@
       "Bash(if [ -f \"C:\\Users\\andre\\Desktop\\-- Flutter App\\firebase-admin-key.json\" ])",
       "Bash(then echo \"Firebase admin key exists\")",
       "Bash(else echo \"Firebase admin key not found\")",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(for dir in assets/thumbnails/*/)",
+      "Bash(do echo \"  - $dir\")",
+      "Bash(cmd /c:*)",
+      "Bash(else echo \"✓ .env file not found (good)\")",
+      "Bash(else echo \"✓ firebase_options.dart not found (good)\")",
+      "Bash(else echo \"✓ functions/.env not found (good)\")"
     ],
     "deny": [],
     "ask": [

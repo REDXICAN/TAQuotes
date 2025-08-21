@@ -15,6 +15,7 @@ import '../../../../core/services/export_service.dart';
 import '../../../../core/services/firebase_email_service.dart';
 import '../../../../core/widgets/searchable_client_dropdown.dart';
 import '../../../../core/services/app_logger.dart';
+import '../../../clients/presentation/screens/clients_screen.dart'; // Import for selectedClientProvider
 
 // Cart provider using Realtime Database with real-time updates
 final cartProvider = StreamProvider<List<CartItem>>((ref) {
@@ -72,7 +73,7 @@ final cartProvider = StreamProvider<List<CartItem>>((ref) {
   });
 });
 
-// Clients provider with real-time updates
+// Clients provider with real-time updates - fixed to prevent infinite loading
 final clientsStreamProvider = StreamProvider<List<Client>>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) {
@@ -80,23 +81,28 @@ final clientsStreamProvider = StreamProvider<List<Client>>((ref) {
   }
   
   final database = FirebaseDatabase.instance;
-  return database.ref('clients/${user.uid}').onValue.map((event) {
-    if (!event.snapshot.exists || event.snapshot.value == null) {
-      return [];
-    }
-    
-    try {
-      final data = Map<String, dynamic>.from(event.snapshot.value as Map);
-      return data.entries.map((e) {
-        final clientMap = Map<String, dynamic>.from(e.value);
-        clientMap['id'] = e.key;
-        return Client.fromMap(clientMap);
-      }).toList()..sort((a, b) => a.company.compareTo(b.company));
-    } catch (e) {
-      AppLogger.error('Error loading clients', error: e);
-      return [];
-    }
-  });
+  return database.ref('clients/${user.uid}').onValue
+    .map((event) {
+      if (!event.snapshot.exists || event.snapshot.value == null) {
+        return <Client>[];
+      }
+      
+      try {
+        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        return data.entries.map((e) {
+          final clientMap = Map<String, dynamic>.from(e.value);
+          clientMap['id'] = e.key;
+          return Client.fromMap(clientMap);
+        }).toList()..sort((a, b) => a.company.compareTo(b.company));
+      } catch (e) {
+        AppLogger.error('Error parsing clients', error: e);
+        return <Client>[];
+      }
+    })
+    .handleError((error) {
+      AppLogger.error('Stream error loading clients', error: error);
+      return <Client>[];
+    });
 });
 
 // Keep backward compatibility
@@ -104,7 +110,7 @@ final clientsProvider = Provider<AsyncValue<List<Client>>>((ref) {
   return ref.watch(clientsStreamProvider);
 });
 
-// Cart client provider
+// Cart client provider - separate but will sync with selectedClientProvider
 final cartClientProvider = StateProvider<Client?>((ref) => null);
 
 class CartScreen extends ConsumerStatefulWidget {
@@ -260,6 +266,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                             clients: clients,
                             selectedClient: selectedClient,
                             onClientSelected: (client) {
+                              ref.read(cartClientProvider.notifier).state = client;
+                              // Also sync with clients screen
                               ref.read(cartClientProvider.notifier).state = client;
                             },
                             hintText: 'Search by company, contact, email, or phone...',
@@ -575,7 +583,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    '${item.quantity}x ${item.product?.displayName ?? item.productName}',
+                                    '${item.quantity}x ${item.product?.sku ?? item.product?.model ?? item.productName}',
                                     style: theme.textTheme.bodySmall,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -715,6 +723,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
     if (client != null && mounted) {
       ref.read(cartClientProvider.notifier).state = client;
+      // Sync with clients screen toggle
+      ref.read(selectedClientProvider.notifier).state = client;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Selected client: ${client.company}'),
@@ -734,6 +744,17 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final dbService = ref.read(databaseServiceProvider);
     await dbService.updateCartItem(item.id ?? '', newQuantity);
     // No need to invalidate as we use StreamProvider for real-time updates
+    
+    // Show notification when quantity is reduced
+    if (change < 0 && mounted) {
+      final sku = item.product?.sku ?? item.product?.model ?? 'Item';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$sku quantity reduced to $newQuantity'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   Future<void> _removeItem(CartItem item) async {
@@ -742,8 +763,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     // No need to invalidate as we use StreamProvider for real-time updates
 
     if (mounted) {
+      final sku = item.product?.sku ?? item.product?.model ?? 'Item';
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Item removed from cart')),
+        SnackBar(
+          content: Text('$sku removed from cart'),
+          duration: const Duration(seconds: 2),
+        ),
       );
     }
   }
