@@ -196,44 +196,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Logo - Using direct web URL
-                        Container(
-                          height: 100,
-                          width: 200,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF20429C).withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Image.network(
-                              '/turbo_air_logo.png',
-                              height: 76,
+                        // Logo - Direct display without container
+                        Image.network(
+                          '/turbo_air_logo.png',
+                          height: 80,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            // Fallback to asset if network fails
+                            return Image.asset(
+                              'assets/logos/turbo_air_logo.png',
+                              height: 80,
                               fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) {
-                                // Fallback to asset if network fails
-                                return Image.asset(
-                                  'assets/logos/turbo_air_logo.png',
-                                  height: 76,
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (context, error2, stackTrace2) {
-                                    // Final fallback to text
-                                    return const FittedBox(
-                                      fit: BoxFit.contain,
-                                      child: Text(
-                                        'TURBO AIR',
-                                        style: TextStyle(
-                                          fontSize: 32,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF20429C),
-                                        ),
-                                      ),
-                                    );
-                                  },
+                              errorBuilder: (context, error2, stackTrace2) {
+                                // Final fallback to text
+                                return const Text(
+                                  'TURBO AIR',
+                                  style: TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF20429C),
+                                  ),
                                 );
                               },
-                            ),
-                          ),
+                            );
+                          },
                         ),
                         const SizedBox(height: 16),
 

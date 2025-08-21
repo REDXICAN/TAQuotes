@@ -62,45 +62,31 @@ class _SplashScreenState extends State<SplashScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo with fallback - Using direct web URL
-              Container(
-                height: 150,
-                width: 150,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(20),
-                child: Image.network(
-                  '/turbo_air_logo.png',
-                  height: 110,
-                  errorBuilder: (context, error, stackTrace) {
-                    // Fallback to asset if network fails
-                    return Image.asset(
-                      'assets/logos/turbo_air_logo.png',
-                      height: 110,
-                      errorBuilder: (context, error2, stackTrace2) {
-                        // Final fallback to text
-                        return const Text(
-                          'TURBO\nAIR',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF20429C),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
+              // Logo - Direct display without container
+              Image.network(
+                '/turbo_air_logo.png',
+                height: 120,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  // Fallback to asset if network fails
+                  return Image.asset(
+                    'assets/logos/turbo_air_logo.png',
+                    height: 120,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error2, stackTrace2) {
+                      // Final fallback to text
+                      return const Text(
+                        'TURBO AIR',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
               const SizedBox(height: 48),
 
