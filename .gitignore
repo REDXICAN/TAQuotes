@@ -31,6 +31,10 @@ lib/firebase_options.dart
 firebase_options.dart
 **/firebase_options.dart
 .firebaserc
+# Firebase Admin SDK service account key
+taquotes-firebase-adminsdk-*.json
+firebase-admin-key.json
+*-firebase-adminsdk-*.json
 # Deployment scripts with sensitive data
 *.env.local
 *.env.production

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/utils/product_image_helper_v2.dart';
+import '../../../../core/widgets/product_image_widget.dart';
 
 class ProductImagesWidget extends StatefulWidget {
   final String sku;
@@ -14,8 +14,11 @@ class ProductImagesWidget extends StatefulWidget {
 }
 
 class _ProductImagesWidgetState extends State<ProductImagesWidget> {
-  // Get image paths using the helper
-  List<String> get imagePaths => ProductImageHelper.getAllProductImages(widget.sku);
+  // Generate image paths for P.1 and P.2 screenshots
+  List<String> get imagePaths => [
+    'assets/screenshots/${widget.sku}/${widget.sku} P.1.png',
+    'assets/screenshots/${widget.sku}/${widget.sku} P.2.png',
+  ];
 
   void _showImagePopup(BuildContext context, int initialIndex) {
     showDialog(
@@ -33,70 +36,53 @@ class _ProductImagesWidgetState extends State<ProductImagesWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // New layout: P1 on left, P2 below it
+    // New layout: P1 on left, P2 below it - Full width
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Screenshot P.1
+        // Screenshot P.1 - using ProductImageWidget for proper fallback
         GestureDetector(
           onTap: () => _showImagePopup(context, 0),
           child: Container(
-            height: 200,
+            width: double.infinity,
+            height: 400, // Increased height for better view
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.grey.shade300),
+              color: const Color(0xFFFFFFFF), // White background
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                imagePaths[0],
+              child: ProductImageWidget(
+                sku: widget.sku,
+                useThumbnail: false, // Use screenshots for detail view
                 fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  debugPrint('Error loading image: ${imagePaths[0]}');
-                  debugPrint('Error: $error');
-                  return Container(
-                    color: Colors.grey.shade100,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.image_not_supported,
-                          size: 48,
-                          color: Colors.grey.shade400,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Image not available',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                width: double.infinity,
               ),
             ),
           ),
         ),
         const SizedBox(height: 8),
         
-        // Screenshot P.2
+        // Screenshot P.2 - second page
         GestureDetector(
           onTap: () => _showImagePopup(context, 1),
           child: Container(
-            height: 200,
+            width: double.infinity,
+            height: 400, // Increased height for better view
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.grey.shade300),
+              color: const Color(0xFFFFFFFF), // White background
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.asset(
                 imagePaths[1],
+                width: double.infinity,
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) {
+                  // Fallback for P.2 - just show placeholder since P.2 may not exist
                   return Container(
                     color: Colors.grey.shade100,
                     child: Column(

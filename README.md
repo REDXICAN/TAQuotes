@@ -292,7 +292,7 @@ firebase deploy --only hosting
 **Developed for**: Turbo Air Mexico  
 **Lead Developer**: Andres (andres@turboairmexico.com)  
 **Technology**: Flutter, Firebase, Dart  
-**Last Updated**: January 2025  
+**Last Updated**: August 2025  
 
 ---
 

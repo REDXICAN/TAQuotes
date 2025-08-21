@@ -8,11 +8,24 @@ import 'download_helper_stub.dart'
     if (dart.library.html) 'download_helper_web.dart';
 
 class DownloadHelper {
-  static void downloadFile(Uint8List bytes, String fileName) {
+  static Future<void> downloadFile({
+    required Uint8List bytes,
+    required String filename,
+    String? mimeType,
+  }) async {
     if (kIsWeb) {
-      downloadFileWeb(bytes, fileName);
+      downloadFileWeb(bytes, filename, mimeType);
     } else {
       // For desktop/mobile, use a different approach
+      downloadFileNative(bytes, filename);
+    }
+  }
+  
+  // Legacy method for backward compatibility
+  static void downloadFileLegacy(Uint8List bytes, String fileName) {
+    if (kIsWeb) {
+      downloadFileWeb(bytes, fileName, null);
+    } else {
       downloadFileNative(bytes, fileName);
     }
   }

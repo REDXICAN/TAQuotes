@@ -1,13 +1,15 @@
 // lib/features/cart/presentation/screens/cart_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:typed_data';
 import 'dart:async';
 import '../../../../core/utils/download_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
-import '../../../../core/utils/product_image_helper_v3.dart';
+import '../../../../core/widgets/product_image_widget.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/services/export_service.dart';
 import '../../../../core/services/firebase_email_service.dart';
@@ -284,9 +286,6 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   itemBuilder: (context, index) {
                     final item = items[index];
                     final product = item.product;
-                    final imagePath = product != null
-                        ? ProductImageHelperV3.getImagePathWithFallback(product.sku ?? '')
-                        : null;
                     final isCompact = ResponsiveHelper.useCompactLayout(context);
                     final isMobile = ResponsiveHelper.isMobile(context);
 
@@ -303,17 +302,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                   Row(
                                     children: [
                                       // Image
-                                      if (imagePath != null)
-                                        Image.asset(
-                                          imagePath,
+                                      if (product != null)
+                                        SizedBox(
                                           width: 60,
                                           height: 60,
-                                          fit: BoxFit.contain,
-                                          errorBuilder: (_, __, ___) => Container(
-                                            width: 60,
-                                            height: 60,
-                                            color: theme.disabledColor.withOpacity(0.1),
-                                            child: const Icon(Icons.image_not_supported, size: 20),
+                                          child: ProductImageWidget(
+                                            sku: product.sku ?? product.model ?? '',
+                                            useThumbnail: true,
+                                            fit: BoxFit.contain,
                                           ),
                                         )
                                       else
@@ -382,20 +378,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                             )
                           : // Normal layout
                             ListTile(
-                              leading: imagePath != null
-                                  ? Image.asset(
-                                      imagePath,
+                              leading: product != null
+                                  ? SizedBox(
                                       width: isMobile ? 50 : 60,
                                       height: isMobile ? 50 : 60,
-                                      fit: BoxFit.contain,
-                                      errorBuilder: (_, __, ___) => Container(
-                                        width: isMobile ? 50 : 60,
-                                        height: isMobile ? 50 : 60,
-                                        color: theme.disabledColor.withOpacity(0.1),
-                                        child: Icon(
-                                          Icons.image_not_supported,
-                                          size: ResponsiveHelper.getIconSize(context, baseSize: 24),
-                                        ),
+                                      child: ProductImageWidget(
+                                        sku: product.sku ?? product.model ?? '',
+                                        useThumbnail: true,
+                                        fit: BoxFit.contain,
                                       ),
                                     )
                                   : Container(
@@ -819,17 +809,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
-                      child: Image.asset(
-                        ProductImageHelperV3.getImagePathWithFallback(product.sku ?? product.model ?? ''),
+                      child: ProductImageWidget(
+                        sku: product.sku ?? product.model ?? '',
+                        useThumbnail: false,  // Use full screenshot in popup
                         fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Image.asset(
-                          'assets/logos/turbo_air_logo.png',
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(
-                            Icons.image_not_supported,
-                            size: 64,
-                          ),
-                        ),
                       ),
                     ),
                   ),
@@ -1000,9 +983,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   try {
                     final pdfBytes = await ExportService.generateQuotePDF(quoteId);
                     // Download the PDF using cross-platform helper
-                    DownloadHelper.downloadFile(
-                      pdfBytes, 
-                      'Quote_${DateTime.now().millisecondsSinceEpoch}.pdf'
+                    await DownloadHelper.downloadFile(
+                      bytes: pdfBytes, 
+                      filename: 'Quote_${DateTime.now().millisecondsSinceEpoch}.pdf',
+                      mimeType: 'application/pdf'
                     );
                     
                     if (mounted) {

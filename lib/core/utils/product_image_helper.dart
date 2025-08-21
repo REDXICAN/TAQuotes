@@ -1107,8 +1107,18 @@ class ProductImageHelper {
     return null;
   }
 
-  // Method expected by quote detail screen
+  // Method expected by quote detail screen - use compressed thumbnails
   static Widget buildProductThumbnail(String sku, {double size = 60}) {
-    return getProductImage(sku, width: size, height: size);
+    // Try compressed thumbnail first for better performance
+    return Image.asset(
+      'assets/thumbnails/$sku/$sku.jpg',
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        // Fallback to regular image if thumbnail doesn't exist
+        return getProductImage(sku, width: size, height: size);
+      },
+    );
   }
 }

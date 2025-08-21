@@ -1,5 +1,6 @@
 // lib/features/clients/presentation/screens/clients_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:file_picker/file_picker.dart';
@@ -7,6 +8,8 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../../../core/services/app_logger.dart';
+import '../../../../core/services/export_service.dart';
+import '../../../../core/utils/download_helper.dart';
 
 // Clients provider using Realtime Database
 final clientsProvider = FutureProvider<List<Client>>((ref) async {
@@ -262,8 +265,12 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                         decoration: const InputDecoration(
                           labelText: 'Phone',
                           prefixIcon: Icon(Icons.phone),
+                          hintText: 'Numbers only',
                         ),
                         keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'[\d\s\-\+\(\)]')),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
@@ -482,28 +489,12 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                                 child: const Text('Select'),
                               )
                             else
-                              // Selection checkbox/button
-                              IconButton(
-                                icon: Icon(
-                                  isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                                  color: isSelected ? Colors.green : theme.disabledColor,
-                                  size: 28,
-                                ),
-                                onPressed: () {
-                                  if (isSelected) {
-                                    // Deselect if already selected
-                                    ref
-                                        .read(selectedClientProvider.notifier)
-                                        .state = null;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content:
-                                            Text('Deselected: ${client.company}'),
-                                        duration: const Duration(seconds: 1),
-                                      ),
-                                    );
-                                  } else {
-                                    // Select if not selected
+                              // Selection toggle switch
+                              Switch(
+                                value: isSelected,
+                                onChanged: (bool value) {
+                                  if (value) {
+                                    // Select this client (only one can be selected)
                                     ref
                                         .read(selectedClientProvider.notifier)
                                         .state = client;
@@ -515,8 +506,22 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                                         duration: const Duration(seconds: 1),
                                       ),
                                     );
+                                  } else {
+                                    // Deselect
+                                    ref
+                                        .read(selectedClientProvider.notifier)
+                                        .state = null;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text('Deselected: ${client.company}'),
+                                        duration: const Duration(seconds: 1),
+                                      ),
+                                    );
                                   }
                                 },
+                                activeColor: Colors.green,
+                                activeTrackColor: Colors.green.withOpacity(0.5),
                               ),
                           ],
                         ),
@@ -1049,13 +1054,53 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(),
+        builder: (context) => const AlertDialog(
+          content: SizedBox(
+            height: 100,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Generating Excel file...'),
+                ],
+              ),
+            ),
+          ),
         ),
       );
 
-      // For now, show not implemented message
-      throw Exception('Excel export not yet implemented');
+      // Get clients data
+      final clientsAsync = ref.read(clientsProvider);
+      final clients = clientsAsync.value ?? [];
+      
+      if (clients.isEmpty) {
+        throw Exception('No clients to export');
+      }
+
+      // Generate Excel using ExportService
+      final bytes = await ExportService.generateClientsExcel(clients);
+      
+      // Hide loading indicator
+      if (mounted) Navigator.pop(context);
+      
+      // Download the file
+      final filename = 'Clients_Export_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+      await DownloadHelper.downloadFile(
+        bytes: bytes,
+        filename: filename,
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Clients exported successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
       // Hide loading indicator if still showing
       if (mounted) Navigator.pop(context);

@@ -40,10 +40,12 @@ dev_dependencies:
   flutter_lints: ^3.0.1
   hive_generator: ^2.0.1
   build_runner: ^2.4.7
+  image: ^4.0.17  # For image compression script
 flutter:
   uses-material-design: true
   assets:
   - assets/logos/turbo_air_logo.png
+  - assets/thumbnails/
   - assets/screenshots/CRT-77-1R-N/
   - assets/screenshots/CRT-77-2R-N/
   - assets/screenshots/CTST-1200-13-N/

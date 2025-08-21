@@ -6,9 +6,23 @@ class ProductImageHelperV3 {
   static DateTime? _lastCacheTime;
   static const Duration _cacheDuration = Duration(minutes: 5);
   
-  /// Get the main image path for a product SKU
-  static String getMainImagePath(String sku) {
-    // Clean the SKU - handle spaces in file names
+  /// Get thumbnail path for product lists and grids (compressed)
+  static String getThumbnailPath(String sku) {
+    String cleanSku = sku.trim();
+    
+    // Try WebP first (best compression), then JPEG, then fallback to screenshot
+    // WebP is supported on all modern browsers and Flutter
+    return 'assets/thumbnails/$cleanSku/$cleanSku.webp';
+  }
+  
+  /// Get the main image path for a product SKU (full quality for details)
+  static String getMainImagePath(String sku, {bool useThumbnail = false}) {
+    // If thumbnail is requested, use compressed version
+    if (useThumbnail) {
+      return getThumbnailPath(sku);
+    }
+    
+    // Otherwise use full quality screenshot
     String cleanSku = sku.trim();
     
     // First try exact match with the actual naming pattern (with space)

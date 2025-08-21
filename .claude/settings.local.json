@@ -107,7 +107,14 @@
       "Bash(where java)",
       "Bash(set JAVA_HOME=C:Program FilesMicrosoftjdk-17.0.16.8-hotspot)",
       "Bash(git checkout:*)",
-      "Bash(del libcoreservicespinned_products_service.dart)"
+      "Bash(del libcoreservicespinned_products_service.dart)",
+      "Bash(else echo \"✓ .env file not found (good)\")",
+      "Bash(else echo \"✓ firebase_options.dart not found (good)\")",
+      "Bash(else echo \"✓ functions/.env not found (good)\")",
+      "Bash(if [ -f \"C:\\Users\\andre\\Desktop\\-- Flutter App\\firebase-admin-key.json\" ])",
+      "Bash(then echo \"Firebase admin key exists\")",
+      "Bash(else echo \"Firebase admin key not found\")",
+      "Bash(sed:*)"
     ],
     "deny": [],
     "ask": [

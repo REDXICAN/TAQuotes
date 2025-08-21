@@ -7,6 +7,7 @@ import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/utils/product_image_helper_v3.dart';
 import '../../../../core/utils/responsive_helper.dart';
+import '../../../../core/widgets/product_image_widget.dart';
 import '../../../../core/services/excel_upload_service.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/services/product_cache_service.dart';
@@ -504,62 +505,6 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
             ),
           ),
 
-          // Category Tabs
-          if (!_isSearching)
-            productsAsync.when(
-              data: (products) {
-                // Get unique categories
-                final categories = _getCategories(products).toList()..sort();
-                
-                // Build tab list: All, then categories
-                final List<String> allTypes = ['All'];
-                
-                // Add categories (like "Countertop Display Case", "Economy Freezer", etc.)
-                allTypes.addAll(categories);
-                    
-                    // Initialize or update tab controller if needed
-                    if (_tabController == null || _tabController!.length != allTypes.length) {
-                      final currentIndex = _tabController?.index ?? 0;
-                      _tabController?.dispose();
-                      _tabController = TabController(
-                        length: allTypes.length,
-                        vsync: this,
-                        initialIndex: currentIndex < allTypes.length ? currentIndex : 0,
-                      );
-                      _productTypes = allTypes;
-                    }
-                    
-                    return Container(
-                      color: theme.primaryColor.withOpacity(0.1),
-                      child: TabBar(
-                        controller: _tabController,
-                        isScrollable: true,
-                        labelColor: theme.primaryColor,
-                        unselectedLabelColor: Colors.grey[600],
-                        indicatorColor: theme.primaryColor,
-                        indicatorWeight: 3,
-                        labelPadding: const EdgeInsets.symmetric(horizontal: 16),
-                        onTap: (index) {
-                          setState(() {
-                            if (index == 0) {
-                              _selectedProductType = 'All';
-                            } else {
-                              // Category tab selected
-                              _selectedProductType = _productTypes[index];
-                            }
-                            _visibleItemCount = 24; // Reset visible items
-                          });
-                        },
-                        tabs: _productTypes.map((type) => Tab(
-                          text: type == 'All' ? 'All Products' : type,
-                        )).toList(),
-                      ),
-                    );
-                  },
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
-          
           // Filters Row (only show when not searching)
           if (!_isSearching)
             Container(
@@ -1912,7 +1857,8 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
             DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
           ],
           rows: products.map((product) {
-            final imagePath = ProductImageHelperV3.getImagePathWithFallback(product.sku ?? product.model ?? '');
+            // Use thumbnail for table view (compressed, fast loading)
+            final imagePath = ProductImageHelperV3.getThumbnailPath(product.sku ?? product.model ?? '');
             return DataRow(
               cells: [
                 DataCell(
@@ -2179,7 +2125,6 @@ class ProductCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final imagePath = ProductImageHelperV3.getImagePathWithFallback(product.sku ?? product.model ?? '');
     final dbService = ref.read(databaseServiceProvider);
     final isCompact = ResponsiveHelper.useCompactLayout(context);
     final isMobile = ResponsiveHelper.isMobile(context);
@@ -2209,28 +2154,19 @@ class ProductCard extends ConsumerWidget {
             AspectRatio(
               aspectRatio: isMobile ? 1.2 : 1.0, // More rectangular on mobile
               child: Container(
-                decoration: BoxDecoration(
-                  color: theme.disabledColor.withOpacity(0.1),
-                  borderRadius: const BorderRadius.vertical(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFFFFF), // Pure white background for images
+                  borderRadius: BorderRadius.vertical(
                     top: Radius.circular(8),
                   ),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(4),
-                  child: Image.asset(
-                    imagePath,
+                  child: ProductImageWidget(
+                    sku: product.sku ?? product.model ?? '',
+                    useThumbnail: true,
                     fit: BoxFit.contain,
                     width: double.infinity,
-                    errorBuilder: (_, __, ___) => Image.asset(
-                      'assets/logos/turbo_air_logo.png',
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Center(
-                        child: Icon(
-                          Icons.image_not_supported,
-                          size: ResponsiveHelper.getIconSize(context, baseSize: 36),
-                        ),
-                      ),
-                    ),
                   ),
                 ),
               ),

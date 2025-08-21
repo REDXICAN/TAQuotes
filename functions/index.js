@@ -102,15 +102,15 @@ exports.sendQuoteEmail = functions.https.onRequest((req, res) => {
           const quantity = parseInt(product.quantity || 1);
           const total = unitPrice * quantity;
           
-          productsText += `- ${product.sku || 'N/A'} - ${product.name || 'Unknown'} (Qty: ${quantity}) - $${unitPrice.toFixed(2)} each = $${total.toFixed(2)}\n`;
+          productsText += `- ${product.sku || 'N/A'} - ${product.name || 'Unknown'} (Qty: ${quantity}) - ${formatCurrency(unitPrice)} each = ${formatCurrency(total)}\n`;
           
           productsHtml += `
             <tr>
               <td style="padding: 8px; border: 1px solid #ddd; white-space: nowrap;">${product.sku || 'N/A'}</td>
               <td style="padding: 8px; border: 1px solid #ddd;">${product.name || 'Unknown'}</td>
               <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">${quantity}</td>
-              <td style="padding: 8px; text-align: right; border: 1px solid #ddd; white-space: nowrap;">$${unitPrice.toFixed(2)}</td>
-              <td style="padding: 8px; text-align: right; border: 1px solid #ddd; white-space: nowrap;">$${total.toFixed(2)}</td>
+              <td style="padding: 8px; text-align: right; border: 1px solid #ddd; white-space: nowrap;">${formatCurrency(unitPrice)}</td>
+              <td style="padding: 8px; text-align: right; border: 1px solid #ddd; white-space: nowrap;">${formatCurrency(total)}</td>
             </tr>`;
         });
         
@@ -132,7 +132,7 @@ Please find attached your quote #${quoteNumber}.
 
 Quote Details:
 - Quote Number: ${quoteNumber}
-- Total Amount: $${parseFloat(totalAmount).toFixed(2)}
+- Total Amount: ${formatCurrency(totalAmount)}
 - Date: ${new Date().toISOString().split('T')[0]}
 ${productsText}
 Thank you for your business!

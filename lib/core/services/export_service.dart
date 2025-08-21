@@ -7,6 +7,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:excel/excel.dart';
 import 'app_logger.dart';
+import '../models/models.dart';
 
 class ExportService {
   static final _database = FirebaseDatabase.instance;
@@ -698,6 +699,153 @@ class ExportService {
         throw Exception('Failed to encode error Excel');
       }
       return Uint8List.fromList(errorBytes);
+    }
+  }
+
+  static Future<Uint8List> generateClientsExcel(List<Client> clients) async {
+    AppLogger.info('Starting Excel generation for ${clients.length} clients', category: LogCategory.business);
+    final stopwatch = AppLogger.startTimer();
+    
+    try {
+      final excel = Excel.createExcel();
+      
+      // Delete default sheet and create new one
+      if (excel.sheets.containsKey('Sheet1')) {
+        excel.delete('Sheet1');
+      }
+      
+      final sheet = excel['Clients'];
+      
+      // Header style
+      final headerStyle = CellStyle(
+        bold: true,
+        horizontalAlign: HorizontalAlign.Center,
+      );
+      
+      // Regular cell style
+      final cellStyle = CellStyle(
+        horizontalAlign: HorizontalAlign.Left,
+      );
+      
+      // Add headers
+      final headers = [
+        'Company',
+        'Contact Name',
+        'Email',
+        'Phone',
+        'Address',
+        'City',
+        'State',
+        'Zip Code',
+        'Notes',
+        'Created Date'
+      ];
+      
+      for (var i = 0; i < headers.length; i++) {
+        final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+        cell.value = TextCellValue(headers[i]);
+        cell.cellStyle = headerStyle;
+      }
+      
+      // Add client data
+      for (var rowIndex = 0; rowIndex < clients.length; rowIndex++) {
+        final client = clients[rowIndex];
+        final row = rowIndex + 1; // +1 for header row
+        
+        // Company
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+          ..value = TextCellValue(client.company)
+          ..cellStyle = cellStyle;
+        
+        // Contact Name
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+          ..value = TextCellValue(client.contactName)
+          ..cellStyle = cellStyle;
+        
+        // Email
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+          ..value = TextCellValue(client.email)
+          ..cellStyle = cellStyle;
+        
+        // Phone
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
+          ..value = TextCellValue(client.phone)
+          ..cellStyle = cellStyle;
+        
+        // Address
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row))
+          ..value = TextCellValue(client.address ?? '')
+          ..cellStyle = cellStyle;
+        
+        // City
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row))
+          ..value = TextCellValue(client.city ?? '')
+          ..cellStyle = cellStyle;
+        
+        // State
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row))
+          ..value = TextCellValue(client.state ?? '')
+          ..cellStyle = cellStyle;
+        
+        // Zip Code
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: row))
+          ..value = TextCellValue(client.zipCode ?? '')
+          ..cellStyle = cellStyle;
+        
+        // Notes
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: row))
+          ..value = TextCellValue(client.notes ?? '')
+          ..cellStyle = cellStyle;
+        
+        // Created Date
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: row))
+          ..value = client.createdAt != null 
+              ? TextCellValue(_dateFormat.format(client.createdAt!))
+              : TextCellValue('')
+          ..cellStyle = cellStyle;
+      }
+      
+      // Auto-fit columns
+      for (var i = 0; i < headers.length; i++) {
+        // Auto-fit columns not available in this version
+      }
+      
+      // Save and return bytes
+      final bytes = excel.save();
+      if (bytes == null) {
+        throw Exception('Failed to generate Excel file');
+      }
+      
+      final duration = stopwatch.elapsedMilliseconds;
+      AppLogger.info('Excel generated successfully', category: LogCategory.business, data: {
+        'clients': clients.length,
+        'duration': duration,
+        'size': bytes.length,
+      });
+      
+      return Uint8List.fromList(bytes);
+      
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to generate clients Excel', 
+        error: e, 
+        stackTrace: stackTrace,
+        category: LogCategory.business
+      );
+      
+      // Return error Excel
+      final errorExcel = Excel.createExcel();
+      final errorSheet = errorExcel['Error'];
+      if (errorExcel.sheets.containsKey('Sheet1')) {
+        errorExcel.delete('Sheet1');
+      }
+      errorSheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
+        ..value = TextCellValue('Error generating Excel file')
+        ..cellStyle = CellStyle(bold: true);
+      errorSheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 1))
+        ..value = TextCellValue(e.toString());
+      
+      final errorBytes = errorExcel.save();
+      return Uint8List.fromList(errorBytes ?? []);
     }
   }
 }

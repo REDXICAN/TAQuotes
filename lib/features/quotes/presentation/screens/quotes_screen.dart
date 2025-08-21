@@ -1126,8 +1126,12 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         isLoadingDialogShowing = false;
       }
 
-      // Download file using cross-platform helper
-      DownloadHelper.downloadFile(bytes, filename);
+      // Download file using cross-platform helper with MIME type
+      await DownloadHelper.downloadFile(
+        bytes: bytes,
+        filename: filename,
+        mimeType: mimeType,
+      );
 
       // Show success message
       if (mounted) {

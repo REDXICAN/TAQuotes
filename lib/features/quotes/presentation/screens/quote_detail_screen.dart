@@ -1,10 +1,11 @@
 // lib/features/quotes/presentation/screens/quote_detail_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
-import '../../../../core/utils/product_image_helper.dart';
+import '../../../../core/widgets/product_image_widget.dart';
 import '../../../../core/utils/price_formatter.dart';
 
 // Quote detail provider
@@ -296,12 +297,34 @@ class QuoteDetailScreen extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () {
-                          // Handle edit
+                        onPressed: () async {
+                          // Load quote items into cart for editing
+                          final dbService = ref.read(databaseServiceProvider);
+                          
+                          // Clear existing cart
+                          await dbService.clearCart();
+                          
+                          // Add quote items to cart
+                          for (final item in quote.items) {
+                            await dbService.addToCart(
+                              item.productId,
+                              item.quantity,
+                            );
+                          }
+                          
+                          // Set the client in cart
+                          if (quote.client != null) {
+                            // Navigate to cart with the client pre-selected
+                            context.go('/cart', extra: {'client': quote.client});
+                          } else {
+                            context.go('/cart');
+                          }
+                          
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                                content:
-                                    Text('Edit functionality coming soon')),
+                              content: Text('Quote loaded into cart for editing'),
+                              backgroundColor: Colors.blue,
+                            ),
                           );
                         },
                         icon: const Icon(Icons.edit),
@@ -439,9 +462,12 @@ class QuoteDetailScreen extends ConsumerWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: ProductImageHelper.buildProductThumbnail(
-                item.product?.sku ?? item.productId,
-                size: 60,
+              child: ProductImageWidget(
+                sku: item.product?.sku ?? item.product?.model ?? item.productId,
+                useThumbnail: true,
+                width: 60,
+                height: 60,
+                fit: BoxFit.contain,
               ),
             ),
           ),
