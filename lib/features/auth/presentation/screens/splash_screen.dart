@@ -62,7 +62,7 @@ class _SplashScreenState extends State<SplashScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo with fallback
+              // Logo with fallback - Using direct web URL
               Container(
                 height: 150,
                 width: 150,
@@ -78,18 +78,26 @@ class _SplashScreenState extends State<SplashScreen>
                   ],
                 ),
                 padding: const EdgeInsets.all(20),
-                child: Image.asset(
-                  'assets/logos/turbo_air_logo.png',
+                child: Image.network(
+                  '/turbo_air_logo.png',
                   height: 110,
                   errorBuilder: (context, error, stackTrace) {
-                    return const Text(
-                      'TURBO\nAIR',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF20429C),
-                      ),
+                    // Fallback to asset if network fails
+                    return Image.asset(
+                      'assets/logos/turbo_air_logo.png',
+                      height: 110,
+                      errorBuilder: (context, error2, stackTrace2) {
+                        // Final fallback to text
+                        return const Text(
+                          'TURBO\nAIR',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF20429C),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),

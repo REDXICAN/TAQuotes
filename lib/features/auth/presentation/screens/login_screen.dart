@@ -196,7 +196,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Logo
+                        // Logo - Using direct web URL
                         Container(
                           height: 100,
                           width: 200,
@@ -206,21 +206,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Center(
-                            child: Image.asset(
-                              'assets/logos/turbo_air_logo.png',
+                            child: Image.network(
+                              '/turbo_air_logo.png',
                               height: 76,
                               fit: BoxFit.contain,
                               errorBuilder: (context, error, stackTrace) {
-                                return const FittedBox(
+                                // Fallback to asset if network fails
+                                return Image.asset(
+                                  'assets/logos/turbo_air_logo.png',
+                                  height: 76,
                                   fit: BoxFit.contain,
-                                  child: Text(
-                                    'TURBO AIR',
-                                    style: TextStyle(
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF20429C),
-                                    ),
-                                  ),
+                                  errorBuilder: (context, error2, stackTrace2) {
+                                    // Final fallback to text
+                                    return const FittedBox(
+                                      fit: BoxFit.contain,
+                                      child: Text(
+                                        'TURBO AIR',
+                                        style: TextStyle(
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF20429C),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 );
                               },
                             ),
