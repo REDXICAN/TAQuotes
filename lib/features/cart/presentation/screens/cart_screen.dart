@@ -596,77 +596,6 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                 ),
                 child: Column(
                   children: [
-                    // Tax Rate Input
-                    Row(
-                      children: [
-                        Text('Tax Rate (%)', style: theme.textTheme.bodyMedium),
-                        const SizedBox(width: 16),
-                        SizedBox(
-                          width: 80,
-                          child: TextField(
-                            controller: _taxRateController,
-                            keyboardType: TextInputType.number,
-                            textAlign: TextAlign.center,
-                            decoration: const InputDecoration(
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 8,
-                              ),
-                            ),
-                            onChanged: (_) => setState(() {}),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    // Discount Input
-                    Row(
-                      children: [
-                        Text('Discount', style: theme.textTheme.bodyMedium),
-                        const SizedBox(width: 16),
-                        SizedBox(
-                          width: 80,
-                          child: TextField(
-                            controller: _discountController,
-                            keyboardType: TextInputType.number,
-                            textAlign: TextAlign.center,
-                            decoration: const InputDecoration(
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 8,
-                              ),
-                            ),
-                            onChanged: (_) => setState(() {}),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        ToggleButtons(
-                          isSelected: [_isDiscountPercentage, !_isDiscountPercentage],
-                          onPressed: (index) {
-                            setState(() {
-                              _isDiscountPercentage = index == 0;
-                            });
-                          },
-                          constraints: const BoxConstraints(
-                            minHeight: 32,
-                            minWidth: 40,
-                          ),
-                          children: const [
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              child: Text('%'),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              child: Text('\$'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
                     // Detailed Breakdown - Collapsible
                     Container(
                       decoration: BoxDecoration(
@@ -695,6 +624,84 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           },
                           childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                           children: [
+                            // Discount Input
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Row(
+                                children: [
+                                  Text('Discount', style: theme.textTheme.bodyMedium),
+                                  const SizedBox(width: 16),
+                                  SizedBox(
+                                    width: 80,
+                                    child: TextField(
+                                      controller: _discountController,
+                                      keyboardType: TextInputType.number,
+                                      textAlign: TextAlign.center,
+                                      decoration: const InputDecoration(
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 8,
+                                        ),
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      onChanged: (_) => setState(() {}),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ToggleButtons(
+                                    isSelected: [_isDiscountPercentage, !_isDiscountPercentage],
+                                    onPressed: (index) {
+                                      setState(() {
+                                        _isDiscountPercentage = index == 0;
+                                      });
+                                    },
+                                    constraints: const BoxConstraints(
+                                      minHeight: 32,
+                                      minWidth: 40,
+                                    ),
+                                    children: const [
+                                      Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 8),
+                                        child: Text('%'),
+                                      ),
+                                      Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 8),
+                                        child: Text('\$'),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Tax Rate Input
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Row(
+                                children: [
+                                  Text('Tax Rate (%)', style: theme.textTheme.bodyMedium),
+                                  const SizedBox(width: 16),
+                                  SizedBox(
+                                    width: 80,
+                                    child: TextField(
+                                      controller: _taxRateController,
+                                      keyboardType: TextInputType.number,
+                                      textAlign: TextAlign.center,
+                                      decoration: const InputDecoration(
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 8,
+                                        ),
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      onChanged: (_) => setState(() {}),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Divider(height: 12),
                             // Items breakdown
                             ...items.map((item) => Padding(
                               padding: const EdgeInsets.symmetric(vertical: 2),
