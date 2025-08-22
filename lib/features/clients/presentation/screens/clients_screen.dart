@@ -6,55 +6,60 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
+import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/services/export_service.dart';
 import '../../../../core/utils/download_helper.dart';
-import '../../../cart/presentation/screens/cart_screen.dart'; // For cartClientProvider
+import '../../../../core/providers/client_providers.dart'; // Import shared client providers
+import '../../../../core/providers/enhanced_providers.dart';
 
-// Clients provider using Realtime Database
-final clientsProvider = FutureProvider<List<Client>>((ref) async {
+// Use enhanced provider with retry logic
+final clientsStreamProvider = smartClientsProvider;
+
+// Legacy provider for compatibility
+final legacyClientsStreamProvider = StreamProvider<List<Client>>((ref) {
   // Clients require authentication
   final user = ref.watch(currentUserProvider);
   if (user == null) {
-    return [];
+    return Stream.value([]);
   }
   
-  final dbService = ref.watch(databaseServiceProvider);
+  final database = FirebaseDatabase.instance;
   
-  try {
-    // Get clients as a one-time read
-    final database = FirebaseDatabase.instance;
-    final snapshot = await database.ref('clients/${user.uid}').get();
-    
-    if (!snapshot.exists || snapshot.value == null) {
-      return [];
-    }
-    
-    final data = Map<String, dynamic>.from(snapshot.value as Map);
-    final List<Client> clients = [];
-    
-    data.forEach((key, value) {
-      final clientMap = Map<String, dynamic>.from(value);
-      clientMap['id'] = key;
-      try {
-        clients.add(Client.fromMap(clientMap));
-      } catch (e) {
-        AppLogger.error('Error parsing client $key', error: e);
+  return database.ref('clients/${user.uid}').onValue.map((event) {
+    try {
+      if (!event.snapshot.exists || event.snapshot.value == null) {
+        return <Client>[];
       }
-    });
-    
-    // Sort by company name
-    clients.sort((a, b) => a.company.compareTo(b.company));
-    return clients;
-  } catch (e) {
-    AppLogger.error('Error loading clients', error: e);
-    return [];
-  }
+      
+      final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+      final List<Client> clients = [];
+      
+      data.forEach((key, value) {
+        final clientMap = Map<String, dynamic>.from(value);
+        clientMap['id'] = key;
+        try {
+          clients.add(Client.fromMap(clientMap));
+        } catch (e) {
+          AppLogger.error('Error parsing client $key', error: e);
+        }
+      });
+      
+      // Sort by company name
+      clients.sort((a, b) => a.company.compareTo(b.company));
+      return clients;
+    } catch (e) {
+      AppLogger.error('Error loading clients', error: e);
+      return <Client>[];
+    }
+  });
 });
 
-// Selected client provider
-final selectedClientProvider = StateProvider<Client?>((ref) => null);
+// Keep backward compatibility
+final clientsProvider = Provider<AsyncValue<List<Client>>>((ref) {
+  return ref.watch(clientsStreamProvider);
+});
 
 class ClientsScreen extends ConsumerStatefulWidget {
   const ClientsScreen({super.key});
@@ -101,10 +106,8 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Clients'),
-        backgroundColor: theme.primaryColor,
-        foregroundColor: theme.appBarTheme.foregroundColor,
+      appBar: AppBarWithClient(
+        title: 'Clients',
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.download),

@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
-import '../../../../core/widgets/product_image_widget.dart';
+import '../../../../core/widgets/product_image_display.dart';
+import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/widgets/product_screenshots_popup.dart';
 
 // Quote detail provider
 final quoteDetailProvider =
@@ -74,10 +76,8 @@ class QuoteDetailScreen extends ConsumerWidget {
         NumberFormat.currency(symbol: '\$', decimalDigits: 2);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Quote Details'),
-        backgroundColor: theme.primaryColor,
-        foregroundColor: theme.appBarTheme.foregroundColor,
+      appBar: AppBarWithClient(
+        title: 'Quote Details',
         actions: [
           PopupMenuButton<String>(
             itemBuilder: (context) => <PopupMenuEntry<String>>[
@@ -260,7 +260,7 @@ class QuoteDetailScreen extends ConsumerWidget {
                           )
                         else
                           ...quote.items
-                              .map((item) => _buildItemRow(item, theme)),
+                              .map((item) => _buildItemRow(item, theme, context)),
                       ],
                     ),
                   ),
@@ -442,37 +442,43 @@ class QuoteDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildItemRow(QuoteItem item, ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: theme.dividerColor),
+  Widget _buildItemRow(QuoteItem item, ThemeData theme, BuildContext context) {
+    return InkWell(
+      onTap: () {
+        final sku = item.product?.sku ?? item.product?.model ?? item.productId;
+        final productName = item.product?.name ?? item.productName;
+        ProductScreenshotsPopup.show(context, sku, productName);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: theme.dividerColor),
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          // Product image thumbnail
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: ProductImageWidget(
-                sku: item.product?.sku ?? item.product?.model ?? item.productId,
-                useThumbnail: true,
-                width: 60,
-                height: 60,
-                fit: BoxFit.contain,
+        child: Row(
+          children: [
+            // Product image thumbnail
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: ProductImageDisplay(
+                  sku: item.product?.sku ?? item.product?.model ?? item.productId,
+                  imageType: ImageType.thumbnail,
+                  width: 60,
+                  height: 60,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          // Product details
+            const SizedBox(width: 12),
+            // Product details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -517,6 +523,7 @@ class QuoteDetailScreen extends ConsumerWidget {
             ],
           ),
         ],
+      ),
       ),
     );
   }

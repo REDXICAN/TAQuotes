@@ -4,19 +4,21 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:typed_data';
 import 'dart:async';
 import '../../../../core/utils/download_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
-import '../../../../core/widgets/product_image_widget.dart';
+import '../../../../core/widgets/simple_product_image.dart';
+import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/services/export_service.dart';
+import '../../../../core/widgets/collapsible_section.dart';
 import '../../../../core/services/firebase_email_service.dart';
 import '../../../../core/widgets/searchable_client_dropdown.dart';
 import '../../../../core/services/app_logger.dart';
-import '../../../clients/presentation/screens/clients_screen.dart'; // Import for selectedClientProvider
+import '../../../clients/presentation/screens/clients_screen.dart'; // Import for clientsStreamProvider only
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/providers/client_providers.dart'; // Import shared client providers
 
 // Cart provider using Realtime Database with real-time updates
 final cartProvider = StreamProvider<List<CartItem>>((ref) {
@@ -41,13 +43,35 @@ final cartProvider = StreamProvider<List<CartItem>>((ref) {
         'id': e.key,
       }).toList();
       
-      // Fetch product details for each cart item
+      if (items.isEmpty) return <CartItem>[];
+      
+      // OPTIMIZATION: Batch fetch all products at once
+      final productIds = items.map((item) => item['product_id']).where((id) => id != null).toSet();
+      final Map<String, Product> productsCache = {};
+      
+      if (productIds.isNotEmpty) {
+        try {
+          // Single database call to get all products
+          final productsSnapshot = await database.ref('products').get();
+          if (productsSnapshot.exists && productsSnapshot.value != null) {
+            final productsData = Map<String, dynamic>.from(productsSnapshot.value as Map);
+            for (final productId in productIds) {
+              if (productsData.containsKey(productId)) {
+                final productMap = Map<String, dynamic>.from(productsData[productId]);
+                productMap['id'] = productId;
+                productsCache[productId] = Product.fromMap(productMap);
+              }
+            }
+          }
+        } catch (e) {
+          AppLogger.warning('Failed to batch fetch products for cart', error: e);
+        }
+      }
+      
+      // Build cart items using cached products
       final List<CartItem> cartItems = [];
-
       for (final item in items) {
-        final productData = await dbService.getProduct(item['product_id']);
-
-        final product = productData != null ? Product.fromMap(productData) : null;
+        final product = productsCache[item['product_id']];
         final unitPrice = product?.price ?? item['unit_price']?.toDouble() ?? 0.0;
         final quantity = item['quantity'] ?? 1;
         
@@ -73,46 +97,6 @@ final cartProvider = StreamProvider<List<CartItem>>((ref) {
     }
   });
 });
-
-// Clients provider with real-time updates - fixed to prevent infinite loading
-final clientsStreamProvider = StreamProvider<List<Client>>((ref) {
-  final user = ref.watch(currentUserProvider);
-  if (user == null) {
-    return Stream.value([]);
-  }
-  
-  final database = FirebaseDatabase.instance;
-  return database.ref('clients/${user.uid}').onValue
-    .map((event) {
-      if (!event.snapshot.exists || event.snapshot.value == null) {
-        return <Client>[];
-      }
-      
-      try {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
-        return data.entries.map((e) {
-          final clientMap = Map<String, dynamic>.from(e.value);
-          clientMap['id'] = e.key;
-          return Client.fromMap(clientMap);
-        }).toList()..sort((a, b) => a.company.compareTo(b.company));
-      } catch (e) {
-        AppLogger.error('Error parsing clients', error: e);
-        return <Client>[];
-      }
-    })
-    .handleError((error) {
-      AppLogger.error('Stream error loading clients', error: error);
-      return <Client>[];
-    });
-});
-
-// Keep backward compatibility
-final clientsProvider = Provider<AsyncValue<List<Client>>>((ref) {
-  return ref.watch(clientsStreamProvider);
-});
-
-// Cart client provider - separate but will sync with selectedClientProvider
-final cartClientProvider = StateProvider<Client?>((ref) => null);
 
 class CartScreen extends ConsumerStatefulWidget {
   const CartScreen({super.key});
@@ -155,6 +139,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      appBar: const AppBarWithClient(
+        title: 'Cart',
+        elevation: 0,
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           context.go('/products');
@@ -165,58 +153,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       ),
       body: Column(
         children: [
-          // Custom header without AppBar
-          Container(
-            padding: EdgeInsets.all(
-              ResponsiveHelper.getValue(context, mobile: 12, tablet: 16, desktop: 16),
-            ),
-            decoration: BoxDecoration(
-              color: theme.primaryColor,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: Row(
-                children: [
-                  Text(
-                    'Cart',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: ResponsiveHelper.getValue(
-                        context,
-                        mobile: 20,
-                        tablet: 24,
-                        desktop: 24,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: Icon(
-                      Icons.delete_outline,
-                      color: Colors.white,
-                      size: ResponsiveHelper.getIconSize(context),
-                    ),
-                    onPressed: cartAsync.when(
-                      data: (items) => items.isNotEmpty ? () => _clearCart() : null,
-                      loading: () => null,
-                      error: (_, __) => null,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
           Expanded(
             child: cartAsync.when(
-        data: (items) {
+              data: (items) {
           if (items.isEmpty) {
             return Center(
               child: Column(
@@ -345,9 +284,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                         SizedBox(
                                           width: 60,
                                           height: 60,
-                                          child: ProductImageWidget(
+                                          child: SimpleProductImage(
                                             sku: product.sku ?? product.model ?? '',
-                                            useThumbnail: true,
+                                            imageType: ImageType.thumbnail,
                                             fit: BoxFit.contain,
                                           ),
                                         )
@@ -421,9 +360,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                   ? SizedBox(
                                       width: isMobile ? 50 : 60,
                                       height: isMobile ? 50 : 60,
-                                      child: ProductImageWidget(
+                                      child: SimpleProductImage(
                                         sku: product.sku ?? product.model ?? '',
-                                        useThumbnail: true,
+                                        imageType: ImageType.thumbnail,
                                         fit: BoxFit.contain,
                                       ),
                                     )
@@ -636,23 +575,19 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     ),
                     const SizedBox(height: 16),
                     // Detailed Breakdown
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: theme.cardColor,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: theme.dividerColor.withOpacity(0.2)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Order Summary',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
+                    CollapsibleSection(
+                      title: 'Order Summary',
+                      initiallyExpanded: false,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: theme.cardColor,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: theme.dividerColor.withOpacity(0.2)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                           // Items breakdown
                           ...items.map((item) => Padding(
                             padding: const EdgeInsets.symmetric(vertical: 2),
@@ -672,7 +607,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                 ),
                               ],
                             ),
-                          )).toList(),
+                          )),
                           const Divider(height: 12),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -710,13 +645,15 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         ],
                       ),
                     ),
+                    ),
                     const SizedBox(height: 16),
                     // Comment Section
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Comments', style: theme.textTheme.bodyMedium),
-                        const SizedBox(height: 8),
+                    CollapsibleSection(
+                      title: 'Comments',
+                      initiallyExpanded: false,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                         TextField(
                           controller: _commentController,
                           maxLines: 3,
@@ -737,6 +674,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           controlAffinity: ListTileControlAffinity.leading,
                         ),
                       ],
+                    ),
                     ),
                     const Divider(height: 16),
                     Row(
@@ -953,9 +891,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
-                      child: ProductImageWidget(
+                      child: SimpleProductImage(
                         sku: product.sku ?? product.model ?? '',
-                        useThumbnail: false,  // Use full screenshot in popup
+                        imageType: ImageType.screenshot,
+                        screenshotPage: 1,
                         fit: BoxFit.contain,
                       ),
                     ),

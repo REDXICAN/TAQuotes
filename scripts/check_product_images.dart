@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_core/firebase_core.dart';
-import '../lib/firebase_options.dart';
+import 'package:turbo_air_quotes/firebase_options.dart';
 
 void main() async {
   // Initialize Firebase
@@ -138,7 +138,7 @@ void main() async {
   print('\n=== ORPHANED FOLDERS ===');
   
   final productSkus = productsData.values
-      .map((v) => (v as Map)['sku'] ?? (v as Map)['model'] ?? '')
+      .map((v) => (v as Map)['sku'] ?? (v)['model'] ?? '')
       .where((s) => s.toString().isNotEmpty)
       .toSet();
   

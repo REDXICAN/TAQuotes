@@ -1,42 +1,21 @@
 import 'package:flutter/material.dart';
-import '../../../../core/widgets/product_image_display.dart';
+import '../../../../core/widgets/simple_product_image.dart';
 
-class ProductImagesWidget extends StatefulWidget {
+class SimpleProductImagesWidget extends StatefulWidget {
   final String sku;
   
-  const ProductImagesWidget({
+  const SimpleProductImagesWidget({
     super.key,
     required this.sku,
   });
 
   @override
-  State<ProductImagesWidget> createState() => _ProductImagesWidgetState();
+  State<SimpleProductImagesWidget> createState() => _SimpleProductImagesWidgetState();
 }
 
-class _ProductImagesWidgetState extends State<ProductImagesWidget> {
+class _SimpleProductImagesWidgetState extends State<SimpleProductImagesWidget> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  
-  // Generate image paths for P.1 and P.2 screenshots
-  List<String> get imagePaths => [
-    'assets/screenshots/${widget.sku}/${widget.sku} P.1.png',
-    'assets/screenshots/${widget.sku}/${widget.sku} P.2.png',
-  ];
-
-  void _showZoomedImage(BuildContext context, int index) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierColor: Colors.black87,
-      builder: (BuildContext context) {
-        return ZoomableImageViewer(
-          imagePaths: imagePaths,
-          initialIndex: index,
-          sku: widget.sku,
-        );
-      },
-    );
-  }
 
   @override
   void dispose() {
@@ -52,14 +31,14 @@ class _ProductImagesWidgetState extends State<ProductImagesWidget> {
     final isTablet = screenWidth > 600 && screenWidth <= 1200;
     final isMobile = screenWidth <= 600;
     
-    // Adjust height based on platform - FULL HEIGHT for desktop/tablet
+    // Adjust height based on platform
     double carouselHeight;
     if (isDesktop) {
-      carouselHeight = screenHeight * 0.85; // Nearly full height for desktop
+      carouselHeight = screenHeight * 0.85;
     } else if (isTablet) {
-      carouselHeight = screenHeight * 0.75; // 75% for tablet
+      carouselHeight = screenHeight * 0.75;
     } else {
-      carouselHeight = 400; // Fixed height for mobile
+      carouselHeight = 400;
     }
     
     return Column(
@@ -70,7 +49,7 @@ class _ProductImagesWidgetState extends State<ProductImagesWidget> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.grey.shade300),
-            color: const Color(0xFFFFFFFF), // White background
+            color: Colors.white,
           ),
           child: Stack(
             children: [
@@ -91,7 +70,7 @@ class _ProductImagesWidgetState extends State<ProductImagesWidget> {
                       child: Container(
                         color: Colors.white,
                         child: Center(
-                          child: ProductImageDisplay(
+                          child: SimpleProductImage(
                             sku: widget.sku,
                             imageType: ImageType.screenshot,
                             screenshotPage: index + 1,
@@ -228,7 +207,6 @@ class _ProductImagesWidgetState extends State<ProductImagesWidget> {
           ),
         ),
         
-        // Thumbnail selector (optional - for future use)
         const SizedBox(height: 16),
         
         // Instructions text
@@ -243,26 +221,38 @@ class _ProductImagesWidgetState extends State<ProductImagesWidget> {
       ],
     );
   }
+
+  void _showZoomedImage(BuildContext context, int index) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black87,
+      builder: (BuildContext context) {
+        return SimpleZoomableImageViewer(
+          sku: widget.sku,
+          initialIndex: index,
+        );
+      },
+    );
+  }
 }
 
 // Zoomable image viewer for full screen
-class ZoomableImageViewer extends StatefulWidget {
-  final List<String> imagePaths;
-  final int initialIndex;
+class SimpleZoomableImageViewer extends StatefulWidget {
   final String sku;
+  final int initialIndex;
 
-  const ZoomableImageViewer({
+  const SimpleZoomableImageViewer({
     super.key,
-    required this.imagePaths,
-    required this.initialIndex,
     required this.sku,
+    required this.initialIndex,
   });
 
   @override
-  State<ZoomableImageViewer> createState() => _ZoomableImageViewerState();
+  State<SimpleZoomableImageViewer> createState() => _SimpleZoomableImageViewerState();
 }
 
-class _ZoomableImageViewerState extends State<ZoomableImageViewer> {
+class _SimpleZoomableImageViewerState extends State<SimpleZoomableImageViewer> {
   late PageController _pageController;
   late int _currentIndex;
   final TransformationController _transformationController = TransformationController();
@@ -300,10 +290,10 @@ class _ZoomableImageViewerState extends State<ZoomableImageViewer> {
               onPageChanged: (index) {
                 setState(() {
                   _currentIndex = index;
-                  _resetZoom(); // Reset zoom when changing pages
+                  _resetZoom();
                 });
               },
-              itemCount: widget.imagePaths.length,
+              itemCount: 2, // P.1 and P.2
               itemBuilder: (context, index) {
                 return InteractiveViewer(
                   transformationController: index == _currentIndex ? _transformationController : null,
@@ -312,7 +302,7 @@ class _ZoomableImageViewerState extends State<ZoomableImageViewer> {
                   minScale: 0.5,
                   maxScale: 4,
                   child: Center(
-                    child: ProductImageDisplay(
+                    child: SimpleProductImage(
                       sku: widget.sku,
                       imageType: ImageType.screenshot,
                       screenshotPage: index + 1,
@@ -381,7 +371,7 @@ class _ZoomableImageViewerState extends State<ZoomableImageViewer> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'Page ${_currentIndex + 1} of ${widget.imagePaths.length}',
+                    'Page ${_currentIndex + 1} of 2',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,

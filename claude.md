@@ -117,6 +117,15 @@ FIREBASE_DATABASE_URL=https://taquotes-default-rtdb.firebaseio.com
 
 ## ⚠️ CRITICAL: DO NOT BREAK THESE
 
+### NEVER MODIFY THESE SCREENS - THEY ARE PERFECT
+```
+DO NOT MODIFY:
+- cart_screen.dart - PERFECT AS IS
+- profile_screen.dart - PERFECT AS IS  
+- quotes_screen.dart - PERFECT AS IS
+- quote_detail_screen.dart - PERFECT AS IS
+```
+
 ### Client Selection in Cart
 ```dart
 // cart_screen.dart - Line 258

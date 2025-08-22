@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
-import '../widgets/product_images_widget.dart';
+import '../widgets/simple_product_images_widget.dart';
+import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/price_formatter.dart';
 
 // Product detail provider
@@ -40,10 +41,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     final dbService = ref.watch(databaseServiceProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Product Details'),
-        backgroundColor: theme.primaryColor,
-        foregroundColor: theme.appBarTheme.foregroundColor,
+      appBar: AppBarWithClient(
+        title: 'Product Details',
         actions: [
           IconButton(
             icon: const Icon(Icons.shopping_cart),
@@ -250,7 +249,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       const SizedBox(width: 24),
                       // Right column: Images (75%)
                       Expanded(
-                        child: ProductImagesWidget(
+                        child: SimpleProductImagesWidget(
                           sku: product.sku ?? product.model,
                         ),
                       ),
@@ -438,7 +437,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           const SizedBox(height: 16),
                           
                           // Images widget
-                          ProductImagesWidget(
+                          SimpleProductImagesWidget(
                             sku: product.sku ?? product.model,
                           ),
                         ],

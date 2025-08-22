@@ -8,6 +8,12 @@ import 'app_logger.dart';
 class RealtimeDatabaseService {
   final FirebaseDatabase _db = FirebaseDatabase.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  
+  // OPTIMIZATION: Add caching for frequently accessed data
+  static final Map<String, dynamic> _productCache = {};
+  static final Map<String, DateTime> _cacheTimestamps = {};
+  static const Duration _cacheExpiry = Duration(minutes: 10);
+  static const int _maxCacheSize = 1000;
 
   // Enable offline persistence
   Future<void> enableOfflinePersistence() async {
@@ -47,13 +53,87 @@ class RealtimeDatabaseService {
   }
 
   Future<Map<String, dynamic>?> getProduct(String productId) async {
-    final snapshot = await _db.ref('products/$productId').get();
-    if (snapshot.exists) {
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
-      data['id'] = productId;
-      return data;
+    // OPTIMIZATION: Check cache first
+    final now = DateTime.now();
+    if (_productCache.containsKey(productId) && 
+        _cacheTimestamps.containsKey(productId) && 
+        now.difference(_cacheTimestamps[productId]!) < _cacheExpiry) {
+      return _productCache[productId];
+    }
+    
+    try {
+      final snapshot = await _db.ref('products/$productId').get();
+      if (snapshot.exists) {
+        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        data['id'] = productId;
+        
+        // OPTIMIZATION: Cache the result
+        _manageCacheSize();
+        _productCache[productId] = data;
+        _cacheTimestamps[productId] = now;
+        
+        return data;
+      }
+    } catch (e) {
+      AppLogger.error('Error fetching product $productId', error: e);
     }
     return null;
+  }
+  
+  // OPTIMIZATION: Manage cache size to prevent memory leaks
+  void _manageCacheSize() {
+    if (_productCache.length > _maxCacheSize) {
+      final keysToRemove = _productCache.keys.take(_maxCacheSize ~/ 2).toList();
+      for (final key in keysToRemove) {
+        _productCache.remove(key);
+        _cacheTimestamps.remove(key);
+      }
+    }
+  }
+  
+  // OPTIMIZATION: Batch fetch products (fixes N+1 query issue)
+  Future<Map<String, Map<String, dynamic>>> batchGetProducts(Set<String> productIds) async {
+    final Map<String, Map<String, dynamic>> results = {};
+    final List<String> uncachedIds = [];
+    final now = DateTime.now();
+    
+    // Check cache first
+    for (final id in productIds) {
+      if (_productCache.containsKey(id) && 
+          _cacheTimestamps.containsKey(id) && 
+          now.difference(_cacheTimestamps[id]!) < _cacheExpiry) {
+        results[id] = _productCache[id];
+      } else {
+        uncachedIds.add(id);
+      }
+    }
+    
+    // Fetch uncached products in a single call
+    if (uncachedIds.isNotEmpty) {
+      try {
+        final snapshot = await _db.ref('products').get();
+        if (snapshot.exists && snapshot.value != null) {
+          final data = Map<String, dynamic>.from(snapshot.value as Map);
+          
+          for (final id in uncachedIds) {
+            if (data.containsKey(id)) {
+              final productData = Map<String, dynamic>.from(data[id]);
+              productData['id'] = id;
+              results[id] = productData;
+              
+              // Cache the result
+              _manageCacheSize();
+              _productCache[id] = productData;
+              _cacheTimestamps[id] = now;
+            }
+          }
+        }
+      } catch (e) {
+        AppLogger.error('Error batch fetching products', error: e);
+      }
+    }
+    
+    return results;
   }
 
   Future<void> addProduct(Map<String, dynamic> product) async {

@@ -9,12 +9,13 @@ import 'dart:async';
 import '../../../../core/utils/download_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
+import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/services/export_service.dart';
-import '../../../../core/services/firebase_email_service.dart';
+import '../../../../core/services/email_service.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/utils/price_formatter.dart';
-import 'package:excel/excel.dart' as excel;
+import 'package:mailer/mailer.dart';
 import 'edit_quote_screen.dart';
 
 // Quotes provider using Realtime Database with real-time updates
@@ -120,10 +121,8 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Quotes'),
-        backgroundColor: theme.primaryColor,
-        foregroundColor: theme.appBarTheme.foregroundColor,
+      appBar: AppBarWithClient(
+        title: 'Quotes',
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.download),
@@ -437,50 +436,50 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => _viewQuote(quote),
-                        child: Icon(Icons.visibility, size: 18),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.all(8),
                         ),
+                        child: Icon(Icons.visibility, size: 18),
                       ),
                     ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => _editQuote(quote),
-                        child: Icon(Icons.edit, size: 18, color: Colors.orange),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.all(8),
                         ),
+                        child: Icon(Icons.edit, size: 18, color: Colors.orange),
                       ),
                     ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => _emailQuote(quote),
-                        child: Icon(Icons.email, size: 18),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.all(8),
                         ),
+                        child: Icon(Icons.email, size: 18),
                       ),
                     ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => _exportQuote(quote, 'pdf'),
-                        child: Icon(Icons.picture_as_pdf, size: 18, color: Colors.red),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.all(8),
                         ),
+                        child: Icon(Icons.picture_as_pdf, size: 18, color: Colors.red),
                       ),
                     ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => _exportQuote(quote, 'xlsx'),
-                        child: Icon(Icons.table_chart, size: 18, color: Colors.green),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.all(8),
                         ),
+                        child: Icon(Icons.table_chart, size: 18, color: Colors.green),
                       ),
                     ),
                   ],
@@ -758,38 +757,58 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
       
       // Prepare products list for email
       List<Map<String, dynamic>> productsList = [];
-      if (quote.items != null) {
-        for (var item in quote.items!) {
-          productsList.add({
-            'name': item.productName ?? 'Unknown Product',
-            'sku': item.product?.sku ?? item.product?.model ?? 'N/A',
-            'quantity': item.quantity,
-            'unitPrice': item.unitPrice,
-          });
-        }
+      for (var item in quote.items) {
+        productsList.add({
+          'name': item.productName ?? 'Unknown Product',
+          'sku': item.product?.sku ?? item.product?.model ?? 'N/A',
+          'quantity': item.quantity,
+          'unitPrice': item.unitPrice,
+        });
       }
-      
-      // Send email via Firebase Function
-      final emailService = FirebaseEmailService();
+          
+      // Send email via direct SMTP
+      final emailService = EmailService();
       bool success = false;
       
       try {
-        // Add timeout to prevent hanging
+        // Prepare attachments
+        final attachments = <Attachment>[];
+        
+        if (sendPDF && pdfBytes != null) {
+          attachments.add(StreamAttachment(
+            Stream.value(pdfBytes),
+            'application/pdf',
+            fileName: 'Quote_${quote.quoteNumber}.pdf',
+          ));
+        }
+        
+        if (sendExcel && excelBytes != null) {
+          attachments.add(StreamAttachment(
+            Stream.value(excelBytes),
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            fileName: 'Quote_${quote.quoteNumber}.xlsx',
+          ));
+        }
+        
+        // Build HTML content for email
+        final htmlContent = _generateQuoteEmailHtml(quote, productsList);
+        
+        // Get current user info
+        final user = ref.read(currentUserProvider);
+        final userInfo = {
+          'name': user?.displayName ?? '',
+          'email': user?.email ?? '',
+          'role': 'Sales Representative',
+        };
+        
+        // Send email
         success = await emailService.sendQuoteEmail(
           recipientEmail: email,
           recipientName: quote.client?.contactName ?? 'Customer',
           quoteNumber: quote.quoteNumber ?? 'N/A',
-          totalAmount: quote.totalAmount,
-          pdfBytes: pdfBytes,
-          attachPdf: sendPDF && pdfBytes != null,
-          attachExcel: sendExcel && excelBytes != null,
-          excelBytes: excelBytes,
-          products: productsList,
-        ).timeout(
-          const Duration(seconds: 30),
-          onTimeout: () {
-            throw TimeoutException('Email sending timed out after 30 seconds');
-          },
+          htmlContent: htmlContent,
+          userInfo: userInfo,
+          attachments: attachments.isNotEmpty ? attachments : null,
         );
       } catch (emailError) {
         // Log the error for debugging
@@ -1169,5 +1188,49 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
       // Log error for debugging
       AppLogger.error('Export failed for quote ${quote.id}', error: e, category: LogCategory.business);
     }
+  }
+  
+  String _generateQuoteEmailHtml(Quote quote, List<Map<String, dynamic>> products) {
+    final buffer = StringBuffer();
+    
+    buffer.writeln('<html><body style="font-family: Arial, sans-serif;">');
+    buffer.writeln('<h2>Quote #${quote.quoteNumber}</h2>');
+    
+    // Client information
+    if (quote.client != null) {
+      buffer.writeln('<h3>Client Information</h3>');
+      buffer.writeln('<p><strong>Company:</strong> ${quote.client!.company}</p>');
+      if (quote.client!.contactName.isNotEmpty) {
+        buffer.writeln('<p><strong>Contact:</strong> ${quote.client!.contactName}</p>');
+      }
+    }
+    
+    // Products table
+    buffer.writeln('<h3>Products</h3>');
+    buffer.writeln('<table border="1" cellpadding="5" style="border-collapse: collapse;">');
+    buffer.writeln('<tr><th>Product</th><th>SKU</th><th>Quantity</th><th>Unit Price</th><th>Total</th></tr>');
+    
+    for (final product in products) {
+      final total = (product['quantity'] ?? 1) * (product['unitPrice'] ?? 0.0);
+      buffer.writeln('<tr>');
+      buffer.writeln('<td>${product['name']}</td>');
+      buffer.writeln('<td>${product['sku']}</td>');
+      buffer.writeln('<td>${product['quantity']}</td>');
+      buffer.writeln('<td>\$${PriceFormatter.formatPrice(product['unitPrice'] ?? 0)}</td>');
+      buffer.writeln('<td>\$${PriceFormatter.formatPrice(total)}</td>');
+      buffer.writeln('</tr>');
+    }
+    
+    buffer.writeln('</table>');
+    
+    // Totals
+    buffer.writeln('<h3>Quote Summary</h3>');
+    buffer.writeln('<p><strong>Subtotal:</strong> \$${PriceFormatter.formatPrice(quote.subtotal)}</p>');
+    buffer.writeln('<p><strong>Tax:</strong> \$${PriceFormatter.formatPrice(quote.tax)}</p>');
+    buffer.writeln('<p><strong>Total:</strong> \$${PriceFormatter.formatPrice(quote.total)}</p>');
+    
+    buffer.writeln('</body></html>');
+    
+    return buffer.toString();
   }
 }

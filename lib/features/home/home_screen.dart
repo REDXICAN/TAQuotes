@@ -8,7 +8,62 @@ import '../../core/services/offline_service.dart';
 import '../../core/services/cache_manager.dart';
 import '../../core/services/app_logger.dart';
 import '../../core/utils/responsive_helper.dart';
+import '../../core/models/models.dart';
+import '../../core/widgets/product_image_display.dart';
+import '../../core/utils/price_formatter.dart';
 import '../auth/presentation/providers/auth_provider.dart';
+import '../products/presentation/screens/products_screen.dart';
+import '../../core/widgets/recent_searches_widget.dart';
+
+// Search history provider - stores last 10 searched products
+final searchHistoryProvider = StreamProvider<List<Product>>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) {
+    return Stream.value([]);
+  }
+  
+  final database = FirebaseDatabase.instance;
+  
+  return database.ref('search_history/${user.uid}')
+    .orderByChild('timestamp')
+    .limitToLast(10)
+    .onValue
+    .asyncMap((event) async {
+      if (!event.snapshot.exists || event.snapshot.value == null) {
+        return <Product>[];
+      }
+      
+      final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+      final List<Product> products = [];
+      
+      // Sort by timestamp descending (most recent first)
+      final sortedEntries = data.entries.toList()
+        ..sort((a, b) {
+          final timestampA = (a.value['timestamp'] ?? 0) as int;
+          final timestampB = (b.value['timestamp'] ?? 0) as int;
+          return timestampB.compareTo(timestampA);
+        });
+      
+      // Get product details for each search history item
+      for (final entry in sortedEntries.take(5)) { // Show only 5 most recent
+        final productId = entry.value['product_id'];
+        if (productId != null) {
+          final productSnapshot = await database.ref('products/$productId').get();
+          if (productSnapshot.exists && productSnapshot.value != null) {
+            final productData = Map<String, dynamic>.from(productSnapshot.value as Map);
+            productData['id'] = productId;
+            try {
+              products.add(Product.fromMap(productData));
+            } catch (e) {
+              AppLogger.error('Error parsing search history product', error: e);
+            }
+          }
+        }
+      }
+      
+      return products;
+    });
+});
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -349,6 +404,103 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     () => context.go('/cart'),
                   ),
                 ],
+              ),
+              const SizedBox(height: 24),
+              
+              // Recently Searched Products Section
+              const RecentSearchesWidget(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildRecentProductCard(BuildContext context, Product product, double width) {
+    final theme = Theme.of(context);
+    
+    return Container(
+      width: width,
+      margin: const EdgeInsets.only(right: 12),
+      child: InkWell(
+        onTap: () {
+          // Navigate to products screen with pre-filled search
+          ref.read(searchQueryProvider.notifier).state = product.sku ?? '';
+          context.go('/products');
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: theme.dividerColor.withOpacity(0.3),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Product Image
+              Expanded(
+                flex: 3,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(12),
+                  ),
+                  child: ProductImageDisplay(
+                    sku: product.sku ?? product.model ?? '',
+                    imageType: ImageType.thumbnail,
+                    fit: BoxFit.contain,
+                    width: double.infinity,
+                  ),
+                ),
+              ),
+              // Product Info
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.sku ?? product.model ?? '',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: theme.primaryColor,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        product.name,
+                        style: const TextStyle(
+                          fontSize: 10,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const Spacer(),
+                      Text(
+                        '\$${PriceFormatter.formatPrice(product.price)}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: theme.primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),

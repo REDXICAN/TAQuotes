@@ -1,4 +1,5 @@
 // lib/features/auth/presentation/screens/login_screen.dart
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -179,9 +180,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 constraints: BoxConstraints(
                   maxWidth: ResponsiveHelper.isMobile(context) 
                     ? MediaQuery.of(context).size.width * 0.9  // 90% width on mobile
-                    : MediaQuery.of(context).size.width / 3,   // 33% width on desktop
+                    : math.max(MediaQuery.of(context).size.width / 3, 400),   // 33% width on desktop, min 400
                   minWidth: ResponsiveHelper.isMobile(context) 
-                    ? MediaQuery.of(context).size.width * 0.8  // 80% min width on mobile
+                    ? 250  // Min width on mobile
                     : 350, // Minimum width for desktop
                 ),
                 child: Card(

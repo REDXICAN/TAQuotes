@@ -129,7 +129,8 @@
       "Bash(else echo \"✓ firebase_options.dart not found (good)\")",
       "Bash(else echo \"✓ functions/.env not found (good)\")",
       "Bash(git config:*)",
-      "Bash(git remote set-url:*)"
+      "Bash(git remote set-url:*)",
+      "Bash(else echo \"firebase_options.dart not found (good)\")"
     ],
     "deny": [],
     "ask": [

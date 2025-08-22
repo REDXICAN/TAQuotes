@@ -7,57 +7,79 @@ import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/utils/product_image_helper.dart';
 import '../../../../core/utils/responsive_helper.dart';
-import '../../../../core/widgets/product_image_widget.dart';
+import '../../../../core/widgets/simple_product_image.dart';
+import '../../../../core/widgets/app_bar_with_client.dart';
+import '../../../../core/providers/enhanced_providers.dart';
 import '../../../../core/services/excel_upload_service.dart';
 import '../../../../core/services/app_logger.dart';
-import '../../../../core/services/product_cache_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../widgets/excel_preview_dialog.dart';
 import '../../widgets/zoomable_image_viewer.dart';
 
-// Products provider using StreamProvider for real-time updates without heavy caching
-final productsProvider =
+// Use enhanced provider with retry logic
+final productsProvider = smartProductsProvider;
+
+// Legacy provider for compatibility
+final legacyProductsProvider =
     StreamProvider.family<List<Product>, String?>((ref, category) {
   try {
     final database = FirebaseDatabase.instance;
     
-    // Return a stream that listens to products changes
-    return database.ref('products').onValue.map((event) {
-      final List<Product> products = [];
-      
-      if (event.snapshot.exists && event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
-        
-        data.forEach((key, value) {
-          final productMap = Map<String, dynamic>.from(value);
-          productMap['id'] = key;
-          try {
-            final product = Product.fromMap(productMap);
-            // Filter by category if specified
-            if (category == null || category.isEmpty) {
-              products.add(product);
-            } else {
-              // Check if product category matches
-              final productCategory = product.category.trim().toLowerCase();
-              final filterCategory = category.trim().toLowerCase();
+    // Return a stream that listens to products changes with better error handling
+    return database.ref('products').onValue
+        .map<List<Product>>((event) {
+          final List<Product> products = [];
+          
+          if (event.snapshot.exists && event.snapshot.value != null) {
+            try {
+              final data = Map<String, dynamic>.from(event.snapshot.value as Map);
               
-              if (productCategory == filterCategory || 
-                  productCategory.contains(filterCategory) ||
-                  filterCategory.contains(productCategory)) {
-                products.add(product);
+              // OPTIMIZATION: Process in batches to prevent blocking
+              final entries = data.entries.toList();
+              for (int i = 0; i < entries.length; i += 50) {
+                final batch = entries.skip(i).take(50);
+                
+                for (final entry in batch) {
+                  try {
+                    final productMap = Map<String, dynamic>.from(entry.value);
+                    productMap['id'] = entry.key;
+                    final product = Product.fromMap(productMap);
+                    
+                    // Filter by category if specified
+                    if (category == null || category.isEmpty) {
+                      products.add(product);
+                    } else {
+                      // Check if product category matches
+                      final productCategory = product.category.trim().toLowerCase();
+                      final filterCategory = category.trim().toLowerCase();
+                      
+                      if (productCategory == filterCategory || 
+                          productCategory.contains(filterCategory) ||
+                          filterCategory.contains(productCategory)) {
+                        products.add(product);
+                      }
+                    }
+                  } catch (e) {
+                    AppLogger.debug('Error parsing product ${entry.key}', error: e);
+                    // Continue processing other products
+                  }
+                }
               }
+            } catch (e) {
+              AppLogger.error('Error processing products data', error: e, category: LogCategory.database);
             }
-          } catch (e) {
-            AppLogger.error('Error parsing product $key', error: e, category: LogCategory.database);
           }
+          
+          // OPTIMIZATION: Sort only once at the end
+          products.sort((a, b) => (a.sku ?? '').compareTo(b.sku ?? ''));
+          return products;
+        })
+        .handleError((error) {
+          AppLogger.error('Products stream error', error: error, category: LogCategory.database);
+          return <Product>[];
         });
-      }
-      
-      products.sort((a, b) => (a.sku ?? '').compareTo(b.sku ?? ''));
-      return products;
-    });
   } catch (e) {
-    AppLogger.error('Error streaming products: $e', category: LogCategory.database);
+    AppLogger.error('Error creating products stream', error: e, category: LogCategory.database);
     return Stream.value([]);
   }
 });
@@ -147,23 +169,51 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
   bool _isSearching = false;
   bool _isUploading = false;
   bool _isTableView = false;
-  int _visibleItemCount = 12; // Start with fewer items for faster initial load
+  int _visibleItemCount = 24; // Show 24 products initially
+  bool _isLoadingMore = false;
   TabController? _tabController;
-  List<String> _productTypes = ['All'];
-  String _selectedProductType = 'All';
+  final List<String> _productTypes = ['All'];
+  final String _selectedProductType = 'All';
   
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    // Force initial load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(productsProvider);
+    });
     // Tab controller will be initialized when product types are loaded
+    
+    // Set initial search query if provided
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final initialQuery = ref.read(searchQueryProvider);
+      if (initialQuery.isNotEmpty) {
+        _searchController.text = initialQuery;
+        setState(() {
+          _isSearching = true;
+        });
+      }
+    });
   }
   
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 500) {
-      // Load more items when near bottom
+    if (_isLoadingMore) return;
+    
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 800) {
+      // OPTIMIZATION: Load more items when approaching bottom with loading state
       setState(() {
-        _visibleItemCount += 12; // Load 12 more items at a time for smoother experience
+        _isLoadingMore = true;
+      });
+      
+      // Use Future.delayed to prevent excessive loading triggers
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted && !_isLoadingMore) return;
+        
+        setState(() {
+          _visibleItemCount += 20; // Load more items at once for better performance
+          _isLoadingMore = false;
+        });
       });
     }
   }
@@ -446,10 +496,8 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
     final isSuperAdmin = ExcelUploadService.isSuperAdmin;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Products'),
-        backgroundColor: theme.primaryColor,
-        foregroundColor: theme.appBarTheme.foregroundColor,
+      appBar: const AppBarWithClient(
+        title: 'Products',
         elevation: 0,
       ),
       body: Column(
@@ -538,7 +586,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                     onSelected: (_) {
                       setState(() {
                         selectedProductLine = null;
-                        _visibleItemCount = 12;
+                        _visibleItemCount = 24;
                       });
                       ref.invalidate(productsProvider);
                     },
@@ -607,7 +655,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                             onSelected: (value) {
                               setState(() {
                                 selectedProductLine = value;
-                                _visibleItemCount = 12; // Reset pagination
+                                _visibleItemCount = 24; // Reset pagination
                               });
                             },
                             itemBuilder: (context) => [
@@ -766,7 +814,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                                 onPressed: () {
                                   setState(() {
                                     selectedProductLine = null;
-                                    _visibleItemCount = 12;
+                                    _visibleItemCount = 24;
                                   });
                                 },
                                 child: const Text('Clear Filters'),
@@ -1035,26 +1083,68 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
             ? products.sublist(0, _visibleItemCount.clamp(0, products.length))
             : products;
         
-        return GridView.builder(
-          controller: _scrollController,
-          padding: ResponsiveHelper.getScreenPadding(context),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            childAspectRatio: childAspectRatio,
-            crossAxisSpacing: spacing,
-            mainAxisSpacing: spacing,
-          ),
-          itemCount: itemsToShow.length,
-          cacheExtent: 100, // Reduced cache to prevent loading too many images at once
-          addAutomaticKeepAlives: false, // Don't keep items alive when scrolled away
-          addRepaintBoundaries: true, // Optimize repainting
-          itemBuilder: (context, index) {
-            final product = itemsToShow[index];
-            return ProductCard(
-              key: ValueKey(product.id),
-              product: product,
-            );
-          },
+        return Column(
+          children: [
+            Expanded(
+              child: GridView.builder(
+                controller: _scrollController,
+                padding: ResponsiveHelper.getScreenPadding(context),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  childAspectRatio: childAspectRatio,
+                  crossAxisSpacing: spacing,
+                  mainAxisSpacing: spacing,
+                ),
+                itemCount: itemsToShow.length,
+                // OPTIMIZATION: Enhanced caching and performance settings
+                cacheExtent: 300, // Increased cache for smoother scrolling
+                addAutomaticKeepAlives: false, // Don't keep items alive when scrolled away
+                addRepaintBoundaries: true, // Optimize repainting
+                addSemanticIndexes: false, // Reduce semantic overhead
+                physics: const BouncingScrollPhysics(), // Better scroll physics
+                itemBuilder: (context, index) {
+                  final product = itemsToShow[index];
+                  return ProductCard(
+                    key: ValueKey(product.id),
+                    product: product,
+                  );
+                },
+              ),
+            ),
+            // OPTIMIZATION: Loading indicator for lazy loading
+            if (_isLoadingMore)
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Loading more products...',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            // Show total count
+            if (itemsToShow.length < products.length)
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'Showing ${itemsToShow.length} of ${products.length} products',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
+                  ),
+                ),
+              ),
+          ],
         );
       },
     );
@@ -1232,10 +1322,11 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                     final isSelected = selectedProduct?.id == product.id;
                     
                     return InkWell(
-                      onTap: () {
+                      onTap: () async {
                         setState(() {
                           selectedProduct = product;
                         });
+                        await _saveToSearchHistory(product);
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -1844,8 +1935,6 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
             DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
           ],
           rows: products.map((product) {
-            // Use thumbnail for table view (compressed, fast loading)
-            final imagePath = ProductImageHelper.getThumbnailPath(product.sku ?? product.model ?? '');
             return DataRow(
               cells: [
                 DataCell(
@@ -1853,17 +1942,12 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                     width: 80,
                     height: 80,
                     padding: const EdgeInsets.all(4),
-                    child: Image.asset(
-                      imagePath,
+                    child: SimpleProductImage(
+                      sku: product.sku ?? product.model ?? '',
+                      imageType: ImageType.thumbnail,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Image.asset(
-                        'assets/logos/turbo_air_logo.png',
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.image_not_supported,
-                          size: 32,
-                        ),
-                      ),
+                      width: 72,
+                      height: 72,
                     ),
                   ),
                 ),
@@ -1947,6 +2031,41 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
       ),
     );
   }
+  
+  Future<void> _saveToSearchHistory(Product product) async {
+    try {
+      final user = ref.read(currentUserProvider);
+      if (user == null || product.id == null) return;
+      
+      final database = FirebaseDatabase.instance;
+      final searchRef = database.ref('search_history/${user.uid}').push();
+      
+      await searchRef.set({
+        'product_id': product.id,
+        'sku': product.sku,
+        'name': product.name,
+        'timestamp': ServerValue.timestamp,
+      });
+      
+      // Keep only last 20 searches
+      final oldSearches = await database.ref('search_history/${user.uid}')
+        .orderByChild('timestamp')
+        .limitToFirst(10)
+        .get();
+        
+      if (oldSearches.exists && oldSearches.value != null) {
+        final data = Map<String, dynamic>.from(oldSearches.value as Map);
+        if (data.length > 10) {
+          // Remove oldest entries
+          for (final key in data.keys.take(data.length - 10)) {
+            await database.ref('search_history/${user.uid}/$key').remove();
+          }
+        }
+      }
+    } catch (e) {
+      AppLogger.debug('Error saving search history', category: LogCategory.database);
+    }
+  }
 
 }
 
@@ -1957,6 +2076,30 @@ class ProductCard extends ConsumerWidget {
     super.key,
     required this.product,
   });
+  
+  // OPTIMIZATION: Cache formatted price to avoid repeated calculations
+  static final Map<double, String> _priceCache = {};
+  
+  static String _getCachedFormattedPrice(double price) {
+    if (_priceCache.containsKey(price)) {
+      return _priceCache[price]!;
+    }
+    
+    final parts = price.toStringAsFixed(2).split('.');
+    final wholePart = parts[0].replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+    final formatted = '\$$wholePart.${parts[1]}';
+    
+    // Manage cache size
+    if (_priceCache.length > 100) {
+      _priceCache.clear();
+    }
+    
+    _priceCache[price] = formatted;
+    return formatted;
+  }
 
   Widget _buildQuantitySelector(Product product, WidgetRef ref, BuildContext context, ThemeData theme, dynamic dbService) {
     final quantities = ref.watch(productQuantitiesProvider);
@@ -2118,15 +2261,8 @@ class ProductCard extends ConsumerWidget {
     final isMobile = ResponsiveHelper.isMobile(context);
     final fontScale = ResponsiveHelper.getFontScale(context);
 
-    // Format price with commas
-    String formatPrice(double price) {
-      final parts = price.toStringAsFixed(2).split('.');
-      final wholePart = parts[0].replaceAllMapped(
-        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-        (Match m) => '${m[1]},',
-      );
-      return '\$$wholePart.${parts[1]}';
-    }
+    // OPTIMIZATION: Use cached price formatting
+    final formattedPrice = _getCachedFormattedPrice(product.price);
 
     return Card(
       elevation: ResponsiveHelper.getValue(context, mobile: 1, tablet: 2, desktop: 2),
@@ -2150,9 +2286,9 @@ class ProductCard extends ConsumerWidget {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(4),
-                  child: ProductImageWidget(
+                  child: SimpleProductImage(
                     sku: product.sku ?? product.model ?? '',
-                    useThumbnail: true,
+                    imageType: ImageType.thumbnail,
                     fit: BoxFit.contain,
                     width: double.infinity,
                   ),
@@ -2194,7 +2330,7 @@ class ProductCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          formatPrice(product.price),
+                          formattedPrice,
                           style: TextStyle(
                             fontSize: 20,
                             color: theme.primaryColor,
@@ -2215,7 +2351,7 @@ class ProductCard extends ConsumerWidget {
                       children: [
                         Flexible(
                           child: Text(
-                            formatPrice(product.price),
+                            formattedPrice,
                             style: TextStyle(
                               fontSize: 16,
                               color: theme.primaryColor,

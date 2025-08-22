@@ -103,7 +103,7 @@ void main() async {
     print('\n${entry.key} series (${entry.value.length} products):');
     for (final sku in entry.value.take(10)) {
       final count = skuCounts[sku] ?? 0;
-      print('  • $sku (${count} photo${count > 1 ? 's' : ''})');
+      print('  • $sku ($count photo${count > 1 ? 's' : ''})');
     }
     if (entry.value.length > 10) {
       print('  ... and ${entry.value.length - 10} more');

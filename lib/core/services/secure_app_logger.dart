@@ -76,7 +76,7 @@ class SecureAppLogger {
 
   /// Initialize the logger
   static void init({
-    bool enableFirebaseLogging = true,
+    bool enableFirebaseLogging = false,  // Disabled to prevent permission errors
     bool enableCrashlyticsLogging = true,
     Level logLevel = Level.debug,
   }) {
@@ -89,16 +89,16 @@ class SecureAppLogger {
       outputs.add(ConsoleOutput());
     }
 
-    // Firebase logging for production
-    if (!kDebugMode && enableFirebaseLogging) {
-      outputs.add(SecureFirebaseLogOutput());
-    }
+    // Firebase logging disabled due to permission errors
+    // if (!kDebugMode && enableFirebaseLogging) {
+    //   outputs.add(SecureFirebaseLogOutput());
+    // }
 
     _logger = Logger(
       filter: ProductionFilter(),
       printer: SecureLogPrinter(),
-      output: MultiOutput(outputs),
-      level: logLevel,
+      output: outputs.isNotEmpty ? MultiOutput(outputs) : ConsoleOutput(),
+      level: kDebugMode ? logLevel : Level.error,  // Only log errors in production
     );
 
     _initialized = true;

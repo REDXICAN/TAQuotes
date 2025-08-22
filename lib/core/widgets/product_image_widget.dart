@@ -10,13 +10,13 @@ class ProductImageWidget extends StatelessWidget {
   final BoxFit fit;
   
   const ProductImageWidget({
-    Key? key,
+    super.key,
     required this.sku,
     this.useThumbnail = false,
     this.width,
     this.height,
     this.fit = BoxFit.contain,
-  }) : super(key: key);
+  });
   
   @override
   Widget build(BuildContext context) {

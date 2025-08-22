@@ -1,7 +1,7 @@
 // lib/core/widgets/active_client_banner.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../features/cart/presentation/screens/cart_screen.dart';
+import '../providers/client_providers.dart';
 
 class ActiveClientBanner extends ConsumerWidget {
   final Widget child;

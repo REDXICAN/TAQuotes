@@ -800,7 +800,7 @@ class ExportService {
         // Created Date
         sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: row))
           ..value = client.createdAt != null 
-              ? TextCellValue(_dateFormat.format(client.createdAt!))
+              ? TextCellValue(_dateFormat.format(client.createdAt))
               : TextCellValue('')
           ..cellStyle = cellStyle;
       }
@@ -842,7 +842,7 @@ class ExportService {
         ..value = TextCellValue('Error generating Excel file')
         ..cellStyle = CellStyle(bold: true);
       errorSheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 1))
-        ..value = TextCellValue(e.toString());
+        .value = TextCellValue(e.toString());
       
       final errorBytes = errorExcel.save();
       return Uint8List.fromList(errorBytes ?? []);
