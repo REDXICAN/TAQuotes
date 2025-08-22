@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
 import '../widgets/product_detail_images.dart';
@@ -489,6 +490,41 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       
                       const SizedBox(height: 32),
 
+                      // Download PDF button
+                      if (product.pdfUrl != null && product.pdfUrl!.isNotEmpty) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              try {
+                                // Open PDF URL in browser
+                                final uri = Uri.parse(product.pdfUrl!);
+                                if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+                                  throw 'Could not launch ${product.pdfUrl}';
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Error opening PDF: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.picture_as_pdf, color: Colors.red),
+                            label: const Text('Download Spec File'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                              side: const BorderSide(color: Colors.red),
+                              foregroundColor: Colors.red,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
                       // Specifications
                       Text(
                         'Specifications',
@@ -842,6 +878,41 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           ],
                           
                           const SizedBox(height: 32),
+
+                          // Download PDF button
+                          if (product.pdfUrl != null && product.pdfUrl!.isNotEmpty) ...[
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  try {
+                                    // Open PDF URL in browser
+                                    final uri = Uri.parse(product.pdfUrl!);
+                                    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+                                      throw 'Could not launch ${product.pdfUrl}';
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Error opening PDF: $e'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                                icon: const Icon(Icons.picture_as_pdf, color: Colors.red),
+                                label: const Text('Download Spec File'),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                  side: const BorderSide(color: Colors.red),
+                                  foregroundColor: Colors.red,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
 
                           // Specifications
                           Text(
