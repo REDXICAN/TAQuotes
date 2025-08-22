@@ -1,41 +1,28 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow read access to all users for product images
-    match /products/{allPaths=**} {
+    // Allow public read access to all files
+    match /{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null && 
-        (request.auth.token.email == 'andres@turboairmexico.com' || 
-         request.auth.token.email == 'turboairquotes@gmail.com');
+      allow write: if request.auth != null && request.auth.token.email == 'andres@turboairmexico.com';
     }
     
-    // Allow public read access for thumbnails
+    // Specific rules for thumbnails - public read
     match /thumbnails/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null && 
-        (request.auth.token.email == 'andres@turboairmexico.com' || 
-         request.auth.token.email == 'turboairquotes@gmail.com');
+      allow write: if request.auth != null && request.auth.token.email == 'andres@turboairmexico.com';
     }
     
-    // Allow public read access for screenshots
+    // Specific rules for screenshots - public read
     match /screenshots/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null && 
-        (request.auth.token.email == 'andres@turboairmexico.com' || 
-         request.auth.token.email == 'turboairquotes@gmail.com');
+      allow write: if request.auth != null && request.auth.token.email == 'andres@turboairmexico.com';
     }
     
-    // Allow authenticated users to upload quotes PDFs
-    match /quotes/{userId}/{allPaths=**} {
-      allow read: if request.auth != null && 
-        (request.auth.uid == userId || 
-         request.auth.token.email == 'andres@turboairmexico.com');
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Default: deny all other access
-    match /{allPaths=**} {
-      allow read, write: if false;
+    // Product images should be publicly readable
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'andres@turboairmexico.com';
     }
   }
 }

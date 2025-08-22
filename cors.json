@@ -3,10 +3,33 @@
     "origin": [
       "https://taquotes.web.app",
       "https://taquotes.firebaseapp.com",
-      "http://localhost:*",
-      "http://127.0.0.1:*"
+      "http://localhost:3000",
+      "http://localhost:5000",
+      "http://localhost:5001",
+      "http://localhost:8080",
+      "http://127.0.0.1:3000",
+      "http://127.0.0.1:5000",
+      "http://127.0.0.1:5001",
+      "http://127.0.0.1:8080"
     ],
-    "method": ["GET", "HEAD"],
+    "method": ["GET", "HEAD", "OPTIONS"],
+    "responseHeader": [
+      "Content-Type",
+      "Access-Control-Allow-Origin",
+      "Access-Control-Allow-Headers",
+      "Access-Control-Allow-Methods",
+      "Access-Control-Max-Age",
+      "Cache-Control",
+      "Content-Length",
+      "Content-Range",
+      "Date",
+      "ETag",
+      "Expires",
+      "Last-Modified",
+      "Pragma",
+      "Range",
+      "X-Goog-*"
+    ],
     "maxAgeSeconds": 3600
   }
 ]
