@@ -148,7 +148,9 @@
       "Bash(git stash:*)",
       "Bash(start test_firebase_urls.html)",
       "Bash(then echo \"firebase_options.dart exists\")",
-      "Bash(else echo \"firebase_options.dart not found\")"
+      "Bash(else echo \"firebase_options.dart not found\")",
+      "Bash(firebase hosting:disable:*)",
+      "Bash(firebase hosting:enable:*)"
     ],
     "deny": [],
     "ask": [
