@@ -1,5 +1,6 @@
 // lib/features/products/presentation/screens/products_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
@@ -7,79 +8,58 @@ import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/utils/product_image_helper.dart';
 import '../../../../core/utils/responsive_helper.dart';
-import '../../../../core/widgets/simple_product_image.dart';
+import '../../../../core/widgets/simple_image_widget.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
-import '../../../../core/providers/enhanced_providers.dart';
 import '../../../../core/services/excel_upload_service.dart';
 import '../../../../core/services/app_logger.dart';
+import '../../../../core/services/product_cache_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../widgets/excel_preview_dialog.dart';
 import '../../widgets/zoomable_image_viewer.dart';
 
-// Use enhanced provider with retry logic
-final productsProvider = smartProductsProvider;
-
-// Legacy provider for compatibility
-final legacyProductsProvider =
+// Products provider using StreamProvider for real-time updates without heavy caching
+final productsProvider =
     StreamProvider.family<List<Product>, String?>((ref, category) {
   try {
     final database = FirebaseDatabase.instance;
     
-    // Return a stream that listens to products changes with better error handling
-    return database.ref('products').onValue
-        .map<List<Product>>((event) {
-          final List<Product> products = [];
-          
-          if (event.snapshot.exists && event.snapshot.value != null) {
-            try {
-              final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+    // Return a stream that listens to products changes
+    return database.ref('products').onValue.map((event) {
+      final List<Product> products = [];
+      
+      if (event.snapshot.exists && event.snapshot.value != null) {
+        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        
+        data.forEach((key, value) {
+          final productMap = Map<String, dynamic>.from(value);
+          productMap['id'] = key;
+          try {
+            final product = Product.fromMap(productMap);
+            // Filter by category if specified
+            if (category == null || category.isEmpty) {
+              products.add(product);
+            } else {
+              // Check if product category matches
+              final productCategory = product.category.trim().toLowerCase();
+              final filterCategory = category.trim().toLowerCase();
               
-              // OPTIMIZATION: Process in batches to prevent blocking
-              final entries = data.entries.toList();
-              for (int i = 0; i < entries.length; i += 50) {
-                final batch = entries.skip(i).take(50);
-                
-                for (final entry in batch) {
-                  try {
-                    final productMap = Map<String, dynamic>.from(entry.value);
-                    productMap['id'] = entry.key;
-                    final product = Product.fromMap(productMap);
-                    
-                    // Filter by category if specified
-                    if (category == null || category.isEmpty) {
-                      products.add(product);
-                    } else {
-                      // Check if product category matches
-                      final productCategory = product.category.trim().toLowerCase();
-                      final filterCategory = category.trim().toLowerCase();
-                      
-                      if (productCategory == filterCategory || 
-                          productCategory.contains(filterCategory) ||
-                          filterCategory.contains(productCategory)) {
-                        products.add(product);
-                      }
-                    }
-                  } catch (e) {
-                    AppLogger.debug('Error parsing product ${entry.key}', error: e);
-                    // Continue processing other products
-                  }
-                }
+              if (productCategory == filterCategory || 
+                  productCategory.contains(filterCategory) ||
+                  filterCategory.contains(productCategory)) {
+                products.add(product);
               }
-            } catch (e) {
-              AppLogger.error('Error processing products data', error: e, category: LogCategory.database);
             }
+          } catch (e) {
+            AppLogger.error('Error parsing product $key', error: e, category: LogCategory.database);
           }
-          
-          // OPTIMIZATION: Sort only once at the end
-          products.sort((a, b) => (a.sku ?? '').compareTo(b.sku ?? ''));
-          return products;
-        })
-        .handleError((error) {
-          AppLogger.error('Products stream error', error: error, category: LogCategory.database);
-          return <Product>[];
         });
+      }
+      
+      products.sort((a, b) => (a.sku ?? '').compareTo(b.sku ?? ''));
+      return products;
+    });
   } catch (e) {
-    AppLogger.error('Error creating products stream', error: e, category: LogCategory.database);
+    AppLogger.error('Error streaming products: $e', category: LogCategory.database);
     return Stream.value([]);
   }
 });
@@ -169,51 +149,23 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
   bool _isSearching = false;
   bool _isUploading = false;
   bool _isTableView = false;
-  int _visibleItemCount = 24; // Show 24 products initially
-  bool _isLoadingMore = false;
+  int _visibleItemCount = 24; // Show 24 items initially
   TabController? _tabController;
-  final List<String> _productTypes = ['All'];
-  final String _selectedProductType = 'All';
+  List<String> _productTypes = ['All'];
+  String _selectedProductType = 'All';
   
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    // Force initial load
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.invalidate(productsProvider);
-    });
     // Tab controller will be initialized when product types are loaded
-    
-    // Set initial search query if provided
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final initialQuery = ref.read(searchQueryProvider);
-      if (initialQuery.isNotEmpty) {
-        _searchController.text = initialQuery;
-        setState(() {
-          _isSearching = true;
-        });
-      }
-    });
   }
   
   void _onScroll() {
-    if (_isLoadingMore) return;
-    
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 800) {
-      // OPTIMIZATION: Load more items when approaching bottom with loading state
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 500) {
+      // Load more items when near bottom
       setState(() {
-        _isLoadingMore = true;
-      });
-      
-      // Use Future.delayed to prevent excessive loading triggers
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted && !_isLoadingMore) return;
-        
-        setState(() {
-          _visibleItemCount += 20; // Load more items at once for better performance
-          _isLoadingMore = false;
-        });
+        _visibleItemCount += 12; // Load 12 more items at a time for smoother experience
       });
     }
   }
@@ -289,7 +241,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
     super.dispose();
   }
 
-  Future<void> _handleExcelUpload() async {
+Future<void> _handleExcelUpload() async {
     try {
       setState(() => _isUploading = true);
       
@@ -586,7 +538,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                     onSelected: (_) {
                       setState(() {
                         selectedProductLine = null;
-                        _visibleItemCount = 24;
+                        _visibleItemCount = 12;
                       });
                       ref.invalidate(productsProvider);
                     },
@@ -655,7 +607,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                             onSelected: (value) {
                               setState(() {
                                 selectedProductLine = value;
-                                _visibleItemCount = 24; // Reset pagination
+                                _visibleItemCount = 12; // Reset pagination
                               });
                             },
                             itemBuilder: (context) => [
@@ -814,7 +766,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                                 onPressed: () {
                                   setState(() {
                                     selectedProductLine = null;
-                                    _visibleItemCount = 24;
+                                    _visibleItemCount = 12;
                                   });
                                 },
                                 child: const Text('Clear Filters'),
@@ -1083,68 +1035,26 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
             ? products.sublist(0, _visibleItemCount.clamp(0, products.length))
             : products;
         
-        return Column(
-          children: [
-            Expanded(
-              child: GridView.builder(
-                controller: _scrollController,
-                padding: ResponsiveHelper.getScreenPadding(context),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  childAspectRatio: childAspectRatio,
-                  crossAxisSpacing: spacing,
-                  mainAxisSpacing: spacing,
-                ),
-                itemCount: itemsToShow.length,
-                // OPTIMIZATION: Enhanced caching and performance settings
-                cacheExtent: 300, // Increased cache for smoother scrolling
-                addAutomaticKeepAlives: false, // Don't keep items alive when scrolled away
-                addRepaintBoundaries: true, // Optimize repainting
-                addSemanticIndexes: false, // Reduce semantic overhead
-                physics: const BouncingScrollPhysics(), // Better scroll physics
-                itemBuilder: (context, index) {
-                  final product = itemsToShow[index];
-                  return ProductCard(
-                    key: ValueKey(product.id),
-                    product: product,
-                  );
-                },
-              ),
-            ),
-            // OPTIMIZATION: Loading indicator for lazy loading
-            if (_isLoadingMore)
-              Container(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Loading more products...',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.primaryColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            // Show total count
-            if (itemsToShow.length < products.length)
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'Showing ${itemsToShow.length} of ${products.length} products',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
-                  ),
-                ),
-              ),
-          ],
+        return GridView.builder(
+          controller: _scrollController,
+          padding: ResponsiveHelper.getScreenPadding(context),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: childAspectRatio,
+            crossAxisSpacing: spacing,
+            mainAxisSpacing: spacing,
+          ),
+          itemCount: itemsToShow.length,
+          cacheExtent: 100, // Reduced cache to prevent loading too many images at once
+          addAutomaticKeepAlives: false, // Don't keep items alive when scrolled away
+          addRepaintBoundaries: true, // Optimize repainting
+          itemBuilder: (context, index) {
+            final product = itemsToShow[index];
+            return ProductCard(
+              key: ValueKey(product.id),
+              product: product,
+            );
+          },
         );
       },
     );
@@ -1322,11 +1232,10 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                     final isSelected = selectedProduct?.id == product.id;
                     
                     return InkWell(
-                      onTap: () async {
+                      onTap: () {
                         setState(() {
                           selectedProduct = product;
                         });
-                        await _saveToSearchHistory(product);
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -1490,16 +1399,69 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
           _buildProductImagesSection(product, theme),
           const SizedBox(height: 24),
           
-          // Specifications
-          Text(
-            'Specifications',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+          // Specifications with Copy Button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Specifications',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  // Build all specifications as text
+                  final StringBuffer specs = StringBuffer();
+                  specs.writeln('Product: ${product.sku ?? product.model}');
+                  specs.writeln('Name: ${product.displayName}');
+                  specs.writeln('Category: ${product.category}');
+                  if (product.subcategory != null && product.subcategory!.isNotEmpty) {
+                    specs.writeln('Subcategory: ${product.subcategory}');
+                  }
+                  if (product.voltage != null && product.voltage!.isNotEmpty) {
+                    specs.writeln('Voltage: ${product.voltage}');
+                  }
+                  if (product.amperage != null && product.amperage!.isNotEmpty) {
+                    specs.writeln('Amperage: ${product.amperage}');
+                  }
+                  if (product.dimensions != null && product.dimensions!.isNotEmpty) {
+                    specs.writeln('Dimensions: ${product.dimensions}');
+                  }
+                  if (product.weight != null && product.weight!.isNotEmpty) {
+                    specs.writeln('Weight: ${product.weight}');
+                  }
+                  if (product.temperatureRange != null && product.temperatureRange!.isNotEmpty) {
+                    specs.writeln('Temperature Range: ${product.temperatureRange}');
+                  }
+                  if (product.refrigerant != null && product.refrigerant!.isNotEmpty) {
+                    specs.writeln('Refrigerant: ${product.refrigerant}');
+                  }
+                  if (product.compressor != null && product.compressor!.isNotEmpty) {
+                    specs.writeln('Compressor: ${product.compressor}');
+                  }
+                  
+                  // Copy to clipboard
+                  Clipboard.setData(ClipboardData(text: specs.toString()));
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('All specifications copied to clipboard'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.copy, size: 18),
+                label: const Text('Copy All'),
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.primaryColor,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           
-          // Specs grid
+          // Specs organized in sections
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1508,37 +1470,129 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
               border: Border.all(color: theme.dividerColor),
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Basic Information
+                Text(
+                  'Basic Information',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.primaryColor,
+                  ),
+                ),
+                const SizedBox(height: 12),
                 _buildSpecRow('Category', product.category),
                 if (product.subcategory != null && product.subcategory!.isNotEmpty)
                   _buildSpecRow('Subcategory', product.subcategory!),
-                _buildSpecRow('Description', product.description),
-                if (product.dimensions != null && product.dimensions!.isNotEmpty)
-                  _buildSpecRow('Dimensions', product.dimensions!),
-                if (product.weight != null && product.weight!.isNotEmpty)
-                  _buildSpecRow('Weight', product.weight!),
-                if (product.voltage != null && product.voltage!.isNotEmpty)
-                  _buildSpecRow('Voltage', product.voltage!),
-                if (product.amperage != null && product.amperage!.isNotEmpty)
-                  _buildSpecRow('Amperage', product.amperage!),
-                if (product.phase != null && product.phase!.isNotEmpty)
-                  _buildSpecRow('Phase', product.phase!),
-                if (product.frequency != null && product.frequency!.isNotEmpty)
-                  _buildSpecRow('Frequency', product.frequency!),
-                if (product.plugType != null && product.plugType!.isNotEmpty)
-                  _buildSpecRow('Plug Type', product.plugType!),
-                if (product.temperatureRange != null && product.temperatureRange!.isNotEmpty)
-                  _buildSpecRow('Temperature Range', product.temperatureRange!),
-                if (product.refrigerant != null && product.refrigerant!.isNotEmpty)
-                  _buildSpecRow('Refrigerant', product.refrigerant!),
-                if (product.compressor != null && product.compressor!.isNotEmpty)
-                  _buildSpecRow('Compressor', product.compressor!),
-                if (product.capacity != null && product.capacity!.isNotEmpty)
-                  _buildSpecRow('Capacity', product.capacity!),
-                if (product.doors != null && product.doors! > 0)
-                  _buildSpecRow('Doors', product.doors.toString()),
-                if (product.shelves != null && product.shelves! > 0)
-                  _buildSpecRow('Shelves', product.shelves.toString()),
+                if (product.productType != null && product.productType!.isNotEmpty)
+                  _buildSpecRow('Product Type', product.productType!),
+                
+                // Physical Specifications
+                if ((product.dimensions != null && product.dimensions!.isNotEmpty) ||
+                    (product.weight != null && product.weight!.isNotEmpty) ||
+                    (product.capacity != null && product.capacity!.isNotEmpty) ||
+                    (product.doors != null && product.doors! > 0) ||
+                    (product.shelves != null && product.shelves! > 0)) ...[
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Physical Specifications',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.primaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (product.dimensions != null && product.dimensions!.isNotEmpty)
+                    _buildSpecRow('Dimensions', product.dimensions!),
+                  if (product.dimensionsMetric != null && product.dimensionsMetric!.isNotEmpty)
+                    _buildSpecRow('Dimensions (Metric)', product.dimensionsMetric!),
+                  if (product.weight != null && product.weight!.isNotEmpty)
+                    _buildSpecRow('Weight', product.weight!),
+                  if (product.weightMetric != null && product.weightMetric!.isNotEmpty)
+                    _buildSpecRow('Weight (Metric)', product.weightMetric!),
+                  if (product.capacity != null && product.capacity!.isNotEmpty)
+                    _buildSpecRow('Capacity', product.capacity!),
+                  if (product.doors != null && product.doors! > 0)
+                    _buildSpecRow('Doors', product.doors.toString()),
+                  if (product.shelves != null && product.shelves! > 0)
+                    _buildSpecRow('Shelves', product.shelves.toString()),
+                ],
+                
+                // Electrical Specifications
+                if ((product.voltage != null && product.voltage!.isNotEmpty) ||
+                    (product.amperage != null && product.amperage!.isNotEmpty) ||
+                    (product.phase != null && product.phase!.isNotEmpty) ||
+                    (product.frequency != null && product.frequency!.isNotEmpty) ||
+                    (product.plugType != null && product.plugType!.isNotEmpty)) ...[
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Electrical Specifications',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.primaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (product.voltage != null && product.voltage!.isNotEmpty)
+                    _buildSpecRow('Voltage', product.voltage!),
+                  if (product.amperage != null && product.amperage!.isNotEmpty)
+                    _buildSpecRow('Amperage', product.amperage!),
+                  if (product.phase != null && product.phase!.isNotEmpty)
+                    _buildSpecRow('Phase', product.phase!),
+                  if (product.frequency != null && product.frequency!.isNotEmpty)
+                    _buildSpecRow('Frequency', product.frequency!),
+                  if (product.plugType != null && product.plugType!.isNotEmpty)
+                    _buildSpecRow('Plug Type', product.plugType!),
+                ],
+                
+                // Cooling System
+                if ((product.temperatureRange != null && product.temperatureRange!.isNotEmpty) ||
+                    (product.refrigerant != null && product.refrigerant!.isNotEmpty) ||
+                    (product.compressor != null && product.compressor!.isNotEmpty)) ...[
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Cooling System',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.primaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (product.temperatureRange != null && product.temperatureRange!.isNotEmpty)
+                    _buildSpecRow('Temperature Range', product.temperatureRange!),
+                  if (product.temperatureRangeMetric != null && product.temperatureRangeMetric!.isNotEmpty)
+                    _buildSpecRow('Temperature Range (Metric)', product.temperatureRangeMetric!),
+                  if (product.refrigerant != null && product.refrigerant!.isNotEmpty)
+                    _buildSpecRow('Refrigerant', product.refrigerant!),
+                  if (product.compressor != null && product.compressor!.isNotEmpty)
+                    _buildSpecRow('Compressor', product.compressor!),
+                ],
+                
+                // Additional Info
+                if ((product.features != null && product.features!.isNotEmpty) ||
+                    (product.certifications != null && product.certifications!.isNotEmpty)) ...[
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Additional Information',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.primaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (product.features != null && product.features!.isNotEmpty)
+                    _buildSpecRow('Features', product.features!),
+                  if (product.certifications != null && product.certifications!.isNotEmpty)
+                    _buildSpecRow('Certifications', product.certifications!),
+                ],
               ],
             ),
           ),
@@ -1884,7 +1938,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
             ),
           ),
           Expanded(
-            child: Text(
+            child: SelectableText(
               value,
               style: theme.textTheme.bodyMedium,
             ),
@@ -1935,6 +1989,8 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
             DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
           ],
           rows: products.map((product) {
+            // Use thumbnail for table view (compressed, fast loading)
+            final imagePath = ProductImageHelper.getThumbnailPath(product.sku ?? product.model ?? '');
             return DataRow(
               cells: [
                 DataCell(
@@ -1942,12 +1998,10 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
                     width: 80,
                     height: 80,
                     padding: const EdgeInsets.all(4),
-                    child: SimpleProductImage(
+                    child: SimpleImageWidget(
                       sku: product.sku ?? product.model ?? '',
-                      imageType: ImageType.thumbnail,
+                      useThumbnail: true,
                       fit: BoxFit.cover,
-                      width: 72,
-                      height: 72,
                     ),
                   ),
                 ),
@@ -2031,41 +2085,6 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
       ),
     );
   }
-  
-  Future<void> _saveToSearchHistory(Product product) async {
-    try {
-      final user = ref.read(currentUserProvider);
-      if (user == null || product.id == null) return;
-      
-      final database = FirebaseDatabase.instance;
-      final searchRef = database.ref('search_history/${user.uid}').push();
-      
-      await searchRef.set({
-        'product_id': product.id,
-        'sku': product.sku,
-        'name': product.name,
-        'timestamp': ServerValue.timestamp,
-      });
-      
-      // Keep only last 20 searches
-      final oldSearches = await database.ref('search_history/${user.uid}')
-        .orderByChild('timestamp')
-        .limitToFirst(10)
-        .get();
-        
-      if (oldSearches.exists && oldSearches.value != null) {
-        final data = Map<String, dynamic>.from(oldSearches.value as Map);
-        if (data.length > 10) {
-          // Remove oldest entries
-          for (final key in data.keys.take(data.length - 10)) {
-            await database.ref('search_history/${user.uid}/$key').remove();
-          }
-        }
-      }
-    } catch (e) {
-      AppLogger.debug('Error saving search history', category: LogCategory.database);
-    }
-  }
 
 }
 
@@ -2076,30 +2095,6 @@ class ProductCard extends ConsumerWidget {
     super.key,
     required this.product,
   });
-  
-  // OPTIMIZATION: Cache formatted price to avoid repeated calculations
-  static final Map<double, String> _priceCache = {};
-  
-  static String _getCachedFormattedPrice(double price) {
-    if (_priceCache.containsKey(price)) {
-      return _priceCache[price]!;
-    }
-    
-    final parts = price.toStringAsFixed(2).split('.');
-    final wholePart = parts[0].replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
-    final formatted = '\$$wholePart.${parts[1]}';
-    
-    // Manage cache size
-    if (_priceCache.length > 100) {
-      _priceCache.clear();
-    }
-    
-    _priceCache[price] = formatted;
-    return formatted;
-  }
 
   Widget _buildQuantitySelector(Product product, WidgetRef ref, BuildContext context, ThemeData theme, dynamic dbService) {
     final quantities = ref.watch(productQuantitiesProvider);
@@ -2261,8 +2256,15 @@ class ProductCard extends ConsumerWidget {
     final isMobile = ResponsiveHelper.isMobile(context);
     final fontScale = ResponsiveHelper.getFontScale(context);
 
-    // OPTIMIZATION: Use cached price formatting
-    final formattedPrice = _getCachedFormattedPrice(product.price);
+    // Format price with commas
+    String formatPrice(double price) {
+      final parts = price.toStringAsFixed(2).split('.');
+      final wholePart = parts[0].replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (Match m) => '${m[1]},',
+      );
+      return '\$$wholePart.${parts[1]}';
+    }
 
     return Card(
       elevation: ResponsiveHelper.getValue(context, mobile: 1, tablet: 2, desktop: 2),
@@ -2286,9 +2288,9 @@ class ProductCard extends ConsumerWidget {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(4),
-                  child: SimpleProductImage(
+                  child: SimpleImageWidget(
                     sku: product.sku ?? product.model ?? '',
-                    imageType: ImageType.thumbnail,
+                    useThumbnail: true,
                     fit: BoxFit.contain,
                     width: double.infinity,
                   ),
@@ -2330,7 +2332,7 @@ class ProductCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          formattedPrice,
+                          formatPrice(product.price),
                           style: TextStyle(
                             fontSize: 20,
                             color: theme.primaryColor,
@@ -2351,7 +2353,7 @@ class ProductCard extends ConsumerWidget {
                       children: [
                         Flexible(
                           child: Text(
-                            formattedPrice,
+                            formatPrice(product.price),
                             style: TextStyle(
                               fontSize: 16,
                               color: theme.primaryColor,

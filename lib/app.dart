@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/widgets/offline_status_widget.dart';
-import 'core/widgets/firebase_connection_handler.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/auth/presentation/screens/splash_screen.dart';
 
@@ -25,13 +24,10 @@ class TurboAirApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       routerConfig: router,
       builder: (context, child) {
-        // Handle auth state and wrap with Firebase connection handler
+        // Handle auth state and wrap with offline status
         return authState.when(
-          data: (user) => FirebaseConnectionHandler(
-            showConnectionStatus: true,
-            child: OfflineStatusWidget(
-              child: child ?? const SizedBox.shrink(),
-            ),
+          data: (user) => OfflineStatusWidget(
+            child: child ?? const SizedBox.shrink(),
           ),
           loading: () => const SplashScreen(),
           error: (error, stack) => MaterialApp(

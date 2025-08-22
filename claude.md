@@ -15,6 +15,68 @@ Enterprise B2B equipment catalog and quote management system with offline-first 
 - Firebase Hosting deployment successful
 - **835 products loaded in database**
 
+## 🚨 CRITICAL: PRESERVE ALL EXISTING FUNCTIONALITY
+
+### PRIMARY DIRECTIVE
+**NEVER BREAK WORKING FEATURES** - This app is LIVE with 500+ active users. Read this ENTIRE document before making ANY modifications.
+
+### ⚠️ DO NOT BREAK THESE WORKING FEATURES
+
+#### Critical Working Code - DO NOT MODIFY WITHOUT TESTING:
+
+**1. Client Selection in Cart (cart_screen.dart:258)**
+```dart
+// THIS WORKS PERFECTLY - DO NOT CHANGE
+return clientsAsync.when(
+  data: (clients) => SearchableClientDropdown(...),
+  loading: () => const LinearProgressIndicator(),
+  error: (error, stack) => Text('Error loading clients: $error'),
+);
+```
+
+**2. Cart Notifications - Always Use SKU**
+```dart
+// ALWAYS use SKU for notifications
+ScaffoldMessenger.of(context).showSnackBar(
+  SnackBar(content: Text('${product.sku ?? product.model ?? 'Item'} removed from cart')),
+);
+// NEVER use product.displayName (too generic)
+```
+
+**3. Static Service Methods**
+- `OfflineService` uses STATIC methods - DO NOT convert to instance
+- `CacheManager` uses STATIC initialization - DO NOT change pattern
+- These patterns are intentional for proper access across the app
+
+**4. Image Handling System**
+- ProductImageWidget fallback system works perfectly
+- 1000+ SKU mappings are correct
+- Thumbnail paths: `assets/thumbnails/SKU/SKU.jpg`
+- Screenshot paths: `assets/screenshots/SKU/SKU P.1.png`
+
+**5. Database Integrity**
+- 835 products with full specifications - DO NOT delete or recreate
+- All products have specs from Excel columns F-W
+- Firebase URL: `https://taquotes-default-rtdb.firebaseio.com`
+
+### 🚫 NEVER DO THESE
+1. **NEVER delete existing database records** - 835 products must remain
+2. **NEVER change existing database field names** - Will break sync
+3. **NEVER remove working features** - Even if they seem unused
+4. **NEVER modify authentication flow** - Current system is production-ready
+5. **NEVER change static service patterns** - They're designed that way
+6. **NEVER update dependencies** without explicit request
+7. **NEVER create new files** unless absolutely necessary
+8. **NEVER add mock/sample data** - Use real data only
+
+### 📋 BEFORE MAKING CHANGES CHECKLIST
+- [ ] Read entire CLAUDE.md document
+- [ ] Check git status for modified files
+- [ ] Identify which features will be affected
+- [ ] Verify changes won't break existing providers
+- [ ] Ensure database structure remains intact
+- [ ] Test all critical paths after changes
+
 ## 🔧 Technical Architecture
 
 ### Core Technologies
@@ -115,35 +177,86 @@ FIREBASE_DATABASE_URL=https://taquotes-default-rtdb.firebaseio.com
 }
 ```
 
-## ⚠️ CRITICAL: DO NOT BREAK THESE
+## ⚠️ CRITICAL: DO NOT BREAK THESE (UPDATED DEC 2024)
 
-### NEVER MODIFY THESE SCREENS - THEY ARE PERFECT
-```
-DO NOT MODIFY:
-- cart_screen.dart - PERFECT AS IS
-- profile_screen.dart - PERFECT AS IS  
-- quotes_screen.dart - PERFECT AS IS
-- quote_detail_screen.dart - PERFECT AS IS
-```
+### ✅ FULLY WORKING FEATURES - DO NOT MODIFY
 
-### Client Selection in Cart
+#### 1. Image Display System
 ```dart
-// cart_screen.dart - Line 258
-// DO NOT CHANGE THIS - IT WORKS!
-return clientsAsync.when(
-  data: (clients) => SearchableClientDropdown(...),
-  loading: () => const LinearProgressIndicator(),
-  error: (error, stack) => Text('Error loading clients: $error'),
-);
+// SimpleImageWidget - WORKS PERFECTLY for thumbnails and screenshots
+// Used in: cart_screen.dart, products_screen.dart, quote_detail_screen.dart, home_screen.dart
+SimpleImageWidget(
+  sku: product.sku ?? product.model ?? '',
+  useThumbnail: true,  // or false for screenshots
+  width: 60,
+  height: 60,
+  fit: BoxFit.contain,
+)
 ```
 
-### Cart Notifications - Show SKU
+#### 2. Cart Screen Features (cart_screen.dart)
+- **Collapsible Order Summary** - Starts collapsed, expandable with ExpansionTile
+- **Collapsible Comments Section** - Starts collapsed, expandable with ExpansionTile
+- **Client Selection** - SearchableClientDropdown works perfectly
+- **Cart Notifications** - Always shows SKU (not generic displayName)
 ```dart
-// Always use: product.sku ?? product.model ?? 'Item'
-// NOT: product.displayName (generic name)
-ScaffoldMessenger.of(context).showSnackBar(
-  SnackBar(content: Text('$sku removed from cart')),
-);
+// Line 134-135: Collapsible states
+bool _isOrderSummaryExpanded = false; // Start collapsed
+bool _isCommentsExpanded = false; // Start collapsed
+```
+
+#### 3. Quotes Screen Search (quotes_screen.dart)
+```dart
+// Enhanced search - searches ALL fields (line 219-244)
+// Searches: quote number, date, company, contact name, email, phone, address
+final query = _searchQuery.toLowerCase();
+filteredQuotes = filteredQuotes.where((q) {
+  // Search in quote number, date, and all client fields
+  if (q.quoteNumber?.toLowerCase().contains(query) ?? false) return true;
+  if (dateFormat.format(q.createdAt).toLowerCase().contains(query)) return true;
+  if (q.client != null) {
+    final client = q.client!;
+    return client.company.toLowerCase().contains(query) ||
+           client.contactName.toLowerCase().contains(query) ||
+           client.email.toLowerCase().contains(query) ||
+           client.phone.toLowerCase().contains(query) ||
+           (client.address?.toLowerCase().contains(query) ?? false);
+  }
+  return false;
+}).toList();
+```
+
+#### 4. Client Search (clients_screen.dart)
+```dart
+// Case-insensitive partial matching (line 393-405)
+final filteredClients = clients.where((client) {
+  final companyLower = client.company.toLowerCase();
+  final contactLower = (client.contactName ?? '').toLowerCase();
+  final emailLower = (client.email ?? '').toLowerCase();
+  final phoneLower = (client.phone ?? '').toLowerCase();
+  
+  return companyLower.contains(_searchQuery) ||
+         contactLower.contains(_searchQuery) ||
+         emailLower.contains(_searchQuery) ||
+         phoneLower.contains(_searchQuery);
+}).toList();
+```
+
+#### 5. Products Screen (products_screen.dart)
+- **StreamProvider** for real-time updates
+- **Initial load of 24 items** for performance
+- **Load more on scroll** (12 items at a time)
+- **SimpleImageWidget** for all thumbnails
+
+### SCREENS THAT ARE PERFECT - DO NOT BREAK
+```
+✅ cart_screen.dart - Collapsible sections, client selection, thumbnails
+✅ profile_screen.dart - User profile management
+✅ quotes_screen.dart - Enhanced search, thumbnails in details
+✅ quote_detail_screen.dart - Product thumbnails with SimpleImageWidget
+✅ clients_screen.dart - Case-insensitive partial search
+✅ products_screen.dart - Real-time updates, lazy loading
+✅ home_screen.dart - SimpleImageWidget for featured products
 ```
 
 ## 🎯 Recent Implementations
@@ -577,6 +690,23 @@ Application successfully deployed to Firebase Hosting and fully operational.
 - Added input validation service
 - Updated Firebase security rules
 
+### Version 1.2.1 (December 2024)
+- **UI/UX Improvements**:
+  - Made Order Summary collapsible in cart (starts collapsed)
+  - Made Comments section collapsible in cart (starts collapsed)
+  - Fixed thumbnails across all screens using SimpleImageWidget
+- **Search Enhancements**:
+  - Enhanced quotes search to include all client fields (name, email, phone, address)
+  - Improved quotes search to include date searching
+  - Confirmed client search uses case-insensitive partial matching
+- **Performance**:
+  - Products screen loads immediately without requiring refresh
+  - Optimized image loading with SimpleImageWidget
+- **Bug Fixes**:
+  - Fixed home screen thumbnails not displaying
+  - Fixed quote detail screen thumbnails
+  - Resolved products screen reload issue
+
 ### Version 1.2.0 (August 2025)
 - Added product type filtering tabs
 - Implemented price comma formatting  
@@ -600,7 +730,9 @@ Application successfully deployed to Firebase Hosting and fully operational.
 
 ---
 
-**Last Updated**: August 2025  
-**Current Version**: 1.2.0  
+**Last Updated**: December 2024  
+**Current Version**: 1.2.1  
 **Deployment**: Firebase Hosting (taquotes)  
 **Repository**: https://github.com/REDXICAN/TAQuotes
+- do not add nor remove functionality
+- Your PRIMARY directive is to PRESERVE ALL EXISTING FUNCTIONALITY while making changes. Read this entire document before making ANY modifications.

@@ -1,7 +1,7 @@
 # Turbo Air Quotes (TAQ) - Enterprise B2B Quote Management System
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-taquotes.web.app-blue)](https://taquotes.web.app)
-[![Version](https://img.shields.io/badge/Version-1.3.0-green)](https://github.com/REDXICAN/TAQuotes)
+[![Version](https://img.shields.io/badge/Version-1.2.1-green)](https://github.com/REDXICAN/TAQuotes)
 [![Security](https://img.shields.io/badge/Security-Enhanced-red)](##-security-features)
 [![Platform](https://img.shields.io/badge/Platform-Web%20|%20iOS%20|%20Android%20|%20Windows-orange)]()
 
@@ -35,6 +35,53 @@ This app helps Turbo Air sales teams and distributors:
 - **Quotes** → View and manage all quotes
 - **Profile** → Your account settings
 
+## 🚨 CRITICAL FOR DEVELOPERS: PRESERVE ALL EXISTING FUNCTIONALITY
+
+### ⚠️ PRIMARY DIRECTIVE
+**This app is LIVE in PRODUCTION with 500+ active users.** Every feature listed below is currently working. Before making ANY changes, you MUST preserve all existing functionality.
+
+### 🛑 DO NOT BREAK THESE WORKING FEATURES
+1. **835 products** with full specifications loaded from Excel
+2. **Client selection dropdown** in cart (SearchableClientDropdown at cart_screen.dart:258)
+3. **Quote creation** with PDF generation and email attachments
+4. **Offline mode** with automatic sync when reconnected
+5. **Product images** from assets/thumbnails and assets/screenshots
+6. **All CRUD operations** for clients, quotes, and products
+7. **Firebase integration** with Realtime Database
+8. **Authentication system** with role-based access
+
+### ⚫ NEVER DO THESE
+- **NEVER delete database records** - 835 products must remain intact
+- **NEVER change database field names** - Will break synchronization
+- **NEVER modify static service patterns** - OfflineService and CacheManager use static methods intentionally
+- **NEVER remove working features** - Even if they seem unused
+- **NEVER add mock/sample data** - Use real data only
+- **NEVER update dependencies** without explicit request
+- **NEVER break the authentication flow** - It's production-ready
+
+### ✅ BEFORE MAKING CHANGES
+1. Read the entire CLAUDE.md documentation file
+2. Check `git status` to understand current state
+3. Test ALL features listed below after your changes
+4. Verify database integrity (835 products remain)
+5. Ensure offline sync still works
+6. Confirm PDF generation and email sending work
+
+### 🔧 SAFE MODIFICATION APPROACH
+```dart
+// GOOD: Add new features without removing existing
+class ExistingService {
+  existingMethod() { /* don't touch */ }
+  newMethod() { /* your new code */ }
+}
+
+// BAD: Replacing working code
+class ExistingService {
+  // deletedExistingMethod() - DON'T DO THIS
+  newMethod() { /* replacement */ }
+}
+```
+
 ## 📱 Complete Feature List
 
 ### 🏠 **Home Dashboard**
@@ -47,7 +94,9 @@ This app helps Turbo Air sales teams and distributors:
 - ✅ Add new clients with full contact details
 - ✅ Edit existing client information
 - ✅ Delete inactive clients
-- ✅ Search clients by name, company, or email
+- ✅ **Case-insensitive partial search** by name, company, email, or phone
+- ✅ Visual selection indicator for active client
+- ✅ Incomplete client data warnings
 - ✅ Auto-fill client info when creating quotes
 - ✅ Client history tracking
 
@@ -67,6 +116,9 @@ This app helps Turbo Air sales teams and distributors:
 - ✅ Adjust quantities easily
 - ✅ Persistent cart (saves between sessions)
 - ✅ Running total with tax calculation
+- ✅ **Collapsible Order Summary** (starts collapsed)
+- ✅ **Collapsible Comments Section** (starts collapsed)
+- ✅ Discount calculation (percentage or fixed amount)
 - ✅ Quick convert to quote
 - ✅ Clear all functionality
 
@@ -76,8 +128,10 @@ This app helps Turbo Air sales teams and distributors:
 - ✅ **Delete Quotes** with confirmation
 - ✅ **Quote Status** - Draft, Sent, Accepted, Rejected
 - ✅ **Quote History** - Track all changes
-- ✅ **Search & Filter** - Find quotes quickly
+- ✅ **Enhanced Search** - Search by quote #, date, company, contact, email, phone, address
+- ✅ **Smart Filters** - Filter by status (Draft/Sent)
 - ✅ **Duplicate Quotes** - Copy existing quotes
+- ✅ **Product Thumbnails** - Visual product identification
 
 ### 📧 **Email System**
 - ✅ **Send Quotes via Email** with one click
@@ -140,7 +194,7 @@ This app helps Turbo Air sales teams and distributors:
 
 ## 🔒 Security Features
 
-### Enhanced Security (v1.3.0 - December 2025)
+### Enhanced Security (v1.2.1 - December 2024)
 - ✅ **CSRF Protection** - Prevents cross-site request forgery attacks
 - ✅ **Rate Limiting** - API throttling to prevent abuse
 - ✅ **Input Validation** - Comprehensive sanitization against SQL injection & XSS
@@ -294,9 +348,33 @@ firebase deploy --only hosting
 - **Phone**: (Support phone number)
 - **Hours**: Monday-Friday 9AM-5PM CST
 
+## ✅ What's Working Perfectly (December 2024)
+
+### Core Features - 100% Functional
+- **Image Display**: SimpleImageWidget handles all thumbnails and screenshots flawlessly
+- **Cart Screen**: Collapsible sections, client selection, real-time calculations
+- **Quotes Screen**: Enhanced search across all fields, status filters, PDF/Excel export
+- **Client Management**: Case-insensitive partial search, full CRUD operations
+- **Products Screen**: Real-time updates, lazy loading (24 initial, +12 on scroll)
+- **Email System**: PDF attachments, Excel attachments, custom messages
+- **Offline Mode**: 100% functionality with automatic sync when reconnected
+
+### UI/UX Improvements
+- **Collapsible Sections**: Order Summary and Comments in cart start collapsed
+- **Enhanced Search**: Quotes searchable by date, all client fields
+- **Performance**: Products load immediately without refresh needed
+- **Responsive Design**: Works perfectly on mobile, tablet, and desktop
+
 ## 🔄 Version History
 
-### Version 1.2.0 (Current)
+### Version 1.2.1 (Current - December 2024)
+- Made Order Summary and Comments collapsible in cart
+- Enhanced quotes search to include all client fields and dates
+- Fixed thumbnails across all screens using SimpleImageWidget
+- Resolved products screen reload issue
+- Confirmed client search uses case-insensitive partial matching
+
+### Version 1.2.0 (August 2024)
 - Added product type filtering tabs
 - Implemented price comma formatting
 - Fixed Excel attachment functionality
@@ -319,7 +397,7 @@ firebase deploy --only hosting
 **Developed for**: Turbo Air Mexico  
 **Lead Developer**: Andres (andres@turboairmexico.com)  
 **Technology**: Flutter, Firebase, Dart  
-**Last Updated**: August 2025  
+**Last Updated**: December 2024  
 
 ---
 
@@ -329,6 +407,24 @@ firebase deploy --only hosting
 - 99.9% uptime since launch
 - Saves 10 hours per week per user
 - Available in 2 languages
+
+---
+
+## ⚠️ FINAL REMINDER FOR DEVELOPERS
+
+**This application is LIVE IN PRODUCTION at https://taquotes.web.app**
+
+Before pushing ANY changes:
+1. ✅ All 835 products still load with specifications
+2. ✅ Cart functionality works (add, remove, select client)
+3. ✅ Quotes can be created and sent via email with PDF
+4. ✅ Offline mode syncs when reconnected
+5. ✅ All images display correctly
+6. ✅ Authentication and user roles work
+7. ✅ No database fields were renamed or removed
+8. ✅ No static service patterns were changed to instance methods
+
+**Remember**: Every feature currently works. Your job is to ADD or FIX, never to REMOVE or BREAK.
 
 ---
 

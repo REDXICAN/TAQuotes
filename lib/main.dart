@@ -7,7 +7,6 @@ import 'firebase_options.dart';
 import 'app.dart';
 import 'core/services/product_cache_service.dart';
 import 'core/services/realtime_database_service.dart';
-import 'core/services/firebase_init_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,9 +30,8 @@ void main() async {
   final dbService = RealtimeDatabaseService();
   await dbService.enableOfflinePersistence();
   
-  // Initialize Firebase connection
-  final firebaseInit = FirebaseInitService();
-  await firebaseInit.initialize();
+  // Give Firebase a moment to connect
+  await Future.delayed(const Duration(seconds: 1));
   
   // Initialize product cache service
   await ProductCacheService.instance.initialize();

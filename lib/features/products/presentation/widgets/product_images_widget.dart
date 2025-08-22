@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/widgets/product_image_display.dart';
+import '../../../../core/widgets/simple_image_widget.dart';
 
 class ProductImagesWidget extends StatefulWidget {
   final String sku;

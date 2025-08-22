@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
-import '../widgets/simple_product_images_widget.dart';
+import '../widgets/product_detail_images.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/price_formatter.dart';
 
@@ -58,23 +58,27 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
             );
           }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isWideScreen = constraints.maxWidth > 768;
-                
-                if (isWideScreen) {
-                  // Desktop/Tablet: Specs on left (25%), images on right (75%)
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Left column: Product info and specs (25%)
-                      SizedBox(
-                        width: constraints.maxWidth * 0.25,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final isWideScreen = constraints.maxWidth > 768;
+              final screenHeight = MediaQuery.of(context).size.height;
+              
+              if (isWideScreen) {
+                // Desktop/Tablet: Specs on left (25%), images on right (75%)
+                return SizedBox(
+                  height: screenHeight - 100, // Full height minus app bar
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Left column: Product info and specs (25%) - scrollable
+                        SizedBox(
+                          width: constraints.maxWidth * 0.25,
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                       // SKU and Category
                       Row(
                         children: [
@@ -243,23 +247,28 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       const SizedBox(height: 16),
 
                       _buildSpecSection(product),
-                          ],
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 24),
-                      // Right column: Images (75%)
-                      Expanded(
-                        child: SimpleProductImagesWidget(
-                          sku: product.sku ?? product.model,
+                        const SizedBox(width: 24),
+                        // Right column: Images (75%) - full height
+                        Expanded(
+                          child: ProductDetailImages(
+                            sku: product.sku ?? product.model,
+                          ),
                         ),
-                      ),
-                    ],
-                  );
+                      ],
+                    ),
+                  ),
+                );
                 } else {
                   // Mobile: Stack vertically with specs first, then images
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                       // Product info and specifications first
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -436,18 +445,21 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           ),
                           const SizedBox(height: 16),
                           
-                          // Images widget
-                          SimpleProductImagesWidget(
-                            sku: product.sku ?? product.model,
+                          // Images widget - full viewport height for mobile
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.8,
+                            child: ProductDetailImages(
+                              sku: product.sku ?? product.model,
+                            ),
                           ),
                         ],
                       ),
                     ],
+                  ),
                   );
                 }
               },
-            ),
-          );
+            );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
@@ -471,6 +483,33 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   }
 
   Widget _buildSpecSection(Product product) {
+    // Debug: Print all product fields to console
+    print('=== PRODUCT DATA DEBUG ===');
+    print('SKU: ${product.sku}');
+    print('Model: ${product.model}');
+    print('Category: ${product.category}');
+    print('Subcategory: ${product.subcategory}');
+    print('ProductType: ${product.productType}');
+    print('Voltage: ${product.voltage}');
+    print('Amperage: ${product.amperage}');
+    print('Phase: ${product.phase}');
+    print('Frequency: ${product.frequency}');
+    print('Plug Type: ${product.plugType}');
+    print('Dimensions: ${product.dimensions}');
+    print('Dimensions Metric: ${product.dimensionsMetric}');
+    print('Weight: ${product.weight}');
+    print('Weight Metric: ${product.weightMetric}');
+    print('Temperature Range: ${product.temperatureRange}');
+    print('Temperature Range Metric: ${product.temperatureRangeMetric}');
+    print('Refrigerant: ${product.refrigerant}');
+    print('Compressor: ${product.compressor}');
+    print('Capacity: ${product.capacity}');
+    print('Doors: ${product.doors}');
+    print('Shelves: ${product.shelves}');
+    print('Features: ${product.features}');
+    print('Certifications: ${product.certifications}');
+    print('========================');
+    
     final specs = <String, String?>{
       'Category': product.category,
       'Subcategory': product.subcategory,
@@ -495,7 +534,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       'Certifications': product.certifications,
     };
 
-    final validSpecs = specs.entries.where((e) => e.value != null).toList();
+    final validSpecs = specs.entries.where((e) => e.value != null && e.value!.isNotEmpty).toList();
 
     if (validSpecs.isEmpty) {
       return const Text('No specifications available');

@@ -130,7 +130,12 @@
       "Bash(else echo \"✓ functions/.env not found (good)\")",
       "Bash(git config:*)",
       "Bash(git remote set-url:*)",
-      "Bash(else echo \"firebase_options.dart not found (good)\")"
+      "Bash(else echo \"firebase_options.dart not found (good)\")",
+      "Bash(if [ -f \"turbo_air_products.xlsx\" ])",
+      "Bash(then echo \"Excel file found!\")",
+      "Bash(else echo \"Excel file not found\")",
+      "Bash(if [ -f \"firebase-admin-key.json\" ])",
+      "Bash(else echo \"Firebase admin key not found - you need to download it\")"
     ],
     "deny": [],
     "ask": [

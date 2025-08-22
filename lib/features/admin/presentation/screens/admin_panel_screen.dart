@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/services/cache_manager.dart';
+import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import 'package:intl/intl.dart';
 
@@ -183,9 +184,8 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin Panel'),
-        backgroundColor: const Color(0xFF4169E1),
+      appBar: AppBarWithClient(
+        title: 'Admin Panel',
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

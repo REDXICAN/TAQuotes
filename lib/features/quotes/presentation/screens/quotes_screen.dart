@@ -171,7 +171,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                 // Search field
                 TextField(
                   decoration: InputDecoration(
-                    hintText: 'Search quotes...',
+                    hintText: 'Search by quote #, company, contact, date...',
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -217,15 +217,31 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                 }
 
                 if (_searchQuery.isNotEmpty) {
-                  filteredQuotes = filteredQuotes
-                      .where((q) =>
-                          (q.quoteNumber
-                              ?.toLowerCase()
-                              .contains(_searchQuery.toLowerCase()) ?? false) ||
-                          (q.client?.company ?? '')
-                              .toLowerCase()
-                              .contains(_searchQuery.toLowerCase()))
-                      .toList();
+                  final query = _searchQuery.toLowerCase();
+                  filteredQuotes = filteredQuotes.where((q) {
+                    // Search in quote number
+                    if (q.quoteNumber?.toLowerCase().contains(query) ?? false) {
+                      return true;
+                    }
+                    
+                    // Search in date (format: MMM dd, yyyy)
+                    final dateFormat = DateFormat('MMM dd, yyyy');
+                    if (dateFormat.format(q.createdAt).toLowerCase().contains(query)) {
+                      return true;
+                    }
+                    
+                    // Search in all client fields
+                    if (q.client != null) {
+                      final client = q.client!;
+                      return client.company.toLowerCase().contains(query) ||
+                             client.contactName.toLowerCase().contains(query) ||
+                             client.email.toLowerCase().contains(query) ||
+                             client.phone.toLowerCase().contains(query) ||
+                             (client.address?.toLowerCase().contains(query) ?? false);
+                    }
+                    
+                    return false;
+                  }).toList();
                 }
 
                 if (filteredQuotes.isEmpty) {

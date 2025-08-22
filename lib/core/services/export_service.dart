@@ -848,4 +848,168 @@ class ExportService {
       return Uint8List.fromList(errorBytes ?? []);
     }
   }
+
+  // Generate Excel file for products with all specifications
+  static Future<Uint8List> generateProductsExcel(List<Product> products) async {
+    AppLogger.info('Starting Excel generation for ${products.length} products', category: LogCategory.business);
+    final stopwatch = AppLogger.startTimer();
+    
+    try {
+      final excel = Excel.createExcel();
+      
+      // Delete default sheet and create new one
+      if (excel.sheets.containsKey('Sheet1')) {
+        excel.delete('Sheet1');
+      }
+      
+      final sheet = excel['Products'];
+      
+      // Headers for all product specifications
+      final headers = [
+        'SKU',
+        'Model',
+        'Name',
+        'Description',
+        'Category',
+        'Subcategory',
+        'Product Type',
+        'Price',
+        'Stock',
+        'Voltage',
+        'Amperage',
+        'Phase',
+        'Frequency',
+        'Plug Type',
+        'Dimensions',
+        'Dimensions (Metric)',
+        'Weight',
+        'Weight (Metric)',
+        'Temperature Range',
+        'Temperature Range (Metric)',
+        'Refrigerant',
+        'Compressor',
+        'Capacity',
+        'Doors',
+        'Shelves',
+        'Features',
+        'Certifications',
+      ];
+      
+      // Add headers with styling
+      for (int i = 0; i < headers.length; i++) {
+        final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+        cell.value = TextCellValue(headers[i]);
+        cell.cellStyle = CellStyle(
+          bold: true,
+          backgroundColorHex: ExcelColor.fromHexString('#E0E0E0'),
+        );
+      }
+      
+      // Add product data
+      int currentRow = 1;
+      for (final product in products) {
+        final rowData = [
+          product.sku ?? '',
+          product.model,
+          product.name,
+          product.description,
+          product.category,
+          product.subcategory ?? '',
+          product.productType ?? '',
+          _currencyFormat.format(product.price),
+          product.stock.toString(),
+          product.voltage ?? '',
+          product.amperage ?? '',
+          product.phase ?? '',
+          product.frequency ?? '',
+          product.plugType ?? '',
+          product.dimensions ?? '',
+          product.dimensionsMetric ?? '',
+          product.weight ?? '',
+          product.weightMetric ?? '',
+          product.temperatureRange ?? '',
+          product.temperatureRangeMetric ?? '',
+          product.refrigerant ?? '',
+          product.compressor ?? '',
+          product.capacity ?? '',
+          product.doors?.toString() ?? '',
+          product.shelves?.toString() ?? '',
+          product.features ?? '',
+          product.certifications ?? '',
+        ];
+        
+        for (int i = 0; i < rowData.length; i++) {
+          final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: currentRow));
+          cell.value = TextCellValue(rowData[i]);
+        }
+        
+        currentRow++;
+      }
+      
+      // Auto-adjust column widths
+      sheet.setColumnWidth(0, 15.0);  // SKU
+      sheet.setColumnWidth(1, 15.0);  // Model
+      sheet.setColumnWidth(2, 25.0);  // Name
+      sheet.setColumnWidth(3, 35.0);  // Description
+      sheet.setColumnWidth(4, 15.0);  // Category
+      sheet.setColumnWidth(5, 15.0);  // Subcategory
+      sheet.setColumnWidth(6, 15.0);  // Product Type
+      sheet.setColumnWidth(7, 12.0);  // Price
+      sheet.setColumnWidth(8, 10.0);  // Stock
+      sheet.setColumnWidth(9, 12.0);  // Voltage
+      sheet.setColumnWidth(10, 12.0); // Amperage
+      sheet.setColumnWidth(11, 10.0); // Phase
+      sheet.setColumnWidth(12, 12.0); // Frequency
+      sheet.setColumnWidth(13, 15.0); // Plug Type
+      sheet.setColumnWidth(14, 20.0); // Dimensions
+      sheet.setColumnWidth(15, 20.0); // Dimensions Metric
+      sheet.setColumnWidth(16, 12.0); // Weight
+      sheet.setColumnWidth(17, 12.0); // Weight Metric
+      sheet.setColumnWidth(18, 20.0); // Temperature Range
+      sheet.setColumnWidth(19, 20.0); // Temperature Range Metric
+      sheet.setColumnWidth(20, 15.0); // Refrigerant
+      sheet.setColumnWidth(21, 15.0); // Compressor
+      sheet.setColumnWidth(22, 15.0); // Capacity
+      sheet.setColumnWidth(23, 10.0); // Doors
+      sheet.setColumnWidth(24, 10.0); // Shelves
+      sheet.setColumnWidth(25, 30.0); // Features
+      sheet.setColumnWidth(26, 25.0); // Certifications
+      
+      final bytes = excel.save();
+      if (bytes == null) {
+        throw Exception('Failed to generate Excel file');
+      }
+      
+      final duration = stopwatch.elapsedMilliseconds;
+      AppLogger.info('Excel generated successfully', category: LogCategory.business, data: {
+        'products': products.length,
+        'duration': duration,
+        'size': bytes.length,
+      });
+      
+      return Uint8List.fromList(bytes);
+      
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to generate products Excel', 
+        error: e, 
+        stackTrace: stackTrace,
+        category: LogCategory.business
+      );
+      
+      // Return error Excel
+      final errorExcel = Excel.createExcel();
+      final errorSheet = errorExcel['Error'];
+      if (errorExcel.sheets.containsKey('Sheet1')) {
+        errorExcel.delete('Sheet1');
+      }
+      errorSheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
+        ..value = TextCellValue('Error generating Excel file')
+        ..cellStyle = CellStyle(bold: true);
+      errorSheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 1))
+        .value = TextCellValue(e.toString());
+      
+      final errorBytes = errorExcel.save();
+      return Uint8List.fromList(errorBytes ?? []);
+    }
+  }
 }

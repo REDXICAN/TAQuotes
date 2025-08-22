@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
-import '../../../../core/widgets/product_image_display.dart';
+import '../../../../core/widgets/simple_image_widget.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/widgets/product_screenshots_popup.dart';
@@ -468,9 +468,9 @@ class QuoteDetailScreen extends ConsumerWidget {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: ProductImageDisplay(
+                child: SimpleImageWidget(
                   sku: item.product?.sku ?? item.product?.model ?? item.productId,
-                  imageType: ImageType.thumbnail,
+                  useThumbnail: true,
                   width: 60,
                   height: 60,
                   fit: BoxFit.contain,

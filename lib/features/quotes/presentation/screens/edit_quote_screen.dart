@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/models/models.dart';
+import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/utils/responsive_helper.dart';
 
@@ -160,8 +161,8 @@ class _EditQuoteScreenState extends ConsumerState<EditQuoteScreen> {
     final isMobile = ResponsiveHelper.isMobile(context);
     
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Edit Quote #${widget.quote.quoteNumber}'),
+      appBar: AppBarWithClient(
+        title: 'Edit Quote #${widget.quote.quoteNumber}',
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8.0),

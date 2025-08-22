@@ -9,8 +9,9 @@ import '../../core/services/cache_manager.dart';
 import '../../core/services/app_logger.dart';
 import '../../core/utils/responsive_helper.dart';
 import '../../core/models/models.dart';
-import '../../core/widgets/product_image_display.dart';
+import '../../core/widgets/simple_image_widget.dart';
 import '../../core/utils/price_formatter.dart';
+import '../../core/widgets/app_bar_with_client.dart';
 import '../auth/presentation/providers/auth_provider.dart';
 import '../products/presentation/screens/products_screen.dart';
 import '../../core/widgets/recent_searches_widget.dart';
@@ -231,9 +232,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final userProfile = userAsync.valueOrNull;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        backgroundColor: Theme.of(context).primaryColor,
+      appBar: const AppBarWithClient(
+        title: 'Dashboard',
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -454,9 +454,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(12),
                   ),
-                  child: ProductImageDisplay(
+                  child: SimpleImageWidget(
                     sku: product.sku ?? product.model ?? '',
-                    imageType: ImageType.thumbnail,
+                    useThumbnail: true,
                     fit: BoxFit.contain,
                     width: double.infinity,
                   ),
