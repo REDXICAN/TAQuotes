@@ -465,6 +465,9 @@ class QuoteItem {
   final double total;
   final double totalPrice;
   final DateTime addedAt;
+  final double discount; // Individual discount percentage
+  final String? note; // Individual product note
+  final String? sequenceNumber; // Custom numbering
 
   QuoteItem({
     required this.productId,
@@ -475,6 +478,9 @@ class QuoteItem {
     required this.total,
     double? totalPrice,
     required this.addedAt,
+    this.discount = 0.0,
+    this.note,
+    this.sequenceNumber,
   }) : totalPrice = totalPrice ?? total;
 
   Map<String, dynamic> toMap() {
@@ -487,20 +493,55 @@ class QuoteItem {
       'total': total,
       'totalPrice': totalPrice,
       'addedAt': addedAt.toIso8601String(),
+      'discount': discount,
+      'note': note,
+      'sequenceNumber': sequenceNumber,
     };
   }
 
   factory QuoteItem.fromMap(Map<String, dynamic> map) {
     return QuoteItem(
-      productId: map['productId'] ?? '',
-      productName: map['productName'] ?? '',
+      productId: map['productId'] ?? map['product_id'] ?? '',
+      productName: map['productName'] ?? map['product_name'] ?? '',
       product: map['product'] != null ? Product.fromMap(map['product']) : null,
       quantity: map['quantity'] ?? 1,
-      unitPrice: (map['unitPrice'] ?? 0).toDouble(),
-      total: (map['total'] ?? 0).toDouble(),
-      totalPrice: (map['totalPrice'] ?? map['total'] ?? 0).toDouble(),
+      unitPrice: (map['unitPrice'] ?? map['unit_price'] ?? 0).toDouble(),
+      total: (map['total'] ?? map['total_price'] ?? 0).toDouble(),
+      totalPrice: (map['totalPrice'] ?? map['total_price'] ?? map['total'] ?? 0).toDouble(),
       addedAt:
-          DateTime.parse(map['addedAt'] ?? DateTime.now().toIso8601String()),
+          DateTime.parse(map['addedAt'] ?? map['added_at'] ?? DateTime.now().toIso8601String()),
+      discount: (map['discount'] ?? 0).toDouble(),
+      note: map['note'],
+      sequenceNumber: map['sequenceNumber'] ?? map['sequence_number'],
+    );
+  }
+
+  // Copy with method for updating items
+  QuoteItem copyWith({
+    String? productId,
+    String? productName,
+    Product? product,
+    int? quantity,
+    double? unitPrice,
+    double? total,
+    double? totalPrice,
+    DateTime? addedAt,
+    double? discount,
+    String? note,
+    String? sequenceNumber,
+  }) {
+    return QuoteItem(
+      productId: productId ?? this.productId,
+      productName: productName ?? this.productName,
+      product: product ?? this.product,
+      quantity: quantity ?? this.quantity,
+      unitPrice: unitPrice ?? this.unitPrice,
+      total: total ?? this.total,
+      totalPrice: totalPrice ?? this.totalPrice,
+      addedAt: addedAt ?? this.addedAt,
+      discount: discount ?? this.discount,
+      note: note ?? this.note,
+      sequenceNumber: sequenceNumber ?? this.sequenceNumber,
     );
   }
 

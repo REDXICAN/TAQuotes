@@ -485,9 +485,38 @@ class QuoteDetailScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item.product?.sku ?? item.productName,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                Row(
+                  children: [
+                    // Sequence number if exists
+                    if (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        margin: const EdgeInsets.only(right: 6),
+                        decoration: BoxDecoration(
+                          color: theme.primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(3),
+                          border: Border.all(
+                            color: theme.primaryColor.withOpacity(0.3),
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Text(
+                          '#${item.sequenceNumber}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: theme.primaryColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                    Expanded(
+                      child: Text(
+                        item.product?.sku ?? item.productName,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
                 ),
                 if (item.product?.productType != null)
                   Text(
@@ -497,6 +526,31 @@ class QuoteDetailScreen extends ConsumerWidget {
                       color: Colors.grey[600],
                     ),
                   ),
+                // Show note if exists
+                if (item.note != null && item.note!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Row(
+                      children: [
+                        Icon(Icons.note_alt_outlined, 
+                          size: 12, 
+                          color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            item.note!,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                              fontStyle: FontStyle.italic,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 Text(
                   'Unit Price: ${PriceFormatter.formatPrice(item.unitPrice)}',
                   style: TextStyle(
@@ -504,6 +558,16 @@ class QuoteDetailScreen extends ConsumerWidget {
                     color: Colors.grey[600],
                   ),
                 ),
+                // Show discount if exists
+                if (item.discount > 0)
+                  Text(
+                    'Discount: ${item.discount}%',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.green[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
               ],
             ),
           ),

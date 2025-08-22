@@ -861,26 +861,88 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                               ),
                             ),
                             const Divider(height: 12),
-                            // Items breakdown
-                            ...items.map((item) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 2),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            // Items breakdown with individual discounts
+                            ...items.map((item) {
+                              final basePrice = (item.product?.price ?? 0) * item.quantity;
+                              final itemDiscount = item.discount > 0 ? basePrice * (item.discount / 100) : 0;
+                              final itemTotal = basePrice - itemDiscount;
+                              
+                              return Column(
                                 children: [
-                                  Expanded(
-                                    child: Text(
-                                      '${item.quantity}x ${item.product?.sku ?? item.product?.model ?? item.productName}',
-                                      style: theme.textTheme.bodySmall,
-                                      overflow: TextOverflow.ellipsis,
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 2),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Row(
+                                            children: [
+                                              if (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty)
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                  margin: const EdgeInsets.only(right: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: theme.primaryColor.withOpacity(0.1),
+                                                    borderRadius: BorderRadius.circular(2),
+                                                  ),
+                                                  child: Text(
+                                                    '#${item.sequenceNumber}',
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: theme.primaryColor,
+                                                    ),
+                                                  ),
+                                                ),
+                                              Expanded(
+                                                child: Text(
+                                                  '${item.quantity}x ${item.product?.sku ?? item.product?.model ?? item.productName}',
+                                                  style: theme.textTheme.bodySmall,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Text(
+                                          _formatPrice(basePrice),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            decoration: item.discount > 0 ? TextDecoration.lineThrough : null,
+                                            color: item.discount > 0 ? Colors.grey : null,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  Text(
-                                    _formatPrice((item.product?.price ?? 0) * item.quantity),
-                                    style: theme.textTheme.bodySmall,
-                                  ),
+                                  if (item.discount > 0)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 16, bottom: 2),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            '  Discount (${item.discount.toStringAsFixed(1)}%)',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.green[700],
+                                              fontStyle: FontStyle.italic,
+                                            ),
+                                          ),
+                                          Text(
+                                            _formatPrice(itemTotal),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.green[700],
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                 ],
-                              ),
-                            )).toList(),
+                              );
+                            }).toList(),
                             const Divider(height: 12),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1879,90 +1941,201 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   // Show discount dialog for individual item
   void _showDiscountDialog(CartItem item) {
     final discountController = TextEditingController(
-      text: item.discount > 0 ? item.discount.toStringAsFixed(0) : '',
+      text: item.discount > 0 ? item.discount.toStringAsFixed(2) : '',
     );
+    bool isPercentage = true;
+    final unitPrice = item.product?.price ?? item.unitPrice;
     
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Item Discount'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Product: ${item.product?.sku ?? item.productName}',
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: discountController,
-              decoration: const InputDecoration(
-                labelText: 'Discount Percentage',
-                hintText: 'Enter 0-100',
-                prefixIcon: Icon(Icons.percent),
-                suffixText: '%',
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Item Discount'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Product: ${item.product?.sku ?? item.productName}',
+                style: const TextStyle(fontWeight: FontWeight.w500),
               ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d{0,3}\.?\d{0,2}')),
+              const SizedBox(height: 8),
+              Text(
+                'Unit Price: ${_formatPrice(unitPrice)}',
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: discountController,
+                      decoration: InputDecoration(
+                        labelText: isPercentage ? 'Discount Percentage' : 'Discount Amount',
+                        hintText: isPercentage ? 'Enter 0-100' : 'Enter amount',
+                        prefixIcon: Icon(isPercentage ? Icons.percent : Icons.attach_money),
+                        suffixText: isPercentage ? '%' : '\$',
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d{0,3}\.?\d{0,2}')),
+                      ],
+                      onChanged: (_) => setDialogState(() {}),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ToggleButtons(
+                    isSelected: [isPercentage, !isPercentage],
+                    onPressed: (index) {
+                      setDialogState(() {
+                        isPercentage = index == 0;
+                        discountController.clear();
+                      });
+                    },
+                    constraints: const BoxConstraints(
+                      minHeight: 48,
+                      minWidth: 48,
+                    ),
+                    children: const [
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('%'),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('\$'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              // Show preview of discounted price
+              if (discountController.text.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Builder(
+                    builder: (context) {
+                      final discountValue = double.tryParse(discountController.text) ?? 0;
+                      double discountAmount = 0;
+                      
+                      if (isPercentage) {
+                        discountAmount = unitPrice * (discountValue / 100);
+                      } else {
+                        discountAmount = discountValue;
+                      }
+                      
+                      final newPrice = unitPrice - discountAmount;
+                      
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Original:', style: TextStyle(fontSize: 12)),
+                              Text(_formatPrice(unitPrice), style: const TextStyle(fontSize: 12, decoration: TextDecoration.lineThrough)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Discount:', style: TextStyle(fontSize: 12, color: Colors.green)),
+                              Text('-${_formatPrice(discountAmount)}', style: const TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          const Divider(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('New Price:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                              Text(_formatPrice(newPrice), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.green)),
+                            ],
+                          ),
+                        ],
+                      );
+                    }
+                  ),
+                ),
               ],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
+            ],
           ),
-          if (item.discount > 0)
+          actions: [
             TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            if (item.discount > 0)
+              TextButton(
+                onPressed: () async {
+                  // Remove discount
+                  final dbService = ref.read(databaseServiceProvider);
+                  await dbService.updateCartItem(
+                    item.id!,
+                    discount: 0,
+                  );
+                  Navigator.pop(dialogContext);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Discount removed'),
+                      backgroundColor: Colors.blue,
+                    ),
+                  );
+                },
+                child: const Text('Remove'),
+              ),
+            ElevatedButton(
               onPressed: () async {
-                // Remove discount
+                final discountValue = double.tryParse(discountController.text) ?? 0;
+                double finalDiscountPercentage = 0;
+                
+                if (isPercentage) {
+                  if (discountValue < 0 || discountValue > 100) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Percentage must be between 0 and 100'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                    return;
+                  }
+                  finalDiscountPercentage = discountValue;
+                } else {
+                  // Convert dollar amount to percentage
+                  if (discountValue < 0 || discountValue > unitPrice) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Amount must be between \$0 and ${_formatPrice(unitPrice)}'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                    return;
+                  }
+                  finalDiscountPercentage = (discountValue / unitPrice) * 100;
+                }
+                
                 final dbService = ref.read(databaseServiceProvider);
                 await dbService.updateCartItem(
                   item.id!,
-                  discount: 0,
+                  discount: finalDiscountPercentage,
                 );
+                
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Discount removed'),
-                    backgroundColor: Colors.blue,
+                  SnackBar(
+                    content: Text('Discount ${finalDiscountPercentage > 0 ? "applied" : "removed"}'),
+                    backgroundColor: Colors.green,
                   ),
                 );
               },
-              child: const Text('Remove'),
+              child: const Text('Apply'),
             ),
-          ElevatedButton(
-            onPressed: () async {
-              final discount = double.tryParse(discountController.text) ?? 0;
-              if (discount < 0 || discount > 100) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Discount must be between 0 and 100'),
-                    backgroundColor: Colors.orange,
-                  ),
-                );
-                return;
-              }
-              
-              final dbService = ref.read(databaseServiceProvider);
-              await dbService.updateCartItem(
-                item.id!,
-                discount: discount,
-              );
-              
-              Navigator.pop(dialogContext);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Discount ${discount > 0 ? "applied" : "removed"}'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            },
-            child: const Text('Apply'),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
