@@ -784,6 +784,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                                                 child: Theme(
                                                   data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                                                   child: ExpansionTile(
+                                                    initiallyExpanded: false,
                                                     tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                                     childrenPadding: const EdgeInsets.all(12),
                                                     leading: Container(
@@ -1021,6 +1022,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                                                   child: Theme(
                                                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                                                     child: ExpansionTile(
+                                                      initiallyExpanded: false,
                                                       tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                                       childrenPadding: const EdgeInsets.all(12),
                                                       leading: Container(
