@@ -1,0 +1,12 @@
+[
+  {
+    "origin": [
+      "https://taquotes.web.app",
+      "https://taquotes.firebaseapp.com",
+      "http://localhost:*",
+      "http://127.0.0.1:*"
+    ],
+    "method": ["GET", "HEAD"],
+    "maxAgeSeconds": 3600
+  }
+]

@@ -150,7 +150,9 @@
       "Bash(then echo \"firebase_options.dart exists\")",
       "Bash(else echo \"firebase_options.dart not found\")",
       "Bash(firebase hosting:disable:*)",
-      "Bash(firebase hosting:enable:*)"
+      "Bash(firebase hosting:enable:*)",
+      "Bash(gsutil cors:*)",
+      "Bash(gcloud storage buckets update:*)"
     ],
     "deny": [],
     "ask": [
