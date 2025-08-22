@@ -459,6 +459,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     useThumbnail: true,
                     fit: BoxFit.contain,
                     width: double.infinity,
+                    imageUrl: product.thumbnailUrl ?? product.imageUrl,
                   ),
                 ),
               ),

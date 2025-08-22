@@ -144,7 +144,8 @@
       "Bash(gcloud services enable:*)",
       "Bash(firebase apps:list:*)",
       "Bash(else echo \"firebase_options.dart not found (good)\")",
-      "Bash(else echo \"✓ firebase_options.dart not found (good)\")"
+      "Bash(else echo \"✓ firebase_options.dart not found (good)\")",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": [

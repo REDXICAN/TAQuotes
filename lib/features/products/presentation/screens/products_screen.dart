@@ -2015,6 +2015,7 @@ Future<void> _handleExcelUpload() async {
                       sku: product.sku ?? product.model ?? '',
                       useThumbnail: true,
                       fit: BoxFit.cover,
+                      imageUrl: product.thumbnailUrl ?? product.imageUrl,
                     ),
                   ),
                 ),
