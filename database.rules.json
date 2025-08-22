@@ -46,6 +46,13 @@
       }
     },
     
+    "preserved_comments": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+    
     "user_profiles": {
       "$uid": {
         ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",

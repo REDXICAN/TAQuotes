@@ -467,6 +467,9 @@ class RealtimeDatabaseService {
       final key = newQuoteRef.key;
       if (key == null) throw Exception('Failed to generate quote ID');
       
+      // Clear all preserved comments after quote creation
+      await clearAllPreservedComments();
+      
       return key;
     } catch (e) {
       AppLogger.error('Error creating quote - clientId: $clientId, items: ${items.length}, total: $totalAmount', 
@@ -525,6 +528,61 @@ class RealtimeDatabaseService {
     } catch (e) {
       // Log error and rethrow
       rethrow;
+    }
+  }
+
+  // ============ PRESERVED COMMENTS ============
+  // Store comments temporarily when items are removed from cart
+  Future<void> preserveComment(String productId, String comment) async {
+    if (userId == null) return;
+    
+    try {
+      await _db.ref('preserved_comments/$userId/$productId').set({
+        'comment': comment,
+        'preserved_at': ServerValue.timestamp,
+      });
+      
+      AppLogger.info('Comment preserved for product: $productId', category: LogCategory.business);
+    } catch (e) {
+      AppLogger.error('Error preserving comment', error: e);
+    }
+  }
+  
+  Future<String?> getPreservedComment(String productId) async {
+    if (userId == null) return null;
+    
+    try {
+      final snapshot = await _db.ref('preserved_comments/$userId/$productId').get();
+      if (snapshot.exists) {
+        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        return data['comment'] as String?;
+      }
+      return null;
+    } catch (e) {
+      AppLogger.error('Error fetching preserved comment', error: e);
+      return null;
+    }
+  }
+  
+  Future<void> clearPreservedComment(String productId) async {
+    if (userId == null) return;
+    
+    try {
+      await _db.ref('preserved_comments/$userId/$productId').remove();
+      AppLogger.info('Preserved comment cleared for product: $productId', category: LogCategory.business);
+    } catch (e) {
+      AppLogger.error('Error clearing preserved comment', error: e);
+    }
+  }
+  
+  Future<void> clearAllPreservedComments() async {
+    if (userId == null) return;
+    
+    try {
+      await _db.ref('preserved_comments/$userId').remove();
+      AppLogger.info('All preserved comments cleared', category: LogCategory.business);
+    } catch (e) {
+      AppLogger.error('Error clearing all preserved comments', error: e);
     }
   }
 

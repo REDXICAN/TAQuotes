@@ -37,11 +37,13 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   bool _showNoteField = false;
   String? _cartItemId;
   final _noteController = TextEditingController();
+  Map<String, String> _preservedComments = {}; // Store preserved comments in memory
 
   @override
   void initState() {
     super.initState();
     _checkExistingCartItem();
+    _loadPreservedComment();
   }
 
   Future<void> _checkExistingCartItem() async {
@@ -58,6 +60,58 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
           _showNoteField = _cartItemId != null;
         });
         break;
+      }
+    }
+  }
+
+  Future<void> _loadPreservedComment() async {
+    // Load preserved comment from database if item was previously removed
+    final dbService = ref.read(databaseServiceProvider);
+    final preservedComment = await dbService.getPreservedComment(widget.productId);
+    if (preservedComment != null && _note.isEmpty) {
+      setState(() {
+        _note = preservedComment;
+        _noteController.text = preservedComment;
+      });
+    }
+  }
+
+  Future<void> _updateQuantity(int newQuantity) async {
+    if (newQuantity < 0) return;
+    
+    final dbService = ref.read(databaseServiceProvider);
+    
+    if (newQuantity == 0 && _cartItemId != null) {
+      // Preserve the comment before removing from cart
+      if (_note.isNotEmpty) {
+        await dbService.preserveComment(widget.productId, _note);
+      }
+      
+      // Remove from cart
+      await dbService.removeFromCart(_cartItemId!);
+      
+      setState(() {
+        _quantity = 0;
+        _cartItemId = null;
+        _showNoteField = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Item removed from cart${_note.isNotEmpty ? ' (note preserved)' : ''}'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } else if (newQuantity > 0) {
+      setState(() {
+        _quantity = newQuantity;
+      });
+      
+      if (_cartItemId != null) {
+        // Update existing cart item
+        await dbService.updateCartItem(_cartItemId!, quantity: newQuantity);
       }
     }
   }
@@ -263,9 +317,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                               children: [
                                 IconButton(
                                   icon: const Icon(Icons.remove),
-                                  onPressed: _quantity > 1
-                                      ? () => setState(() => _quantity--)
-                                      : null,
+                                  onPressed: _cartItemId != null && _quantity > 0
+                                      ? () => _updateQuantity(_quantity - 1)
+                                      : _quantity > 1
+                                          ? () => setState(() => _quantity--)
+                                          : null,
                                 ),
                                 SizedBox(
                                   width: 50,
@@ -277,7 +333,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.add),
-                                  onPressed: () => setState(() => _quantity++),
+                                  onPressed: _cartItemId != null 
+                                      ? () => _updateQuantity(_quantity + 1)
+                                      : () => setState(() => _quantity++),
                                 ),
                               ],
                             ),
@@ -299,6 +357,16 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                         _cartItemId = item['id'];
                                         _showNoteField = true;
                                       });
+                                      
+                                      // Restore preserved comment if exists
+                                      if (_note.isNotEmpty) {
+                                        await dbService.updateCartItem(
+                                          item['id'],
+                                          note: _note,
+                                        );
+                                        // Clear preserved comment after restoring
+                                        await dbService.clearPreservedComment(widget.productId);
+                                      }
                                       break;
                                     }
                                   }
@@ -603,9 +671,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                   children: [
                                     IconButton(
                                       icon: const Icon(Icons.remove),
-                                      onPressed: _quantity > 1
-                                          ? () => setState(() => _quantity--)
-                                          : null,
+                                      onPressed: _cartItemId != null && _quantity > 0
+                                          ? () => _updateQuantity(_quantity - 1)
+                                          : _quantity > 1
+                                              ? () => setState(() => _quantity--)
+                                              : null,
                                     ),
                                     SizedBox(
                                       width: 50,
@@ -617,7 +687,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                     ),
                                     IconButton(
                                       icon: const Icon(Icons.add),
-                                      onPressed: () => setState(() => _quantity++),
+                                      onPressed: _cartItemId != null 
+                                          ? () => _updateQuantity(_quantity + 1)
+                                          : () => setState(() => _quantity++),
                                     ),
                                   ],
                                 ),
@@ -639,6 +711,16 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                             _cartItemId = item['id'];
                                             _showNoteField = true;
                                           });
+                                          
+                                          // Restore preserved comment if exists
+                                          if (_note.isNotEmpty) {
+                                            await dbService.updateCartItem(
+                                              item['id'],
+                                              note: _note,
+                                            );
+                                            // Clear preserved comment after restoring
+                                            await dbService.clearPreservedComment(widget.productId);
+                                          }
                                           break;
                                         }
                                       }
