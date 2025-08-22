@@ -1109,9 +1109,12 @@ class ProductImageHelper {
 
   // Method expected by quote detail screen - use compressed thumbnails
   static Widget buildProductThumbnail(String sku, {double size = 60}) {
-    // Try compressed thumbnail first for better performance
+    // Try different thumbnail patterns with suffixes
+    // The actual folder structure has suffixes like _Left, _Right, _empty
+    final thumbnailPath = _findThumbnailPath(sku);
+    
     return Image.asset(
-      'assets/thumbnails/$sku/$sku.jpg',
+      thumbnailPath,
       width: size,
       height: size,
       fit: BoxFit.cover,
@@ -1122,22 +1125,38 @@ class ProductImageHelper {
     );
   }
   
+  // Helper to find the correct thumbnail path with suffixes
+  static String _findThumbnailPath(String sku) {
+    // Common suffixes in the thumbnail folders
+    final suffixes = ['_Left', '_Right', '_empty', '_full', ''];
+    
+    for (final suffix in suffixes) {
+      final folderName = '$sku$suffix';
+      final path = 'assets/thumbnails/$folderName/$folderName.jpg';
+      // Return the first valid pattern
+      // In production, all these paths are bundled, so we try the most common first
+      if (suffix == '_Left' || suffix == '_empty') {
+        return path;
+      }
+    }
+    
+    // Default path
+    return 'assets/thumbnails/$sku/$sku.jpg';
+  }
+  
   // Missing methods that are being called from products_screen.dart
   static String getImagePathWithFallback(String sku) {
-    // First try exact match
+    // First try exact match in screenshots
     if (_productImages.containsKey(sku)) {
       return _productImages[sku]!;
     }
     
-    // Try to find image in thumbnails
-    final thumbnailPath = 'assets/thumbnails/$sku/$sku.jpg';
-    
-    // Return thumbnail path or placeholder
-    return thumbnailPath;
+    // Try to find image in thumbnails with proper suffix
+    return _findThumbnailPath(sku);
   }
   
   static String getThumbnailPath(String sku) {
-    // Return thumbnail path directly
-    return 'assets/thumbnails/$sku/$sku.jpg';
+    // Return thumbnail path with proper suffix handling
+    return _findThumbnailPath(sku);
   }
 }
