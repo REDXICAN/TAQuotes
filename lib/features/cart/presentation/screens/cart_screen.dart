@@ -381,6 +381,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                             sku: product.sku ?? product.model ?? '',
                                             useThumbnail: true,
                                             fit: BoxFit.contain,
+                                            imageUrl: product.thumbnailUrl ?? product.imageUrl,
                                           ),
                                         )
                                       else
@@ -457,6 +458,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                         sku: product.sku ?? product.model ?? '',
                                         useThumbnail: true,
                                         fit: BoxFit.contain,
+                                        imageUrl: product.thumbnailUrl ?? product.imageUrl,
                                       ),
                                     )
                                   : Container(
@@ -1032,6 +1034,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         sku: product.sku ?? product.model ?? '',
                         useThumbnail: false,  // Use full screenshot in popup
                         fit: BoxFit.contain,
+                        imageUrl: product.imageUrl ?? product.thumbnailUrl,
                       ),
                     ),
                   ),

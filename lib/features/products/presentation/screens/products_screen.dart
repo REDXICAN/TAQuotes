@@ -2293,6 +2293,7 @@ class ProductCard extends ConsumerWidget {
                     useThumbnail: true,
                     fit: BoxFit.contain,
                     width: double.infinity,
+                    imageUrl: product.thumbnailUrl ?? product.imageUrl,
                   ),
                 ),
               ),

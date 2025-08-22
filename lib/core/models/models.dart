@@ -158,6 +158,8 @@ class Product {
   final String? sku;
   final double price;
   final String? imageUrl;
+  final String? imageUrl2;  // P.2 screenshot
+  final String? thumbnailUrl;
   final int stock;
   final String? dimensions;
   final String? weight;
@@ -192,6 +194,8 @@ class Product {
     this.sku,
     required this.price,
     this.imageUrl,
+    this.imageUrl2,
+    this.thumbnailUrl,
     required this.stock,
     this.dimensions,
     this.weight,
@@ -228,6 +232,8 @@ class Product {
       'sku': sku,
       'price': price,
       'imageUrl': imageUrl,
+      'imageUrl2': imageUrl2,
+      'thumbnailUrl': thumbnailUrl,
       'stock': stock,
       'dimensions': dimensions,
       'weight': weight,
@@ -311,6 +317,8 @@ class Product {
       sku: map['sku'],
       price: parseDoubleSafely(map['price']),
       imageUrl: map['imageUrl'] ?? map['image_url'],  // Handle both formats
+      imageUrl2: map['imageUrl2'] ?? map['image_url2'],  // P.2 screenshot
+      thumbnailUrl: map['thumbnailUrl'] ?? map['thumbnail_url'],  // Handle both formats
       stock: parseIntWithDefault(map['stock']),
       dimensions: map['dimensions'],
       weight: map['weight'],

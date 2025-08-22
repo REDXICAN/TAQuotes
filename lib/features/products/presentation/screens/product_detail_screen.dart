@@ -256,6 +256,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                         Expanded(
                           child: ProductDetailImages(
                             sku: product.sku ?? product.model,
+                            imageUrl: product.imageUrl,
+                            imageUrl2: product.imageUrl2,
+                            thumbnailUrl: product.thumbnailUrl,
                           ),
                         ),
                       ],
@@ -450,6 +453,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                             height: MediaQuery.of(context).size.height * 0.8,
                             child: ProductDetailImages(
                               sku: product.sku ?? product.model,
+                              imageUrl: product.imageUrl,
+                              imageUrl2: product.imageUrl2,
+                              thumbnailUrl: product.thumbnailUrl,
                             ),
                           ),
                         ],

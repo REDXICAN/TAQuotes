@@ -474,6 +474,7 @@ class QuoteDetailScreen extends ConsumerWidget {
                   width: 60,
                   height: 60,
                   fit: BoxFit.contain,
+                  imageUrl: item.product?.thumbnailUrl ?? item.product?.imageUrl,
                 ),
               ),
             ),

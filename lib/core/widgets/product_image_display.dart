@@ -149,8 +149,38 @@ class _ProductImageDisplayState extends State<ProductImageDisplay> {
   }
   
   Widget _buildImageWithFallback() {
-    // Always try asset images first since we have them locally
-    // Only use network images if explicitly no local assets exist
+    // If we have a Firebase Storage URL, use it directly
+    if (widget.imageUrl != null && widget.imageUrl!.isNotEmpty) {
+      return Image.network(
+        widget.imageUrl!,
+        width: widget.width,
+        height: widget.height,
+        fit: widget.fit,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            width: widget.width,
+            height: widget.height,
+            color: Colors.grey[100],
+            child: Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
+                strokeWidth: 2,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          // Fall back to asset images if network fails
+          return _buildAssetImageWithFallback();
+        },
+      );
+    }
+    
+    // Otherwise try asset images
     return _buildAssetImageWithFallback();
   }
   

@@ -138,7 +138,11 @@
       "Bash(else echo \"Firebase admin key not found - you need to download it\")",
       "Bash(else echo \"✓ .env file not found (good)\")",
       "Bash(else echo \"✓ firebase_options.dart not found (good)\")",
-      "Bash(else echo \"✓ functions/.env not found (good)\")"
+      "Bash(else echo \"✓ functions/.env not found (good)\")",
+      "Bash(firebase storage:buckets:list:*)",
+      "Bash(start https://console.firebase.google.com/project/taquotes/storage)",
+      "Bash(gcloud services enable:*)",
+      "Bash(firebase apps:list:*)"
     ],
     "deny": [],
     "ask": [

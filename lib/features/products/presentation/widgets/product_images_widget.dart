@@ -4,10 +4,14 @@ import '../../../../core/widgets/product_image_display.dart';
 
 class ProductImagesWidget extends StatefulWidget {
   final String sku;
+  final String? imageUrl;
+  final String? thumbnailUrl;
   
   const ProductImagesWidget({
     super.key,
     required this.sku,
+    this.imageUrl,
+    this.thumbnailUrl,
   });
 
   @override
@@ -99,6 +103,7 @@ class _ProductImagesWidgetState extends State<ProductImagesWidget> {
                             fit: BoxFit.contain,
                             width: double.infinity,
                             height: carouselHeight,
+                            imageUrl: widget.imageUrl,
                           ),
                         ),
                       ),

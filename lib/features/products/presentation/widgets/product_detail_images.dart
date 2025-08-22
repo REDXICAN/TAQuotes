@@ -3,10 +3,16 @@ import '../../../../core/widgets/simple_image_widget.dart';
 
 class ProductDetailImages extends StatefulWidget {
   final String sku;
+  final String? imageUrl;
+  final String? imageUrl2;
+  final String? thumbnailUrl;
   
   const ProductDetailImages({
     super.key,
     required this.sku,
+    this.imageUrl,
+    this.imageUrl2,
+    this.thumbnailUrl,
   });
 
   @override
@@ -55,9 +61,9 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
                 },
                 children: [
                   // P.1
-                  _buildImagePage(cleanSku, 1),
+                  _buildImagePage(cleanSku, 1, widget.imageUrl),
                   // P.2
-                  _buildImagePage(cleanSku, 2),
+                  _buildImagePage(cleanSku, 2, widget.imageUrl2),
                 ],
               ),
               
@@ -166,7 +172,39 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
     );
   }
   
-  Widget _buildImagePage(String sku, int pageNumber) {
+  Widget _buildImagePage(String sku, int pageNumber, String? firebaseUrl) {
+    // If we have a Firebase URL for this page, use it
+    if (firebaseUrl != null && firebaseUrl.isNotEmpty) {
+      return Container(
+        color: Colors.white,
+        child: Center(
+          child: Image.network(
+            firebaseUrl,
+            fit: BoxFit.contain,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Center(
+                child: CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                      : null,
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              // Fall back to asset loading
+              return _buildAssetImage(sku, pageNumber);
+            },
+          ),
+        ),
+      );
+    }
+    
+    return _buildAssetImage(sku, pageNumber);
+  }
+  
+  Widget _buildAssetImage(String sku, int pageNumber) {
     // Build list of paths to try for this page
     final paths = [
       'assets/screenshots/$sku/$sku P.$pageNumber.png',

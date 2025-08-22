@@ -6,6 +6,7 @@ class SimpleImageWidget extends StatelessWidget {
   final double? width;
   final double? height;
   final BoxFit fit;
+  final String? imageUrl;  // Add Firebase Storage URL support
   
   const SimpleImageWidget({
     super.key,
@@ -14,13 +15,50 @@ class SimpleImageWidget extends StatelessWidget {
     this.width,
     this.height,
     this.fit = BoxFit.contain,
+    this.imageUrl,
   });
   
   @override
   Widget build(BuildContext context) {
+    // If we have a Firebase Storage URL, use it directly
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return Image.network(
+        imageUrl!,
+        width: width,
+        height: height,
+        fit: fit,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            width: width,
+            height: height,
+            color: Colors.grey[100],
+            child: Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
+                strokeWidth: 2,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          // Fall back to asset images if network fails
+          return _buildAssetImage();
+        },
+      );
+    }
+    
     if (sku.isEmpty) {
       return _buildPlaceholder();
     }
+    
+    return _buildAssetImage();
+  }
+  
+  Widget _buildAssetImage() {
     
     // Clean SKU - just uppercase and trim
     final cleanSku = sku.toUpperCase().trim();

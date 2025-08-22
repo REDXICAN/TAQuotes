@@ -679,9 +679,56 @@ Application successfully deployed to Firebase Hosting and fully operational.
 - **Email Not Sending**: Verify Gmail SMTP settings in .env
 - **Offline Not Working**: Ensure 100MB cache space available
 
+## 🖼️ Firebase Storage Image System (CRITICAL - WORKING)
+
+### Image Migration to Firebase Storage (August 2025)
+**Problem Solved**: Flutter web cannot bundle 3,534 nested asset files. Images were not displaying in production.
+
+**Solution Implemented**:
+1. **Firebase Storage Configuration**
+   - Storage bucket: `taquotes.firebasestorage.app` (NOT taquotes.appspot.com)
+   - 3,534 images successfully uploaded (1,454 thumbnails, 2,080 screenshots)
+   - Public read access enabled for product images
+
+2. **Database Image URLs**
+   - `thumbnailUrl`: Firebase Storage URL for product thumbnails
+   - `imageUrl`: P.1 screenshot URL
+   - `imageUrl2`: P.2 screenshot URL
+   - 830 products have Firebase URLs
+   - 823 products have both P.1 and P.2 screenshots
+
+3. **Flutter App Updates**
+   - `SimpleImageWidget` accepts `imageUrl` parameter for Firebase URLs
+   - `ProductImageDisplay` supports network images with fallback to assets
+   - `ProductDetailImages` displays both P.1 and P.2 from Firebase
+   - All product cards pass Firebase URLs to image widgets
+
+4. **Scripts Created**
+   - `upload_images_to_firebase.py`: Uploads all images to Firebase Storage
+   - `update_database_urls.py`: Updates database with Firebase Storage URLs
+   - `add_p2_urls.py`: Adds P.2 screenshot URLs to database
+   - `count_uploads.py`: Monitors upload progress
+   - `verify_urls.py`: Verifies database has all image URLs
+
+### IMPORTANT: DO NOT CHANGE
+- Thumbnails in products screen are working perfectly with Firebase Storage
+- Screenshots in product detail pages display both P.1 and P.2
+- The storage bucket name is `taquotes.firebasestorage.app`
+- Image loading falls back to local assets if Firebase fails
+
 ## 🔄 Version History
 
-### Version 1.3.0 (Current - December 2025)
+### Version 1.4.0 (Current - August 2025)
+- **MAJOR: Migrated all 3,534 product images to Firebase Storage**
+- Fixed thumbnails not displaying in production (Flutter web asset limitation)
+- Added Firebase Storage URLs to database (thumbnailUrl, imageUrl, imageUrl2)
+- Updated all image widgets to load from Firebase Storage CDN
+- Implemented fallback to local assets if Firebase fails
+- Created Python scripts for image migration and database updates
+- 830 products now have Firebase Storage image URLs
+- Both P.1 and P.2 screenshots working in product detail pages
+
+### Version 1.3.0 (December 2024)
 - Implemented comprehensive security enhancements
 - Added CSRF protection and rate limiting
 - Enhanced logging with security audit trails
@@ -730,8 +777,8 @@ Application successfully deployed to Firebase Hosting and fully operational.
 
 ---
 
-**Last Updated**: December 2024  
-**Current Version**: 1.2.1  
+**Last Updated**: August 2025  
+**Current Version**: 1.4.0  
 **Deployment**: Firebase Hosting (taquotes)  
 **Repository**: https://github.com/REDXICAN/TAQuotes
 - do not add nor remove functionality
