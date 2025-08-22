@@ -149,7 +149,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
   bool _isSearching = false;
   bool _isUploading = false;
   bool _isTableView = false;
-  int _visibleItemCount = 24; // Show 24 items initially
+  int _visibleItemCount = 24; // Show 24 items initially on web
   TabController? _tabController;
   List<String> _productTypes = ['All'];
   String _selectedProductType = 'All';
@@ -159,13 +159,23 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
     super.initState();
     _scrollController.addListener(_onScroll);
     // Tab controller will be initialized when product types are loaded
+    
+    // Set initial visible count based on platform
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final screenWidth = MediaQuery.of(context).size.width;
+      setState(() {
+        _visibleItemCount = screenWidth > 1200 ? 24 : 12; // 24 for desktop, 12 for mobile/tablet
+      });
+    });
   }
   
   void _onScroll() {
     if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 500) {
       // Load more items when near bottom
       setState(() {
-        _visibleItemCount += 12; // Load 12 more items at a time for smoother experience
+        final screenWidth = MediaQuery.of(context).size.width;
+        final increment = screenWidth > 1200 ? 24 : 12; // Load more items on desktop
+        _visibleItemCount += increment;
       });
     }
   }
@@ -538,7 +548,8 @@ Future<void> _handleExcelUpload() async {
                     onSelected: (_) {
                       setState(() {
                         selectedProductLine = null;
-                        _visibleItemCount = 12;
+                        final screenWidth = MediaQuery.of(context).size.width;
+                        _visibleItemCount = screenWidth > 1200 ? 24 : 12;
                       });
                       ref.invalidate(productsProvider);
                     },
@@ -607,7 +618,8 @@ Future<void> _handleExcelUpload() async {
                             onSelected: (value) {
                               setState(() {
                                 selectedProductLine = value;
-                                _visibleItemCount = 12; // Reset pagination
+                                final screenWidth = MediaQuery.of(context).size.width;
+                                _visibleItemCount = screenWidth > 1200 ? 24 : 12; // Reset pagination
                               });
                             },
                             itemBuilder: (context) => [
@@ -766,7 +778,8 @@ Future<void> _handleExcelUpload() async {
                                 onPressed: () {
                                   setState(() {
                                     selectedProductLine = null;
-                                    _visibleItemCount = 12;
+                                    final screenWidth = MediaQuery.of(context).size.width;
+                                    _visibleItemCount = screenWidth > 1200 ? 24 : 12;
                                   });
                                 },
                                 child: const Text('Clear Filters'),

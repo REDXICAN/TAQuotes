@@ -175,27 +175,33 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
   Widget _buildImagePage(String sku, int pageNumber, String? firebaseUrl) {
     // If we have a Firebase URL for this page, use it
     if (firebaseUrl != null && firebaseUrl.isNotEmpty) {
-      return Container(
-        color: Colors.white,
-        child: Center(
-          child: Image.network(
-            firebaseUrl,
-            fit: BoxFit.contain,
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return Center(
-                child: CircularProgressIndicator(
-                  value: loadingProgress.expectedTotalBytes != null
-                      ? loadingProgress.cumulativeBytesLoaded /
-                          loadingProgress.expectedTotalBytes!
-                      : null,
-                ),
-              );
-            },
-            errorBuilder: (context, error, stackTrace) {
-              // Fall back to asset loading
-              return _buildAssetImage(sku, pageNumber);
-            },
+      return GestureDetector(
+        onTap: () => _showZoomedImage(context, firebaseUrl, sku, pageNumber),
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Container(
+            color: Colors.white,
+            child: Center(
+              child: Image.network(
+                firebaseUrl,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  // Fall back to asset loading
+                  return _buildAssetImage(sku, pageNumber);
+                },
+              ),
+            ),
           ),
         ),
       );
@@ -213,13 +219,17 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
       'assets/screenshots/${sku.replaceAll(RegExp(r'-N\d?$'), '')}/${sku.replaceAll(RegExp(r'-N\d?$'), '')} P.$pageNumber.png',
     ];
     
-    return Container(
-      color: Colors.white,
-      child: Center(
-        child: _ImageWithFallback(
-          paths: paths,
-          fit: BoxFit.contain,
-          placeholder: Container(
+    return GestureDetector(
+      onTap: () => _showZoomedImage(context, null, sku, pageNumber),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Container(
+          color: Colors.white,
+          child: Center(
+            child: _ImageWithFallback(
+              paths: paths,
+              fit: BoxFit.contain,
+              placeholder: Container(
             color: Colors.grey[100],
             child: Center(
               child: Column(
@@ -244,6 +254,95 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
           ),
         ),
       ),
+    ),
+      ),
+    );
+  }
+  
+  void _showZoomedImage(BuildContext context, String? imageUrl, String sku, int pageNumber) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(20),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Close button
+              Positioned(
+                top: 10,
+                right: 10,
+                child: IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.close, color: Colors.white, size: 24),
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+              // Zoomable image
+              Container(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.9,
+                  maxHeight: MediaQuery.of(context).size.height * 0.9,
+                ),
+                child: InteractiveViewer(
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: imageUrl != null
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildAssetImageForZoom(sku, pageNumber);
+                          },
+                        )
+                      : _buildAssetImageForZoom(sku, pageNumber),
+                ),
+              ),
+              // SKU and page info
+              Positioned(
+                bottom: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '$sku - Page $pageNumber',
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+  
+  Widget _buildAssetImageForZoom(String sku, int pageNumber) {
+    return Image.asset(
+      'assets/screenshots/$sku/$sku P.$pageNumber.png',
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: Colors.grey[900],
+          child: Center(
+            child: Text(
+              'Image not available',
+              style: TextStyle(color: Colors.grey[400]),
+            ),
+          ),
+        );
+      },
     );
   }
 }

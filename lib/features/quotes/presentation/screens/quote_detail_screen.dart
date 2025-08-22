@@ -458,16 +458,17 @@ class QuoteDetailScreen extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            // Product image thumbnail
+            // Product image thumbnail with white background
             Container(
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.grey.shade300, width: 1),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(3),
                 child: SimpleImageWidget(
                   sku: item.product?.sku ?? item.product?.model ?? item.productId,
                   useThumbnail: true,

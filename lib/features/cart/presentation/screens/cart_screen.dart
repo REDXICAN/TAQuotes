@@ -372,23 +372,41 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                 children: [
                                   Row(
                                     children: [
-                                      // Image
+                                      // Image with white background
                                       if (product != null)
-                                        SizedBox(
+                                        Container(
                                           width: 60,
                                           height: 60,
-                                          child: SimpleImageWidget(
-                                            sku: product.sku ?? product.model ?? '',
-                                            useThumbnail: true,
-                                            fit: BoxFit.contain,
-                                            imageUrl: product.thumbnailUrl ?? product.imageUrl,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(
+                                              color: Colors.grey.shade300,
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(3),
+                                            child: SimpleImageWidget(
+                                              sku: product.sku ?? product.model ?? '',
+                                              useThumbnail: true,
+                                              fit: BoxFit.contain,
+                                              imageUrl: product.thumbnailUrl ?? product.imageUrl,
+                                            ),
                                           ),
                                         )
                                       else
                                         Container(
                                           width: 60,
                                           height: 60,
-                                          color: theme.disabledColor.withOpacity(0.1),
+                                          decoration: BoxDecoration(
+                                            color: theme.disabledColor.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(
+                                              color: Colors.grey.shade300,
+                                              width: 1,
+                                            ),
+                                          ),
                                           child: const Icon(Icons.inventory_2, size: 20),
                                         ),
                                       const SizedBox(width: 12),
@@ -451,20 +469,38 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           : // Normal layout
                             ListTile(
                               leading: product != null
-                                  ? SizedBox(
+                                  ? Container(
                                       width: isMobile ? 50 : 60,
                                       height: isMobile ? 50 : 60,
-                                      child: SimpleImageWidget(
-                                        sku: product.sku ?? product.model ?? '',
-                                        useThumbnail: true,
-                                        fit: BoxFit.contain,
-                                        imageUrl: product.thumbnailUrl ?? product.imageUrl,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                          color: Colors.grey.shade300,
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(3),
+                                        child: SimpleImageWidget(
+                                          sku: product.sku ?? product.model ?? '',
+                                          useThumbnail: true,
+                                          fit: BoxFit.contain,
+                                          imageUrl: product.thumbnailUrl ?? product.imageUrl,
+                                        ),
                                       ),
                                     )
                                   : Container(
                                       width: isMobile ? 50 : 60,
                                       height: isMobile ? 50 : 60,
-                                      color: theme.disabledColor.withOpacity(0.1),
+                                      decoration: BoxDecoration(
+                                        color: theme.disabledColor.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                          color: Colors.grey.shade300,
+                                          width: 1,
+                                        ),
+                                      ),
                                       child: Icon(
                                         Icons.inventory_2,
                                         size: ResponsiveHelper.getIconSize(context, baseSize: 24),
