@@ -313,16 +313,39 @@ class RealtimeDatabaseService {
     }
   }
 
-  Future<void> updateCartItem(String cartItemId, int quantity) async {
+  Future<void> updateCartItem(String cartItemId, {
+    int? quantity,
+    double? discount,
+    String? note,
+    String? sequenceNumber,
+  }) async {
     if (userId == null) return;
-    if (quantity <= 0) {
+    
+    // If only quantity is being updated and it's 0 or less, remove the item
+    if (quantity != null && quantity <= 0 && discount == null && note == null) {
       await removeFromCart(cartItemId);
-    } else {
-      await _db.ref('cart_items/$userId/$cartItemId').update({
-        'quantity': quantity,
-        'updated_at': ServerValue.timestamp,
-      });
+      return;
     }
+    
+    // Build update map with only provided values
+    final updates = <String, dynamic>{
+      'updated_at': ServerValue.timestamp,
+    };
+    
+    if (quantity != null) {
+      updates['quantity'] = quantity;
+    }
+    if (discount != null) {
+      updates['discount'] = discount;
+    }
+    if (note != null) {
+      updates['note'] = note.isEmpty ? null : note;
+    }
+    if (sequenceNumber != null) {
+      updates['sequenceNumber'] = sequenceNumber;
+    }
+    
+    await _db.ref('cart_items/$userId/$cartItemId').update(updates);
   }
 
   Future<void> removeFromCart(String cartItemId) async {

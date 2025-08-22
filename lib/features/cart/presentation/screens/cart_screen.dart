@@ -425,7 +425,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                             ),
                                             const SizedBox(height: 4),
                                             Text(
-                                              _formatPrice((product?.price ?? 0) * item.quantity),
+                                              _formatPrice(_calculateItemTotal(item, product)),
                                               style: TextStyle(
                                                 color: theme.primaryColor,
                                                 fontWeight: FontWeight.bold,
@@ -506,16 +506,43 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                         size: ResponsiveHelper.getIconSize(context, baseSize: 24),
                                       ),
                                     ),
-                              title: Text(
-                                product?.sku ?? product?.model ?? 'Unknown Product',
-                                style: TextStyle(
-                                  fontSize: ResponsiveHelper.getValue(
-                                    context,
-                                    mobile: 14,
-                                    tablet: 16,
-                                    desktop: 16,
+                              title: Row(
+                                children: [
+                                  // Sequence number display
+                                  if (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      margin: const EdgeInsets.only(right: 8),
+                                      decoration: BoxDecoration(
+                                        color: theme.primaryColor.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                          color: theme.primaryColor.withOpacity(0.3),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        '#${item.sequenceNumber}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: theme.primaryColor,
+                                        ),
+                                      ),
+                                    ),
+                                  Expanded(
+                                    child: Text(
+                                      product?.sku ?? product?.model ?? 'Unknown Product',
+                                      style: TextStyle(
+                                        fontSize: ResponsiveHelper.getValue(
+                                          context,
+                                          mobile: 14,
+                                          tablet: 16,
+                                          desktop: 16,
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -532,8 +559,23 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                       color: theme.textTheme.bodySmall?.color,
                                     ),
                                   ),
+                                  // Show discount if applied
+                                  if (item.discount > 0)
+                                    Text(
+                                      'Discount: ${item.discount.toStringAsFixed(0)}%',
+                                      style: TextStyle(
+                                        fontSize: ResponsiveHelper.getValue(
+                                          context,
+                                          mobile: 12,
+                                          tablet: 13,
+                                          desktop: 13,
+                                        ),
+                                        color: Colors.green,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
                                   Text(
-                                    'Total: ${_formatPrice((product?.price ?? 0) * item.quantity)}',
+                                    'Total: ${_formatPrice(_calculateItemTotal(item, product))}',
                                     style: TextStyle(
                                       fontSize: ResponsiveHelper.getValue(
                                         context,
@@ -542,6 +584,78 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                         desktop: 14,
                                       ),
                                       fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  // Show note if exists
+                                  if (item.note != null && item.note!.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.note_alt_outlined, 
+                                            size: 14, 
+                                            color: theme.textTheme.bodySmall?.color),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              item.note!,
+                                              style: TextStyle(
+                                                fontSize: ResponsiveHelper.getValue(
+                                                  context,
+                                                  mobile: 11,
+                                                  tablet: 12,
+                                                  desktop: 12,
+                                                ),
+                                                color: theme.textTheme.bodySmall?.color,
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  // Add action buttons for discount, note, and numbering
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Wrap(
+                                      spacing: 8,
+                                      runSpacing: 4,
+                                      children: [
+                                        // Numbering button
+                                        TextButton.icon(
+                                          icon: const Icon(Icons.tag, size: 16),
+                                          label: Text(item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty 
+                                            ? '#${item.sequenceNumber}' 
+                                            : 'Add #'),
+                                          style: TextButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            textStyle: const TextStyle(fontSize: 12),
+                                          ),
+                                          onPressed: () => _showSequenceNumberDialog(item, index + 1),
+                                        ),
+                                        // Discount button
+                                        TextButton.icon(
+                                          icon: const Icon(Icons.percent, size: 16),
+                                          label: Text(item.discount > 0 ? 'Edit Discount' : 'Add Discount'),
+                                          style: TextButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            textStyle: const TextStyle(fontSize: 12),
+                                          ),
+                                          onPressed: () => _showDiscountDialog(item),
+                                        ),
+                                        // Note button
+                                        TextButton.icon(
+                                          icon: const Icon(Icons.note_add, size: 16),
+                                          label: Text(item.note != null && item.note!.isNotEmpty ? 'Edit Note' : 'Add Note'),
+                                          style: TextButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            textStyle: const TextStyle(fontSize: 12),
+                                          ),
+                                          onPressed: () => _showNoteDialog(item),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -974,7 +1088,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     }
 
     final dbService = ref.read(databaseServiceProvider);
-    await dbService.updateCartItem(item.id ?? '', newQuantity);
+    await dbService.updateCartItem(item.id ?? '', quantity: newQuantity);
     // No need to invalidate as we use StreamProvider for real-time updates
     
     // Show notification when quantity is reduced
@@ -1509,6 +1623,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
   void _showEmailQuoteDialog(String quoteId, Client client) {
     final emailController = TextEditingController(text: client.email ?? '');
+    final formKey = GlobalKey<FormState>();
     bool attachPDF = true;
     bool attachExcel = false;
     
@@ -1517,18 +1632,35 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: const Text('Send Quote via Email'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Recipient Email',
-                  hintText: 'Enter email address',
-                  prefixIcon: Icon(Icons.email),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Recipient Email *',
+                    hintText: 'Enter email address',
+                    prefixIcon: Icon(Icons.email),
+                    helperText: 'Required field',
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Email is required';
+                    }
+                    // Email validation regex
+                    final emailRegex = RegExp(
+                      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                    );
+                    if (!emailRegex.hasMatch(value)) {
+                      return 'Please enter a valid email address';
+                    }
+                    return null;
+                  },
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                 ),
-                keyboardType: TextInputType.emailAddress,
-              ),
               const SizedBox(height: 16),
               CheckboxListTile(
                 title: const Text('Attach PDF'),
@@ -1551,8 +1683,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   });
                 },
                 controlAffinity: ListTileControlAffinity.leading,
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -1560,9 +1693,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: emailController.text.isEmpty
-                  ? null
-                  : () async {
+              onPressed: () async {
+                      // Validate form first
+                      if (!formKey.currentState!.validate()) {
+                        return;
+                      }
                       Navigator.pop(dialogContext);
                       
                       // Show loading
@@ -1717,6 +1852,275 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Calculate item total with discount
+  double _calculateItemTotal(CartItem item, Product? product) {
+    final basePrice = (product?.price ?? 0) * item.quantity;
+    if (item.discount > 0) {
+      final discountAmount = basePrice * (item.discount / 100);
+      return basePrice - discountAmount;
+    }
+    return basePrice;
+  }
+
+  // Show discount dialog for individual item
+  void _showDiscountDialog(CartItem item) {
+    final discountController = TextEditingController(
+      text: item.discount > 0 ? item.discount.toStringAsFixed(0) : '',
+    );
+    
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Item Discount'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Product: ${item.product?.sku ?? item.productName}',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: discountController,
+              decoration: const InputDecoration(
+                labelText: 'Discount Percentage',
+                hintText: 'Enter 0-100',
+                prefixIcon: Icon(Icons.percent),
+                suffixText: '%',
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d{0,3}\.?\d{0,2}')),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          if (item.discount > 0)
+            TextButton(
+              onPressed: () async {
+                // Remove discount
+                final dbService = ref.read(databaseServiceProvider);
+                await dbService.updateCartItem(
+                  item.id!,
+                  discount: 0,
+                );
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Discount removed'),
+                    backgroundColor: Colors.blue,
+                  ),
+                );
+              },
+              child: const Text('Remove'),
+            ),
+          ElevatedButton(
+            onPressed: () async {
+              final discount = double.tryParse(discountController.text) ?? 0;
+              if (discount < 0 || discount > 100) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Discount must be between 0 and 100'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+              
+              final dbService = ref.read(databaseServiceProvider);
+              await dbService.updateCartItem(
+                item.id!,
+                discount: discount,
+              );
+              
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Discount ${discount > 0 ? "applied" : "removed"}'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Show sequence number dialog for individual item
+  void _showSequenceNumberDialog(CartItem item, int defaultNumber) {
+    final sequenceController = TextEditingController(
+      text: item.sequenceNumber ?? defaultNumber.toString().padLeft(3, '0'),
+    );
+    
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Item Number'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Product: ${item.product?.sku ?? item.productName}',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: sequenceController,
+              decoration: const InputDecoration(
+                labelText: 'Sequence Number',
+                hintText: 'e.g., 001, 002, A1, etc.',
+                prefixIcon: Icon(Icons.tag),
+                helperText: 'Custom numbering for quote organization',
+              ),
+              textCapitalization: TextCapitalization.characters,
+              maxLength: 10,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tip: Use numbers (001, 002) or alphanumeric (A1, B2) for easy reference',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          if (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty)
+            TextButton(
+              onPressed: () async {
+                // Remove sequence number
+                final dbService = ref.read(databaseServiceProvider);
+                await dbService.updateCartItem(
+                  item.id!,
+                  sequenceNumber: '',
+                );
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Item number removed'),
+                    backgroundColor: Colors.blue,
+                  ),
+                );
+              },
+              child: const Text('Remove'),
+            ),
+          ElevatedButton(
+            onPressed: () async {
+              final sequenceNumber = sequenceController.text.trim();
+              
+              final dbService = ref.read(databaseServiceProvider);
+              await dbService.updateCartItem(
+                item.id!,
+                sequenceNumber: sequenceNumber,
+              );
+              
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(sequenceNumber.isEmpty 
+                    ? 'Item number removed' 
+                    : 'Item number set to #$sequenceNumber'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Show note dialog for individual item
+  void _showNoteDialog(CartItem item) {
+    final noteController = TextEditingController(text: item.note ?? '');
+    
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Item Note'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Product: ${item.product?.sku ?? item.productName}',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: noteController,
+              decoration: const InputDecoration(
+                labelText: 'Note',
+                hintText: 'Enter note for this item',
+                prefixIcon: Icon(Icons.note_alt_outlined),
+              ),
+              maxLines: 3,
+              textCapitalization: TextCapitalization.sentences,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          if (item.note != null && item.note!.isNotEmpty)
+            TextButton(
+              onPressed: () async {
+                // Remove note
+                final dbService = ref.read(databaseServiceProvider);
+                await dbService.updateCartItem(
+                  item.id!,
+                  note: null,
+                );
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Note removed'),
+                    backgroundColor: Colors.blue,
+                  ),
+                );
+              },
+              child: const Text('Remove'),
+            ),
+          ElevatedButton(
+            onPressed: () async {
+              final note = noteController.text.trim();
+              
+              final dbService = ref.read(databaseServiceProvider);
+              await dbService.updateCartItem(
+                item.id!,
+                note: note.isEmpty ? null : note,
+              );
+              
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(note.isEmpty ? 'Note removed' : 'Note saved'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }
@@ -1938,4 +2342,5 @@ class _ClientSelectorSheetState extends ConsumerState<ClientSelectorSheet> {
       ),
     );
   }
+
 }
