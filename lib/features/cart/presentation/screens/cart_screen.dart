@@ -508,27 +508,34 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                     ),
                               title: Row(
                                 children: [
-                                  // Sequence number display
-                                  if (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      margin: const EdgeInsets.only(right: 8),
-                                      decoration: BoxDecoration(
-                                        color: theme.primaryColor.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(
-                                          color: theme.primaryColor.withOpacity(0.3),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        '#${item.sequenceNumber}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          color: theme.primaryColor,
-                                        ),
+                                  // Sequence number display - Always show with default if not set
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    margin: const EdgeInsets.only(right: 8),
+                                    decoration: BoxDecoration(
+                                      color: (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty)
+                                          ? theme.primaryColor.withOpacity(0.1)
+                                          : Colors.grey.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color: (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty)
+                                            ? theme.primaryColor.withOpacity(0.3)
+                                            : Colors.grey.withOpacity(0.3),
                                       ),
                                     ),
+                                    child: Text(
+                                      item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty
+                                          ? '#${item.sequenceNumber}'
+                                          : '#${(index + 1).toString().padLeft(3, '0')}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty)
+                                            ? theme.primaryColor
+                                            : Colors.grey,
+                                      ),
+                                    ),
+                                  ),
                                   Expanded(
                                     child: Text(
                                       product?.sku ?? product?.model ?? 'Unknown Product',
@@ -627,8 +634,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                         TextButton.icon(
                                           icon: const Icon(Icons.tag, size: 16),
                                           label: Text(item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty 
-                                            ? '#${item.sequenceNumber}' 
-                                            : 'Add #'),
+                                            ? 'Edit #${item.sequenceNumber}' 
+                                            : 'Set #${(index + 1).toString().padLeft(3, '0')}'),
                                           style: TextButton.styleFrom(
                                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                             textStyle: const TextStyle(fontSize: 12),
@@ -1314,13 +1321,16 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       final taxAmount = subtotalAfterDiscount * (taxRate / 100);
       final total = subtotalAfterDiscount + taxAmount;
 
-      // Prepare quote items
-      final quoteItems = items
-          .map((item) => {
-                'product_id': item.productId,
-                'quantity': item.quantity,
-                'unit_price': item.product?.price ?? 0,
-                'total_price': (item.product?.price ?? 0) * item.quantity,
+      // Prepare quote items with sequence numbers, discounts, and notes
+      final quoteItems = items.asMap().entries
+          .map((entry) => {
+                'product_id': entry.value.productId,
+                'quantity': entry.value.quantity,
+                'unit_price': entry.value.product?.price ?? 0,
+                'total_price': _calculateItemTotal(entry.value, entry.value.product),
+                'sequence_number': entry.value.sequenceNumber ?? (entry.key + 1).toString().padLeft(3, '0'),
+                'discount': entry.value.discount,
+                'note': entry.value.note,
               })
           .toList();
 
