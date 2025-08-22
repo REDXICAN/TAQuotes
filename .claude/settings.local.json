@@ -146,7 +146,9 @@
       "Bash(else echo \"firebase_options.dart not found (good)\")",
       "Bash(else echo \"✓ firebase_options.dart not found (good)\")",
       "Bash(git stash:*)",
-      "Bash(start test_firebase_urls.html)"
+      "Bash(start test_firebase_urls.html)",
+      "Bash(then echo \"firebase_options.dart exists\")",
+      "Bash(else echo \"firebase_options.dart not found\")"
     ],
     "deny": [],
     "ask": [

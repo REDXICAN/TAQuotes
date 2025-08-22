@@ -128,17 +128,22 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   final _taxRateController = TextEditingController(text: '8.0');
   final _discountController = TextEditingController(text: '0');
   final _commentController = TextEditingController();
+  final _projectNameController = TextEditingController();
   bool _isDiscountPercentage = true; // true for percentage, false for fixed amount
   bool _includeCommentInEmail = false;
   bool _isCreatingQuote = false;
   bool _isOrderSummaryExpanded = false; // Start collapsed
   bool _isCommentsExpanded = false; // Start collapsed
+  bool _isProjectExpanded = false; // Start collapsed
+  String? _selectedProjectId;
+  bool _createNewProject = false;
 
   @override
   void dispose() {
     _taxRateController.dispose();
     _discountController.dispose();
     _commentController.dispose();
+    _projectNameController.dispose();
     super.dispose();
   }
 
@@ -866,6 +871,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                               final basePrice = (item.product?.price ?? 0) * item.quantity;
                               final itemDiscount = item.discount > 0 ? basePrice * (item.discount / 100) : 0;
                               final itemTotal = basePrice - itemDiscount;
+                              final hasNote = item.note != null && item.note!.isNotEmpty;
                               
                               return Column(
                                 children: [
@@ -875,32 +881,92 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         Expanded(
-                                          child: Row(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              if (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty)
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                                  margin: const EdgeInsets.only(right: 4),
-                                                  decoration: BoxDecoration(
-                                                    color: theme.primaryColor.withOpacity(0.1),
-                                                    borderRadius: BorderRadius.circular(2),
+                                              Row(
+                                                children: [
+                                                  if (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty)
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                      margin: const EdgeInsets.only(right: 4),
+                                                      decoration: BoxDecoration(
+                                                        color: theme.primaryColor.withOpacity(0.1),
+                                                        borderRadius: BorderRadius.circular(2),
+                                                      ),
+                                                      child: Text(
+                                                        '#${item.sequenceNumber}',
+                                                        style: TextStyle(
+                                                          fontSize: 10,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: theme.primaryColor,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  Expanded(
+                                                    child: Text(
+                                                      '${item.quantity}x ${item.product?.sku ?? item.product?.model ?? item.productName}',
+                                                      style: theme.textTheme.bodySmall,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
                                                   ),
-                                                  child: Text(
-                                                    '#${item.sequenceNumber}',
-                                                    style: TextStyle(
-                                                      fontSize: 10,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: theme.primaryColor,
+                                                  if (hasNote)
+                                                    Icon(
+                                                      Icons.note,
+                                                      size: 12,
+                                                      color: theme.primaryColor.withOpacity(0.7),
+                                                    ),
+                                                ],
+                                              ),
+                                              // Note dropdown
+                                              if (hasNote)
+                                                Padding(
+                                                  padding: const EdgeInsets.only(top: 2),
+                                                  child: Theme(
+                                                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                                    child: ExpansionTile(
+                                                      title: Text(
+                                                        'View Note',
+                                                        style: TextStyle(
+                                                          fontSize: 10,
+                                                          color: theme.primaryColor,
+                                                          fontStyle: FontStyle.italic,
+                                                        ),
+                                                      ),
+                                                      tilePadding: EdgeInsets.zero,
+                                                      childrenPadding: const EdgeInsets.only(top: 2, bottom: 2),
+                                                      dense: true,
+                                                      visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
+                                                      children: [
+                                                        Container(
+                                                          padding: const EdgeInsets.all(6),
+                                                          decoration: BoxDecoration(
+                                                            color: theme.primaryColor.withOpacity(0.05),
+                                                            borderRadius: BorderRadius.circular(4),
+                                                          ),
+                                                          child: Row(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              Icon(Icons.note_alt_outlined, 
+                                                                size: 12, 
+                                                                color: theme.primaryColor.withOpacity(0.7)),
+                                                              const SizedBox(width: 4),
+                                                              Expanded(
+                                                                child: Text(
+                                                                  item.note!,
+                                                                  style: TextStyle(
+                                                                    fontSize: 10,
+                                                                    color: theme.textTheme.bodySmall?.color,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
                                                   ),
                                                 ),
-                                              Expanded(
-                                                child: Text(
-                                                  '${item.quantity}x ${item.product?.sku ?? item.product?.model ?? item.productName}',
-                                                  style: theme.textTheme.bodySmall,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ),
                                             ],
                                           ),
                                         ),
@@ -977,6 +1043,159 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                 Text(_formatPrice(taxAmount), style: theme.textTheme.bodyMedium),
                               ],
                             ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Project Section - Collapsible
+                    Container(
+                      decoration: BoxDecoration(
+                        color: theme.cardColor,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: theme.dividerColor.withOpacity(0.2)),
+                      ),
+                      child: Theme(
+                        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                        child: ExpansionTile(
+                          title: Text(
+                            'Project',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          trailing: Icon(
+                            _isProjectExpanded ? Icons.expand_less : Icons.expand_more,
+                            color: theme.primaryColor,
+                          ),
+                          initiallyExpanded: _isProjectExpanded,
+                          onExpansionChanged: (expanded) {
+                            setState(() {
+                              _isProjectExpanded = expanded;
+                            });
+                          },
+                          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                          children: [
+                            // Toggle between existing and new project
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: RadioListTile<bool>(
+                                    title: const Text('Select Existing'),
+                                    value: false,
+                                    groupValue: _createNewProject,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _createNewProject = value ?? false;
+                                        _projectNameController.clear();
+                                      });
+                                    },
+                                    contentPadding: EdgeInsets.zero,
+                                    dense: true,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: RadioListTile<bool>(
+                                    title: const Text('Create New'),
+                                    value: true,
+                                    groupValue: _createNewProject,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _createNewProject = value ?? true;
+                                        _selectedProjectId = null;
+                                      });
+                                    },
+                                    contentPadding: EdgeInsets.zero,
+                                    dense: true,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            if (_createNewProject)
+                              // New project name input
+                              TextField(
+                                controller: _projectNameController,
+                                decoration: const InputDecoration(
+                                  labelText: 'New Project Name',
+                                  hintText: 'Enter project name',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.create_new_folder),
+                                ),
+                              )
+                            else
+                              // Existing projects dropdown
+                              FutureBuilder<List<Map<String, dynamic>>>(
+                                future: _loadProjects(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState == ConnectionState.waiting) {
+                                    return const LinearProgressIndicator();
+                                  }
+                                  
+                                  final projects = snapshot.data ?? [];
+                                  
+                                  if (projects.isEmpty) {
+                                    return Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: Colors.grey.shade300),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Row(
+                                        children: [
+                                          Icon(Icons.info_outline, size: 16, color: Colors.grey),
+                                          SizedBox(width: 8),
+                                          Text('No projects available', style: TextStyle(color: Colors.grey)),
+                                        ],
+                                      ),
+                                    );
+                                  }
+                                  
+                                  return DropdownButtonFormField<String>(
+                                    value: _selectedProjectId,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Select Project',
+                                      border: OutlineInputBorder(),
+                                      prefixIcon: Icon(Icons.folder),
+                                    ),
+                                    items: projects.map((project) {
+                                      return DropdownMenuItem<String>(
+                                        value: project['id'],
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                project['name'] ?? 'Unnamed Project',
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: _getProjectStatusColor(project['status']).withOpacity(0.2),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: Text(
+                                                project['status'] ?? 'active',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: _getProjectStatusColor(project['status']),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _selectedProjectId = value;
+                                      });
+                                    },
+                                  );
+                                },
+                              ),
                           ],
                         ),
                       ),
@@ -1373,6 +1592,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
     try {
       final dbService = ref.read(databaseServiceProvider);
+      final user = ref.read(currentUserProvider);
       final subtotal = _calculateSubtotal(items);
       final discountValue = double.tryParse(_discountController.text) ?? 0;
       final discountAmount = _isDiscountPercentage 
@@ -1382,6 +1602,37 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       final taxRate = double.tryParse(_taxRateController.text) ?? 0;
       final taxAmount = subtotalAfterDiscount * (taxRate / 100);
       final total = subtotalAfterDiscount + taxAmount;
+
+      // Handle project creation or selection
+      String? projectId = _selectedProjectId;
+      String? projectName;
+      
+      if (_createNewProject && _projectNameController.text.isNotEmpty) {
+        // Create new project
+        final database = FirebaseDatabase.instance;
+        final newProjectRef = database.ref('projects/${user?.uid}').push();
+        projectId = newProjectRef.key;
+        projectName = _projectNameController.text;
+        
+        await newProjectRef.set({
+          'name': projectName,
+          'description': '',
+          'clientId': client.id,
+          'status': 'active',
+          'createdAt': ServerValue.timestamp,
+          'updatedAt': ServerValue.timestamp,
+        });
+        
+        AppLogger.info('Created new project: $projectName', category: LogCategory.business);
+      } else if (projectId != null) {
+        // Get project name from existing project
+        final database = FirebaseDatabase.instance;
+        final projectSnapshot = await database.ref('projects/${user?.uid}/$projectId').get();
+        if (projectSnapshot.exists) {
+          final projectData = Map<String, dynamic>.from(projectSnapshot.value as Map);
+          projectName = projectData['name'];
+        }
+      }
 
       // Prepare quote items with sequence numbers, discounts, and notes
       final quoteItems = items.asMap().entries
@@ -1396,7 +1647,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
               })
           .toList();
 
-      // Create quote with discount and comments
+      // Create quote with discount, comments, and project info
       final quoteId = await dbService.createQuote(
         clientId: client.id!,  // Now we know it's not null
         items: quoteItems,
@@ -1409,6 +1660,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         discountValue: discountValue,
         comments: _commentController.text,
         includeCommentInEmail: _includeCommentInEmail,
+        projectId: projectId,
+        projectName: projectName,
       );
 
       // Clear cart after creating quote
@@ -1591,8 +1844,13 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   labelText: 'Email*',
                   hintText: 'Enter email address',
                   prefixIcon: Icon(Icons.email),
+                  helperText: 'Required for sending quotes',
+                  helperStyle: TextStyle(color: Colors.blue),
                 ),
                 keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.done,
+                autocorrect: false,
+                enableSuggestions: true,
               ),
               const SizedBox(height: 8),
               Text(
@@ -1614,12 +1872,31 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             icon: const Icon(Icons.add),
             label: const Text('Add Client'),
             onPressed: () async {
-              if (companyController.text.isEmpty || 
-                  contactNameController.text.isEmpty ||
-                  emailController.text.isEmpty) {
+              // Validate required fields
+              if (companyController.text.trim().isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Please fill in all required fields'),
+                    content: Text('Company name is required'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+              
+              if (contactNameController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Contact person name is required'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+              
+              if (emailController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Email address is required'),
                     backgroundColor: Colors.orange,
                   ),
                 );
@@ -1660,7 +1937,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     company: companyController.text.trim(),
                     contactName: contactNameController.text.trim(),
                     name: contactNameController.text.trim(),
-                    email: '',
+                    email: emailController.text.trim(),
                     phone: '',
                     createdAt: DateTime.now(),
                   ),
@@ -1895,8 +2172,29 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Quote emailed successfully to ${emailController.text}'),
+                              content: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text('Quote emailed successfully to ${emailController.text}'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      // Navigate to the quote detail page
+                                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                      Navigator.pushReplacementNamed(context, '/quotes/$quoteId');
+                                    },
+                                    child: const Text(
+                                      'VIEW',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                               backgroundColor: Colors.green,
+                              duration: const Duration(seconds: 5),
                             ),
                           );
                         }
@@ -1936,6 +2234,66 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       return basePrice - discountAmount;
     }
     return basePrice;
+  }
+
+  // Load projects for the current client
+  Future<List<Map<String, dynamic>>> _loadProjects() async {
+    try {
+      final selectedClient = ref.read(cartClientProvider) ?? ref.read(selectedClientProvider);
+      if (selectedClient?.id == null) return [];
+      
+      final dbService = ref.read(databaseServiceProvider);
+      final user = ref.read(currentUserProvider);
+      if (user == null) return [];
+      
+      // Get projects for this client
+      final database = FirebaseDatabase.instance;
+      final snapshot = await database.ref('projects/${user.uid}').orderByChild('clientId').equalTo(selectedClient!.id).get();
+      
+      if (snapshot.exists && snapshot.value != null) {
+        final projectsMap = Map<String, dynamic>.from(snapshot.value as Map);
+        final projects = <Map<String, dynamic>>[];
+        
+        projectsMap.forEach((key, value) {
+          final project = Map<String, dynamic>.from(value);
+          project['id'] = key;
+          // Only add active projects
+          if (project['status'] == null || project['status'] == 'active') {
+            projects.add(project);
+          }
+        });
+        
+        // Sort by created date (most recent first)
+        projects.sort((a, b) {
+          final aDate = a['createdAt'] ?? 0;
+          final bDate = b['createdAt'] ?? 0;
+          return bDate.compareTo(aDate);
+        });
+        
+        return projects;
+      }
+      
+      return [];
+    } catch (e) {
+      AppLogger.error('Error loading projects', error: e);
+      return [];
+    }
+  }
+
+  // Get color for project status
+  Color _getProjectStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'active':
+        return Colors.green;
+      case 'completed':
+        return Colors.blue;
+      case 'on-hold':
+        return Colors.orange;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 
   // Show discount dialog for individual item

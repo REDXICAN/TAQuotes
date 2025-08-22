@@ -181,6 +181,7 @@ class Product {
   final String? certifications;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final bool isTopSeller;
 
   Product({
     this.id,
@@ -217,6 +218,7 @@ class Product {
     this.certifications,
     required this.createdAt,
     this.updatedAt,
+    this.isTopSeller = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -255,6 +257,7 @@ class Product {
       'certifications': certifications,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
+      'isTopSeller': isTopSeller,
     };
   }
 
@@ -342,6 +345,7 @@ class Product {
       updatedAt: map['updatedAt'] ?? map['updated_at'] != null 
           ? parseDateTime(map['updatedAt'] ?? map['updated_at']) 
           : null,
+      isTopSeller: map['isTopSeller'] ?? map['is_top_seller'] ?? false,
     );
   }
 
@@ -372,6 +376,8 @@ class Quote {
   final DateTime createdAt;
   final DateTime? expiresAt;
   final String createdBy;
+  final String? projectId;
+  final String? projectName;
 
   Quote({
     this.id,
@@ -394,6 +400,8 @@ class Quote {
     required this.createdAt,
     this.expiresAt,
     required this.createdBy,
+    this.projectId,
+    this.projectName,
   }) : totalAmount = totalAmount ?? total;
 
   Map<String, dynamic> toMap() {
@@ -418,6 +426,8 @@ class Quote {
       'createdAt': createdAt.toIso8601String(),
       'expiresAt': expiresAt?.toIso8601String(),
       'createdBy': createdBy,
+      'projectId': projectId,
+      'projectName': projectName,
     };
   }
 
@@ -447,6 +457,8 @@ class Quote {
       expiresAt:
           map['expiresAt'] != null ? DateTime.parse(map['expiresAt']) : null,
       createdBy: map['createdBy'] ?? '',
+      projectId: map['projectId'] ?? map['project_id'],
+      projectName: map['projectName'] ?? map['project_name'],
     );
   }
 
@@ -618,4 +630,77 @@ class CartItem {
   // JSON methods for compatibility
   String toJson() => toMap().toString();
   factory CartItem.fromJson(Map<String, dynamic> json) => CartItem.fromMap(json);
+}
+
+// Project Model
+class Project {
+  final String? id;
+  final String name;
+  final String? description;
+  final String clientId;
+  final String? clientName;
+  final String status; // active, completed, on-hold, cancelled
+  final DateTime createdAt;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final String createdBy;
+  final int quoteCount;
+  final double totalValue;
+
+  Project({
+    this.id,
+    required this.name,
+    this.description,
+    required this.clientId,
+    this.clientName,
+    this.status = 'active',
+    required this.createdAt,
+    this.startDate,
+    this.endDate,
+    required this.createdBy,
+    this.quoteCount = 0,
+    this.totalValue = 0,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'clientId': clientId,
+      'clientName': clientName,
+      'status': status,
+      'createdAt': createdAt.toIso8601String(),
+      'startDate': startDate?.toIso8601String(),
+      'endDate': endDate?.toIso8601String(),
+      'createdBy': createdBy,
+      'quoteCount': quoteCount,
+      'totalValue': totalValue,
+    };
+  }
+
+  factory Project.fromMap(Map<String, dynamic> map) {
+    return Project(
+      id: map['id'],
+      name: map['name'] ?? '',
+      description: map['description'],
+      clientId: map['clientId'] ?? map['client_id'] ?? '',
+      clientName: map['clientName'] ?? map['client_name'],
+      status: map['status'] ?? 'active',
+      createdAt: DateTime.parse(map['createdAt'] ?? map['created_at'] ?? DateTime.now().toIso8601String()),
+      startDate: map['startDate'] != null || map['start_date'] != null 
+          ? DateTime.parse(map['startDate'] ?? map['start_date']) 
+          : null,
+      endDate: map['endDate'] != null || map['end_date'] != null 
+          ? DateTime.parse(map['endDate'] ?? map['end_date']) 
+          : null,
+      createdBy: map['createdBy'] ?? map['created_by'] ?? '',
+      quoteCount: map['quoteCount'] ?? map['quote_count'] ?? 0,
+      totalValue: (map['totalValue'] ?? map['total_value'] ?? 0).toDouble(),
+    );
+  }
+
+  // JSON methods for compatibility
+  String toJson() => toMap().toString();
+  factory Project.fromJson(Map<String, dynamic> json) => Project.fromMap(json);
 }

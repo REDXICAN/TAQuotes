@@ -155,12 +155,70 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Product name
-                      Text(
-                        product.displayName,
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      // Product name with Top Seller star for superadmins
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              product.displayName,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          // Top Seller toggle for superadmins only
+                          Consumer(
+                            builder: (context, ref, _) {
+                              final authState = ref.watch(authStateProvider);
+                              final isSuperAdmin = authState.value?.email == 'andres@turboairmexico.com';
+                              
+                              if (isSuperAdmin) {
+                                return IconButton(
+                                  icon: Icon(
+                                    product.isTopSeller ? Icons.star : Icons.star_border,
+                                    color: product.isTopSeller ? Colors.amber : Colors.grey,
+                                    size: 28,
+                                  ),
+                                  tooltip: product.isTopSeller ? 'Remove Top Seller' : 'Mark as Top Seller',
+                                  onPressed: () async {
+                                    try {
+                                      final dbService = ref.read(databaseServiceProvider);
+                                      await dbService.updateProduct(
+                                        widget.productId,
+                                        {'isTopSeller': !product.isTopSeller},
+                                      );
+                                      // Refresh the product data
+                                      ref.invalidate(productDetailProvider(widget.productId));
+                                      
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            product.isTopSeller
+                                                ? 'Removed from Top Sellers'
+                                                : 'Marked as Top Seller',
+                                          ),
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Error updating product: $e'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                      }
+                                    }
+                                  },
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 24),
 
@@ -437,12 +495,70 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           ),
                           const SizedBox(height: 16),
 
-                          // Product name
-                          Text(
-                            product.displayName,
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                          // Product name with Top Seller star for superadmins
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  product.displayName,
+                                  style: theme.textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              // Top Seller toggle for superadmins only
+                              Consumer(
+                                builder: (context, ref, _) {
+                                  final authState = ref.watch(authStateProvider);
+                                  final isSuperAdmin = authState.value?.email == 'andres@turboairmexico.com';
+                                  
+                                  if (isSuperAdmin) {
+                                    return IconButton(
+                                      icon: Icon(
+                                        product.isTopSeller ? Icons.star : Icons.star_border,
+                                        color: product.isTopSeller ? Colors.amber : Colors.grey,
+                                        size: 28,
+                                      ),
+                                      tooltip: product.isTopSeller ? 'Remove Top Seller' : 'Mark as Top Seller',
+                                      onPressed: () async {
+                                        try {
+                                          final dbService = ref.read(databaseServiceProvider);
+                                          await dbService.updateProduct(
+                                            widget.productId,
+                                            {'isTopSeller': !product.isTopSeller},
+                                          );
+                                          // Refresh the product data
+                                          ref.invalidate(productDetailProvider(widget.productId));
+                                          
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                product.isTopSeller
+                                                    ? 'Removed from Top Sellers'
+                                                    : 'Marked as Top Seller',
+                                              ),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+                                          }
+                                        } catch (e) {
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Error updating product: $e'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                          }
+                                        }
+                                      },
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
+                                },
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 24),
 

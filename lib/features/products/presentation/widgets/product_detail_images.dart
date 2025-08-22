@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:open_file/open_file.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:flutter/foundation.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/widgets/simple_image_widget.dart';
 import '../../../../core/services/pdf_service.dart';
 import '../../../../core/services/app_logger.dart';
@@ -28,6 +30,7 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   File? _pdfFile;
+  String? _pdfUrl;
   bool _isLoadingPdf = false;
   bool _showPdf = false;
 
@@ -40,10 +43,14 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
   Future<void> _checkForPdf() async {
     setState(() => _isLoadingPdf = true);
     try {
-      final pdfFile = await PdfService.findPdfForSku(widget.sku);
+      final pdfResult = await PdfService.findPdfForSku(widget.sku);
       if (mounted) {
         setState(() {
-          _pdfFile = pdfFile;
+          if (pdfResult is File) {
+            _pdfFile = pdfResult;
+          } else if (pdfResult is String) {
+            _pdfUrl = pdfResult;
+          }
           _isLoadingPdf = false;
         });
       }
@@ -74,7 +81,7 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
     return Column(
       children: [
         // PDF Buttons if PDF is available
-        if (_pdfFile != null && !_isLoadingPdf)
+        if ((_pdfFile != null || _pdfUrl != null) && !_isLoadingPdf)
           Container(
             margin: const EdgeInsets.only(bottom: 16),
             child: Row(
@@ -127,7 +134,7 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
               border: Border.all(color: Colors.grey.shade300),
               color: Colors.white,
             ),
-          child: _showPdf && _pdfFile != null
+          child: _showPdf && (_pdfFile != null || _pdfUrl != null)
             ? _buildPdfViewer()
             : Stack(
             children: [
@@ -429,12 +436,19 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
   Widget _buildPdfViewer() {
     return Stack(
       children: [
-        SfPdfViewer.file(
-          _pdfFile!,
-          enableDoubleTapZooming: true,
-          canShowScrollHead: true,
-          canShowScrollStatus: true,
-        ),
+        _pdfUrl != null
+          ? SfPdfViewer.network(
+              _pdfUrl!,
+              enableDoubleTapZooming: true,
+              canShowScrollHead: true,
+              canShowScrollStatus: true,
+            )
+          : SfPdfViewer.file(
+              _pdfFile!,
+              enableDoubleTapZooming: true,
+              canShowScrollHead: true,
+              canShowScrollStatus: true,
+            ),
         // Close PDF button
         Positioned(
           top: 8,
@@ -473,20 +487,37 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
   }
   
   Future<void> _downloadPdf() async {
-    if (_pdfFile == null) return;
+    if (_pdfFile == null && _pdfUrl == null) return;
     
     try {
-      // Open the PDF file with the system's default PDF viewer
-      final result = await OpenFile.open(_pdfFile!.path);
-      
-      if (result.type != ResultType.done) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Could not open PDF: ${result.message}'),
-              backgroundColor: Colors.orange,
-            ),
-          );
+      if (_pdfUrl != null) {
+        // For web, open PDF URL in new tab
+        final Uri url = Uri.parse(_pdfUrl!);
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Could not open PDF'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
+      } else if (_pdfFile != null) {
+        // For desktop/mobile, open local PDF file
+        final result = await OpenFile.open(_pdfFile!.path);
+        
+        if (result.type != ResultType.done) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Could not open PDF: ${result.message}'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
         }
       }
     } catch (e) {

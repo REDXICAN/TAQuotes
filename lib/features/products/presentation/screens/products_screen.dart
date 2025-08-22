@@ -55,7 +55,15 @@ final productsProvider =
         });
       }
       
-      products.sort((a, b) => (a.sku ?? '').compareTo(b.sku ?? ''));
+      // Sort products: Top sellers first, then by SKU
+      products.sort((a, b) {
+        // First sort by isTopSeller (true comes before false)
+        if (a.isTopSeller != b.isTopSeller) {
+          return a.isTopSeller ? -1 : 1;
+        }
+        // Then sort by SKU
+        return (a.sku ?? '').compareTo(b.sku ?? '');
+      });
       return products;
     });
   } catch (e) {
@@ -2319,15 +2327,30 @@ class ProductCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    product.sku ?? product.model,
-                    style: TextStyle(
-                      fontSize: isMobile ? 16 : 14,
-                      fontWeight: FontWeight.bold,
-                      color: theme.primaryColor,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          product.sku ?? product.model,
+                          style: TextStyle(
+                            fontSize: isMobile ? 16 : 14,
+                            fontWeight: FontWeight.bold,
+                            color: theme.primaryColor,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (product.isTopSeller)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4),
+                          child: Icon(
+                            Icons.star,
+                            color: Colors.amber,
+                            size: 16,
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 2),
                   Text(

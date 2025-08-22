@@ -530,25 +530,57 @@ class QuoteDetailScreen extends ConsumerWidget {
                 if (item.note != null && item.note!.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
-                    child: Row(
-                      children: [
-                        Icon(Icons.note_alt_outlined, 
-                          size: 12, 
-                          color: Colors.grey[600]),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            item.note!,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey[600],
-                              fontStyle: FontStyle.italic,
+                    child: Theme(
+                      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                      child: ExpansionTile(
+                        title: Row(
+                          children: [
+                            Icon(Icons.note_alt_outlined, 
+                              size: 12, 
+                              color: theme.primaryColor.withOpacity(0.7)),
+                            const SizedBox(width: 4),
+                            Text(
+                              'View Note',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: theme.primaryColor,
+                                fontStyle: FontStyle.italic,
+                              ),
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          ],
                         ),
-                      ],
+                        tilePadding: EdgeInsets.zero,
+                        childrenPadding: const EdgeInsets.only(top: 2, bottom: 4),
+                        dense: true,
+                        visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: theme.primaryColor.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.note, 
+                                  size: 14, 
+                                  color: theme.primaryColor.withOpacity(0.7)),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    item.note!,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: theme.textTheme.bodySmall?.color,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 Text(

@@ -145,6 +145,27 @@ class RealtimeDatabaseService {
     });
   }
 
+  Future<void> updateProduct(String productId, Map<String, dynamic> updates) async {
+    try {
+      await _db.ref('products/$productId').update({
+        ...updates,
+        'updated_at': ServerValue.timestamp,
+      });
+      
+      // Clear cache for this product
+      _productCache.remove(productId);
+      _cacheTimestamps.remove(productId);
+      
+      AppLogger.info(
+        'Product updated: $productId',
+        category: LogCategory.database,
+      );
+    } catch (e) {
+      AppLogger.error('Error updating product $productId', error: e);
+      rethrow;
+    }
+  }
+
   Future<List<Map<String, dynamic>>> searchProducts(String query) async {
     final snapshot = await _db.ref('products').get();
     final List<Map<String, dynamic>> results = [];
@@ -409,6 +430,8 @@ class RealtimeDatabaseService {
     double? discountValue,
     String? comments,
     bool? includeCommentInEmail,
+    String? projectId,
+    String? projectName,
   }) async {
     if (userId == null) throw Exception('User not authenticated');
     
@@ -433,6 +456,8 @@ class RealtimeDatabaseService {
         'total_amount': totalAmount,
         'comments': comments ?? '',
         'include_comment_in_email': includeCommentInEmail ?? false,
+        'project_id': projectId,
+        'project_name': projectName,
         'status': 'draft',
         'user_id': userId,  // Add user ID for reference
         'created_at': ServerValue.timestamp,
@@ -500,6 +525,178 @@ class RealtimeDatabaseService {
     } catch (e) {
       // Log error and rethrow
       rethrow;
+    }
+  }
+
+  // ============ PROJECTS ============
+  Future<String> createProject({
+    required String name,
+    required String clientId,
+    String? description,
+    String status = 'active',
+  }) async {
+    if (userId == null) throw Exception('User not authenticated');
+    
+    try {
+      final newProjectRef = _db.ref('projects/$userId').push();
+      
+      await newProjectRef.set({
+        'name': name,
+        'clientId': clientId,
+        'description': description ?? '',
+        'status': status,
+        'createdAt': ServerValue.timestamp,
+        'updatedAt': ServerValue.timestamp,
+      });
+      
+      final key = newProjectRef.key;
+      if (key == null) throw Exception('Failed to generate project ID');
+      
+      AppLogger.info('Project created: $name', category: LogCategory.business);
+      return key;
+    } catch (e) {
+      AppLogger.error('Error creating project', error: e);
+      throw Exception('Failed to create project: $e');
+    }
+  }
+  
+  Future<Map<String, dynamic>?> getProject(String projectId) async {
+    if (userId == null) return null;
+    
+    try {
+      final snapshot = await _db.ref('projects/$userId/$projectId').get();
+      if (snapshot.exists) {
+        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        data['id'] = projectId;
+        return data;
+      }
+      return null;
+    } catch (e) {
+      AppLogger.error('Error fetching project $projectId', error: e);
+      return null;
+    }
+  }
+  
+  Future<List<Map<String, dynamic>>> getProjects({String? clientId}) async {
+    if (userId == null) return [];
+    
+    try {
+      Query query = _db.ref('projects/$userId');
+      
+      // Filter by client if specified
+      if (clientId != null) {
+        query = query.orderByChild('clientId').equalTo(clientId);
+      }
+      
+      final snapshot = await query.get();
+      
+      if (!snapshot.exists || snapshot.value == null) return [];
+      
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final projects = <Map<String, dynamic>>[];
+      
+      data.forEach((key, value) {
+        final project = Map<String, dynamic>.from(value);
+        project['id'] = key;
+        projects.add(project);
+      });
+      
+      // Sort by created date (most recent first)
+      projects.sort((a, b) {
+        final aDate = a['createdAt'] ?? 0;
+        final bDate = b['createdAt'] ?? 0;
+        return bDate.compareTo(aDate);
+      });
+      
+      return projects;
+    } catch (e) {
+      AppLogger.error('Error fetching projects', error: e);
+      return [];
+    }
+  }
+  
+  Future<void> updateProject(String projectId, Map<String, dynamic> updates) async {
+    if (userId == null) throw Exception('User not authenticated');
+    
+    try {
+      await _db.ref('projects/$userId/$projectId').update({
+        ...updates,
+        'updatedAt': ServerValue.timestamp,
+      });
+      
+      AppLogger.info('Project updated: $projectId', category: LogCategory.business);
+    } catch (e) {
+      AppLogger.error('Error updating project $projectId', error: e);
+      throw Exception('Failed to update project: $e');
+    }
+  }
+  
+  Future<void> deleteProject(String projectId) async {
+    if (userId == null) throw Exception('User not authenticated');
+    
+    try {
+      // Check if project has quotes
+      final quotes = await getQuotesByProject(projectId);
+      if (quotes.isNotEmpty) {
+        throw Exception('Cannot delete project with existing quotes');
+      }
+      
+      await _db.ref('projects/$userId/$projectId').remove();
+      
+      AppLogger.info('Project deleted: $projectId', category: LogCategory.business);
+    } catch (e) {
+      AppLogger.error('Error deleting project $projectId', error: e);
+      throw Exception('Failed to delete project: $e');
+    }
+  }
+  
+  Future<List<Map<String, dynamic>>> getQuotesByProject(String projectId) async {
+    if (userId == null) return [];
+    
+    try {
+      final snapshot = await _db.ref('quotes/$userId')
+          .orderByChild('project_id')
+          .equalTo(projectId)
+          .get();
+      
+      if (!snapshot.exists || snapshot.value == null) return [];
+      
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final quotes = <Map<String, dynamic>>[];
+      
+      data.forEach((key, value) {
+        final quote = Map<String, dynamic>.from(value);
+        quote['id'] = key;
+        quotes.add(quote);
+      });
+      
+      // Sort by created date (most recent first)
+      quotes.sort((a, b) {
+        final aDate = a['created_at'] ?? 0;
+        final bDate = b['created_at'] ?? 0;
+        return bDate.compareTo(aDate);
+      });
+      
+      return quotes;
+    } catch (e) {
+      AppLogger.error('Error fetching quotes for project $projectId', error: e);
+      return [];
+    }
+  }
+  
+  Future<void> updateProjectStatus(String projectId, String status) async {
+    if (userId == null) throw Exception('User not authenticated');
+    
+    try {
+      await _db.ref('projects/$userId/$projectId').update({
+        'status': status,
+        'updatedAt': ServerValue.timestamp,
+      });
+      
+      AppLogger.info('Project status updated: $projectId -> $status', category: LogCategory.business);
+    } catch (e) {
+      AppLogger.error('Error updating project status', error: e);
+      throw Exception('Failed to update project status: $e');
     }
   }
 

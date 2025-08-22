@@ -1,23 +1,116 @@
 // lib/core/services/pdf_service.dart
 import 'dart:io';
 import 'package:path/path.dart' as path;
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'app_logger.dart';
 
 class PdfService {
   static const String pdfBasePath = r'O:\OneDrive\Documentos\-- TurboAir\7 Bots\Turbots\TURBO_VISION_SIMPLIFIED\pdfs';
   
-  /// Find PDF file for a given SKU using matching logic
-  /// First tries exact match with first 3 letters + 2 numbers
-  /// Then falls back to broader matching
-  static Future<File?> findPdfForSku(String sku) async {
+  /// Find PDF URL for a given SKU from Firebase Storage
+  /// For web deployment, returns Firebase Storage URL
+  /// For desktop/mobile, falls back to local file system
+  static Future<dynamic> findPdfForSku(String sku) async {
     try {
       // Clean and prepare SKU
       final cleanSku = sku.toUpperCase().trim();
       
       AppLogger.info('Searching for PDF for SKU: $cleanSku', 
         category: LogCategory.business,
-        data: {'basePath': pdfBasePath}
+        data: {'platform': kIsWeb ? 'web' : 'desktop'}
       );
+      
+      // For web platform, use Firebase Storage
+      if (kIsWeb) {
+        return await _findPdfInFirebaseStorage(cleanSku);
+      }
+      
+      // For desktop/mobile, use local file system
+      return await _findPdfInLocalStorage(cleanSku);
+    } catch (e, stackTrace) {
+      AppLogger.error('Error finding PDF for SKU: $sku', 
+        error: e,
+        stackTrace: stackTrace,
+        category: LogCategory.business
+      );
+      return null;
+    }
+  }
+  
+  /// Find PDF in Firebase Storage and return download URL
+  static Future<String?> _findPdfInFirebaseStorage(String sku) async {
+    try {
+      final storage = FirebaseStorage.instance;
+      
+      // Try exact match first
+      try {
+        final ref = storage.ref('pdfs/$sku/$sku.pdf');
+        final url = await ref.getDownloadURL();
+        AppLogger.info('Found PDF in Firebase Storage: $sku', 
+          category: LogCategory.business
+        );
+        return url;
+      } catch (e) {
+        // PDF not found with exact match, try variations
+      }
+      
+      // Try with common suffixes
+      final variations = [
+        '$sku-spec.pdf',
+        '${sku}_spec.pdf',
+        '$sku-manual.pdf',
+        '${sku}_manual.pdf',
+        '$sku-datasheet.pdf',
+        '${sku}_datasheet.pdf',
+      ];
+      
+      for (final variant in variations) {
+        try {
+          final ref = storage.ref('pdfs/$sku/$variant');
+          final url = await ref.getDownloadURL();
+          AppLogger.info('Found PDF variant in Firebase Storage: $variant', 
+            category: LogCategory.business
+          );
+          return url;
+        } catch (e) {
+          // Continue trying other variations
+        }
+      }
+      
+      // Try listing all files in the SKU folder
+      try {
+        final ListResult result = await storage.ref('pdfs/$sku').listAll();
+        if (result.items.isNotEmpty) {
+          // Return the first PDF found
+          final url = await result.items.first.getDownloadURL();
+          AppLogger.info('Found PDF in SKU folder: ${result.items.first.name}', 
+            category: LogCategory.business
+          );
+          return url;
+        }
+      } catch (e) {
+        // No folder for this SKU
+      }
+      
+      AppLogger.warning('No PDF found in Firebase Storage for SKU: $sku', 
+        category: LogCategory.business
+      );
+      return null;
+      
+    } catch (e) {
+      AppLogger.error('Error accessing Firebase Storage for PDF', 
+        error: e,
+        category: LogCategory.business
+      );
+      return null;
+    }
+  }
+  
+  /// Find PDF in local file system (for desktop/mobile)
+  static Future<File?> _findPdfInLocalStorage(String sku) async {
+    try {
+      final cleanSku = sku.toUpperCase().trim();
       
       // Check if PDF directory exists
       final pdfDir = Directory(pdfBasePath);

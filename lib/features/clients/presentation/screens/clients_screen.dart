@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:intl/intl.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/services/storage_service.dart';
@@ -57,6 +58,86 @@ final clientsProvider = FutureProvider<List<Client>>((ref) async {
 // Selected client provider
 final selectedClientProvider = StateProvider<Client?>((ref) => null);
 
+// Provider to fetch quotes for a specific client
+final clientQuotesProvider = FutureProvider.family<List<Quote>, String>((ref, clientId) async {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) {
+    return [];
+  }
+  
+  try {
+    final database = FirebaseDatabase.instance;
+    final snapshot = await database.ref('quotes/${user.uid}').get();
+    
+    if (!snapshot.exists || snapshot.value == null) {
+      return [];
+    }
+    
+    final data = Map<String, dynamic>.from(snapshot.value as Map);
+    final List<Quote> quotes = [];
+    
+    data.forEach((key, value) {
+      try {
+        final quoteMap = Map<String, dynamic>.from(value);
+        quoteMap['id'] = key;
+        final quote = Quote.fromMap(quoteMap);
+        
+        // Filter quotes for this specific client
+        if (quote.clientId == clientId) {
+          quotes.add(quote);
+        }
+      } catch (e) {
+        AppLogger.error('Error parsing quote $key', error: e);
+      }
+    });
+    
+    // Sort by created date (most recent first)
+    quotes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return quotes;
+  } catch (e) {
+    AppLogger.error('Error loading client quotes', error: e);
+    return [];
+  }
+});
+
+// Provider to fetch projects for a specific client
+final clientProjectsProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, clientId) async {
+  try {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return [];
+    
+    final database = FirebaseDatabase.instance;
+    final snapshot = await database.ref('projects/${user.uid}').orderByChild('clientId').equalTo(clientId).get();
+    
+    if (!snapshot.exists || snapshot.value == null) return [];
+    
+    final data = Map<String, dynamic>.from(snapshot.value as Map);
+    final projects = <Map<String, dynamic>>[];
+    
+    data.forEach((key, value) {
+      try {
+        final projectMap = Map<String, dynamic>.from(value);
+        projectMap['id'] = key;
+        projects.add(projectMap);
+      } catch (e) {
+        AppLogger.error('Error parsing project $key', error: e);
+      }
+    });
+    
+    // Sort by created date (most recent first)
+    projects.sort((a, b) {
+      final aDate = a['createdAt'] ?? 0;
+      final bDate = b['createdAt'] ?? 0;
+      return bDate.compareTo(aDate);
+    });
+    
+    return projects;
+  } catch (e) {
+    AppLogger.error('Error loading client projects', error: e);
+    return [];
+  }
+});
+
 class ClientsScreen extends ConsumerStatefulWidget {
   const ClientsScreen({super.key});
 
@@ -64,10 +145,11 @@ class ClientsScreen extends ConsumerStatefulWidget {
   ConsumerState<ClientsScreen> createState() => _ClientsScreenState();
 }
 
-class _ClientsScreenState extends ConsumerState<ClientsScreen> {
+class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTickerProviderStateMixin {
   bool _showAddForm = false;
   String? _editingClientId;
   String _searchQuery = '';
+  late TabController _tabController;
   final _searchController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final _companyController = TextEditingController();
@@ -81,7 +163,14 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
   final _notesController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
   void dispose() {
+    _tabController.dispose();
     _searchController.dispose();
     _companyController.dispose();
     _contactNameController.dispose();
@@ -630,9 +719,506 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
                                     ),
                                   ],
                                 ),
-                              ],
-                            ),
-                          ),
+                                
+                                // Order History and Projects Tabs
+                                if (client.id != null) ...[
+                                  const Divider(height: 32),
+                                  // Tab Bar
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: theme.cardColor,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: theme.dividerColor),
+                                    ),
+                                    child: TabBar(
+                                      controller: _tabController,
+                                      indicatorColor: theme.primaryColor,
+                                      labelColor: theme.primaryColor,
+                                      unselectedLabelColor: theme.textTheme.bodyMedium?.color,
+                                      tabs: const [
+                                        Tab(text: 'Order History'),
+                                        Tab(text: 'Projects'),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  // Tab Views
+                                  SizedBox(
+                                    height: 400, // Fixed height for tab view
+                                    child: TabBarView(
+                                      controller: _tabController,
+                                      children: [
+                                        // Order History Tab
+                                        Consumer(
+                                          builder: (context, ref, child) {
+                                            final quotesAsync = ref.watch(clientQuotesProvider(client.id!));
+                                            
+                                            return quotesAsync.when(
+                                              data: (quotes) {
+                                          if (quotes.isEmpty) {
+                                            return Container(
+                                              padding: const EdgeInsets.all(16),
+                                              decoration: BoxDecoration(
+                                                color: theme.disabledColor.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  'No quotes yet',
+                                                  style: TextStyle(
+                                                    color: theme.disabledColor,
+                                                    fontStyle: FontStyle.italic,
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                          
+                                          return Column(
+                                            children: quotes.map((quote) {
+                                              final dateFormat = DateFormat('MMM dd, yyyy');
+                                              final currencyFormat = NumberFormat.currency(symbol: '\$');
+                                              
+                                              return Card(
+                                                margin: const EdgeInsets.only(bottom: 8),
+                                                child: Theme(
+                                                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                                  child: ExpansionTile(
+                                                    tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                                    childrenPadding: const EdgeInsets.all(12),
+                                                    leading: Container(
+                                                      padding: const EdgeInsets.all(8),
+                                                      decoration: BoxDecoration(
+                                                        color: theme.primaryColor.withOpacity(0.1),
+                                                        borderRadius: BorderRadius.circular(8),
+                                                      ),
+                                                      child: Icon(
+                                                        Icons.receipt_long,
+                                                        color: theme.primaryColor,
+                                                        size: 20,
+                                                      ),
+                                                    ),
+                                                    title: Row(
+                                                      children: [
+                                                        Text(
+                                                          'Quote #${quote.quoteNumber ?? quote.id?.substring(0, 8) ?? 'N/A'}',
+                                                          style: const TextStyle(fontWeight: FontWeight.w600),
+                                                        ),
+                                                        const SizedBox(width: 8),
+                                                        Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                          decoration: BoxDecoration(
+                                                            color: _getStatusColor(quote.status).withOpacity(0.2),
+                                                            borderRadius: BorderRadius.circular(12),
+                                                          ),
+                                                          child: Text(
+                                                            quote.status ?? 'Pending',
+                                                            style: TextStyle(
+                                                              fontSize: 10,
+                                                              color: _getStatusColor(quote.status),
+                                                              fontWeight: FontWeight.bold,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    subtitle: Text(
+                                                      '${dateFormat.format(quote.createdAt)} • ${currencyFormat.format(quote.totalAmount)}',
+                                                      style: theme.textTheme.bodySmall,
+                                                    ),
+                                                    children: [
+                                                      // Quote Details
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          // Items Summary
+                                                          Row(
+                                                            children: [
+                                                              Icon(Icons.inventory_2, size: 14, color: theme.disabledColor),
+                                                              const SizedBox(width: 4),
+                                                              Text(
+                                                                '${quote.items.length} item${quote.items.length != 1 ? 's' : ''}',
+                                                                style: theme.textTheme.bodySmall,
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          const SizedBox(height: 8),
+                                                          
+                                                          // Financial Summary
+                                                          Container(
+                                                            padding: const EdgeInsets.all(12),
+                                                            decoration: BoxDecoration(
+                                                              color: theme.cardColor,
+                                                              borderRadius: BorderRadius.circular(8),
+                                                              border: Border.all(color: theme.dividerColor),
+                                                            ),
+                                                            child: Column(
+                                                              children: [
+                                                                Row(
+                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                  children: [
+                                                                    const Text('Subtotal:'),
+                                                                    Text(currencyFormat.format(quote.subtotal)),
+                                                                  ],
+                                                                ),
+                                                                if (quote.discountAmount > 0) ...[
+                                                                  const SizedBox(height: 4),
+                                                                  Row(
+                                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                    children: [
+                                                                      const Text('Discount:'),
+                                                                      Text(
+                                                                        '-${currencyFormat.format(quote.discountAmount)}',
+                                                                        style: TextStyle(color: Colors.green[700]),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ],
+                                                                const SizedBox(height: 4),
+                                                                Row(
+                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                  children: [
+                                                                    const Text('Tax:'),
+                                                                    Text(currencyFormat.format(quote.tax)),
+                                                                  ],
+                                                                ),
+                                                                const Divider(height: 12),
+                                                                Row(
+                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                  children: [
+                                                                    const Text(
+                                                                      'Total:',
+                                                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                                                    ),
+                                                                    Text(
+                                                                      currencyFormat.format(quote.totalAmount),
+                                                                      style: TextStyle(
+                                                                        fontWeight: FontWeight.bold,
+                                                                        color: theme.primaryColor,
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          
+                                                          // Comments if any
+                                                          if (quote.comments != null && quote.comments!.isNotEmpty) ...[
+                                                            const SizedBox(height: 12),
+                                                            Row(
+                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                              children: [
+                                                                Icon(Icons.comment, size: 14, color: theme.disabledColor),
+                                                                const SizedBox(width: 4),
+                                                                Expanded(
+                                                                  child: Text(
+                                                                    quote.comments!,
+                                                                    style: theme.textTheme.bodySmall?.copyWith(
+                                                                      fontStyle: FontStyle.italic,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ],
+                                                          
+                                                          // View in Quotes Button
+                                                          const SizedBox(height: 12),
+                                                          SizedBox(
+                                                            width: double.infinity,
+                                                            child: ElevatedButton.icon(
+                                                              onPressed: () {
+                                                                // Navigate to quotes section with this quote opened
+                                                                Navigator.pushNamed(context, '/quotes/${quote.id}');
+                                                              },
+                                                              icon: const Icon(Icons.open_in_new, size: 18),
+                                                              label: const Text('View Full Quote'),
+                                                              style: ElevatedButton.styleFrom(
+                                                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              );
+                                            }).toList(),
+                                          );
+                                        },
+                                              loading: () => const Center(
+                                                child: Padding(
+                                                  padding: EdgeInsets.all(16.0),
+                                                  child: CircularProgressIndicator(),
+                                                ),
+                                              ),
+                                              error: (error, stack) => Text(
+                                                'Error loading quotes: $error',
+                                                style: TextStyle(color: theme.colorScheme.error),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                    // Projects Tab
+                                    Consumer(
+                                      builder: (context, ref, child) {
+                                        final projectsAsync = ref.watch(clientProjectsProvider(client.id!));
+                                        
+                                        return projectsAsync.when(
+                                          data: (projects) {
+                                            if (projects.isEmpty) {
+                                              return Container(
+                                                padding: const EdgeInsets.all(16),
+                                                decoration: BoxDecoration(
+                                                  color: theme.disabledColor.withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                                child: Center(
+                                                  child: Column(
+                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    children: [
+                                                      Icon(
+                                                        Icons.folder_outlined,
+                                                        size: 48,
+                                                        color: theme.disabledColor,
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      Text(
+                                                        'No projects yet',
+                                                        style: TextStyle(
+                                                          color: theme.disabledColor,
+                                                          fontStyle: FontStyle.italic,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      Text(
+                                                        'Projects will appear when quotes are created',
+                                                        style: TextStyle(
+                                                          color: theme.disabledColor.withOpacity(0.7),
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                            
+                                            return ListView.builder(
+                                              shrinkWrap: true,
+                                              itemCount: projects.length,
+                                              itemBuilder: (context, index) {
+                                                final project = projects[index];
+                                                final dateFormat = DateFormat('MMM dd, yyyy');
+                                                final createdAt = project['createdAt'] != null
+                                                    ? DateTime.fromMillisecondsSinceEpoch(project['createdAt'])
+                                                    : DateTime.now();
+                                                
+                                                return Card(
+                                                  margin: const EdgeInsets.only(bottom: 8),
+                                                  child: Theme(
+                                                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                                    child: ExpansionTile(
+                                                      tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                                      childrenPadding: const EdgeInsets.all(12),
+                                                      leading: Container(
+                                                        padding: const EdgeInsets.all(8),
+                                                        decoration: BoxDecoration(
+                                                          color: _getProjectStatusColor(project['status']).withOpacity(0.1),
+                                                          borderRadius: BorderRadius.circular(8),
+                                                        ),
+                                                        child: Icon(
+                                                          Icons.folder,
+                                                          color: _getProjectStatusColor(project['status']),
+                                                          size: 20,
+                                                        ),
+                                                      ),
+                                                      title: Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child: Text(
+                                                              project['name'] ?? 'Unnamed Project',
+                                                              style: const TextStyle(fontWeight: FontWeight.w600),
+                                                              overflow: TextOverflow.ellipsis,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(width: 8),
+                                                          Container(
+                                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                            decoration: BoxDecoration(
+                                                              color: _getProjectStatusColor(project['status']).withOpacity(0.2),
+                                                              borderRadius: BorderRadius.circular(12),
+                                                            ),
+                                                            child: Text(
+                                                              project['status'] ?? 'active',
+                                                              style: TextStyle(
+                                                                fontSize: 10,
+                                                                color: _getProjectStatusColor(project['status']),
+                                                                fontWeight: FontWeight.bold,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      subtitle: Text(
+                                                        'Created ${dateFormat.format(createdAt)}',
+                                                        style: theme.textTheme.bodySmall,
+                                                      ),
+                                                      children: [
+                                                        // Project Details
+                                                        Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            if (project['description'] != null && project['description'].toString().isNotEmpty) ...[
+                                                              Row(
+                                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                                children: [
+                                                                  Icon(Icons.description, size: 14, color: theme.disabledColor),
+                                                                  const SizedBox(width: 4),
+                                                                  Expanded(
+                                                                    child: Text(
+                                                                      project['description'],
+                                                                      style: theme.textTheme.bodySmall,
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                              const SizedBox(height: 12),
+                                                            ],
+                                                            
+                                                            // Load project quotes
+                                                            FutureBuilder<List<Quote>>(
+                                                              future: _loadProjectQuotes(project['id']),
+                                                              builder: (context, snapshot) {
+                                                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                                                  return const Center(
+                                                                    child: Padding(
+                                                                      padding: EdgeInsets.all(8.0),
+                                                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                                                    ),
+                                                                  );
+                                                                }
+                                                                
+                                                                final projectQuotes = snapshot.data ?? [];
+                                                                
+                                                                if (projectQuotes.isEmpty) {
+                                                                  return Container(
+                                                                    padding: const EdgeInsets.all(12),
+                                                                    decoration: BoxDecoration(
+                                                                      color: theme.disabledColor.withOpacity(0.05),
+                                                                      borderRadius: BorderRadius.circular(8),
+                                                                    ),
+                                                                    child: Row(
+                                                                      children: [
+                                                                        Icon(Icons.info_outline, size: 14, color: theme.disabledColor),
+                                                                        const SizedBox(width: 8),
+                                                                        Text(
+                                                                          'No quotes in this project yet',
+                                                                          style: TextStyle(
+                                                                            color: theme.disabledColor,
+                                                                            fontSize: 12,
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  );
+                                                                }
+                                                                
+                                                                return Column(
+                                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                                  children: [
+                                                                    Row(
+                                                                      children: [
+                                                                        Icon(Icons.receipt_long, size: 14, color: theme.disabledColor),
+                                                                        const SizedBox(width: 4),
+                                                                        Text(
+                                                                          '${projectQuotes.length} quote${projectQuotes.length != 1 ? 's' : ''}',
+                                                                          style: theme.textTheme.bodySmall?.copyWith(
+                                                                            fontWeight: FontWeight.w500,
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                    const SizedBox(height: 8),
+                                                                    ...projectQuotes.map((quote) {
+                                                                      final currencyFormat = NumberFormat.currency(symbol: '\$');
+                                                                      return InkWell(
+                                                                        onTap: () {
+                                                                          Navigator.pushNamed(context, '/quotes/${quote.id}');
+                                                                        },
+                                                                        child: Container(
+                                                                          padding: const EdgeInsets.all(8),
+                                                                          margin: const EdgeInsets.only(bottom: 4),
+                                                                          decoration: BoxDecoration(
+                                                                            color: theme.cardColor,
+                                                                            borderRadius: BorderRadius.circular(4),
+                                                                            border: Border.all(color: theme.dividerColor),
+                                                                          ),
+                                                                          child: Row(
+                                                                            children: [
+                                                                              Expanded(
+                                                                                child: Text(
+                                                                                  '#${quote.quoteNumber ?? 'N/A'}',
+                                                                                  style: const TextStyle(
+                                                                                    fontSize: 12,
+                                                                                    fontWeight: FontWeight.w500,
+                                                                                  ),
+                                                                                ),
+                                                                              ),
+                                                                              Text(
+                                                                                currencyFormat.format(quote.totalAmount),
+                                                                                style: TextStyle(
+                                                                                  fontSize: 12,
+                                                                                  color: theme.primaryColor,
+                                                                                  fontWeight: FontWeight.bold,
+                                                                                ),
+                                                                              ),
+                                                                              const SizedBox(width: 8),
+                                                                              Icon(
+                                                                                Icons.arrow_forward_ios,
+                                                                                size: 12,
+                                                                                color: theme.disabledColor,
+                                                                              ),
+                                                                            ],
+                                                                          ),
+                                                                        ),
+                                                                      );
+                                                                    }).toList(),
+                                                                  ],
+                                                                );
+                                                              },
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          },
+                                          loading: () => const Center(
+                                            child: Padding(
+                                              padding: EdgeInsets.all(16.0),
+                                              child: CircularProgressIndicator(),
+                                            ),
+                                          ),
+                                          error: (error, stack) => Text(
+                                            'Error loading projects: $error',
+                                            style: TextStyle(color: theme.colorScheme.error),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                         ],
                       ),
                     );
@@ -679,6 +1265,73 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> {
     _zipCodeController.clear();
     _notesController.clear();
     _editingClientId = null;
+  }
+  
+  Color _getStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'sent':
+        return Colors.blue;
+      case 'accepted':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Color _getProjectStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'active':
+        return Colors.green;
+      case 'completed':
+        return Colors.blue;
+      case 'on-hold':
+        return Colors.orange;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Future<List<Quote>> _loadProjectQuotes(String projectId) async {
+    try {
+      final user = ref.read(currentUserProvider);
+      if (user == null) return [];
+      
+      final database = FirebaseDatabase.instance;
+      final snapshot = await database.ref('quotes/${user.uid}').get();
+      
+      if (!snapshot.exists || snapshot.value == null) return [];
+      
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final quotes = <Quote>[];
+      
+      data.forEach((key, value) {
+        try {
+          final quoteMap = Map<String, dynamic>.from(value);
+          quoteMap['id'] = key;
+          
+          // Only include quotes for this project
+          if (quoteMap['project_id'] == projectId) {
+            final quote = Quote.fromMap(quoteMap);
+            quotes.add(quote);
+          }
+        } catch (e) {
+          AppLogger.error('Error parsing quote $key', error: e);
+        }
+      });
+      
+      // Sort by created date (most recent first)
+      quotes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return quotes;
+    } catch (e) {
+      AppLogger.error('Error loading project quotes', error: e);
+      return [];
+    }
   }
 
   Future<void> _saveClient() async {

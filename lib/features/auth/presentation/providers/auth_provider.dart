@@ -21,6 +21,22 @@ final databaseServiceProvider = Provider<RealtimeDatabaseService>((ref) {
   return RealtimeDatabaseService();
 });
 
+// Project-related providers
+final allProjectsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final dbService = ref.watch(databaseServiceProvider);
+  return await dbService.getProjects();
+});
+
+final projectsByClientProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, clientId) async {
+  final dbService = ref.watch(databaseServiceProvider);
+  return await dbService.getProjects(clientId: clientId);
+});
+
+final quotesByProjectProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, projectId) async {
+  final dbService = ref.watch(databaseServiceProvider);
+  return await dbService.getQuotesByProject(projectId);
+});
+
 // Hybrid Database Service Provider (for Firestore + Realtime)
 final hybridDatabaseProvider = Provider<HybridDatabaseService>((ref) {
   return HybridDatabaseService();

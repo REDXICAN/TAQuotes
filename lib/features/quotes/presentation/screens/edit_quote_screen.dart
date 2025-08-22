@@ -45,7 +45,13 @@ class _EditQuoteScreenState extends ConsumerState<EditQuoteScreen> {
   }
 
   double get _subtotal {
-    return _items.fold(0, (sum, item) => sum + (item.unitPrice * item.quantity));
+    return _items.fold(0, (sum, item) {
+      final basePrice = item.unitPrice * item.quantity;
+      if (item.discount > 0) {
+        return sum + (basePrice * (1 - item.discount / 100));
+      }
+      return sum + basePrice;
+    });
   }
 
   double get _taxRate {
@@ -153,6 +159,149 @@ class _EditQuoteScreenState extends ConsumerState<EditQuoteScreen> {
         });
       }
     }
+  }
+
+  void _showSequenceNumberDialog(int index, QuoteItem item) {
+    final controller = TextEditingController(
+      text: item.sequenceNumber ?? (index + 1).toString().padLeft(3, '0'),
+    );
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Item Number'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Sequence Number',
+            hintText: 'e.g., 001, 002, A1, etc.',
+            prefixIcon: Icon(Icons.tag),
+          ),
+          textCapitalization: TextCapitalization.characters,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _items[index] = item.copyWith(sequenceNumber: controller.text);
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDiscountDialog(int index, QuoteItem item) {
+    final controller = TextEditingController(
+      text: item.discount > 0 ? item.discount.toStringAsFixed(2) : '',
+    );
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Item Discount'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Product: ${item.productName}'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Discount Percentage',
+                hintText: 'Enter 0-100',
+                suffixText: '%',
+                prefixIcon: Icon(Icons.percent),
+              ),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          if (item.discount > 0)
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _items[index] = item.copyWith(discount: 0);
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('Remove'),
+            ),
+          ElevatedButton(
+            onPressed: () {
+              final discount = double.tryParse(controller.text) ?? 0;
+              if (discount >= 0 && discount <= 100) {
+                setState(() {
+                  final discountedPrice = item.unitPrice * (1 - discount / 100);
+                  _items[index] = item.copyWith(
+                    discount: discount,
+                    total: discountedPrice * item.quantity,
+                  );
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showNoteDialog(int index, QuoteItem item) {
+    final controller = TextEditingController(text: item.note ?? '');
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Item Note'),
+        content: TextField(
+          controller: controller,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: 'Add a note for this item...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          if (item.note != null && item.note!.isNotEmpty)
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _items[index] = item.copyWith(note: '');
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('Remove'),
+            ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _items[index] = item.copyWith(note: controller.text);
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -269,33 +418,112 @@ class _EditQuoteScreenState extends ConsumerState<EditQuoteScreen> {
                           margin: const EdgeInsets.only(bottom: 12),
                           child: Padding(
                             padding: const EdgeInsets.all(12),
-                            child: Row(
+                            child: Column(
                               children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        item.productName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              // Sequence number if exists
+                                              if (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty)
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                  margin: const EdgeInsets.only(right: 8),
+                                                  decoration: BoxDecoration(
+                                                    color: theme.primaryColor.withOpacity(0.1),
+                                                    borderRadius: BorderRadius.circular(4),
+                                                    border: Border.all(
+                                                      color: theme.primaryColor.withOpacity(0.3),
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    '#${item.sequenceNumber}',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: theme.primaryColor,
+                                                    ),
+                                                  ),
+                                                ),
+                                              Expanded(
+                                                child: Text(
+                                                  item.productName,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'SKU: ${item.productId}',
+                                            style: TextStyle(
+                                              color: theme.disabledColor,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              Text(
+                                                '\$${item.unitPrice.toStringAsFixed(2)} each',
+                                                style: TextStyle(
+                                                  decoration: item.discount > 0 ? TextDecoration.lineThrough : null,
+                                                  color: item.discount > 0 ? Colors.grey : null,
+                                                ),
+                                              ),
+                                              if (item.discount > 0) ...[
+                                                const SizedBox(width: 8),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.green.withOpacity(0.1),
+                                                    borderRadius: BorderRadius.circular(4),
+                                                  ),
+                                                  child: Text(
+                                                    '-${item.discount.toStringAsFixed(1)}%',
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color: Colors.green,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                          // Show note if exists
+                                          if (item.note != null && item.note!.isNotEmpty) ...[
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                Icon(Icons.note_alt_outlined, 
+                                                  size: 14, 
+                                                  color: theme.disabledColor),
+                                                const SizedBox(width: 4),
+                                                Expanded(
+                                                  child: Text(
+                                                    item.note!,
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: theme.disabledColor,
+                                                      fontStyle: FontStyle.italic,
+                                                    ),
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ],
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'SKU: ${item.productId}',
-                                        style: TextStyle(
-                                          color: theme.disabledColor,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '\$${item.unitPrice.toStringAsFixed(2)} each',
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                                    ),
                                 // Quantity controls
                                 Container(
                                   decoration: BoxDecoration(
@@ -362,9 +590,63 @@ class _EditQuoteScreenState extends ConsumerState<EditQuoteScreen> {
                                 ),
                               ],
                             ),
-                          ),
-                        );
-                      }),
+                            // Action buttons row for discount and note
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                // Sequence number button
+                                TextButton.icon(
+                                  icon: const Icon(Icons.tag, size: 16),
+                                  label: Text(
+                                    item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty 
+                                      ? '#${item.sequenceNumber}' 
+                                      : 'Add #',
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  ),
+                                  onPressed: () => _showSequenceNumberDialog(index, item),
+                                ),
+                                const SizedBox(width: 8),
+                                // Discount button
+                                TextButton.icon(
+                                  icon: const Icon(Icons.percent, size: 16),
+                                  label: Text(
+                                    item.discount > 0 
+                                      ? '${item.discount.toStringAsFixed(1)}%' 
+                                      : 'Discount',
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    foregroundColor: item.discount > 0 ? Colors.green : null,
+                                  ),
+                                  onPressed: () => _showDiscountDialog(index, item),
+                                ),
+                                const SizedBox(width: 8),
+                                // Note button
+                                TextButton.icon(
+                                  icon: const Icon(Icons.note_add, size: 16),
+                                  label: Text(
+                                    item.note != null && item.note!.isNotEmpty 
+                                      ? 'Edit Note' 
+                                      : 'Add Note',
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  ),
+                                  onPressed: () => _showNoteDialog(index, item),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
                   ],
                 ),
               ),
@@ -462,6 +744,9 @@ extension on QuoteItem {
     double? total,
     Product? product,
     DateTime? addedAt,
+    double? discount,
+    String? note,
+    String? sequenceNumber,
   }) {
     return QuoteItem(
       productId: productId ?? this.productId,
@@ -471,6 +756,9 @@ extension on QuoteItem {
       total: total ?? this.total,
       product: product ?? this.product,
       addedAt: addedAt ?? this.addedAt,
+      discount: discount ?? this.discount,
+      note: note ?? this.note,
+      sequenceNumber: sequenceNumber ?? this.sequenceNumber,
     );
   }
 }

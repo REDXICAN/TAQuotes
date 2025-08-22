@@ -90,6 +90,8 @@ final quotesProvider = StreamProvider<List<Quote>>((ref) {
           createdAt: quoteData['created_at'] != null
               ? DateTime.fromMillisecondsSinceEpoch(quoteData['created_at'])
               : DateTime.now(),
+          projectId: quoteData['project_id'],
+          projectName: quoteData['project_name'],
         ));
       }
 
@@ -114,6 +116,8 @@ class QuotesScreen extends ConsumerStatefulWidget {
 class _QuotesScreenState extends ConsumerState<QuotesScreen> {
   String _searchQuery = '';
   String _filterStatus = 'all';
+  String? _filterProjectId;
+  bool _groupByProject = false;
 
   @override
   Widget build(BuildContext context) {
@@ -187,18 +191,112 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Filter chips
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildFilterChip('All', 'all'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Draft', 'draft'),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Sent', 'sent'),
-                    ],
-                  ),
+                // Filter chips and project controls
+                Column(
+                  children: [
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildFilterChip('All', 'all'),
+                          const SizedBox(width: 8),
+                          _buildFilterChip('Draft', 'draft'),
+                          const SizedBox(width: 8),
+                          _buildFilterChip('Sent', 'sent'),
+                          const SizedBox(width: 16),
+                          // Group by project toggle
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(color: theme.dividerColor),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _groupByProject = !_groupByProject;
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(20),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      _groupByProject ? Icons.folder : Icons.folder_outlined,
+                                      size: 16,
+                                      color: _groupByProject ? theme.primaryColor : null,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Group by Project',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: _groupByProject ? theme.primaryColor : null,
+                                        fontWeight: _groupByProject ? FontWeight.bold : null,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Project filter dropdown
+                    FutureBuilder<List<Map<String, dynamic>>>(
+                      future: _loadProjects(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        
+                        final projects = snapshot.data!;
+                        
+                        return DropdownButtonFormField<String>(
+                          value: _filterProjectId,
+                          decoration: InputDecoration(
+                            labelText: 'Filter by Project',
+                            prefixIcon: const Icon(Icons.folder),
+                            suffixIcon: _filterProjectId != null
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      setState(() {
+                                        _filterProjectId = null;
+                                      });
+                                    },
+                                  )
+                                : null,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            filled: true,
+                            fillColor: theme.inputDecorationTheme.fillColor,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          items: [
+                            const DropdownMenuItem<String>(
+                              value: null,
+                              child: Text('All Projects'),
+                            ),
+                            ...projects.map((project) {
+                              return DropdownMenuItem<String>(
+                                value: project['id'],
+                                child: Text(project['name'] ?? 'Unnamed Project'),
+                              );
+                            }).toList(),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              _filterProjectId = value;
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -216,6 +314,10 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                       quotes.where((q) => q.status == _filterStatus).toList();
                 }
 
+                if (_filterProjectId != null) {
+                  filteredQuotes = filteredQuotes.where((q) => q.projectId == _filterProjectId).toList();
+                }
+
                 if (_searchQuery.isNotEmpty) {
                   final query = _searchQuery.toLowerCase();
                   filteredQuotes = filteredQuotes.where((q) {
@@ -227,6 +329,11 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                     // Search in date (format: MMM dd, yyyy)
                     final dateFormat = DateFormat('MMM dd, yyyy');
                     if (dateFormat.format(q.createdAt).toLowerCase().contains(query)) {
+                      return true;
+                    }
+                    
+                    // Search in project name
+                    if (q.projectName?.toLowerCase().contains(query) ?? false) {
                       return true;
                     }
                     
@@ -271,23 +378,114 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                   );
                 }
 
-                return Center(
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxWidth: ResponsiveHelper.isMobile(context)
-                        ? MediaQuery.of(context).size.width  // Full width on mobile
-                        : MediaQuery.of(context).size.width * 0.67, // 2/3 of screen width on desktop
+                // Group quotes by project if enabled
+                if (_groupByProject) {
+                  // Group quotes by project
+                  final Map<String?, List<Quote>> groupedQuotes = {};
+                  for (final quote in filteredQuotes) {
+                    final projectKey = quote.projectName ?? 'No Project';
+                    groupedQuotes[projectKey] ??= [];
+                    groupedQuotes[projectKey]!.add(quote);
+                  }
+                  
+                  // Sort groups: named projects first, then 'No Project'
+                  final sortedGroups = groupedQuotes.entries.toList()
+                    ..sort((a, b) {
+                      if (a.key == 'No Project') return 1;
+                      if (b.key == 'No Project') return -1;
+                      return a.key!.compareTo(b.key!);
+                    });
+                  
+                  return Center(
+                    child: Container(
+                      constraints: BoxConstraints(
+                        maxWidth: ResponsiveHelper.isMobile(context)
+                          ? MediaQuery.of(context).size.width
+                          : MediaQuery.of(context).size.width * 0.67,
+                      ),
+                      child: ListView.builder(
+                        padding: EdgeInsets.all(ResponsiveHelper.isMobile(context) ? 8 : 16),
+                        itemCount: sortedGroups.length,
+                        itemBuilder: (context, groupIndex) {
+                          final group = sortedGroups[groupIndex];
+                          final projectName = group.key!;
+                          final projectQuotes = group.value;
+                          
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Project header
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                margin: EdgeInsets.only(bottom: 8, top: groupIndex > 0 ? 16 : 0),
+                                decoration: BoxDecoration(
+                                  color: theme.primaryColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.folder,
+                                      size: 20,
+                                      color: theme.primaryColor,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        projectName,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: theme.primaryColor,
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: theme.primaryColor.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        '${projectQuotes.length} quote${projectQuotes.length == 1 ? '' : 's'}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: theme.primaryColor,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Project quotes
+                              ...projectQuotes.map((quote) => _buildQuoteCard(quote)),
+                            ],
+                          );
+                        },
+                      ),
                     ),
-                    child: ListView.builder(
-                      padding: EdgeInsets.all(ResponsiveHelper.isMobile(context) ? 8 : 16),
-                      itemCount: filteredQuotes.length,
-                      itemBuilder: (context, index) {
-                        final quote = filteredQuotes[index];
-                        return _buildQuoteCard(quote);
-                      },
+                  );
+                } else {
+                  // Regular list view
+                  return Center(
+                    child: Container(
+                      constraints: BoxConstraints(
+                        maxWidth: ResponsiveHelper.isMobile(context)
+                          ? MediaQuery.of(context).size.width  // Full width on mobile
+                          : MediaQuery.of(context).size.width * 0.67, // 2/3 of screen width on desktop
+                      ),
+                      child: ListView.builder(
+                        padding: EdgeInsets.all(ResponsiveHelper.isMobile(context) ? 8 : 16),
+                        itemCount: filteredQuotes.length,
+                        itemBuilder: (context, index) {
+                          final quote = filteredQuotes[index];
+                          return _buildQuoteCard(quote);
+                        },
+                      ),
                     ),
-                  ),
-                );
+                  );
+                }
               },
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stack) => Center(
@@ -404,6 +602,30 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 4),
+
+              // Project info (if exists)
+              if (quote.projectName != null && quote.projectName!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.folder, size: isMobile ? 14 : 16, color: theme.primaryColor),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        quote.projectName!,
+                        style: TextStyle(
+                          fontSize: isMobile ? 13 : 14,
+                          color: theme.primaryColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 4),
 
               // Date
@@ -596,6 +818,38 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         ),
       ),
     );
+  }
+
+  // Load all projects for filtering
+  Future<List<Map<String, dynamic>>> _loadProjects() async {
+    try {
+      final user = ref.read(currentUserProvider);
+      if (user == null) return [];
+      
+      final database = FirebaseDatabase.instance;
+      final snapshot = await database.ref('projects/${user.uid}').get();
+      
+      if (snapshot.exists && snapshot.value != null) {
+        final projectsMap = Map<String, dynamic>.from(snapshot.value as Map);
+        final projects = <Map<String, dynamic>>[];
+        
+        projectsMap.forEach((key, value) {
+          final project = Map<String, dynamic>.from(value);
+          project['id'] = key;
+          projects.add(project);
+        });
+        
+        // Sort by name
+        projects.sort((a, b) => (a['name'] ?? '').compareTo(b['name'] ?? ''));
+        
+        return projects;
+      }
+      
+      return [];
+    } catch (e) {
+      AppLogger.error('Error loading projects', error: e);
+      return [];
+    }
   }
 
   Color _getStatusColor(String status) {
