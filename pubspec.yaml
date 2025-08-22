@@ -37,6 +37,9 @@ dependencies:
   go_router: ^15.1.2
   cached_network_image: ^3.3.1
   shared_preferences: any
+  syncfusion_flutter_pdfviewer: ^29.1.38
+  url_launcher: ^6.2.2
+  open_file: ^3.3.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

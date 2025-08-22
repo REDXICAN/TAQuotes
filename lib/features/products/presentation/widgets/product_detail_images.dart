@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:open_file/open_file.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import '../../../../core/widgets/simple_image_widget.dart';
+import '../../../../core/services/pdf_service.dart';
+import '../../../../core/services/app_logger.dart';
 
 class ProductDetailImages extends StatefulWidget {
   final String sku;
@@ -22,6 +27,33 @@ class ProductDetailImages extends StatefulWidget {
 class _ProductDetailImagesState extends State<ProductDetailImages> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  File? _pdfFile;
+  bool _isLoadingPdf = false;
+  bool _showPdf = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkForPdf();
+  }
+  
+  Future<void> _checkForPdf() async {
+    setState(() => _isLoadingPdf = true);
+    try {
+      final pdfFile = await PdfService.findPdfForSku(widget.sku);
+      if (mounted) {
+        setState(() {
+          _pdfFile = pdfFile;
+          _isLoadingPdf = false;
+        });
+      }
+    } catch (e) {
+      AppLogger.error('Error checking for PDF', error: e, category: LogCategory.ui);
+      if (mounted) {
+        setState(() => _isLoadingPdf = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -41,7 +73,53 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
     
     return Column(
       children: [
-        // Image carousel - full height
+        // PDF Buttons if PDF is available
+        if (_pdfFile != null && !_isLoadingPdf)
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () => _viewPdf(context),
+                  icon: const Icon(Icons.picture_as_pdf),
+                  label: const Text('View PDF'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                OutlinedButton.icon(
+                  onPressed: _downloadPdf,
+                  icon: const Icon(Icons.download),
+                  label: const Text('Download PDF'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        
+        // Loading indicator for PDF check
+        if (_isLoadingPdf)
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 8),
+                Text('Checking for PDF documentation...'),
+              ],
+            ),
+          ),
+        
+        // Image carousel or PDF viewer - full height
         Expanded(
           child: Container(
             decoration: BoxDecoration(
@@ -49,7 +127,9 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
               border: Border.all(color: Colors.grey.shade300),
               color: Colors.white,
             ),
-          child: Stack(
+          child: _showPdf && _pdfFile != null
+            ? _buildPdfViewer()
+            : Stack(
             children: [
               // PageView for P.1 and P.2
               PageView(
@@ -344,6 +424,82 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
         );
       },
     );
+  }
+  
+  Widget _buildPdfViewer() {
+    return Stack(
+      children: [
+        SfPdfViewer.file(
+          _pdfFile!,
+          enableDoubleTapZooming: true,
+          canShowScrollHead: true,
+          canShowScrollStatus: true,
+        ),
+        // Close PDF button
+        Positioned(
+          top: 8,
+          right: 8,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () {
+                setState(() {
+                  _showPdf = false;
+                });
+              },
+              tooltip: 'Close PDF',
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+  
+  void _viewPdf(BuildContext context) {
+    setState(() {
+      _showPdf = true;
+    });
+  }
+  
+  Future<void> _downloadPdf() async {
+    if (_pdfFile == null) return;
+    
+    try {
+      // Open the PDF file with the system's default PDF viewer
+      final result = await OpenFile.open(_pdfFile!.path);
+      
+      if (result.type != ResultType.done) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not open PDF: ${result.message}'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      AppLogger.error('Error opening PDF', error: e, category: LogCategory.ui);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error opening PDF file'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
 

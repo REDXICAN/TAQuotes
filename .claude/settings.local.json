@@ -142,7 +142,9 @@
       "Bash(firebase storage:buckets:list:*)",
       "Bash(start https://console.firebase.google.com/project/taquotes/storage)",
       "Bash(gcloud services enable:*)",
-      "Bash(firebase apps:list:*)"
+      "Bash(firebase apps:list:*)",
+      "Bash(else echo \"firebase_options.dart not found (good)\")",
+      "Bash(else echo \"✓ firebase_options.dart not found (good)\")"
     ],
     "deny": [],
     "ask": [

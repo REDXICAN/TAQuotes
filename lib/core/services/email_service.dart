@@ -84,7 +84,7 @@ $userSignature
       
       // Send email with timeout
       final sendReport = await send(message, _smtpServer,
-          timeout: const Duration(seconds: SecureEmailConfig.emailTimeoutSeconds));
+          timeout: Duration(seconds: SecureEmailConfig.emailTimeoutSeconds));
 
       if (SecureEmailConfig.enableEmailLogging) {
         AppLogger.info('Email sent successfully to $recipientEmail',

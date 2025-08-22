@@ -520,6 +520,9 @@ class CartItem {
   final double unitPrice;
   final double total;
   final DateTime addedAt;
+  final double discount; // Individual discount percentage (0-100)
+  final String? note; // Individual product note
+  final String? sequenceNumber; // Custom numbering (001, 002, etc.)
 
   CartItem({
     this.id,
@@ -531,6 +534,9 @@ class CartItem {
     required this.unitPrice,
     required this.total,
     required this.addedAt,
+    this.discount = 0.0,
+    this.note,
+    this.sequenceNumber,
   });
 
   Map<String, dynamic> toMap() {
@@ -544,6 +550,9 @@ class CartItem {
       'unitPrice': unitPrice,
       'total': total,
       'addedAt': addedAt.toIso8601String(),
+      'discount': discount,
+      'note': note,
+      'sequenceNumber': sequenceNumber,
     };
   }
 
@@ -559,6 +568,9 @@ class CartItem {
       total: (map['total'] ?? 0).toDouble(),
       addedAt:
           DateTime.parse(map['addedAt'] ?? DateTime.now().toIso8601String()),
+      discount: (map['discount'] ?? 0).toDouble(),
+      note: map['note'],
+      sequenceNumber: map['sequenceNumber'],
     );
   }
 

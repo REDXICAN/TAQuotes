@@ -1370,41 +1370,54 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     // Show quick add dialog
     final companyController = TextEditingController();
     final contactNameController = TextEditingController();
+    final emailController = TextEditingController();
     
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Quick Add Client'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: companyController,
-              decoration: const InputDecoration(
-                labelText: 'Company Name*',
-                hintText: 'Enter company name',
-                prefixIcon: Icon(Icons.business),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: companyController,
+                decoration: const InputDecoration(
+                  labelText: 'Company Name*',
+                  hintText: 'Enter company name',
+                  prefixIcon: Icon(Icons.business),
+                ),
+                autofocus: true,
               ),
-              autofocus: true,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: contactNameController,
-              decoration: const InputDecoration(
-                labelText: 'Contact Person*',
-                hintText: 'Enter contact name',
-                prefixIcon: Icon(Icons.person),
+              const SizedBox(height: 16),
+              TextField(
+                controller: contactNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Contact Person*',
+                  hintText: 'Enter contact name',
+                  prefixIcon: Icon(Icons.person),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'You can add more details later',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey,
-                fontStyle: FontStyle.italic,
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email*',
+                  hintText: 'Enter email address',
+                  prefixIcon: Icon(Icons.email),
+                ),
+                keyboardType: TextInputType.emailAddress,
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                'You can add more details later',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.grey,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -1415,10 +1428,24 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             icon: const Icon(Icons.add),
             label: const Text('Add Client'),
             onPressed: () async {
-              if (companyController.text.isEmpty || contactNameController.text.isEmpty) {
+              if (companyController.text.isEmpty || 
+                  contactNameController.text.isEmpty ||
+                  emailController.text.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Please enter both company name and contact person'),
+                    content: Text('Please fill in all required fields'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                return;
+              }
+              
+              // Basic email validation
+              final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+              if (!emailRegex.hasMatch(emailController.text.trim())) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter a valid email address'),
                     backgroundColor: Colors.orange,
                   ),
                 );
@@ -1431,7 +1458,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   'company': companyController.text.trim(),
                   'contact_name': contactNameController.text.trim(),
                   'name': contactNameController.text.trim(),
-                  'email': '', // Can be added later
+                  'email': emailController.text.trim(),
                   'phone': '', // Can be added later
                 });
                 
