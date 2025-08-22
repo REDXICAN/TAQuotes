@@ -19,7 +19,16 @@
     "quotes": {
       "$uid": {
         ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
-        ".write": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')"
+        ".write": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
+        ".indexOn": ["project_id", "client_id", "created_at"]
+      }
+    },
+    
+    "projects": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
+        ".write": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
+        ".indexOn": ["clientId", "status", "createdAt"]
       }
     },
     
