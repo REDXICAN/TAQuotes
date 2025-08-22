@@ -135,7 +135,10 @@
       "Bash(then echo \"Excel file found!\")",
       "Bash(else echo \"Excel file not found\")",
       "Bash(if [ -f \"firebase-admin-key.json\" ])",
-      "Bash(else echo \"Firebase admin key not found - you need to download it\")"
+      "Bash(else echo \"Firebase admin key not found - you need to download it\")",
+      "Bash(else echo \"✓ .env file not found (good)\")",
+      "Bash(else echo \"✓ firebase_options.dart not found (good)\")",
+      "Bash(else echo \"✓ functions/.env not found (good)\")"
     ],
     "deny": [],
     "ask": [

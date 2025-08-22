@@ -157,6 +157,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     }
     
     final selectedClient = cartClient ?? clientsScreenClient;
+    final activeClient = selectedClient; // Alias for header display
     final theme = Theme.of(context);
 
     return Scaffold(
