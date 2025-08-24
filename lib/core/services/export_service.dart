@@ -4,6 +4,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:excel/excel.dart';
 import 'app_logger.dart';
@@ -26,23 +27,36 @@ class ExportService {
       
       final pdf = pw.Document();
       
-      // Find the quote in the user's quotes
-      final usersSnapshot = await _database.ref('quotes').get();
-      if (!usersSnapshot.exists) {
-        throw Exception('No quotes found');
+      // Get current user ID
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        throw Exception('User not authenticated');
       }
       
+      // Try to get quote from current user's quotes first
       Map<String, dynamic>? quoteData;
-      String? userId;
+      String? userId = currentUser.uid;
       
-      // Search through all users' quotes
-      final usersData = Map<String, dynamic>.from(usersSnapshot.value as Map);
-      for (var userEntry in usersData.entries) {
-        final userQuotes = Map<String, dynamic>.from(userEntry.value);
-        if (userQuotes.containsKey(quoteId)) {
-          quoteData = Map<String, dynamic>.from(userQuotes[quoteId]);
-          userId = userEntry.key;
-          break;
+      final userQuoteSnapshot = await _database.ref('quotes/$userId/$quoteId').get();
+      if (userQuoteSnapshot.exists) {
+        quoteData = Map<String, dynamic>.from(userQuoteSnapshot.value as Map);
+      } else {
+        // If not found in user's quotes, check if user is admin
+        final userEmail = currentUser.email;
+        if (userEmail == 'andres@turboairmexico.com') {
+          // Admin can search all quotes
+          final usersSnapshot = await _database.ref('quotes').get();
+          if (usersSnapshot.exists) {
+            final usersData = Map<String, dynamic>.from(usersSnapshot.value as Map);
+            for (var userEntry in usersData.entries) {
+              final userQuotes = Map<String, dynamic>.from(userEntry.value);
+              if (userQuotes.containsKey(quoteId)) {
+                quoteData = Map<String, dynamic>.from(userQuotes[quoteId]);
+                userId = userEntry.key;
+                break;
+              }
+            }
+          }
         }
       }
       
@@ -513,22 +527,36 @@ class ExportService {
         throw Exception('Quote ID cannot be empty');
       }
       
-      // Find the quote data (similar logic to PDF generation)
-      final usersSnapshot = await _database.ref('quotes').get();
-      if (!usersSnapshot.exists) {
-        throw Exception('No quotes found in database');
+      // Get current user ID
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        throw Exception('User not authenticated');
       }
       
+      // Try to get quote from current user's quotes first
       Map<String, dynamic>? quoteData;
-      String? userId;
+      String? userId = currentUser.uid;
       
-      final usersData = Map<String, dynamic>.from(usersSnapshot.value as Map);
-      for (var userEntry in usersData.entries) {
-        final userQuotes = Map<String, dynamic>.from(userEntry.value);
-        if (userQuotes.containsKey(quoteId)) {
-          quoteData = Map<String, dynamic>.from(userQuotes[quoteId]);
-          userId = userEntry.key;
-          break;
+      final userQuoteSnapshot = await _database.ref('quotes/$userId/$quoteId').get();
+      if (userQuoteSnapshot.exists) {
+        quoteData = Map<String, dynamic>.from(userQuoteSnapshot.value as Map);
+      } else {
+        // If not found in user's quotes, check if user is admin
+        final userEmail = currentUser.email;
+        if (userEmail == 'andres@turboairmexico.com') {
+          // Admin can search all quotes
+          final usersSnapshot = await _database.ref('quotes').get();
+          if (usersSnapshot.exists) {
+            final usersData = Map<String, dynamic>.from(usersSnapshot.value as Map);
+            for (var userEntry in usersData.entries) {
+              final userQuotes = Map<String, dynamic>.from(userEntry.value);
+              if (userQuotes.containsKey(quoteId)) {
+                quoteData = Map<String, dynamic>.from(userQuotes[quoteId]);
+                userId = userEntry.key;
+                break;
+              }
+            }
+          }
         }
       }
       
