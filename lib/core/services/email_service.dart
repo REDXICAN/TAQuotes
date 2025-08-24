@@ -21,8 +21,15 @@ class EmailService {
       allowInsecure: !SecureEmailConfig.smtpSecure,
     );
     
-    AppLogger.info('Email service initialized with SMTP server: ${SecureEmailConfig.smtpHost}:${SecureEmailConfig.smtpPort}',
-        category: LogCategory.email);
+    AppLogger.info('Email service initialized',
+        category: LogCategory.email,
+        data: {
+          'smtpHost': SecureEmailConfig.smtpHost,
+          'smtpPort': SecureEmailConfig.smtpPort,
+          'username': SecureEmailConfig.gmailAddress,
+          'hasPassword': SecureEmailConfig.gmailAppPassword.isNotEmpty,
+          'ssl': SecureEmailConfig.smtpSecure,
+        });
   }
 
   /// Send quote email with user information and comprehensive error handling
