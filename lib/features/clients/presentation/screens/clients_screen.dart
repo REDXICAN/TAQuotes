@@ -12,6 +12,7 @@ import '../../../../core/services/app_logger.dart';
 import '../../../../core/services/export_service.dart';
 import '../../../../core/utils/download_helper.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
+import '../../../../core/utils/responsive_helper.dart';
 import '../../../cart/presentation/screens/cart_screen.dart'; // For cartClientProvider
 
 // Clients provider using Realtime Database
@@ -195,7 +196,10 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
         title: 'Clients',
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.download),
+            icon: Icon(
+              Icons.download,
+              size: ResponsiveHelper.getIconSize(context),
+            ),
             onSelected: (value) async {
               final user = ref.read(currentUserProvider);
               if (user == null) return;
@@ -207,18 +211,34 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'xlsx',
                 child: ListTile(
-                  leading: Icon(Icons.table_chart),
-                  title: Text('Export as Excel'),
+                  leading: Icon(
+                    Icons.table_chart,
+                    size: ResponsiveHelper.getIconSize(context, baseSize: 20),
+                  ),
+                  title: Text(
+                    'Export as Excel',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        baseFontSize: 14,
+                        minFontSize: 12,
+                        maxFontSize: 16,
+                      ),
+                    ),
+                  ),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
             ],
           ),
           IconButton(
-            icon: Icon(_showAddForm ? Icons.close : Icons.add),
+            icon: Icon(
+              _showAddForm ? Icons.close : Icons.add,
+              size: ResponsiveHelper.getIconSize(context),
+            ),
             onPressed: () {
               setState(() {
                 _showAddForm = !_showAddForm;
@@ -235,18 +255,32 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
           // Selected Client Display
           if (selectedClient != null)
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(
+                ResponsiveHelper.getSpacing(context, medium: 12),
+              ),
               color: Colors.green.withOpacity(0.1),
               child: Row(
                 children: [
-                  Icon(Icons.check_circle, color: Colors.green, size: 20),
-                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.check_circle,
+                    color: Colors.green,
+                    size: ResponsiveHelper.getIconSize(context, baseSize: 20),
+                  ),
+                  SizedBox(
+                    width: ResponsiveHelper.getSpacing(context, medium: 8),
+                  ),
                   Expanded(
                     child: Text(
                       'Selected: ${selectedClient.company}',
                       style: TextStyle(
                         color: Colors.green[700],
                         fontWeight: FontWeight.w500,
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          baseFontSize: 14,
+                          minFontSize: 12,
+                          maxFontSize: 16,
+                        ),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),

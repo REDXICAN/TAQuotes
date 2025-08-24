@@ -114,12 +114,113 @@ class ResponsiveHelper {
     if (width < 400) return 0.9;   // Small phones
     if (width < 600) return 1.0;   // Normal phones
     if (width < 900) return 1.1;   // Tablets
-    return 1.0;                     // Desktop (use normal scale)
+    if (width < 1400) return 1.15; // Desktop
+    return 1.25;                   // Large desktop/4K
+  }
+  
+  // Get responsive font size with minimum readable size
+  static double getResponsiveFontSize(BuildContext context, {
+    required double baseFontSize,
+    double? minFontSize,
+    double? maxFontSize,
+  }) {
+    final scaleFactor = getFontScale(context);
+    final scaledSize = baseFontSize * scaleFactor;
+    
+    if (minFontSize != null && scaledSize < minFontSize) {
+      return minFontSize;
+    }
+    if (maxFontSize != null && scaledSize > maxFontSize) {
+      return maxFontSize;
+    }
+    
+    return scaledSize;
+  }
+  
+  // Get responsive dimension (width, height, padding, margin)
+  static double getResponsiveSize(BuildContext context, {
+    required double mobile,
+    double? tablet,
+    double? desktop,
+    double? largeDesktop,
+  }) {
+    return getValue<double>(
+      context,
+      mobile: mobile,
+      tablet: tablet ?? mobile * 1.2,
+      desktop: desktop ?? mobile * 1.4,
+      largeDesktop: largeDesktop ?? mobile * 1.6,
+    );
+  }
+  
+  // Get minimum touch target size (44px recommended)
+  static double getTouchTargetSize(BuildContext context) {
+    return getResponsiveSize(
+      context,
+      mobile: 44.0,
+      tablet: 48.0,
+      desktop: 40.0,
+      largeDesktop: 44.0,
+    );
+  }
+  
+  // Get responsive border radius
+  static double getBorderRadius(BuildContext context, {double baseRadius = 8.0}) {
+    return getResponsiveSize(
+      context,
+      mobile: baseRadius,
+      tablet: baseRadius * 1.1,
+      desktop: baseRadius * 1.2,
+      largeDesktop: baseRadius * 1.3,
+    );
   }
   
   // Get adaptive icon size
   static double getIconSize(BuildContext context, {double baseSize = 24}) {
-    return baseSize * getFontScale(context);
+    return getResponsiveSize(
+      context,
+      mobile: baseSize,
+      tablet: baseSize * 1.1,
+      desktop: baseSize * 1.15,
+      largeDesktop: baseSize * 1.25,
+    );
+  }
+  
+  // Get responsive spacing/padding values
+  static double getSpacing(BuildContext context, {
+    double small = 4.0,
+    double medium = 8.0, 
+    double large = 16.0,
+    double extraLarge = 24.0,
+  }) {
+    if (isMobile(context)) return small;
+    if (isTablet(context)) return medium;
+    if (isDesktop(context)) return large;
+    return extraLarge; // Large desktop
+  }
+  
+  // Get responsive container constraints
+  static BoxConstraints getContainerConstraints(BuildContext context, {
+    double? minWidth,
+    double? maxWidth,
+    double? minHeight,
+    double? maxHeight,
+  }) {
+    final screenWidth = getScreenWidth(context);
+    
+    return BoxConstraints(
+      minWidth: minWidth ?? 0,
+      maxWidth: maxWidth ?? screenWidth,
+      minHeight: minHeight ?? 0,
+      maxHeight: maxHeight ?? double.infinity,
+    );
+  }
+  
+  // Get responsive elevation
+  static double getElevation(BuildContext context, {double baseElevation = 1.0}) {
+    if (isMobile(context)) return baseElevation;
+    if (isTablet(context)) return baseElevation * 1.5;
+    return baseElevation * 2.0;
   }
   
   // Check if we should use compact layout

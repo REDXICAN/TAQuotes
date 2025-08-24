@@ -9,6 +9,7 @@ import '../../../../core/widgets/simple_image_widget.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/widgets/product_screenshots_popup.dart';
+import '../../../../core/utils/responsive_helper.dart';
 
 // Quote detail provider
 final quoteDetailProvider =
@@ -81,23 +82,54 @@ class QuoteDetailScreen extends ConsumerWidget {
         actions: [
           PopupMenuButton<String>(
             itemBuilder: (context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
+              PopupMenuItem<String>(
                 value: 'email',
                 child: Row(
                   children: [
-                    Icon(Icons.email),
-                    SizedBox(width: 8),
-                    Text('Send Email'),
+                    Icon(
+                      Icons.email,
+                      size: ResponsiveHelper.getIconSize(context, baseSize: 20),
+                    ),
+                    SizedBox(
+                      width: ResponsiveHelper.getSpacing(context, medium: 8),
+                    ),
+                    Text(
+                      'Send Email',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          baseFontSize: 14,
+                          minFontSize: 12,
+                          maxFontSize: 16,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const PopupMenuItem<String>(
+              PopupMenuItem<String>(
                 value: 'pdf',
                 child: Row(
                   children: [
-                    Icon(Icons.picture_as_pdf, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Export PDF'),
+                    Icon(
+                      Icons.picture_as_pdf,
+                      color: Colors.red,
+                      size: ResponsiveHelper.getIconSize(context, baseSize: 20),
+                    ),
+                    SizedBox(
+                      width: ResponsiveHelper.getSpacing(context, medium: 8),
+                    ),
+                    Text(
+                      'Export PDF',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                          context,
+                          baseFontSize: 14,
+                          minFontSize: 12,
+                          maxFontSize: 16,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

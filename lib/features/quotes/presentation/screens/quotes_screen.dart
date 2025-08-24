@@ -243,7 +243,9 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: ResponsiveHelper.getSpacing(context, medium: 8),
+                    ),
                     // Project filter dropdown
                     FutureBuilder<List<Map<String, dynamic>>>(
                       future: _loadProjects(),

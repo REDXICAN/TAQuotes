@@ -308,7 +308,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(
+                height: ResponsiveHelper.getSpacing(context, extraLarge: 24),
+              ),
 
               // Connection status
               if (!_isOnline || _syncQueueCount > 0)
@@ -405,7 +407,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              SizedBox(
+                height: ResponsiveHelper.getSpacing(context, extraLarge: 24),
+              ),
               
               // Recently Searched Products Section
               const RecentSearchesWidget(),

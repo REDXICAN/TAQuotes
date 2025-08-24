@@ -152,7 +152,9 @@
       "Bash(firebase hosting:disable:*)",
       "Bash(firebase hosting:enable:*)",
       "Bash(gsutil cors:*)",
-      "Bash(gcloud storage buckets update:*)"
+      "Bash(gcloud storage buckets update:*)",
+      "Bash(git pull:*)",
+      "Bash(C:UsersandreAppDataLocalPubCachebinflutterfire configure --project=taquotes --platforms=web,android,ios,windows --yes)"
     ],
     "deny": [],
     "ask": [

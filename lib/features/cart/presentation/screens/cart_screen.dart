@@ -261,19 +261,39 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                 children: [
                   Icon(
                     Icons.shopping_cart_outlined,
-                    size: 100,
+                    size: ResponsiveHelper.getIconSize(
+                      context,
+                      baseSize: 100,
+                    ),
                     color: theme.disabledColor,
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: ResponsiveHelper.getSpacing(context, large: 16),
+                  ),
                   Text(
                     'Your cart is empty',
-                    style: theme.textTheme.headlineSmall,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        baseFontSize: 24,
+                        minFontSize: 20,
+                        maxFontSize: 28,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: ResponsiveHelper.getSpacing(context, medium: 8),
+                  ),
                   Text(
                     'Add products to get started',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.disabledColor,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        baseFontSize: 14,
+                        minFontSize: 12,
+                        maxFontSize: 16,
+                      ),
                     ),
                   ),
                 ],
@@ -372,7 +392,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       child: isCompact
                           ? // Compact layout for very small screens
                             Padding(
-                              padding: const EdgeInsets.all(8),
+                              padding: EdgeInsets.all(
+                                ResponsiveHelper.getSpacing(context, medium: 8),
+                              ),
                               child: Column(
                                 children: [
                                   Row(
@@ -380,18 +402,32 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                       // Image with white background
                                       if (product != null)
                                         Container(
-                                          width: 60,
-                                          height: 60,
+                                          width: ResponsiveHelper.getResponsiveSize(
+                                            context,
+                                            mobile: 50,
+                                            tablet: 60,
+                                            desktop: 70,
+                                          ),
+                                          height: ResponsiveHelper.getResponsiveSize(
+                                            context,
+                                            mobile: 50,
+                                            tablet: 60,
+                                            desktop: 70,
+                                          ),
                                           decoration: BoxDecoration(
                                             color: Colors.white,
-                                            borderRadius: BorderRadius.circular(4),
+                                            borderRadius: BorderRadius.circular(
+                                              ResponsiveHelper.getBorderRadius(context, baseRadius: 4),
+                                            ),
                                             border: Border.all(
                                               color: Colors.grey.shade300,
                                               width: 1,
                                             ),
                                           ),
                                           child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(3),
+                                            borderRadius: BorderRadius.circular(
+                                              ResponsiveHelper.getBorderRadius(context, baseRadius: 3),
+                                            ),
                                             child: SimpleImageWidget(
                                               sku: product.sku ?? product.model ?? '',
                                               useThumbnail: true,
@@ -402,19 +438,36 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                         )
                                       else
                                         Container(
-                                          width: 60,
-                                          height: 60,
+                                          width: ResponsiveHelper.getResponsiveSize(
+                                            context,
+                                            mobile: 50,
+                                            tablet: 60,
+                                            desktop: 70,
+                                          ),
+                                          height: ResponsiveHelper.getResponsiveSize(
+                                            context,
+                                            mobile: 50,
+                                            tablet: 60,
+                                            desktop: 70,
+                                          ),
                                           decoration: BoxDecoration(
                                             color: theme.disabledColor.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(4),
+                                            borderRadius: BorderRadius.circular(
+                                              ResponsiveHelper.getBorderRadius(context, baseRadius: 4),
+                                            ),
                                             border: Border.all(
                                               color: Colors.grey.shade300,
                                               width: 1,
                                             ),
                                           ),
-                                          child: const Icon(Icons.inventory_2, size: 20),
+                                          child: Icon(
+                                            Icons.inventory_2,
+                                            size: ResponsiveHelper.getIconSize(context, baseSize: 20),
+                                          ),
                                         ),
-                                      const SizedBox(width: 12),
+                                      SizedBox(
+                                        width: ResponsiveHelper.getSpacing(context, medium: 12),
+                                      ),
                                       // Product info
                                       Expanded(
                                         child: Column(
@@ -424,16 +477,30 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                               product?.sku ?? product?.model ?? 'Unknown Product',
                                               style: theme.textTheme.bodyMedium?.copyWith(
                                                 fontWeight: FontWeight.bold,
+                                                fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                                  context,
+                                                  baseFontSize: 14,
+                                                  minFontSize: 12,
+                                                  maxFontSize: 16,
+                                                ),
                                               ),
                                               maxLines: 2,
                                               overflow: TextOverflow.ellipsis,
                                             ),
-                                            const SizedBox(height: 4),
+                                            SizedBox(
+                                              height: ResponsiveHelper.getSpacing(context, small: 4),
+                                            ),
                                             Text(
                                               _formatPrice(_calculateItemTotal(item, product)),
                                               style: TextStyle(
                                                 color: theme.primaryColor,
                                                 fontWeight: FontWeight.bold,
+                                                fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                                  context,
+                                                  baseFontSize: 14,
+                                                  minFontSize: 12,
+                                                  maxFontSize: 16,
+                                                ),
                                               ),
                                             ),
                                           ],
@@ -441,12 +508,17 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                       ),
                                       // Delete button
                                       IconButton(
-                                        icon: const Icon(Icons.delete_outline, size: 20),
+                                        icon: Icon(
+                                          Icons.delete_outline,
+                                          size: ResponsiveHelper.getIconSize(context, baseSize: 20),
+                                        ),
                                         onPressed: () => _removeItem(item),
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    height: ResponsiveHelper.getSpacing(context, medium: 8),
+                                  ),
                                   // Quantity controls
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,

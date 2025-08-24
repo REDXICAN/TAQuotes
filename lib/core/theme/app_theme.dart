@@ -1,8 +1,9 @@
 // lib/core/theme/app_theme.dart
 import 'package:flutter/material.dart';
+import '../utils/responsive_helper.dart';
 
 class AppTheme {
-  static ThemeData getTheme(Brightness brightness) {
+  static ThemeData getTheme(Brightness brightness, [BuildContext? context]) {
     final isDark = brightness == Brightness.dark;
 
     return ThemeData(
@@ -29,10 +30,10 @@ class AppTheme {
         backgroundColor:
             isDark ? const Color(0xFF1E1E1E) : const Color(0xFF20429C),
         foregroundColor: Colors.white,
-        elevation: isDark ? 0 : 2,
+        elevation: context != null ? ResponsiveHelper.getElevation(context, baseElevation: isDark ? 0 : 2) : (isDark ? 0 : 2),
         centerTitle: false,
-        titleTextStyle: const TextStyle(
-          fontSize: 20,
+        titleTextStyle: TextStyle(
+          fontSize: context != null ? ResponsiveHelper.getResponsiveFontSize(context, baseFontSize: 20, minFontSize: 18, maxFontSize: 24) : 20,
           fontWeight: FontWeight.w600,
           color: Colors.white,
         ),
@@ -41,10 +42,12 @@ class AppTheme {
       // Card theme  
       cardTheme: CardThemeData(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        elevation: isDark ? 2 : 1,
+        elevation: context != null ? ResponsiveHelper.getElevation(context, baseElevation: isDark ? 2 : 1) : (isDark ? 2 : 1),
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(
+            context != null ? ResponsiveHelper.getBorderRadius(context, baseRadius: 12) : 12,
+          ),
         ),
       ),
 
@@ -53,32 +56,42 @@ class AppTheme {
         filled: true,
         fillColor: isDark ? const Color(0xFF2C2C2C) : Colors.grey[100],
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(
+            context != null ? ResponsiveHelper.getBorderRadius(context) : 8,
+          ),
           borderSide: BorderSide(
             color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
           ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(
+            context != null ? ResponsiveHelper.getBorderRadius(context) : 8,
+          ),
           borderSide: BorderSide(
             color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(
+            context != null ? ResponsiveHelper.getBorderRadius(context) : 8,
+          ),
           borderSide: BorderSide(
             color: isDark ? const Color(0xFF4A6EC5) : const Color(0xFF20429C),
             width: 2,
           ),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(
+            context != null ? ResponsiveHelper.getBorderRadius(context) : 8,
+          ),
           borderSide: const BorderSide(
             color: Colors.red,
           ),
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: context != null ? ResponsiveHelper.getSpacing(context, large: 16) : 16,
+          vertical: context != null ? ResponsiveHelper.getSpacing(context, medium: 14) : 14,
+        ),
       ),
 
       // Elevated button theme
@@ -87,11 +100,20 @@ class AppTheme {
           backgroundColor:
               isDark ? const Color(0xFF4A6EC5) : const Color(0xFF20429C),
           foregroundColor: Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+          elevation: context != null ? ResponsiveHelper.getElevation(context, baseElevation: 0) : 0,
+          padding: EdgeInsets.symmetric(
+            horizontal: context != null ? ResponsiveHelper.getSpacing(context, large: 24) : 24,
+            vertical: context != null ? ResponsiveHelper.getSpacing(context, medium: 12) : 12,
           ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+              context != null ? ResponsiveHelper.getBorderRadius(context) : 8,
+            ),
+          ),
+          minimumSize: context != null ? Size(
+            ResponsiveHelper.getTouchTargetSize(context),
+            ResponsiveHelper.getTouchTargetSize(context),
+          ) : null,
         ),
       ),
 
@@ -124,36 +146,8 @@ class AppTheme {
         color: isDark ? Colors.grey[300] : Colors.grey[700],
       ),
 
-      // Text theme
-      textTheme: TextTheme(
-        headlineLarge: TextStyle(
-          color: isDark ? Colors.white : Colors.black,
-        ),
-        headlineMedium: TextStyle(
-          color: isDark ? Colors.white : Colors.black,
-        ),
-        headlineSmall: TextStyle(
-          color: isDark ? Colors.white : Colors.black,
-        ),
-        titleLarge: TextStyle(
-          color: isDark ? Colors.white : Colors.black,
-        ),
-        titleMedium: TextStyle(
-          color: isDark ? Colors.white : Colors.black,
-        ),
-        titleSmall: TextStyle(
-          color: isDark ? Colors.white : Colors.black,
-        ),
-        bodyLarge: TextStyle(
-          color: isDark ? Colors.grey[200] : Colors.grey[800],
-        ),
-        bodyMedium: TextStyle(
-          color: isDark ? Colors.grey[300] : Colors.grey[700],
-        ),
-        bodySmall: TextStyle(
-          color: isDark ? Colors.grey[400] : Colors.grey[600],
-        ),
-      ),
+      // Text theme with responsive sizing
+      textTheme: _getResponsiveTextTheme(isDark, context),
 
       // Bottom Navigation Bar Theme
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
@@ -172,25 +166,28 @@ class AppTheme {
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return TextStyle(
-              fontSize: 12,
+              fontSize: context != null ? ResponsiveHelper.getResponsiveFontSize(context, baseFontSize: 12, minFontSize: 10, maxFontSize: 14) : 12,
               fontWeight: FontWeight.w600,
               color: isDark ? const Color(0xFF4A6EC5) : const Color(0xFF20429C),
             );
           }
           return TextStyle(
-            fontSize: 12,
+            fontSize: context != null ? ResponsiveHelper.getResponsiveFontSize(context, baseFontSize: 12, minFontSize: 10, maxFontSize: 14) : 12,
             fontWeight: FontWeight.w500,
             color: isDark ? Colors.grey[600] : Colors.grey[700],
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
+          final iconSize = context != null ? ResponsiveHelper.getIconSize(context, baseSize: 24) : 24.0;
           if (states.contains(WidgetState.selected)) {
             return IconThemeData(
               color: isDark ? const Color(0xFF4A6EC5) : const Color(0xFF20429C),
+              size: iconSize,
             );
           }
           return IconThemeData(
             color: isDark ? Colors.grey[600] : Colors.grey[700],
+            size: iconSize,
           );
         }),
       ),
@@ -200,12 +197,12 @@ class AppTheme {
         backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
         titleTextStyle: TextStyle(
           color: isDark ? Colors.white : Colors.black,
-          fontSize: 20,
+          fontSize: context != null ? ResponsiveHelper.getResponsiveFontSize(context, baseFontSize: 20, minFontSize: 18, maxFontSize: 24) : 20,
           fontWeight: FontWeight.w600,
         ),
         contentTextStyle: TextStyle(
           color: isDark ? Colors.grey[300] : Colors.grey[700],
-          fontSize: 14,
+          fontSize: context != null ? ResponsiveHelper.getResponsiveFontSize(context, baseFontSize: 14, minFontSize: 12, maxFontSize: 16) : 14,
         ),
       ),
 
@@ -252,6 +249,82 @@ class AppTheme {
         contentTextStyle: const TextStyle(color: Colors.white),
         actionTextColor:
             isDark ? const Color(0xFF4A6EC5) : const Color(0xFF7BA7E7),
+      ),
+    );
+  }
+  
+  // Helper method to create responsive text theme
+  static TextTheme _getResponsiveTextTheme(bool isDark, BuildContext? context) {
+    return TextTheme(
+      headlineLarge: TextStyle(
+        color: isDark ? Colors.white : Colors.black,
+        fontSize: context != null ? ResponsiveHelper.getResponsiveFontSize(context, baseFontSize: 32, minFontSize: 28, maxFontSize: 40) : 32,
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.25,
+      ),
+      headlineMedium: TextStyle(
+        color: isDark ? Colors.white : Colors.black,
+        fontSize: context != null ? ResponsiveHelper.getResponsiveFontSize(context, baseFontSize: 28, minFontSize: 24, maxFontSize: 34) : 28,
+        fontWeight: FontWeight.w400,
+      ),
+      headlineSmall: TextStyle(
+        color: isDark ? Colors.white : Colors.black,
+        fontSize: context != null ? ResponsiveHelper.getResponsiveFontSize(context, baseFontSize: 24, minFontSize: 20, maxFontSize: 28) : 24,
+        fontWeight: FontWeight.w400,
+      ),
+      titleLarge: TextStyle(
+        color: isDark ? Colors.white : Colors.black,
+        fontSize: context != null ? ResponsiveHelper.getResponsiveFontSize(context, baseFontSize: 22, minFontSize: 18, maxFontSize: 26) : 22,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0,
+      ),
+      titleMedium: TextStyle(
+        color: isDark ? Colors.white : Colors.black,
+        fontSize: context != null ? ResponsiveHelper.getResponsiveFontSize(context, baseFontSize: 16, minFontSize: 14, maxFontSize: 20) : 16,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.15,
+      ),
+      titleSmall: TextStyle(
+        color: isDark ? Colors.white : Colors.black,
+        fontSize: context != null ? ResponsiveHelper.getResponsiveFontSize(context, baseFontSize: 14, minFontSize: 12, maxFontSize: 16) : 14,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.1,
+      ),
+      bodyLarge: TextStyle(
+        color: isDark ? Colors.grey[200] : Colors.grey[800],
+        fontSize: context != null ? ResponsiveHelper.getResponsiveFontSize(context, baseFontSize: 16, minFontSize: 14, maxFontSize: 18) : 16,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.5,
+      ),
+      bodyMedium: TextStyle(
+        color: isDark ? Colors.grey[300] : Colors.grey[700],
+        fontSize: context != null ? ResponsiveHelper.getResponsiveFontSize(context, baseFontSize: 14, minFontSize: 12, maxFontSize: 16) : 14,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.25,
+      ),
+      bodySmall: TextStyle(
+        color: isDark ? Colors.grey[400] : Colors.grey[600],
+        fontSize: context != null ? ResponsiveHelper.getResponsiveFontSize(context, baseFontSize: 12, minFontSize: 10, maxFontSize: 14) : 12,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.4,
+      ),
+      labelLarge: TextStyle(
+        color: isDark ? Colors.grey[200] : Colors.grey[800],
+        fontSize: context != null ? ResponsiveHelper.getResponsiveFontSize(context, baseFontSize: 14, minFontSize: 12, maxFontSize: 16) : 14,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.1,
+      ),
+      labelMedium: TextStyle(
+        color: isDark ? Colors.grey[300] : Colors.grey[700],
+        fontSize: context != null ? ResponsiveHelper.getResponsiveFontSize(context, baseFontSize: 12, minFontSize: 10, maxFontSize: 14) : 12,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.5,
+      ),
+      labelSmall: TextStyle(
+        color: isDark ? Colors.grey[400] : Colors.grey[600],
+        fontSize: context != null ? ResponsiveHelper.getResponsiveFontSize(context, baseFontSize: 11, minFontSize: 9, maxFontSize: 13) : 11,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.5,
       ),
     );
   }

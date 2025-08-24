@@ -698,8 +698,8 @@ Future<void> _handleExcelUpload() async {
                         style: IconButton.styleFrom(
                           backgroundColor: theme.primaryColor.withOpacity(0.1),
                           minimumSize: Size(
-                            ResponsiveHelper.isMobile(context) ? 36 : 40,
-                            ResponsiveHelper.isMobile(context) ? 36 : 40,
+                            ResponsiveHelper.getTouchTargetSize(context),
+                            ResponsiveHelper.getTouchTargetSize(context),
                           ),
                         ),
                       ),
@@ -2393,13 +2393,20 @@ class ProductCard extends ConsumerWidget {
                           child: Text(
                             formatPrice(product.price),
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                context,
+                                baseFontSize: 14,
+                                minFontSize: 12,
+                                maxFontSize: 18,
+                              ),
                               color: theme.primaryColor,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 4),
+                        SizedBox(
+                          width: ResponsiveHelper.getSpacing(context, small: 4),
+                        ),
                         _buildQuantitySelector(product, ref, context, theme, dbService),
                       ],
                     ),
