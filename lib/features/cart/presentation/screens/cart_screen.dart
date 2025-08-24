@@ -1760,7 +1760,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
               TextButton.icon(
                 onPressed: () {
                   Navigator.pop(dialogContext);
-                  Navigator.pushReplacementNamed(context, '/quotes/$quoteId');
+                  context.go('/quotes/$quoteId');
                 },
                 icon: const Icon(Icons.visibility),
                 label: const Text('View Quote'),
@@ -2253,7 +2253,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                     onPressed: () {
                                       // Navigate to the quote detail page
                                       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                                      Navigator.pushReplacementNamed(context, '/quotes/$quoteId');
+                                      context.go('/quotes/$quoteId');
                                     },
                                     child: const Text(
                                       'VIEW',

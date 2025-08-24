@@ -154,7 +154,9 @@
       "Bash(gsutil cors:*)",
       "Bash(gcloud storage buckets update:*)",
       "Bash(git pull:*)",
-      "Bash(C:UsersandreAppDataLocalPubCachebinflutterfire configure --project=taquotes --platforms=web,android,ios,windows --yes)"
+      "Bash(C:UsersandreAppDataLocalPubCachebinflutterfire configure --project=taquotes --platforms=web,android,ios,windows --yes)",
+      "Bash(firebase functions:list:*)",
+      "Bash(firebase functions:url:*)"
     ],
     "deny": [],
     "ask": [

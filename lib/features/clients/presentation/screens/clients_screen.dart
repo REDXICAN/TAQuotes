@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
@@ -965,7 +966,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                                                             child: ElevatedButton.icon(
                                                               onPressed: () {
                                                                 // Navigate to quotes section with this quote opened
-                                                                Navigator.pushNamed(context, '/quotes/${quote.id}');
+                                                                context.push('/quotes/${quote.id}');
                                                               },
                                                               icon: const Icon(Icons.open_in_new, size: 18),
                                                               label: const Text('View Full Quote'),
@@ -1182,7 +1183,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                                                                       final currencyFormat = NumberFormat.currency(symbol: '\$');
                                                                       return InkWell(
                                                                         onTap: () {
-                                                                          Navigator.pushNamed(context, '/quotes/${quote.id}');
+                                                                          context.push('/quotes/${quote.id}');
                                                                         },
                                                                         child: Container(
                                                                           padding: const EdgeInsets.all(8),
