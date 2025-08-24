@@ -51,6 +51,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+  - .env
   - assets/logos/turbo_air_logo.png
   - assets/thumbnails/
   - assets/screenshots/

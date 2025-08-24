@@ -344,7 +344,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           const SizedBox(width: 16),
                           // Add to Cart button
                           Expanded(
-                            child: ElevatedButton.icon(
+                            child: OutlinedButton.icon(
                               onPressed: () async {
                                 try {
                                   await dbService.addToCart(
@@ -398,11 +398,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                   }
                                 }
                               },
-                              icon: const Icon(Icons.add_shopping_cart),
+                              icon: const Icon(Icons.add_shopping_cart, color: Colors.blue),
                               label: const Text('Add to Cart'),
-                              style: ElevatedButton.styleFrom(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                side: const BorderSide(color: Colors.blue),
+                                foregroundColor: Colors.blue,
                               ),
                             ),
                           ),
@@ -412,55 +413,57 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       // Add Note button and field (shows after adding to cart)
                       if (_showNoteField) ...[
                         const SizedBox(height: 16),
-                        TextButton.icon(
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (dialogContext) => AlertDialog(
-                                title: const Text('Add Note'),
-                                content: TextField(
-                                  controller: _noteController,
-                                  maxLines: 3,
-                                  decoration: const InputDecoration(
-                                    hintText: 'Add a note for this product...',
-                                    border: OutlineInputBorder(),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (dialogContext) => AlertDialog(
+                                  title: const Text('Add Note'),
+                                  content: TextField(
+                                    controller: _noteController,
+                                    maxLines: 3,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Add a note for this product...',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    onChanged: (value) => _note = value,
                                   ),
-                                  onChanged: (value) => _note = value,
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(dialogContext),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () async {
+                                        if (_cartItemId != null) {
+                                          await dbService.updateCartItem(
+                                            _cartItemId!,
+                                            note: _note,
+                                          );
+                                          Navigator.pop(dialogContext);
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Note saved'),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      child: const Text('Save Note'),
+                                    ),
+                                  ],
                                 ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(dialogContext),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () async {
-                                      if (_cartItemId != null) {
-                                        await dbService.updateCartItem(
-                                          _cartItemId!,
-                                          note: _note,
-                                        );
-                                        Navigator.pop(dialogContext);
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Note saved'),
-                                            backgroundColor: Colors.green,
-                                          ),
-                                        );
-                                      }
-                                    },
-                                    child: const Text('Save Note'),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.note_add, color: Colors.green),
-                          label: Text(
-                            _note.isEmpty ? 'Add Note' : 'Edit Note',
-                            style: const TextStyle(color: Colors.green),
-                          ),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                              );
+                            },
+                            icon: const Icon(Icons.note_add, color: Colors.green),
+                            label: Text(_note.isEmpty ? 'Add Note' : 'Edit Note'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                              side: const BorderSide(color: Colors.green),
+                              foregroundColor: Colors.green,
+                            ),
                           ),
                         ),
                         if (_note.isNotEmpty) ...[
