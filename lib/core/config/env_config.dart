@@ -75,6 +75,10 @@ class EnvConfig {
   static int get smtpPort => _getEnvInt('SMTP_PORT', 587);
   static bool get smtpSecure => _getEnvBool('SMTP_SECURE', false);
   
+  // Security Configuration
+  static String get csrfSecretKey => _getEnv('CSRF_SECRET_KEY', 
+      'FALLBACK_KEY_FOR_LOCAL_DEV_ONLY_' + DateTime.now().millisecondsSinceEpoch.toString());
+  
   // Check if environment is properly loaded
   static bool get isLoaded {
     try {

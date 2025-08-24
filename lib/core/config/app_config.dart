@@ -8,10 +8,19 @@ class AppConfig {
   // Cloud Functions URLs (Firebase equivalent)
   // These will be set up after deploying Firebase Functions
   static const String cloudFunctionsRegion = 'us-central1';
+  static const String projectId = 'taquotes';
+  
+  // Cloud Functions URLs
   static String get emailFunctionUrl =>
-      'https://$cloudFunctionsRegion-your-project-id.cloudfunctions.net/sendEmail';
+      'https://$cloudFunctionsRegion-$projectId.cloudfunctions.net/sendQuoteEmail';
+  static String get testEmailFunctionUrl =>
+      'https://$cloudFunctionsRegion-$projectId.cloudfunctions.net/testEmail';
+  static String get initSuperAdminFunctionUrl =>
+      'https://$cloudFunctionsRegion-$projectId.cloudfunctions.net/initializeSuperAdmin';
+  
+  // Note: syncData function doesn't exist yet, keeping placeholder for future use
   static String get syncFunctionUrl =>
-      'https://$cloudFunctionsRegion-your-project-id.cloudfunctions.net/syncData';
+      'https://$cloudFunctionsRegion-$projectId.cloudfunctions.net/syncData';
 
   // App Settings (keeping your existing settings)
   static const int itemsPerPage = 20;

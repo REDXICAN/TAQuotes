@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:hive/hive.dart';
+import '../config/env_config.dart';
 
 class CsrfProtectionService {
   static final CsrfProtectionService _instance = CsrfProtectionService._internal();
@@ -291,8 +292,9 @@ class CsrfProtectionService {
   }
 
   String _signToken(String token) {
-    // In production, use a proper secret key from secure storage
-    const secret = 'YOUR_SECRET_KEY_HERE'; // TODO: Load from secure config
+    // Load secret key from environment configuration
+    // This keeps the secret out of source code
+    final secret = EnvConfig.csrfSecretKey;
     final hmac = Hmac(sha256, utf8.encode(secret));
     final digest = hmac.convert(utf8.encode(token));
     return digest.toString();
