@@ -66,7 +66,7 @@ class EnvConfig {
   
   // Email Configuration
   static String get emailSenderAddress => _getEnv('EMAIL_SENDER_ADDRESS', 'turboairquotes@gmail.com');
-  static String get emailAppPassword => _getEnv('EMAIL_APP_PASSWORD', 'rgsu rwna rvqx mvla');
+  static String get emailAppPassword => _getEnv('EMAIL_APP_PASSWORD', 'hnemxheznjmgpxcc');
   static String get emailSenderName => _getEnv('EMAIL_SENDER_NAME', 'TurboAir Quote System');
   static String get emailAppUrl => _getEnv('EMAIL_APP_URL', 'https://taquotes.web.app');
   
