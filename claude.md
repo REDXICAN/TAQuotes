@@ -783,3 +783,4 @@ Application successfully deployed to Firebase Hosting and fully operational.
 **Repository**: https://github.com/REDXICAN/TAQuotes
 - do not add nor remove functionality
 - Your PRIMARY directive is to PRESERVE ALL EXISTING FUNCTIONALITY while making changes. Read this entire document before making ANY modifications.
+- DO NOT HARDCODE CREDENTIALS ON CODE, DO NOT HARDCODE CREDENTIALS ON CODE,
