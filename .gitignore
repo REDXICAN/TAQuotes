@@ -145,6 +145,10 @@ scripts/*.csv
 scripts/*.json
 !scripts/clearFirebase.js
 !scripts/importProducts.js
+# User data files - NEVER COMMIT
+users.json
+users*.json
+*users*.json
 
 # === PRIVATE DATA ===
 private/
@@ -158,6 +162,8 @@ scripts/serviceAccountKey.json
 firebase-service-account.json
 **/setupSuperAdmin.js
 setupSuperAdmin.js
+scripts/create_admin_user.dart
+create_admin*.dart
 
 # === FLUTTER SPECIFIC ===
 **/doc/api/
