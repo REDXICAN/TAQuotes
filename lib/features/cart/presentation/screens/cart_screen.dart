@@ -311,10 +311,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           final taxAmount = subtotalAfterDiscount * (taxRate / 100);
           final total = subtotalAfterDiscount + taxAmount;
 
-          return Column(
-            children: [
-              // Client Selection
-              Container(
+          return SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Client Selection
+                Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: theme.cardColor,
@@ -375,8 +377,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
               ),
 
               // Cart Items
-              Expanded(
+              Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.5, // Take up to 50% of screen height
+                ),
                 child: ListView.builder(
+                  shrinkWrap: true,
                   padding: ResponsiveHelper.getScreenPadding(context),
                   itemCount: items.length,
                   itemBuilder: (context, index) {
@@ -1375,6 +1381,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                 ),
               ),
             ],
+          ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
