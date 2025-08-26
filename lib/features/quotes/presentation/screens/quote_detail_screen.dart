@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'dart:typed_data';
+import 'dart:async';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/widgets/simple_image_widget.dart';
@@ -10,6 +12,10 @@ import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/widgets/product_screenshots_popup.dart';
 import '../../../../core/utils/responsive_helper.dart';
+import '../../../../core/services/email_service.dart';
+import '../../../../core/services/export_service.dart';
+import '../../../../core/services/app_logger.dart';
+import 'package:mailer/mailer.dart';
 
 // Quote detail provider
 final quoteDetailProvider =
@@ -369,14 +375,7 @@ class QuoteDetailScreen extends ConsumerWidget {
                     const SizedBox(width: 16),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          // Handle send
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('Send functionality coming soon')),
-                          );
-                        },
+                        onPressed: () => _sendQuoteEmail(context, ref, quote),
                         icon: const Icon(Icons.send),
                         label: const Text('Send Quote'),
                         style: ElevatedButton.styleFrom(
@@ -408,6 +407,257 @@ class QuoteDetailScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _sendQuoteEmail(BuildContext context, WidgetRef ref, Quote quote) async {
+    // Show dialog to get recipient email
+    final emailController = TextEditingController(text: quote.client?.email ?? '');
+    bool attachPdf = true;
+    bool attachExcel = false;
+    
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Send Quote via Email'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Recipient Email',
+                  hintText: 'Enter email address',
+                  prefixIcon: Icon(Icons.email),
+                ),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              CheckboxListTile(
+                title: const Text('Attach PDF'),
+                subtitle: const Text('Include quote as PDF attachment'),
+                value: attachPdf,
+                onChanged: (value) => setState(() => attachPdf = value ?? true),
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+              CheckboxListTile(
+                title: const Text('Attach Excel'),
+                subtitle: const Text('Include quote as Excel spreadsheet'),
+                value: attachExcel,
+                onChanged: (value) => setState(() => attachExcel = value ?? false),
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, null),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, {
+                'email': emailController.text,
+                'attachPdf': attachPdf,
+                'attachExcel': attachExcel,
+              }),
+              child: const Text('Send Email'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == null) return;
+    
+    final email = result['email'] as String;
+    final sendPDF = result['attachPdf'] as bool;
+    final sendExcel = result['attachExcel'] as bool;
+    
+    // Validate email
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid email address'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    
+    // Show loading dialog
+    bool isLoadingDialogShowing = true;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => PopScope(
+        canPop: false,
+        child: const AlertDialog(
+          content: SizedBox(
+            height: 100,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Sending email...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    
+    try {
+      final emailService = EmailService();
+      final user = ref.read(currentUserProvider);
+      
+      // Generate HTML content for email body
+      final dateFormat = DateFormat('MMMM dd, yyyy');
+      final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
+      
+      String htmlContent = '''
+        <h2>Quote #${quote.quoteNumber}</h2>
+        <p>Date: ${dateFormat.format(quote.createdAt)}</p>
+        
+        <h3>Client Information</h3>
+        <p>
+          ${quote.client?.company ?? 'N/A'}<br/>
+          ${quote.client?.contactName ?? ''}<br/>
+          ${quote.client?.email ?? ''}<br/>
+          ${quote.client?.phone ?? ''}
+        </p>
+        
+        <h3>Quote Items</h3>
+        <table border="1" style="border-collapse: collapse; width: 100%;">
+          <tr>
+            <th style="padding: 8px;">Item</th>
+            <th style="padding: 8px;">Qty</th>
+            <th style="padding: 8px;">Price</th>
+            <th style="padding: 8px;">Total</th>
+          </tr>
+      ''';
+      
+      for (final item in quote.items) {
+        htmlContent += '''
+          <tr>
+            <td style="padding: 8px;">${item.productName}</td>
+            <td style="padding: 8px; text-align: center;">${item.quantity}</td>
+            <td style="padding: 8px; text-align: right;">${currencyFormat.format(item.unitPrice)}</td>
+            <td style="padding: 8px; text-align: right;">${currencyFormat.format(item.total)}</td>
+          </tr>
+        ''';
+      }
+      
+      htmlContent += '''
+        </table>
+        
+        <h3>Total</h3>
+        <p>
+          Subtotal: ${currencyFormat.format(quote.subtotal)}<br/>
+          Tax: ${currencyFormat.format(quote.tax)}<br/>
+          <strong>Total: ${currencyFormat.format(quote.totalAmount)}</strong>
+        </p>
+      ''';
+      
+      // Prepare attachments
+      List<Attachment>? attachments;
+      if (sendPDF || sendExcel) {
+        attachments = [];
+        
+        if (sendPDF) {
+          try {
+            final pdfBytes = await ExportService.generateQuotePDF(quote.id ?? '');
+            attachments.add(StreamAttachment(
+              Stream.value(pdfBytes),
+              'application/pdf',
+              fileName: 'Quote_${quote.quoteNumber}.pdf',
+            ));
+          } catch (e) {
+            AppLogger.error('Failed to generate PDF', error: e, category: LogCategory.business);
+          }
+        }
+        
+        if (sendExcel) {
+          try {
+            final excelBytes = await ExportService.generateQuoteExcel(quote.id ?? '');
+            attachments.add(StreamAttachment(
+              Stream.value(excelBytes),
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              fileName: 'Quote_${quote.quoteNumber}.xlsx',
+            ));
+          } catch (e) {
+            AppLogger.error('Failed to generate Excel', error: e, category: LogCategory.business);
+          }
+        }
+      }
+      
+      // Send email
+      final success = await emailService.sendQuoteEmail(
+        recipientEmail: email,
+        recipientName: quote.client?.contactName ?? 'Customer',
+        quoteNumber: quote.quoteNumber ?? 'N/A',
+        htmlContent: htmlContent,
+        userInfo: {
+          'name': user?.displayName ?? '',
+          'email': user?.email ?? '',
+          'role': 'Sales Representative',
+        },
+        attachments: attachments,
+      );
+      
+      // Close loading dialog
+      if (isLoadingDialogShowing && context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        isLoadingDialogShowing = false;
+      }
+      
+      if (success) {
+        // Update quote status if needed
+        if (quote.status == 'draft') {
+          try {
+            final dbService = ref.read(databaseServiceProvider);
+            await dbService.updateQuoteStatus(quote.id ?? '', 'sent');
+            ref.invalidate(quoteDetailProvider(quote.id ?? ''));
+          } catch (_) {
+            // Continue even if status update fails
+          }
+        }
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Quote sent successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to send email. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Close loading dialog if still showing
+      if (isLoadingDialogShowing && context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildStatusChip(String status, ThemeData theme) {
