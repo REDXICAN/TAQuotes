@@ -80,9 +80,8 @@ class ResponsiveHelper {
     final width = getScreenWidth(context);
     
     // For products grid - optimized for requested layout
-    if (width < 600) return 1;   // Phones - 1 card
-    if (width < 900) return 4;   // Tablets - 4 cards
-    return 8;                     // Desktop - 8 cards
+    if (width < 600) return 1;   // Phones - 1 card per line
+    return 6;                     // Tablets & Desktop - 6 cards per line
   }
   
   // Get columns for simpler grids (like categories)
