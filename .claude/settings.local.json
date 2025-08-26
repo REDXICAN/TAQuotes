@@ -156,7 +156,8 @@
       "Bash(git pull:*)",
       "Bash(C:UsersandreAppDataLocalPubCachebinflutterfire configure --project=taquotes --platforms=web,android,ios,windows --yes)",
       "Bash(firebase functions:list:*)",
-      "Bash(firebase functions:url:*)"
+      "Bash(firebase functions:url:*)",
+      "Bash(C:\\Users\\andre\\AppData\\Local\\Pub\\Cache\\bin\\flutterfire configure --project=taquotes --platforms=web,android,ios,windows --yes)"
     ],
     "deny": [],
     "ask": [
