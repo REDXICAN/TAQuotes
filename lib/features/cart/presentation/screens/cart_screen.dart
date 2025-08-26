@@ -12,8 +12,9 @@ import '../../../../core/models/models.dart';
 import '../../../../core/widgets/simple_image_widget.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/services/export_service.dart';
-import '../../../../core/services/firebase_email_service.dart';
+import '../../../../core/services/email_service.dart';
 import '../../../../core/widgets/searchable_client_dropdown.dart';
+import 'package:mailer/mailer.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../clients/presentation/screens/clients_screen.dart'; // Import for selectedClientProvider
 import '../../../../core/utils/price_formatter.dart';
@@ -2222,18 +2223,79 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           }
                         }
                         
-                        // Send email via Firebase Function
-                        final emailService = FirebaseEmailService();
+                        // Send email via SMTP
+                        final emailService = EmailService();
+                        
+                        // Generate HTML content for email
+                        final htmlContent = '''
+                        <h2>Quote #Q${DateTime.now().millisecondsSinceEpoch}</h2>
+                        <p>Dear ${client.contactName ?? 'Customer'},</p>
+                        <p>Thank you for your interest. Please find attached your quote details.</p>
+                        
+                        <h3>Customer Information:</h3>
+                        <p>
+                          <strong>Company:</strong> ${client.company}<br>
+                          <strong>Contact:</strong> ${client.contactName ?? 'N/A'}<br>
+                          <strong>Email:</strong> ${client.email ?? 'N/A'}<br>
+                          <strong>Phone:</strong> ${client.phone ?? 'N/A'}
+                        </p>
+                        
+                        <h3>Products:</h3>
+                        <table border="1" cellpadding="5" cellspacing="0">
+                          <tr>
+                            <th>Product</th>
+                            <th>SKU</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Total</th>
+                          </tr>
+                          ${productsList.map((item) => '''
+                          <tr>
+                            <td>${item['name']}</td>
+                            <td>${item['sku']}</td>
+                            <td>${item['quantity']}</td>
+                            <td>\$${(item['unitPrice'] as num).toStringAsFixed(2)}</td>
+                            <td>\$${((item['unitPrice'] as num) * (item['quantity'] as num)).toStringAsFixed(2)}</td>
+                          </tr>
+                          ''').join('')}
+                        </table>
+                        
+                        <p><strong>Total Amount: \$${totalAmount.toStringAsFixed(2)}</strong></p>
+                        ''';
+                        
+                        // Prepare attachments
+                        List<Attachment>? attachments;
+                        if (pdfBytes != null || excelBytes != null) {
+                          attachments = [];
+                          
+                          if (attachPDF && pdfBytes != null) {
+                            attachments.add(StreamAttachment(
+                              Stream.value(pdfBytes),
+                              'application/pdf',
+                              fileName: 'Quote_Q${DateTime.now().millisecondsSinceEpoch}.pdf',
+                            ));
+                          }
+                          
+                          if (attachExcel && excelBytes != null) {
+                            attachments.add(StreamAttachment(
+                              Stream.value(excelBytes),
+                              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                              fileName: 'Quote_Q${DateTime.now().millisecondsSinceEpoch}.xlsx',
+                            ));
+                          }
+                        }
+                        
                         final success = await emailService.sendQuoteEmail(
                           recipientEmail: emailController.text.trim(),
                           recipientName: client.contactName ?? 'Customer',
                           quoteNumber: 'Q${DateTime.now().millisecondsSinceEpoch}',
-                          totalAmount: totalAmount,
-                          pdfBytes: pdfBytes,
-                          attachPdf: attachPDF && pdfBytes != null,
-                          attachExcel: attachExcel && excelBytes != null,
-                          excelBytes: excelBytes,
-                          products: productsList,
+                          htmlContent: htmlContent,
+                          userInfo: {
+                            'name': user?.displayName ?? '',
+                            'email': user?.email ?? '',
+                            'role': 'Sales Representative',
+                          },
+                          attachments: attachments,
                         ).timeout(
                           const Duration(seconds: 30),
                           onTimeout: () {
