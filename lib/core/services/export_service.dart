@@ -564,6 +564,15 @@ class ExportService {
         throw Exception('Quote not found: $quoteId');
       }
       
+      // Fetch client data if available
+      Map<String, dynamic>? clientData;
+      if (quoteData['client_id'] != null && userId != null) {
+        final clientSnapshot = await _database.ref('clients/$userId/${quoteData['client_id']}').get();
+        if (clientSnapshot.exists) {
+          clientData = Map<String, dynamic>.from(clientSnapshot.value as Map);
+        }
+      }
+      
       final excel = Excel.createExcel();
       final sheet = excel['Quote Details'];
       
@@ -573,6 +582,21 @@ class ExportService {
       
       int currentRow = 0;
       
+      // Title
+      final titleCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow));
+      titleCell.value = TextCellValue('TURBO AIR QUOTES');
+      titleCell.cellStyle = CellStyle(
+        bold: true,
+        fontSize: 18,
+      );
+      
+      currentRow++;
+      
+      final subtitleCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow));
+      subtitleCell.value = TextCellValue('Professional Equipment Solutions');
+      
+      currentRow += 2;
+      
       // Quote Header Information
       final headerData = [
         ['Quote Number:', quoteData['quote_number'] ?? 'N/A'],
@@ -580,9 +604,6 @@ class ExportService {
         ['Created Date:', quoteData['created_at'] != null 
             ? DateFormat('yyyy-MM-dd HH:mm').format(DateTime.fromMillisecondsSinceEpoch(quoteData['created_at']))
             : 'N/A'],
-        ['Subtotal:', _currencyFormat.format(quoteData['subtotal'] ?? 0)],
-        ['Tax Amount:', _currencyFormat.format(quoteData['tax_amount'] ?? 0)],
-        ['Total Amount:', _currencyFormat.format(quoteData['total_amount'] ?? 0)],
       ];
       
       for (final row in headerData) {
@@ -593,6 +614,45 @@ class ExportService {
         final valueCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: currentRow));
         valueCell.value = TextCellValue(row[1]);
         
+        currentRow++;
+      }
+      
+      currentRow += 2; // Add spacing
+      
+      // Client Information Section
+      final clientHeaderCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow));
+      clientHeaderCell.value = TextCellValue('CLIENT INFORMATION');
+      clientHeaderCell.cellStyle = CellStyle(
+        bold: true,
+        fontSize: 14,
+      );
+      
+      currentRow++;
+      
+      if (clientData != null) {
+        final clientInfo = [
+          ['Company:', clientData['company'] ?? 'Unknown Company'],
+          ['Contact Name:', clientData['contact_name'] ?? 'N/A'],
+          ['Email:', clientData['email'] ?? 'N/A'],
+          ['Phone:', clientData['phone'] ?? 'N/A'],
+          ['Address:', clientData['address'] ?? 'N/A'],
+        ];
+        
+        for (final row in clientInfo) {
+          if (row[1] != 'N/A' && row[1].toString().isNotEmpty) {
+            final labelCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow));
+            labelCell.value = TextCellValue(row[0]);
+            labelCell.cellStyle = CellStyle(bold: true);
+            
+            final valueCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: currentRow));
+            valueCell.value = TextCellValue(row[1]);
+            
+            currentRow++;
+          }
+        }
+      } else {
+        final noClientCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow));
+        noClientCell.value = TextCellValue('No client information available');
         currentRow++;
       }
       
@@ -660,6 +720,57 @@ class ExportService {
             currentRow++;
           }
         }
+      }
+      
+      currentRow += 2; // Add spacing
+      
+      // Financial Summary Section
+      final summaryHeaderCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow));
+      summaryHeaderCell.value = TextCellValue('FINANCIAL SUMMARY');
+      summaryHeaderCell.cellStyle = CellStyle(
+        bold: true,
+        fontSize: 14,
+      );
+      
+      currentRow++;
+      
+      final financialData = [
+        ['Subtotal:', _currencyFormat.format(quoteData['subtotal'] ?? 0)],
+        ['Tax Amount:', _currencyFormat.format(quoteData['tax_amount'] ?? 0)],
+        ['Total Amount:', _currencyFormat.format(quoteData['total_amount'] ?? quoteData['total'] ?? 0)],
+      ];
+      
+      for (final row in financialData) {
+        final labelCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: currentRow));
+        labelCell.value = TextCellValue(row[0]);
+        labelCell.cellStyle = CellStyle(bold: true);
+        
+        final valueCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: currentRow));
+        valueCell.value = TextCellValue(row[1]);
+        if (row[0] == 'Total Amount:') {
+          valueCell.cellStyle = CellStyle(bold: true, fontSize: 12);
+        }
+        
+        currentRow++;
+      }
+      
+      currentRow += 2; // Add spacing
+      
+      // Additional Notes/Comments if available
+      if (quoteData['comments'] != null && quoteData['comments'].toString().isNotEmpty) {
+        final notesHeaderCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow));
+        notesHeaderCell.value = TextCellValue('NOTES/COMMENTS');
+        notesHeaderCell.cellStyle = CellStyle(
+          bold: true,
+          fontSize: 14,
+        );
+        
+        currentRow++;
+        
+        final notesCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow));
+        notesCell.value = TextCellValue(quoteData['comments'].toString());
+        
+        currentRow++;
       }
       
       // Auto-adjust column widths
