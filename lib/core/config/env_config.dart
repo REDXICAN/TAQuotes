@@ -40,7 +40,7 @@ class EnvConfig {
   
   // Admin Credentials - with safe fallbacks
   static String get adminEmail => _getEnv('ADMIN_EMAIL', '');
-  static String get adminPassword => _getEnv('ADMIN_PASSWORD');
+  static String get adminPassword => _getEnv('ADMIN_PASSWORD', '');
   
   // Firebase Configuration
   static String get firebaseProjectId => _getEnv('FIREBASE_PROJECT_ID', 'taquotes');
@@ -66,7 +66,7 @@ class EnvConfig {
   
   // Email Configuration
   static String get emailSenderAddress => _getEnv('EMAIL_SENDER_ADDRESS', 'turboairquotes@gmail.com');
-  static String get emailAppPassword => _getEnv('EMAIL_APP_PASSWORD', 'hnemxheznjmgpxcc');
+  static String get emailAppPassword => _getEnv('EMAIL_APP_PASSWORD', '');
   static String get emailSenderName => _getEnv('EMAIL_SENDER_NAME', 'TurboAir Quote System');
   static String get emailAppUrl => _getEnv('EMAIL_APP_URL', 'https://taquotes.web.app');
   
