@@ -262,6 +262,7 @@ class ExportService {
                     pw.Expanded(flex: 3, child: pw.Text('Description', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
                     pw.Expanded(child: pw.Text('Qty', style: pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center)),
                     pw.Expanded(child: pw.Text('Unit Price', style: pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right)),
+                    pw.Expanded(child: pw.Text('Disc %', style: pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center)),
                     pw.Expanded(child: pw.Text('Total', style: pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right)),
                   ],
                 ),
@@ -281,6 +282,15 @@ class ExportService {
                       pw.Expanded(flex: 3, child: pw.Text(product?['name'] ?? 'Unknown Product')),
                       pw.Expanded(child: pw.Text(item['quantity'].toString(), textAlign: pw.TextAlign.center)),
                       pw.Expanded(child: pw.Text(_currencyFormat.format(item['unit_price'] ?? 0), textAlign: pw.TextAlign.right)),
+                      pw.Expanded(child: pw.Text(
+                        item['discount'] != null && item['discount'] > 0 
+                          ? '${item['discount']}%' 
+                          : '-',
+                        textAlign: pw.TextAlign.center,
+                        style: item['discount'] != null && item['discount'] > 0 
+                          ? const pw.TextStyle(color: PdfColors.green)
+                          : null,
+                      )),
                       pw.Expanded(child: pw.Text(_currencyFormat.format(item['total_price'] ?? 0), textAlign: pw.TextAlign.right)),
                     ],
                   ),
@@ -304,6 +314,18 @@ class ExportService {
                         ],
                       ),
                       pw.SizedBox(height: 4),
+                      // Add discount if it exists
+                      if (quoteData['discount_amount'] != null && quoteData['discount_amount'] > 0) ...[
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('Discount:'),
+                            pw.Text('-${_currencyFormat.format(quoteData['discount_amount'])}',
+                              style: const pw.TextStyle(color: PdfColors.green)),
+                          ],
+                        ),
+                        pw.SizedBox(height: 4),
+                      ],
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
@@ -323,7 +345,7 @@ class ExportService {
                             ),
                           ),
                           pw.Text(
-                            _currencyFormat.format(quoteData['total_amount'] ?? 0),
+                            _currencyFormat.format(quoteData['total_amount'] ?? quoteData['total'] ?? 0),
                             style: pw.TextStyle(
                               fontSize: 16,
                               fontWeight: pw.FontWeight.bold,
@@ -337,6 +359,36 @@ class ExportService {
               ),
               
               pw.SizedBox(height: 40),
+              
+              // Comments section if available
+              if (quoteData['comments'] != null && quoteData['comments'].toString().isNotEmpty) ...[
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(12),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.grey300),
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'NOTES / COMMENTS',
+                        style: pw.TextStyle(
+                          fontSize: 12,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.grey700,
+                        ),
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Text(
+                        quoteData['comments'].toString(),
+                        style: const pw.TextStyle(fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 30),
+              ],
               
               // Footer
               pw.Container(
@@ -669,7 +721,7 @@ class ExportService {
       currentRow += 2;
       
       // Items table headers
-      final itemHeaders = ['SKU', 'Product Name', 'Quantity', 'Unit Price', 'Total Price'];
+      final itemHeaders = ['SKU', 'Product Name', 'Quantity', 'Unit Price', 'Discount %', 'Total Price'];
       for (int i = 0; i < itemHeaders.length; i++) {
         final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: currentRow));
         cell.value = TextCellValue(itemHeaders[i]);
@@ -709,12 +761,19 @@ class ExportService {
               productData?['name'] ?? 'Unknown Product',
               itemData['quantity']?.toString() ?? '1',
               _currencyFormat.format(itemData['unit_price'] ?? 0),
+              itemData['discount'] != null && itemData['discount'] > 0 
+                ? '${itemData['discount']}%' 
+                : '-',
               _currencyFormat.format(itemData['total_price'] ?? 0),
             ];
             
             for (int i = 0; i < itemRowData.length; i++) {
               final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: currentRow));
               cell.value = TextCellValue(itemRowData[i]);
+              // Highlight discount cell if there's a discount
+              if (i == 4 && itemData['discount'] != null && itemData['discount'] > 0) {
+                cell.cellStyle = CellStyle(fontColorHex: ExcelColor.fromHexString('#00AA00'));
+              }
             }
             
             currentRow++;
@@ -736,9 +795,17 @@ class ExportService {
       
       final financialData = [
         ['Subtotal:', _currencyFormat.format(quoteData['subtotal'] ?? 0)],
+      ];
+      
+      // Add discount if exists
+      if (quoteData['discount_amount'] != null && quoteData['discount_amount'] > 0) {
+        financialData.add(['Discount:', '-${_currencyFormat.format(quoteData['discount_amount'])}']);
+      }
+      
+      financialData.addAll([
         ['Tax Amount:', _currencyFormat.format(quoteData['tax_amount'] ?? 0)],
         ['Total Amount:', _currencyFormat.format(quoteData['total_amount'] ?? quoteData['total'] ?? 0)],
-      ];
+      ]);
       
       for (final row in financialData) {
         final labelCell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: currentRow));
@@ -774,11 +841,12 @@ class ExportService {
       }
       
       // Auto-adjust column widths
-      sheet.setColumnWidth(0, 15.0);
-      sheet.setColumnWidth(1, 30.0);
-      sheet.setColumnWidth(2, 10.0);
-      sheet.setColumnWidth(3, 15.0);
-      sheet.setColumnWidth(4, 15.0);
+      sheet.setColumnWidth(0, 15.0);  // SKU
+      sheet.setColumnWidth(1, 30.0);  // Product Name
+      sheet.setColumnWidth(2, 10.0);  // Quantity
+      sheet.setColumnWidth(3, 15.0);  // Unit Price
+      sheet.setColumnWidth(4, 12.0);  // Discount %
+      sheet.setColumnWidth(5, 15.0);  // Total Price
       
       AppLogger.logTimer('Quote Excel generation completed', stopwatch);
       
