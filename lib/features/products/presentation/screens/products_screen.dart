@@ -2276,6 +2276,7 @@ class ProductCard extends ConsumerWidget {
     final dbService = ref.read(databaseServiceProvider);
     final isCompact = ResponsiveHelper.useCompactLayout(context);
     final isMobile = ResponsiveHelper.isMobile(context);
+    final isVertical = ResponsiveHelper.isVerticalDisplay(context);
     final fontScale = ResponsiveHelper.getFontScale(context);
 
     // Format price with commas
@@ -2333,7 +2334,7 @@ class ProductCard extends ConsumerWidget {
                         child: Text(
                           product.sku ?? product.model,
                           style: TextStyle(
-                            fontSize: isMobile ? 16 : 14,
+                            fontSize: isVertical ? 18 : (isMobile ? 16 : 14),
                             fontWeight: FontWeight.bold,
                             color: theme.primaryColor,
                           ),
@@ -2364,15 +2365,15 @@ class ProductCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   // Price and Quantity Selector
-                  if (isMobile)
-                    // Mobile layout - stacked
+                  if (isMobile || isVertical)
+                    // Mobile/Vertical layout - stacked for better visibility
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           formatPrice(product.price),
                           style: TextStyle(
-                            fontSize: 20,
+                            fontSize: isVertical ? 22 : 20,
                             color: theme.primaryColor,
                             fontWeight: FontWeight.bold,
                           ),
@@ -2395,9 +2396,9 @@ class ProductCard extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: ResponsiveHelper.getResponsiveFontSize(
                                 context,
-                                baseFontSize: 14,
-                                minFontSize: 12,
-                                maxFontSize: 18,
+                                baseFontSize: 16,
+                                minFontSize: 14,
+                                maxFontSize: 20,
                               ),
                               color: theme.primaryColor,
                               fontWeight: FontWeight.bold,

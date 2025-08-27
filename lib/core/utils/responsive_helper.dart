@@ -19,6 +19,13 @@ class ResponsiveHelper {
   static bool isPortrait(BuildContext context) =>
       MediaQuery.of(context).orientation == Orientation.portrait;
       
+  // Check if it's a vertical display (like 1080x1920)
+  static bool isVerticalDisplay(BuildContext context) {
+    final width = getScreenWidth(context);
+    final height = getScreenHeight(context);
+    return height > width && width >= 1000 && width <= 1100;
+  }
+      
   // Get safe screen width considering keyboard and system UI
   static double getScreenWidth(BuildContext context) =>
       MediaQuery.of(context).size.width;
@@ -78,10 +85,17 @@ class ResponsiveHelper {
   // Get number of columns for grid layouts
   static int getGridColumns(BuildContext context) {
     final width = getScreenWidth(context);
+    final height = getScreenHeight(context);
+    
+    // Check if it's a vertical/portrait screen (height > width)
+    final isVerticalScreen = height > width && width >= 1000;
     
     // For products grid - optimized for requested layout
-    if (width < 600) return 1;   // Phones - 1 card per line
-    return 6;                     // Tablets & Desktop - 6 cards per line
+    if (isVerticalScreen) return 5;  // Vertical screens (1080x1920) - 5 columns
+    if (width < 600) return 2;       // Small phones - 2 cards per line
+    if (width < 900) return 3;       // Tablets - 3 cards per line
+    if (width < 1200) return 4;      // Small desktop - 4 cards per line
+    return 6;                         // Large desktop - 6 cards per line
   }
   
   // Get columns for simpler grids (like categories)
