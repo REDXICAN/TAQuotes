@@ -171,8 +171,15 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
     // Set initial visible count based on platform
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final screenWidth = MediaQuery.of(context).size.width;
+      final screenHeight = MediaQuery.of(context).size.height;
+      final isVerticalScreen = screenHeight > screenWidth && screenWidth >= 1000 && screenWidth <= 1100;
+      
       setState(() {
-        _visibleItemCount = screenWidth > 1200 ? 24 : 12; // 24 for desktop, 12 for mobile/tablet
+        if (isVerticalScreen) {
+          _visibleItemCount = 35; // Show 35 products on vertical 1080x1920 screens
+        } else {
+          _visibleItemCount = screenWidth > 1200 ? 24 : 12; // 24 for desktop, 12 for mobile/tablet
+        }
       });
     });
   }
@@ -182,7 +189,10 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
       // Load more items when near bottom
       setState(() {
         final screenWidth = MediaQuery.of(context).size.width;
-        final increment = screenWidth > 1200 ? 24 : 12; // Load more items on desktop
+        final screenHeight = MediaQuery.of(context).size.height;
+        final isVerticalScreen = screenHeight > screenWidth && screenWidth >= 1000 && screenWidth <= 1100;
+        
+        final increment = isVerticalScreen ? 35 : (screenWidth > 1200 ? 24 : 12);
         _visibleItemCount += increment;
       });
     }
@@ -884,9 +894,9 @@ Future<void> _handleExcelUpload() async {
           ),
           // Quantity input
           Container(
-            width: 40,
+            width: ResponsiveHelper.isVerticalDisplay(context) ? 50 : 40,
             alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 2),
             child: TextField(
               controller: textController,
               textAlign: TextAlign.center,
@@ -894,9 +904,12 @@ Future<void> _handleExcelUpload() async {
               decoration: const InputDecoration(
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: EdgeInsets.zero,
+                contentPadding: EdgeInsets.symmetric(horizontal: 2, vertical: 2),
               ),
-              style: const TextStyle(fontSize: 14),
+              style: TextStyle(
+                fontSize: ResponsiveHelper.isVerticalDisplay(context) ? 16 : 14,
+                fontWeight: FontWeight.w600,
+              ),
               onChanged: (value) async {
                 final newQuantity = int.tryParse(value) ?? 0;
                 quantityNotifier.setQuantity(product.id ?? '', newQuantity);
@@ -1035,7 +1048,9 @@ Future<void> _handleExcelUpload() async {
         
         // Adjust aspect ratio based on screen size - shorter cards
         double childAspectRatio;
-        if (ResponsiveHelper.isMobile(context)) {
+        if (ResponsiveHelper.isVerticalDisplay(context)) {
+          childAspectRatio = 0.6;   // Optimized for vertical 1080x1920 screens (7 rows)
+        } else if (ResponsiveHelper.isMobile(context)) {
           childAspectRatio = 0.55;  // Shorter cards for phones
         } else if (ResponsiveHelper.isTablet(context)) {
           childAspectRatio = 0.65;  // Shorter cards for tablets
@@ -2170,9 +2185,9 @@ class ProductCard extends ConsumerWidget {
           ),
           // Quantity input
           Container(
-            width: 40,
+            width: ResponsiveHelper.isVerticalDisplay(context) ? 50 : 40,
             alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 2),
             child: TextField(
               controller: textController,
               textAlign: TextAlign.center,
@@ -2180,9 +2195,12 @@ class ProductCard extends ConsumerWidget {
               decoration: const InputDecoration(
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: EdgeInsets.zero,
+                contentPadding: EdgeInsets.symmetric(horizontal: 2, vertical: 2),
               ),
-              style: const TextStyle(fontSize: 14),
+              style: TextStyle(
+                fontSize: ResponsiveHelper.isVerticalDisplay(context) ? 16 : 14,
+                fontWeight: FontWeight.w600,
+              ),
               onChanged: (value) async {
                 final newQuantity = int.tryParse(value) ?? 0;
                 quantityNotifier.setQuantity(product.id ?? '', newQuantity);
@@ -2301,7 +2319,7 @@ class ProductCard extends ConsumerWidget {
           children: [
             // Product Image
             AspectRatio(
-              aspectRatio: isMobile ? 1.2 : 1.0, // More rectangular on mobile
+              aspectRatio: isVertical ? 0.9 : (isMobile ? 1.2 : 1.0), // Taller cards for vertical screens
               child: Container(
                 decoration: const BoxDecoration(
                   color: Color(0xFFFFFFFF), // Pure white background for images
@@ -2321,9 +2339,9 @@ class ProductCard extends ConsumerWidget {
                 ),
               ),
             ),
-            // Product Info - Compact with larger text
+            // Product Info - Extended area for vertical screens
             Padding(
-              padding: EdgeInsets.all(isMobile ? 10 : 8),
+              padding: EdgeInsets.all(isVertical ? 12 : (isMobile ? 10 : 8)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
