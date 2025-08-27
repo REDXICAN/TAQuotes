@@ -855,6 +855,8 @@ Future<void> _handleExcelUpload() async {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Minus button
           InkWell(
@@ -897,20 +899,23 @@ Future<void> _handleExcelUpload() async {
             width: ResponsiveHelper.isVerticalDisplay(context) ? 50 : 40,
             alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: TextField(
-              controller: textController,
-              textAlign: TextAlign.center,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-              ),
-              style: TextStyle(
-                fontSize: ResponsiveHelper.isVerticalDisplay(context) ? 16 : 14,
-                fontWeight: FontWeight.w600,
-              ),
-              onChanged: (value) async {
+            child: Center(
+              child: TextField(
+                controller: textController,
+                textAlign: TextAlign.center,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                  counterText: '',
+                ),
+                textAlignVertical: TextAlignVertical.center,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.isVerticalDisplay(context) ? 16 : 14,
+                  fontWeight: FontWeight.w600,
+                ),
+                onChanged: (value) async {
                 final newQuantity = int.tryParse(value) ?? 0;
                 quantityNotifier.setQuantity(product.id ?? '', newQuantity);
                 
@@ -949,6 +954,7 @@ Future<void> _handleExcelUpload() async {
                   }
                 }
               },
+              ),
             ),
           ),
           // Plus button
@@ -1046,10 +1052,10 @@ Future<void> _handleExcelUpload() async {
         final isCompact = ResponsiveHelper.useCompactLayout(context);
         final screenWidth = MediaQuery.of(context).size.width;
         
-        // Adjust aspect ratio based on screen size - shorter cards
+        // Adjust aspect ratio based on screen size - taller cards for vertical
         double childAspectRatio;
         if (ResponsiveHelper.isVerticalDisplay(context)) {
-          childAspectRatio = 0.6;   // Optimized for vertical 1080x1920 screens (7 rows)
+          childAspectRatio = 0.52;  // Taller cards to prevent overlap on vertical screens
         } else if (ResponsiveHelper.isMobile(context)) {
           childAspectRatio = 0.55;  // Shorter cards for phones
         } else if (ResponsiveHelper.isTablet(context)) {
@@ -1058,13 +1064,15 @@ Future<void> _handleExcelUpload() async {
           childAspectRatio = 0.7;   // Shorter cards for desktop
         }
         
-        // Minimal spacing to maximize card usage
-        final spacing = ResponsiveHelper.getValue(
-          context,
-          mobile: 8.0,
-          tablet: 10.0,
-          desktop: 12.0,
-        );
+        // Increased spacing for vertical screens to prevent overlap
+        final spacing = ResponsiveHelper.isVerticalDisplay(context) 
+            ? 20.0  // More space between rows for vertical screens
+            : ResponsiveHelper.getValue(
+                context,
+                mobile: 8.0,
+                tablet: 10.0,
+                desktop: 12.0,
+              );
         
         // Limit visible items for better performance
         final itemsToShow = products.length > _visibleItemCount 
@@ -1118,6 +1126,8 @@ Future<void> _handleExcelUpload() async {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Minus button
           InkWell(
@@ -2146,6 +2156,8 @@ class ProductCard extends ConsumerWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Minus button
           InkWell(
@@ -2188,20 +2200,23 @@ class ProductCard extends ConsumerWidget {
             width: ResponsiveHelper.isVerticalDisplay(context) ? 50 : 40,
             alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: TextField(
-              controller: textController,
-              textAlign: TextAlign.center,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-              ),
-              style: TextStyle(
-                fontSize: ResponsiveHelper.isVerticalDisplay(context) ? 16 : 14,
-                fontWeight: FontWeight.w600,
-              ),
-              onChanged: (value) async {
+            child: Center(
+              child: TextField(
+                controller: textController,
+                textAlign: TextAlign.center,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                  counterText: '',
+                ),
+                textAlignVertical: TextAlignVertical.center,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.isVerticalDisplay(context) ? 16 : 14,
+                  fontWeight: FontWeight.w600,
+                ),
+                onChanged: (value) async {
                 final newQuantity = int.tryParse(value) ?? 0;
                 quantityNotifier.setQuantity(product.id ?? '', newQuantity);
                 
@@ -2240,6 +2255,7 @@ class ProductCard extends ConsumerWidget {
                   }
                 }
               },
+              ),
             ),
           ),
           // Plus button
