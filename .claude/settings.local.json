@@ -157,7 +157,14 @@
       "Bash(C:UsersandreAppDataLocalPubCachebinflutterfire configure --project=taquotes --platforms=web,android,ios,windows --yes)",
       "Bash(firebase functions:list:*)",
       "Bash(firebase functions:url:*)",
-      "Bash(C:\\Users\\andre\\AppData\\Local\\Pub\\Cache\\bin\\flutterfire configure --project=taquotes --platforms=web,android,ios,windows --yes)"
+      "Bash(C:\\Users\\andre\\AppData\\Local\\Pub\\Cache\\bin\\flutterfire configure --project=taquotes --platforms=web,android,ios,windows --yes)",
+      "Bash(start consolidate_clients.html)",
+      "Bash(py:*)",
+      "WebFetch(domain:www.turboairinc.com)",
+      "WebFetch(domain:www.restaurantwebstore.com)",
+      "Bash(firebase database:set:*)",
+      "Bash(firebase database:push:*)",
+      "Read(D:\\OneDrive\\Documentos\\-- TurboAir\\7 Bots\\Turbots\\TURBO_VISION_SIMPLIFIED\\pdfs/**)"
     ],
     "deny": [],
     "ask": [

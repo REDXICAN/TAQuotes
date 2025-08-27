@@ -1,0 +1,45 @@
+
+FIREBASE DATABASE UPDATE PREPARED
+2025-08-27 14:59:58
+
+FILES CREATED:
+--------------
+• COMPLETE_FIREBASE_DATABASE.json - Ready for Firebase import
+
+DATABASE CHANGES:
+-----------------
+• Previous total: 809 products
+• New products added: 289
+• Prices updated: 741
+• New total: 1098 products
+
+PRICE CHANGES:
+--------------
+• Changed from: Valued Price column
+• Changed to: MSP (50/10/17) column
+• Average reduction: 67.5%
+• MSP = 50% + 10% + 17% discounts applied
+
+NEW CATEGORIES ADDED:
+--------------------
+• Pro Series (66 products)
+• Pizza Prep Tables (14 products)
+• Bar Equipment (37 products)
+• Display Cases (35 products)
+• Undercounter (2 products)
+• Other categories (135 products)
+
+MANUAL IMPORT INSTRUCTIONS:
+---------------------------
+Option 1 - Firebase Console:
+1. Go to: https://console.firebase.google.com/project/taquotes/database
+2. Click the three dots menu (⋮) next to "Realtime Database"
+3. Select "Import JSON"
+4. Upload file: COMPLETE_FIREBASE_DATABASE.json
+5. Click "Import"
+
+Option 2 - Firebase CLI:
+1. Open command prompt in this folder
+2. Run: firebase database:set /products COMPLETE_FIREBASE_DATABASE.json --confirm
+
+The database will be completely replaced with the updated data.

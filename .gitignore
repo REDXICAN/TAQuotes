@@ -233,6 +233,77 @@ web/firebase-config.js
 *.bak
 *~
 
+# === DATA ANALYSIS AND TEMP FILES - ADDED 2025-08-27 ===
+# Price analysis and Excel checking scripts
+analyze_prices*.py
+check_excel*.py
+extract_missing*.py
+extract_specs*.py
+gather_complete*.py
+investigate_price*.py
+final_msp*.py
+prepare_all*.py
+search_*.py
+create_review*.py
+create_final*.py
+check_field*.py
+
+# Temporary JSON files from analysis
+missing_skus*.json
+new_products*.json
+all_new_products*.json
+all_missing*.json
+firebase_update*.json
+firebase_complete*.json
+firebase_price*.json
+price_audit*.json
+product_verification*.json
+duckduckgo_search*.json
+turboair_search*.json
+companies_for_firebase.json
+extracted_clients.json
+COMPLETE_*.json
+VERIFIED_*.json
+RESTORED_*.json
+FINAL_*.json
+!database.rules.json
+!firebase.json
+!package.json
+!package-lock.json
+!cors.json
+
+# Excel review files
+REVIEW_*.xlsx
+*_review.xlsx
+*_analysis.xlsx
+
+# Database restoration scripts
+*_restoration*.js
+*_restore*.js
+emergency_*.js
+direct_firebase*.js
+extract_companies*.js
+consolidate_*.js
+
+# Firebase import/update files
+firebase_import*.bat
+firebase_update*.js
+update_firebase*.py
+simple_firebase*.py
+import_via*.py
+
+# Temporary test files
+test_batch.json
+test_products.json
+products_temp.json
+missing_skus_batch.json
+
+# Client management HTML files
+consolidate_clients.html
+clean_and_replace_clients.html
+*_clients.html
+upload_*.html
+
 # === EXCEPTIONS ===
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 # Sensitive setup files - DO NOT COMMIT

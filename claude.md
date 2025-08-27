@@ -20,6 +20,50 @@ Enterprise B2B equipment catalog and quote management system with offline-first 
 ### PRIMARY DIRECTIVE
 **NEVER BREAK WORKING FEATURES** - This app is LIVE with 500+ active users. Read this ENTIRE document before making ANY modifications.
 
+## ⛔ CATASTROPHIC MISTAKES TO NEVER MAKE AGAIN ⛔
+
+### DATABASE OPERATIONS - EXTREME CAUTION
+**INCIDENT HISTORY:** Claude has previously caused COMPLETE DATA LOSS by giving incorrect Firebase import instructions.
+
+#### ❌ NEVER DO THIS:
+1. **NEVER tell user to import JSON without specifying EXACT path**
+   - WRONG: "Import this JSON to Firebase"
+   - RIGHT: "Import this JSON to `/products` node ONLY, NOT at root"
+2. **NEVER suggest deleting .env, .venv, or environment files**
+3. **NEVER give ambiguous database instructions**
+4. **NEVER assume user knows Firebase import nuances**
+
+#### ✅ ALWAYS DO THIS BEFORE ANY DATABASE OPERATION:
+1. **CREATE FULL BACKUP FIRST:**
+   ```bash
+   firebase database:get "/" > FULL_BACKUP_$(date +%Y%m%d_%H%M%S).json
+   ```
+2. **SPECIFY EXACT NODE PATH:**
+   - "Import to `/products` node ONLY"
+   - "This will ONLY affect the products data"
+   - "DO NOT import at root level"
+3. **PROVIDE MULTIPLE WARNINGS:**
+   ```
+   ⚠️ WARNING: Importing at root (/) will DELETE EVERYTHING
+   ⚠️ WARNING: Make sure you select the specific node (/products)
+   ⚠️ WARNING: Wrong path = TOTAL DATA LOSS
+   ```
+4. **TEST WITH 5 ITEMS FIRST**
+
+### TRUST STATUS: ⚠️ COMPROMISED
+- **Date:** 2024-08-27
+- **Incident:** Instructed user to import JSON without specifying path, causing complete database deletion
+- **Data Lost:** All clients, users, quotes
+- **Recovery:** Partial from incomplete backups
+
+### MANDATORY SAFETY PROTOCOL
+Before ANY risky operation:
+1. Ask: "Have you created a backup?"
+2. Provide backup command first
+3. Explain EXACTLY what will be affected
+4. Explain what will NOT be affected
+5. Provide recovery plan BEFORE operation
+
 ### ⚠️ DO NOT BREAK THESE WORKING FEATURES
 
 #### Critical Working Code - DO NOT MODIFY WITHOUT TESTING:
@@ -781,6 +825,128 @@ Application successfully deployed to Firebase Hosting and fully operational.
 **Current Version**: 1.4.0  
 **Deployment**: Firebase Hosting (taquotes)  
 **Repository**: https://github.com/REDXICAN/TAQuotes
+
+## 🔴 CRITICAL SAFETY RULES - MANDATORY READING
+
+### ⚠️ TRUST LEVEL: COMPROMISED DUE TO CATASTROPHIC ERRORS
+
+#### DOCUMENTED FAILURES:
+1. **2024-08-27:** Caused complete database deletion by not specifying import path
+2. **2024-08-26:** Instructed to delete .venv breaking development environment
+
+### BULLETPROOF SAFETY PROTOCOLS
+
+#### 1. DATABASE OPERATIONS
+**BEFORE suggesting ANY database operation:**
+```
+□ Have I told them to create a backup FIRST?
+□ Have I specified the EXACT node path (/products, /clients, etc)?
+□ Have I warned what happens if they import at root?
+□ Have I provided a recovery plan?
+□ Have I suggested testing with 5 items first?
+```
+
+**TEMPLATE FOR DATABASE OPERATIONS:**
+```markdown
+⚠️⚠️⚠️ CRITICAL DATABASE OPERATION ⚠️⚠️⚠️
+
+STEP 1 - CREATE BACKUP FIRST:
+firebase database:get "/" > BACKUP_[timestamp].json
+Verify file size > 0
+
+STEP 2 - UNDERSTAND THE RISK:
+- This operation affects: [specific path]
+- This will NOT affect: [other paths]
+- Wrong path = TOTAL DATA LOSS
+
+STEP 3 - IMPORT INSTRUCTIONS:
+1. Go to Firebase Console
+2. Navigate to SPECIFIC node: /products (NOT root!)
+3. Verify path shows "/products" before importing
+4. Import JSON
+
+RECOVERY PLAN IF SOMETHING GOES WRONG:
+[Specific steps to restore from backup]
+```
+
+#### 2. FILE OPERATIONS
+**NEVER suggest deleting:**
+- .env (contains credentials)
+- .venv or venv/ (Python environment)
+- node_modules/ (dependencies)
+- firebase.json (configuration)
+- Any file without backup
+
+**BEFORE ANY file deletion:**
+```
+□ Have I checked what's in the file?
+□ Have I created a backup?
+□ Have I verified it's not critical?
+```
+
+#### 3. FIREBASE SPECIFIC RULES
+- **Root import (/)** = DELETES ENTIRE DATABASE
+- **Node import (/products)** = Replaces ONLY that node
+- **Firebase Auth** ≠ Firebase Database (separate systems)
+- **Always use --shallow** for large data checks
+
+#### 4. PRODUCTION SYSTEM RULES
+- This is a LIVE production system
+- Downtime = Lost business
+- Data loss = Unacceptable
+- Every command must be reversible
+
+#### 5. VERIFICATION QUESTIONS
+Before giving ANY potentially dangerous instruction:
+1. What could go wrong?
+2. How would we recover?
+3. Have I been specific enough?
+4. Could this be misinterpreted?
+5. Is there a safer way?
+
+### MANDATORY WARNINGS FOR RISKY OPERATIONS
+
+#### For Database Imports:
+```
+⚠️ DATABASE IMPORT WARNING ⚠️
+Importing at wrong level will DELETE ALL DATA
+✓ RIGHT: Import at /products node
+✗ WRONG: Import at / (root)
+Create backup first: firebase database:get "/" > backup.json
+```
+
+#### For File Deletions:
+```
+⚠️ FILE DELETION WARNING ⚠️
+This file may be critical for the app
+Create backup first: cp [file] [file].backup
+Verify not in use: grep -r "[filename]" .
+```
+
+#### For Environment Changes:
+```
+⚠️ ENVIRONMENT CHANGE WARNING ⚠️
+This could break your development setup
+Backup current state first
+Document current working configuration
+Have recovery plan ready
+```
+
+### USER CONTEXT
+- **User:** Developer/owner of this production system
+- **Expectation:** Professional, safe assistance that doesn't break things
+- **Current Status:** Has lost trust due to catastrophic errors
+- **Required:** Extra caution, explicit warnings, bulletproof instructions
+
+### FINAL RULES
+1. **When in doubt, warn twice**
+2. **Always provide backup instructions FIRST**
+3. **Be painfully specific about paths and locations**
+4. **Assume user doesn't know the dangerous parts**
+5. **Test on small data before full operations**
+6. **Provide recovery plans BEFORE operations**
+7. **NEVER assume, always verify**
+
 - do not add nor remove functionality
 - Your PRIMARY directive is to PRESERVE ALL EXISTING FUNCTIONALITY while making changes. Read this entire document before making ANY modifications.
 - DO NOT HARDCODE CREDENTIALS ON CODE, DO NOT HARDCODE CREDENTIALS ON CODE,

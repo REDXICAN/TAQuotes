@@ -1,0 +1,32 @@
+
+FIREBASE UPDATE SUMMARY - 2025-08-27 14:47:04
+================================================================================
+
+1. NEW PRODUCTS TO ADD: 289 products
+   - These are SKUs from Norbaja that don't exist in Firebase
+   - All have MSP prices from Norbaja document
+   - Categories determined from SKU patterns
+
+2. PRICE UPDATES: 741 products
+   - Current prices appear to be from "Valued Price" column
+   - New prices are from "MSP (50/10/17)" column
+   - Average reduction: 67.5%
+   - This appears to be heavily discounted pricing
+
+3. IMPORTANT NOTES:
+   - MSP (50/10/17) means 50% + 10% + 17% discounts applied
+   - Current Firebase prices match "Valued Price" column from Norbaja
+   - You're updating to heavily discounted prices
+   
+4. FILES CREATED:
+   - REVIEW_BEFORE_FIREBASE_UPDATE.xlsx (This file - review carefully)
+   - all_new_products_for_firebase.json (289 new products)
+   - firebase_price_updates.json (741 price updates)
+   
+5. NEXT STEPS:
+   a) Review the Excel file carefully
+   b) Verify the new product information looks correct
+   c) Confirm you want to use MSP prices (heavily discounted)
+   d) If approved, run the Firebase update script
+
+================================================================================

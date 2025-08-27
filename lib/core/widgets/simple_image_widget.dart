@@ -20,8 +20,14 @@ class SimpleImageWidget extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
-    // If we have a Firebase Storage URL, use it directly
-    if (imageUrl != null && imageUrl!.isNotEmpty) {
+    // Check if we have a valid Firebase Storage URL (not null and not empty)
+    // Firebase Storage URLs should start with 'https://' or 'gs://'
+    final hasValidFirebaseUrl = imageUrl != null && 
+                                imageUrl!.isNotEmpty && 
+                                (imageUrl!.startsWith('https://') || imageUrl!.startsWith('gs://'));
+    
+    // If we have a valid Firebase Storage URL, use it
+    if (hasValidFirebaseUrl) {
       return Image.network(
         imageUrl!,
         width: width,
@@ -55,6 +61,7 @@ class SimpleImageWidget extends StatelessWidget {
       return _buildPlaceholder();
     }
     
+    // Use local asset images
     return _buildAssetImage();
   }
   

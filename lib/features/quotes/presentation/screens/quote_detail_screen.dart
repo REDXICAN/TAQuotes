@@ -313,6 +313,16 @@ class QuoteDetailScreen extends ConsumerWidget {
                       children: [
                         _buildTotalRow(
                             'Subtotal', currencyFormat.format(quote.subtotal)),
+                        if (quote.discountAmount > 0) ...[
+                          const SizedBox(height: 8),
+                          _buildTotalRow(
+                            quote.discountType == 'percentage'
+                                ? 'Discount (${quote.discountValue}%)'
+                                : 'Discount',
+                            '-${currencyFormat.format(quote.discountAmount)}',
+                            isDiscount: true,
+                          ),
+                        ],
                         const SizedBox(height: 8),
                         _buildTotalRow(
                           'Tax',
@@ -540,9 +550,12 @@ class QuoteDetailScreen extends ConsumerWidget {
       ''';
       
       for (final item in quote.items) {
+        final itemDiscountText = item.discount > 0 
+            ? '<br/><small style="color: green;">Discount: ${item.discount}%</small>' 
+            : '';
         htmlContent += '''
           <tr>
-            <td style="padding: 8px;">${item.productName}</td>
+            <td style="padding: 8px;">${item.productName}$itemDiscountText</td>
             <td style="padding: 8px; text-align: center;">${item.quantity}</td>
             <td style="padding: 8px; text-align: right;">${currencyFormat.format(item.unitPrice)}</td>
             <td style="padding: 8px; text-align: right;">${currencyFormat.format(item.total)}</td>
@@ -556,6 +569,15 @@ class QuoteDetailScreen extends ConsumerWidget {
         <h3>Total</h3>
         <p>
           Subtotal: ${currencyFormat.format(quote.subtotal)}<br/>
+      ''';
+      
+      if (quote.discountAmount > 0) {
+        htmlContent += quote.discountType == 'percentage'
+            ? 'Discount (${quote.discountValue}%): -${currencyFormat.format(quote.discountAmount)}<br/>'
+            : 'Discount: -${currencyFormat.format(quote.discountAmount)}<br/>';
+      }
+      
+      htmlContent += '''
           Tax: ${currencyFormat.format(quote.tax)}<br/>
           <strong>Total: ${currencyFormat.format(quote.totalAmount)}</strong>
         </p>
@@ -908,7 +930,7 @@ class QuoteDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTotalRow(String label, String value, {bool isTotal = false}) {
+  Widget _buildTotalRow(String label, String value, {bool isTotal = false, bool isDiscount = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -917,6 +939,7 @@ class QuoteDetailScreen extends ConsumerWidget {
           style: TextStyle(
             fontSize: isTotal ? 18 : 14,
             fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+            color: isDiscount ? Colors.green : null,
           ),
         ),
         Text(
@@ -924,7 +947,7 @@ class QuoteDetailScreen extends ConsumerWidget {
           style: TextStyle(
             fontSize: isTotal ? 20 : 16,
             fontWeight: FontWeight.bold,
-            color: isTotal ? const Color(0xFF20429C) : null,
+            color: isTotal ? const Color(0xFF20429C) : isDiscount ? Colors.green : null,
           ),
         ),
       ],

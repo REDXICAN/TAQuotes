@@ -1410,7 +1410,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
   double _calculateSubtotal(List<CartItem> items) {
     return items.fold(0, (sum, item) {
-      return sum + ((item.product?.price ?? 0) * item.quantity);
+      final basePrice = (item.product?.price ?? 0) * item.quantity;
+      final itemDiscount = item.discount > 0 ? basePrice * (item.discount / 100) : 0;
+      return sum + (basePrice - itemDiscount);
     });
   }
   

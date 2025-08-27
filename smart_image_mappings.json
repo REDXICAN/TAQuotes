@@ -1,0 +1,1999 @@
+{
+  "summary": {
+    "total_products": 1387,
+    "with_thumbnail": 1330,
+    "with_screenshot_only": 39,
+    "with_no_images": 18,
+    "smart_matches": 611
+  },
+  "smart_thumbnail_mappings": {
+    "M3F24-2-N(-L)": {
+      "matched_folder": "M3F24-2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FM3F24-2-N%2FM3F24-2-N.jpg?alt=media"
+    },
+    "M3F47-2-N(-AL)(-AR)": {
+      "matched_folder": "M3F47-2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FM3F47-2-N%2FM3F47-2-N.jpg?alt=media"
+    },
+    "M3F72-3-N(-AL)(-AR)": {
+      "matched_folder": "M3F72-3-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FM3F72-3-N%2FM3F72-3-N.jpg?alt=media"
+    },
+    "M3H24-1": {
+      "matched_folder": "M3H24-1-G",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FM3H24-1-G%2FM3H24-1-G.jpg?alt=media"
+    },
+    "M3H47-2": {
+      "matched_folder": "M3H47-2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FM3H47-2-N%2FM3H47-2-N.jpg?alt=media"
+    },
+    "M3R24-1-G-N(-L)": {
+      "matched_folder": "M3R24-1-G-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FM3R24-1-G-N%2FM3R24-1-G-N.jpg?alt=media"
+    },
+    "M3R24-2-N(-L)": {
+      "matched_folder": "M3R24-2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FM3R24-2-N%2FM3R24-2-N.jpg?alt=media"
+    },
+    "M3R47-4-N(-AL)(-AR)": {
+      "matched_folder": "M3R47-4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FM3R47-4-N%2FM3R47-4-N.jpg?alt=media"
+    },
+    "M3R72-3-N(-AL)(-AR)": {
+      "matched_folder": "M3R72-3-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FM3R72-3-N%2FM3R72-3-N.jpg?alt=media"
+    },
+    "M3RF19-2-N(-L)": {
+      "matched_folder": "M3RF19-2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FM3RF19-2-N%2FM3RF19-2-N.jpg?alt=media"
+    },
+    "PRO-12R-G-N(-L)": {
+      "matched_folder": "PRO-12R-G-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-12R-G-N%2FPRO-12R-G-N.jpg?alt=media"
+    },
+    "PRO-12R-N(-L)": {
+      "matched_folder": "PRO-12R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-12R-N%2FPRO-12R-N.jpg?alt=media"
+    },
+    "PRO-15-2F-N(-L)": {
+      "matched_folder": "PRO-15-2F-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-15-2F-N%2FPRO-15-2F-N.jpg?alt=media"
+    },
+    "PRO-15-2H(-L)": {
+      "matched_folder": "PRO-15-2H",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-15-2H%2FPRO-15-2H.jpg?alt=media"
+    },
+    "PRO-15F-N(-L)": {
+      "matched_folder": "PRO-15F-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-15F-N%2FPRO-15F-N.jpg?alt=media"
+    },
+    "PRO-15H(-L)": {
+      "matched_folder": "PRO-15H",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-15H%2FPRO-15H.jpg?alt=media"
+    },
+    "PRO-15R-G-N(-L)": {
+      "matched_folder": "PRO-15R-G-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-15R-G-N%2FPRO-15R-G-N.jpg?alt=media"
+    },
+    "PRO-15R-N(-L)": {
+      "matched_folder": "PRO-15R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-15R-N%2FPRO-15R-N.jpg?alt=media"
+    },
+    "PRO-26-2F-N(-L)": {
+      "matched_folder": "PRO-26-2F-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2F-N%2FPRO-26-2F-N.jpg?alt=media"
+    },
+    "PRO-26-2R-G-N(-L)": {
+      "matched_folder": "PRO-26-2R-G-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2R-G-N%2FPRO-26-2R-G-N.jpg?alt=media"
+    },
+    "PRO-26-2R-N(-L)": {
+      "matched_folder": "PRO-26-2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2R-N%2FPRO-26-2R-N.jpg?alt=media"
+    },
+    "PRO-26-2R-PT-N(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26-2R-PT-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2R-PT-N%2FPRO-26-2R-PT-N.jpg?alt=media"
+    },
+    "PRO-26F-N(-L)": {
+      "matched_folder": "PRO-26F-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26F-N%2FPRO-26F-N.jpg?alt=media"
+    },
+    "PRO-26R-G-N(-L)": {
+      "matched_folder": "PRO-26R-G-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26R-G-N%2FPRO-26R-G-N.jpg?alt=media"
+    },
+    "PRO-26R-G-PT-N(-L)": {
+      "matched_folder": "PRO-26R-G-PT-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26R-G-PT-N%2FPRO-26R-G-PT-N.jpg?alt=media"
+    },
+    "PRO-26R-GSH-N(-L)": {
+      "matched_folder": "PRO-26R-GSH-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26R-GSH-N%2FPRO-26R-GSH-N.jpg?alt=media"
+    },
+    "PRO-26R-GSH-PT-N(-L)(-RL)": {
+      "matched_folder": "PRO-26R-GSH-PT-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26R-GSH-PT-N%2FPRO-26R-GSH-PT-N.jpg?alt=media"
+    },
+    "PRO-26R-N(-L)": {
+      "matched_folder": "PRO-26R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26R-N%2FPRO-26R-N.jpg?alt=media"
+    },
+    "PRO-26R-PT-N(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26R-PT-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26R-PT-N%2FPRO-26R-PT-N.jpg?alt=media"
+    },
+    "PRO-50-4F-N(-AL)": {
+      "matched_folder": "PRO-50-4F-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-50-4F-N%2FPRO-50-4F-N.jpg?alt=media"
+    },
+    "PRO-50-4H-PT(-AL)(-AR)": {
+      "matched_folder": "PRO-50-4H",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-50-4H%2FPRO-50-4H.jpg?alt=media"
+    },
+    "PRO-50-4R-N(-AR)": {
+      "matched_folder": "PRO-50-4R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-50-4R-N%2FPRO-50-4R-N.jpg?alt=media"
+    },
+    "PRO-77F-N(-AL)(-AR)": {
+      "matched_folder": "PRO-77F-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-77F-N%2FPRO-77F-N.jpg?alt=media"
+    },
+    "PRO-77R-N(-AR)(-AL)": {
+      "matched_folder": "PRO-77R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-77R-N%2FPRO-77R-N.jpg?alt=media"
+    },
+    "PST-28-12-FB-N(-L)": {
+      "matched_folder": "PST-28-12-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-28-12-N%2FPST-28-12-N.jpg?alt=media"
+    },
+    "PST-28-12-N(-L)": {
+      "matched_folder": "PST-28-12-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-28-12-N%2FPST-28-12-N.jpg?alt=media"
+    },
+    "PST-28-12-N-SL(-L)": {
+      "matched_folder": "PST-28-12-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-28-12-N%2FPST-28-12-N.jpg?alt=media"
+    },
+    "PST-28-FB-N(-L)": {
+      "matched_folder": "PST-28-FB-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-28-FB-N%2FPST-28-FB-N.jpg?alt=media"
+    },
+    "PST-28-G-N(-L)": {
+      "matched_folder": "PST-28-G-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-28-G-N%2FPST-28-G-N.jpg?alt=media"
+    },
+    "PST-28-N(-L)": {
+      "matched_folder": "PST-28-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-28-N%2FPST-28-N.jpg?alt=media"
+    },
+    "PST-48-18-D2R(L)-FB-N": {
+      "matched_folder": "PST-48-18-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-48-18-D2R-N%2FPST-48-18-D2R-N.jpg?alt=media"
+    },
+    "PST-48-18-D2R(L)-N": {
+      "matched_folder": "PST-48-18-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-48-18-D2R-N%2FPST-48-18-D2R-N.jpg?alt=media"
+    },
+    "PST-48-D2R(L)-FB-N": {
+      "matched_folder": "PST-48-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-48-D2R-N%2FPST-48-D2R-N.jpg?alt=media"
+    },
+    "PST-48-D2R(L)-N": {
+      "matched_folder": "PST-48-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-48-D2R-N%2FPST-48-D2R-N.jpg?alt=media"
+    },
+    "PST-60-24-D2R(L)-FB-N": {
+      "matched_folder": "PST-60-24-D2R-FB-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-60-24-D2R-FB-N%2FPST-60-24-D2R-FB-N.jpg?alt=media"
+    },
+    "PST-60-24-D2R(L)-N": {
+      "matched_folder": "PST-60-24-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-60-24-D2R-N%2FPST-60-24-D2R-N.jpg?alt=media"
+    },
+    "PST-60-24-D4-FB-N": {
+      "matched_folder": "PST-60-24-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-60-24-D4-N%2FPST-60-24-D4-N.jpg?alt=media"
+    },
+    "PST-60-24-FB-N": {
+      "matched_folder": "PST-60-24-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-60-24-N%2FPST-60-24-N.jpg?alt=media"
+    },
+    "PST-60-D2R(L)-FB-N": {
+      "matched_folder": "PST-60-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-60-D2R-N%2FPST-60-D2R-N.jpg?alt=media"
+    },
+    "PST-60-D2R(L)-N": {
+      "matched_folder": "PST-60-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-60-D2R-N%2FPST-60-D2R-N.jpg?alt=media"
+    },
+    "PST-72-30-D2R(L)-N": {
+      "matched_folder": "PST-72-30-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-72-30-D2R-N%2FPST-72-30-D2R-N.jpg?alt=media"
+    },
+    "PST-72-30-FB-N": {
+      "matched_folder": "PST-72-30-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-72-30-N%2FPST-72-30-N.jpg?alt=media"
+    },
+    "PST-72-30-N(-AL)(-AR)": {
+      "matched_folder": "PST-72-30-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-72-30-N%2FPST-72-30-N.jpg?alt=media"
+    },
+    "PST-72-D2R(L)-N": {
+      "matched_folder": "PST-72-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-72-D2R-N%2FPST-72-D2R-N.jpg?alt=media"
+    },
+    "PST-72-D4-FB-N": {
+      "matched_folder": "PST-72-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-72-D4-N%2FPST-72-D4-N.jpg?alt=media"
+    },
+    "PST-72-N(-AL)(-AR)": {
+      "matched_folder": "PST-72-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-72-N%2FPST-72-N.jpg?alt=media"
+    },
+    "PUF-28-N(-L)": {
+      "matched_folder": "PUF-28-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPUF-28-N%2FPUF-28-N.jpg?alt=media"
+    },
+    "PUF-48-D2R(L)-N": {
+      "matched_folder": "PUF-48-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPUF-48-D2R-N%2FPUF-48-D2R-N.jpg?alt=media"
+    },
+    "PUF-60-D2R(L)-N": {
+      "matched_folder": "PUF-60-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPUF-60-D2R-N%2FPUF-60-D2R-N.jpg?alt=media"
+    },
+    "PUR-28-FB-N": {
+      "matched_folder": "PUR-28-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPUR-28-N%2FPUR-28-N.jpg?alt=media"
+    },
+    "PUR-28-G-N(-L)": {
+      "matched_folder": "PUR-28-G-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPUR-28-G-N%2FPUR-28-G-N.jpg?alt=media"
+    },
+    "PUR-28-N(-L)": {
+      "matched_folder": "PUR-28-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPUR-28-N%2FPUR-28-N.jpg?alt=media"
+    },
+    "PUR-48-D2R(L)-N": {
+      "matched_folder": "PUR-48-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPUR-48-D2R-N%2FPUR-48-D2R-N.jpg?alt=media"
+    },
+    "PUR-48-N(-AL)(-AR)": {
+      "matched_folder": "PUR-48-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPUR-48-N%2FPUR-48-N.jpg?alt=media"
+    },
+    "PUR-60-D2R(L)-N": {
+      "matched_folder": "PUR-60-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPUR-60-D2R-N%2FPUR-60-D2R-N.jpg?alt=media"
+    },
+    "PUR-72-D2R(L)-N": {
+      "matched_folder": "PUR-72-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPUR-72-D2R-N%2FPUR-72-D2R-N.jpg?alt=media"
+    },
+    "PUR-72-FB-N": {
+      "matched_folder": "PUR-72-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPUR-72-N%2FPUR-72-N.jpg?alt=media"
+    },
+    "PUR-72-N(-AL)": {
+      "matched_folder": "PUR-72-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPUR-72-N%2FPUR-72-N.jpg?alt=media"
+    },
+    "PWF-28-N(-L)": {
+      "matched_folder": "PWF-28-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWF-28-N%2FPWF-28-N.jpg?alt=media"
+    },
+    "PWF-48-D2R(L)-N": {
+      "matched_folder": "PWF-48-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWF-48-D2R-N%2FPWF-48-D2R-N.jpg?alt=media"
+    },
+    "PWF-60-D2R(L)-N": {
+      "matched_folder": "PWF-60-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWF-60-D2R-N%2FPWF-60-D2R-N.jpg?alt=media"
+    },
+    "PWR-28-N(-L)": {
+      "matched_folder": "PWR-28-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWR-28-N%2FPWR-28-N.jpg?alt=media"
+    },
+    "PWR-48-D2R(L)-N": {
+      "matched_folder": "PWR-48-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWR-48-D2R-N%2FPWR-48-D2R-N.jpg?alt=media"
+    },
+    "PWR-48-N(-AL)(-AR)": {
+      "matched_folder": "PWR-48-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWR-48-N%2FPWR-48-N.jpg?alt=media"
+    },
+    "PWR-60-D2R(L)-N": {
+      "matched_folder": "PWR-60-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWR-60-D2R-N%2FPWR-60-D2R-N.jpg?alt=media"
+    },
+    "PWR-72-D2R(L)-N": {
+      "matched_folder": "PWR-72-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWR-72-D2R-N%2FPWR-72-D2R-N.jpg?alt=media"
+    },
+    "TBA37-50N-W(B)": {
+      "matched_folder": "TBA37-50N-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBA37-50N-W%2FTBA37-50N-W.jpg?alt=media"
+    },
+    "TBA49-50N-W(B)": {
+      "matched_folder": "TBA49-50N-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBA49-50N-W%2FTBA49-50N-W.jpg?alt=media"
+    },
+    "TBB-4SBD": {
+      "matched_folder": "TBB-4SBD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBB-4SBD-N%2FTBB-4SBD-N.jpg?alt=media"
+    },
+    "TBC-80SD": {
+      "matched_folder": "TBC-80SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBC-80SD-N%2FTBC-80SD-N.jpg?alt=media"
+    },
+    "TBC-95SD": {
+      "matched_folder": "TBC-95SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBC-95SD-N%2FTBC-95SD-N.jpg?alt=media"
+    },
+    "TBD-4SDD": {
+      "matched_folder": "TBD-4SDD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBD-4SDD-N%2FTBD-4SDD-N.jpg?alt=media"
+    },
+    "TBP36-46FN-W(B)": {
+      "matched_folder": "TBP36-46FN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBP36-46FN-W%2FTBP36-46FN-W.jpg?alt=media"
+    },
+    "TBP36-46NN-W(B)": {
+      "matched_folder": "TBP36-46NN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBP36-46NN-W%2FTBP36-46NN-W.jpg?alt=media"
+    },
+    "TBP36-54FN-W(B)": {
+      "matched_folder": "TBP36-54FN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBP36-54FN-W%2FTBP36-54FN-W.jpg?alt=media"
+    },
+    "TBP36-54NN-W(B)": {
+      "matched_folder": "TBP36-54NN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBP36-54NN-W%2FTBP36-54NN-W.jpg?alt=media"
+    },
+    "TBP48-46FN-W(B)": {
+      "matched_folder": "TBP48-46FN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBP48-46FN-W%2FTBP48-46FN-W.jpg?alt=media"
+    },
+    "TBP48-46NN-W(B)": {
+      "matched_folder": "TBP48-46NN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBP48-46NN-W%2FTBP48-46NN-W.jpg?alt=media"
+    },
+    "TBP48-54FN-W(B)": {
+      "matched_folder": "TBP48-54FN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBP48-54FN-W%2FTBP48-54FN-W.jpg?alt=media"
+    },
+    "TBP48-54NN-W(B)": {
+      "matched_folder": "TBP48-54NN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBP48-54NN-W%2FTBP48-54NN-W.jpg?alt=media"
+    },
+    "TBP60-46FN-W(B)": {
+      "matched_folder": "TBP60-46FN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBP60-46FN-W%2FTBP60-46FN-W.jpg?alt=media"
+    },
+    "TBP60-46NN-W(B)": {
+      "matched_folder": "TBP60-46NN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBP60-46NN-W%2FTBP60-46NN-W.jpg?alt=media"
+    },
+    "TBP60-54FN-W(B)": {
+      "matched_folder": "TBP60-54FN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBP60-54FN-W%2FTBP60-54FN-W.jpg?alt=media"
+    },
+    "TBP60-54NN-W(B)": {
+      "matched_folder": "TBP60-54NN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBP60-54NN-W%2FTBP60-54NN-W.jpg?alt=media"
+    },
+    "TCB-4SDD": {
+      "matched_folder": "TCB-4SDD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCB-4SDD-N%2FTCB-4SDD-N.jpg?alt=media"
+    },
+    "TCDD-36H-W(B)-N": {
+      "matched_folder": "TCDD-36H-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCDD-36H-W-N%2FTCDD-36H-W-N.jpg?alt=media"
+    },
+    "TCDD-48H-W(B)-N": {
+      "matched_folder": "TCDD-48H-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCDD-48H-W-N%2FTCDD-48H-W-N.jpg?alt=media"
+    },
+    "TCDD-72H-W(B)-N": {
+      "matched_folder": "TCDD-72H-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCDD-72H-W-N%2FTCDD-72H-W-N.jpg?alt=media"
+    },
+    "TCDD-96H-W(B)-N": {
+      "matched_folder": "TCDD-96H-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCDD-96H-W-N%2FTCDD-96H-W-N.jpg?alt=media"
+    },
+    "TCGB-36-W(B)-N": {
+      "matched_folder": "TCGB-36-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-36-W-N%2FTCGB-36-W-N.jpg?alt=media"
+    },
+    "TCGB-36DR-W(B)": {
+      "matched_folder": "TCGB-36DR-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-36DR-W%2FTCGB-36DR-W.jpg?alt=media"
+    },
+    "TCGB-36UF-DR-W(B)": {
+      "matched_folder": "TCGB-36UF-DR-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-36UF-DR-W%2FTCGB-36UF-DR-W.jpg?alt=media"
+    },
+    "TCGB-36UF-W(B)-N": {
+      "matched_folder": "TCGB-36UF-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-36UF-W-N%2FTCGB-36UF-W-N.jpg?alt=media"
+    },
+    "TCGB-48-W(B)-N": {
+      "matched_folder": "TCGB-48-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-48-W-N%2FTCGB-48-W-N.jpg?alt=media"
+    },
+    "TCGB-48DR-W(B)": {
+      "matched_folder": "TCGB-48DR-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-48DR-W%2FTCGB-48DR-W.jpg?alt=media"
+    },
+    "TCGB-48UF-DR-W(B)": {
+      "matched_folder": "TCGB-48UF-DR-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-48UF-DR-W%2FTCGB-48UF-DR-W.jpg?alt=media"
+    },
+    "TCGB-48UF-W(B)-N": {
+      "matched_folder": "TCGB-48UF-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-48UF-W-N%2FTCGB-48UF-W-N.jpg?alt=media"
+    },
+    "TCGB-60-W(B)-N": {
+      "matched_folder": "TCGB-60-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-60-W-N%2FTCGB-60-W-N.jpg?alt=media"
+    },
+    "TCGB-60CO-W(B)-N": {
+      "matched_folder": "TCGB-60CO-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-60CO-W-N%2FTCGB-60CO-W-N.jpg?alt=media"
+    },
+    "TCGB-60DR-W(B)": {
+      "matched_folder": "TCGB-60DR-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-60DR-W%2FTCGB-60DR-W.jpg?alt=media"
+    },
+    "TCGB-60UF-CO-W(B)-N": {
+      "matched_folder": "TCGB-60UF-CO-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-60UF-CO-W-N%2FTCGB-60UF-CO-W-N.jpg?alt=media"
+    },
+    "TCGB-60UF-DR-W(B)": {
+      "matched_folder": "TCGB-60UF-DR-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-60UF-DR-W%2FTCGB-60UF-DR-W.jpg?alt=media"
+    },
+    "TCGB-60UF-W(B)-N": {
+      "matched_folder": "TCGB-60UF-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-60UF-W-N%2FTCGB-60UF-W-N.jpg?alt=media"
+    },
+    "TCGB-72-W(B)-N": {
+      "matched_folder": "TCGB-72-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-72-W-N%2FTCGB-72-W-N.jpg?alt=media"
+    },
+    "TCGB-72CO-W(B)-N": {
+      "matched_folder": "TCGB-72CO-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-72CO-W-N%2FTCGB-72CO-W-N.jpg?alt=media"
+    },
+    "TCGB-72DR-W(B)": {
+      "matched_folder": "TCGB-72DR-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-72DR-W%2FTCGB-72DR-W.jpg?alt=media"
+    },
+    "TCGB-72UF-CO-W(B)-N": {
+      "matched_folder": "TCGB-72UF-CO-S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-72UF-CO-S-N%2FTCGB-72UF-CO-S-N.jpg?alt=media"
+    },
+    "TCGB-72UF-DR-W(B)": {
+      "matched_folder": "TCGB-72UF-DR-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-72UF-DR-W%2FTCGB-72UF-DR-W.jpg?alt=media"
+    },
+    "TCGB-72UF-W(B)-N": {
+      "matched_folder": "TCGB-72UF-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCGB-72UF-W-N%2FTCGB-72UF-W-N.jpg?alt=media"
+    },
+    "TGF-10SD-N": {
+      "matched_folder": "TGF-10SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGF-10SDW-N%2FTGF-10SDW-N.jpg?alt=media"
+    },
+    "TGF-15SD-N": {
+      "matched_folder": "TGF-15SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGF-15SDW-N%2FTGF-15SDW-N.jpg?alt=media"
+    },
+    "TGF-23SD-N": {
+      "matched_folder": "TGF-23SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGF-23SDW-N%2FTGF-23SDW-N.jpg?alt=media"
+    },
+    "TGF-35SD-N": {
+      "matched_folder": "TGF-35SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGF-35SDW-N%2FTGF-35SDW-N.jpg?alt=media"
+    },
+    "TGF-47SD-N": {
+      "matched_folder": "TGF-47SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGF-47SDW-N%2FTGF-47SDW-N.jpg?alt=media"
+    },
+    "TGF-5SD-N": {
+      "matched_folder": "TGF-5SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGF-5SDW-N%2FTGF-5SDW-N.jpg?alt=media"
+    },
+    "TGF-72SD-N": {
+      "matched_folder": "TGF-72SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGF-72SDW-N%2FTGF-72SDW-N.jpg?alt=media"
+    },
+    "TIOM-36CSB-N": {
+      "matched_folder": "TIOM-36SB-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTIOM-36SB-N%2FTIOM-36SB-N.jpg?alt=media"
+    },
+    "TIOM-36CSCB-N": {
+      "matched_folder": "TIOM-36SB-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTIOM-36SB-N%2FTIOM-36SB-N.jpg?alt=media"
+    },
+    "TIOM-48CB-N": {
+      "matched_folder": "TIOM-48CSB-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTIOM-48CSB-N%2FTIOM-48CSB-N.jpg?alt=media"
+    },
+    "TIOM-48CSCB-N": {
+      "matched_folder": "TIOM-48CSB-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTIOM-48CSB-N%2FTIOM-48CSB-N.jpg?alt=media"
+    },
+    "TJMF-30SDW(B)-N": {
+      "matched_folder": "TJMR-30SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTJMR-30SDW-N%2FTJMR-30SDW-N.jpg?alt=media"
+    },
+    "TJMF-55SDW(B)-N": {
+      "matched_folder": "TJMR-55SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTJMR-55SDW-N%2FTJMR-55SDW-N.jpg?alt=media"
+    },
+    "TJMF-85SDW(B)-N": {
+      "matched_folder": "TJMR-85SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTJMR-85SDW-N%2FTJMR-85SDW-N.jpg?alt=media"
+    },
+    "TJMI-30SDW(B)-N": {
+      "matched_folder": "TJMI-30SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTJMI-30SDW-N%2FTJMI-30SDW-N.jpg?alt=media"
+    },
+    "TJMI-55SDW(B)-N": {
+      "matched_folder": "TJMI-55SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTJMI-55SDW-N%2FTJMI-55SDW-N.jpg?alt=media"
+    },
+    "TJMR-30SDW(B)-N": {
+      "matched_folder": "TJMR-30SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTJMR-30SDW-N%2FTJMR-30SDW-N.jpg?alt=media"
+    },
+    "TJMR-55SDW(B)-N": {
+      "matched_folder": "TJMR-55SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTJMR-55SDW-N%2FTJMR-55SDW-N.jpg?alt=media"
+    },
+    "TJMR-85SDW(B)-N": {
+      "matched_folder": "TJMR-85SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTJMR-85SDW-N%2FTJMR-85SDW-N.jpg?alt=media"
+    },
+    "TOM-25MSEW(B)-N": {
+      "matched_folder": "TOM-25MSEW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-25MSEW-N%2FTOM-25MSEW-N.jpg?alt=media"
+    },
+    "TOM-30LB-SP(-A)-N": {
+      "matched_folder": "TOM-30LB-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-30LB-SP-N%2FTOM-30LB-SP-N.jpg?alt=media"
+    },
+    "TOM-30LW(B)-N": {
+      "matched_folder": "TOM-30LW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-30LW-N%2FTOM-30LW-N.jpg?alt=media"
+    },
+    "TOM-30SB-SP(-A)-N": {
+      "matched_folder": "TOM-30SB-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-30SB-SP-N%2FTOM-30SB-SP-N.jpg?alt=media"
+    },
+    "TOM-30SW(B)-N": {
+      "matched_folder": "TOM-30SW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-30SW-N%2FTOM-30SW-N.jpg?alt=media"
+    },
+    "TOM-36DXB-SP(-A)-N": {
+      "matched_folder": "TOM-36DXB-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-36DXB-SP-N%2FTOM-36DXB-SP-N.jpg?alt=media"
+    },
+    "TOM-36L-UF-W(B)-1S-N": {
+      "matched_folder": "TOM-36L-UF-W-1S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-36L-UF-W-1S-N%2FTOM-36L-UF-W-1S-N.jpg?alt=media"
+    },
+    "TOM-36L-UF-W(B)-1SI-N": {
+      "matched_folder": "TOM-36L-UF-W-1SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-36L-UF-W-1SI-N%2FTOM-36L-UF-W-1SI-N.jpg?alt=media"
+    },
+    "TOM-36L-UF-W(B)-2S-N": {
+      "matched_folder": "TOM-36L-UF-W-2S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-36L-UF-W-2S-N%2FTOM-36L-UF-W-2S-N.jpg?alt=media"
+    },
+    "TOM-36L-UF-W(B)-2SI-N": {
+      "matched_folder": "TOM-36L-UF-W-2SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-36L-UF-W-2SI-N%2FTOM-36L-UF-W-2SI-N.jpg?alt=media"
+    },
+    "TOM-36L-UF-W(B)-3S-N": {
+      "matched_folder": "TOM-36L-UF-W-3S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-36L-UF-W-3S-N%2FTOM-36L-UF-W-3S-N.jpg?alt=media"
+    },
+    "TOM-36L-UF-W(B)-3SI-N": {
+      "matched_folder": "TOM-36L-UF-W-3SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-36L-UF-W-3SI-N%2FTOM-36L-UF-W-3SI-N.jpg?alt=media"
+    },
+    "TOM-36L-UFD-W(B)-1S-N": {
+      "matched_folder": "TOM-36L-UFD-W-1S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-36L-UFD-W-1S-N%2FTOM-36L-UFD-W-1S-N.jpg?alt=media"
+    },
+    "TOM-36L-UFD-W(B)-1SI-N": {
+      "matched_folder": "TOM-36L-UFD-W-1SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-36L-UFD-W-1SI-N%2FTOM-36L-UFD-W-1SI-N.jpg?alt=media"
+    },
+    "TOM-36L-UFD-W(B)-2S-N": {
+      "matched_folder": "TOM-36L-UFD-W-2S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-36L-UFD-W-2S-N%2FTOM-36L-UFD-W-2S-N.jpg?alt=media"
+    },
+    "TOM-36L-UFD-W(B)-2SI-N": {
+      "matched_folder": "TOM-36L-UFD-W-2SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-36L-UFD-W-2SI-N%2FTOM-36L-UFD-W-2SI-N.jpg?alt=media"
+    },
+    "TOM-36L-UFD-W(B)-3S-N": {
+      "matched_folder": "TOM-36L-UFD-W-3S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-36L-UFD-W-3S-N%2FTOM-36L-UFD-W-3S-N.jpg?alt=media"
+    },
+    "TOM-36L-UFD-W(B)-3SI-N": {
+      "matched_folder": "TOM-36L-UFD-W-3SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-36L-UFD-W-3SI-N%2FTOM-36L-UFD-W-3SI-N.jpg?alt=media"
+    },
+    "TOM-36UC-W(B)-N": {
+      "matched_folder": "TOM-36UC-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-36UC-W-N%2FTOM-36UC-W-N.jpg?alt=media"
+    },
+    "TOM-40B-SP(-A)-N": {
+      "matched_folder": "TOM-40B-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-40B-SP-N%2FTOM-40B-SP-N.jpg?alt=media"
+    },
+    "TOM-40LB-SP(-A)-N": {
+      "matched_folder": "TOM-40LB-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-40LB-SP-N%2FTOM-40LB-SP-N.jpg?alt=media"
+    },
+    "TOM-40LW(B)-N": {
+      "matched_folder": "TOM-40LW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-40LW-N%2FTOM-40LW-N.jpg?alt=media"
+    },
+    "TOM-40MB-SP(-A)-N": {
+      "matched_folder": "TOM-40MB-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-40MB-SP-N%2FTOM-40MB-SP-N.jpg?alt=media"
+    },
+    "TOM-40MSEW(B)-N": {
+      "matched_folder": "TOM-40MSEW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-40MSEW-N%2FTOM-40MSEW-N.jpg?alt=media"
+    },
+    "TOM-40MW(B)-N": {
+      "matched_folder": "TOM-40MW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-40MW-N%2FTOM-40MW-N.jpg?alt=media"
+    },
+    "TOM-40SB-SP(-A)-N": {
+      "matched_folder": "TOM-40SB-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-40SB-SP-N%2FTOM-40SB-SP-N.jpg?alt=media"
+    },
+    "TOM-40SEW(B)-N": {
+      "matched_folder": "TOM-40SEW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-40SEW-N%2FTOM-40SEW-N.jpg?alt=media"
+    },
+    "TOM-40SW(B)-N": {
+      "matched_folder": "TOM-40SW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-40SW-N%2FTOM-40SW-N.jpg?alt=media"
+    },
+    "TOM-40W(B)-N": {
+      "matched_folder": "TOM-40W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-40W-N%2FTOM-40W-N.jpg?alt=media"
+    },
+    "TOM-48DXB-SP(-A)-N": {
+      "matched_folder": "TOM-48DXB-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-48DXB-SP-N%2FTOM-48DXB-SP-N.jpg?alt=media"
+    },
+    "TOM-48L-UF-W(B)-1S-N": {
+      "matched_folder": "TOM-48L-UF-W-1S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-48L-UF-W-1S-N%2FTOM-48L-UF-W-1S-N.jpg?alt=media"
+    },
+    "TOM-48L-UF-W(B)-1SI-N": {
+      "matched_folder": "TOM-48L-UFD-W-1SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-48L-UFD-W-1SI-N%2FTOM-48L-UFD-W-1SI-N.jpg?alt=media"
+    },
+    "TOM-48L-UF-W(B)-2S-N": {
+      "matched_folder": "TOM-48L-UF-W-2S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-48L-UF-W-2S-N%2FTOM-48L-UF-W-2S-N.jpg?alt=media"
+    },
+    "TOM-48L-UF-W(B)-2SI-N": {
+      "matched_folder": "TOM-48L-UFD-W-2SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-48L-UFD-W-2SI-N%2FTOM-48L-UFD-W-2SI-N.jpg?alt=media"
+    },
+    "TOM-48L-UF-W(B)-3S-N": {
+      "matched_folder": "TOM-48L-UF-W-3S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-48L-UF-W-3S-N%2FTOM-48L-UF-W-3S-N.jpg?alt=media"
+    },
+    "TOM-48L-UF-W(B)-3SI-N": {
+      "matched_folder": "TOM-48L-UFD-W-3SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-48L-UFD-W-3SI-N%2FTOM-48L-UFD-W-3SI-N.jpg?alt=media"
+    },
+    "TOM-48L-UFD-W(B)-1S-N": {
+      "matched_folder": "TOM-48L-UFD-W-1S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-48L-UFD-W-1S-N%2FTOM-48L-UFD-W-1S-N.jpg?alt=media"
+    },
+    "TOM-48L-UFD-W(B)-1SI-N": {
+      "matched_folder": "TOM-48L-UFD-W-1SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-48L-UFD-W-1SI-N%2FTOM-48L-UFD-W-1SI-N.jpg?alt=media"
+    },
+    "TOM-48L-UFD-W(B)-2S-N": {
+      "matched_folder": "TOM-48L-UFD-W-2S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-48L-UFD-W-2S-N%2FTOM-48L-UFD-W-2S-N.jpg?alt=media"
+    },
+    "TOM-48L-UFD-W(B)-2SI-N": {
+      "matched_folder": "TOM-48L-UFD-W-2SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-48L-UFD-W-2SI-N%2FTOM-48L-UFD-W-2SI-N.jpg?alt=media"
+    },
+    "TOM-48L-UFD-W(B)-3S-N": {
+      "matched_folder": "TOM-48L-UFD-W-3S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-48L-UFD-W-3S-N%2FTOM-48L-UFD-W-3S-N.jpg?alt=media"
+    },
+    "TOM-48L-UFD-W(B)-3SI-N": {
+      "matched_folder": "TOM-48L-UFD-W-3SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-48L-UFD-W-3SI-N%2FTOM-48L-UFD-W-3SI-N.jpg?alt=media"
+    },
+    "TOM-48UC-W(B)-N": {
+      "matched_folder": "TOM-48UC-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-48UC-W-N%2FTOM-48UC-W-N.jpg?alt=media"
+    },
+    "TOM-50B-SP(-A)-N": {
+      "matched_folder": "TOM-50B-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-50B-SP-N%2FTOM-50B-SP-N.jpg?alt=media"
+    },
+    "TOM-50LB-SP(-A)-N": {
+      "matched_folder": "TOM-50LB-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-50LB-SP-N%2FTOM-50LB-SP-N.jpg?alt=media"
+    },
+    "TOM-50LW(B)-N": {
+      "matched_folder": "TOM-50LW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-50LW-N%2FTOM-50LW-N.jpg?alt=media"
+    },
+    "TOM-50MB-SP(-A)-N": {
+      "matched_folder": "TOM-50MB-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-50MB-SP-N%2FTOM-50MB-SP-N.jpg?alt=media"
+    },
+    "TOM-50MSEW(B)-N": {
+      "matched_folder": "TOM-50MSEW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-50MSEW-N%2FTOM-50MSEW-N.jpg?alt=media"
+    },
+    "TOM-50MW(B)-N": {
+      "matched_folder": "TOM-50MW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-50MW-N%2FTOM-50MW-N.jpg?alt=media"
+    },
+    "TOM-50SB-SP(-A)-N": {
+      "matched_folder": "TOM-50SB-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-50SB-SP-N%2FTOM-50SB-SP-N.jpg?alt=media"
+    },
+    "TOM-50SEW(B)-N": {
+      "matched_folder": "TOM-50SEW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-50SEW-N%2FTOM-50SEW-N.jpg?alt=media"
+    },
+    "TOM-50SW(B)-N": {
+      "matched_folder": "TOM-50SW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-50SW-N%2FTOM-50SW-N.jpg?alt=media"
+    },
+    "TOM-50W(B)-N": {
+      "matched_folder": "TOM-50W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-50W-N%2FTOM-50W-N.jpg?alt=media"
+    },
+    "TOM-60DXB-SP(-A)-N": {
+      "matched_folder": "TOM-60DXB-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60DXB-SP-N%2FTOM-60DXB-SP-N.jpg?alt=media"
+    },
+    "TOM-60L-UF-W(B)-1S-N": {
+      "matched_folder": "TOM-60L-UF-W-1S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60L-UF-W-1S-N%2FTOM-60L-UF-W-1S-N.jpg?alt=media"
+    },
+    "TOM-60L-UF-W(B)-1SI-N": {
+      "matched_folder": "TOM-60L-UF-W-1SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60L-UF-W-1SI-N%2FTOM-60L-UF-W-1SI-N.jpg?alt=media"
+    },
+    "TOM-60L-UF-W(B)-2S-N": {
+      "matched_folder": "TOM-60L-UF-W-2S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60L-UF-W-2S-N%2FTOM-60L-UF-W-2S-N.jpg?alt=media"
+    },
+    "TOM-60L-UF-W(B)-2SI-N": {
+      "matched_folder": "TOM-60L-UF-W-2SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60L-UF-W-2SI-N%2FTOM-60L-UF-W-2SI-N.jpg?alt=media"
+    },
+    "TOM-60L-UF-W(B)-3S-N": {
+      "matched_folder": "TOM-60L-UF-W-3S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60L-UF-W-3S-N%2FTOM-60L-UF-W-3S-N.jpg?alt=media"
+    },
+    "TOM-60L-UF-W(B)-3SI-N": {
+      "matched_folder": "TOM-60L-UF-W-3SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60L-UF-W-3SI-N%2FTOM-60L-UF-W-3SI-N.jpg?alt=media"
+    },
+    "TOM-60L-UFD-W(B)-1S-N": {
+      "matched_folder": "TOM-60L-UFD-W-1S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60L-UFD-W-1S-N%2FTOM-60L-UFD-W-1S-N.jpg?alt=media"
+    },
+    "TOM-60L-UFD-W(B)-1SI-N": {
+      "matched_folder": "TOM-60L-UFD-W-1SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60L-UFD-W-1SI-N%2FTOM-60L-UFD-W-1SI-N.jpg?alt=media"
+    },
+    "TOM-60L-UFD-W(B)-2S-N": {
+      "matched_folder": "TOM-60L-UFD-W-2S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60L-UFD-W-2S-N%2FTOM-60L-UFD-W-2S-N.jpg?alt=media"
+    },
+    "TOM-60L-UFD-W(B)-2SI-N": {
+      "matched_folder": "TOM-60L-UFD-W-2SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60L-UFD-W-2SI-N%2FTOM-60L-UFD-W-2SI-N.jpg?alt=media"
+    },
+    "TOM-60L-UFD-W(B)-3S-N": {
+      "matched_folder": "TOM-60L-UFD-W-3S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60L-UFD-W-3S-N%2FTOM-60L-UFD-W-3S-N.jpg?alt=media"
+    },
+    "TOM-60L-UFD-W(B)-3SI-N": {
+      "matched_folder": "TOM-60L-UFD-W-3S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60L-UFD-W-3S-N%2FTOM-60L-UFD-W-3S-N.jpg?alt=media"
+    },
+    "TOM-60LB-SP(-A)-N": {
+      "matched_folder": "TOM-60LB-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60LB-SP-N%2FTOM-60LB-SP-N.jpg?alt=media"
+    },
+    "TOM-60LW(B)-N": {
+      "matched_folder": "TOM-60LW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60LW-N%2FTOM-60LW-N.jpg?alt=media"
+    },
+    "TOM-60MSEW(B)-N": {
+      "matched_folder": "TOM-60MSEW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60MSEW-N%2FTOM-60MSEW-N.jpg?alt=media"
+    },
+    "TOM-60SB-SP(-A)-N": {
+      "matched_folder": "TOM-60SB-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60SB-SP-N%2FTOM-60SB-SP-N.jpg?alt=media"
+    },
+    "TOM-60SEW(B)-N": {
+      "matched_folder": "TOM-60SEW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60SEW-N%2FTOM-60SEW-N.jpg?alt=media"
+    },
+    "TOM-60SW(B)-N": {
+      "matched_folder": "TOM-60SW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60SW-N%2FTOM-60SW-N.jpg?alt=media"
+    },
+    "TOM-60UC-W(B)-N": {
+      "matched_folder": "TOM-60UC-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-60UC-W-N%2FTOM-60UC-W-N.jpg?alt=media"
+    },
+    "TOM-72DXB-SP(-A)-N": {
+      "matched_folder": "TOM-72DXB-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-72DXB-SP-N%2FTOM-72DXB-SP-N.jpg?alt=media"
+    },
+    "TOM-72L-UF-W(B)-1S-N": {
+      "matched_folder": "TOM-72L-UF-W-1S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-72L-UF-W-1S-N%2FTOM-72L-UF-W-1S-N.jpg?alt=media"
+    },
+    "TOM-72L-UF-W(B)-1SI-N": {
+      "matched_folder": "TOM-72L-UF-W-1SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-72L-UF-W-1SI-N%2FTOM-72L-UF-W-1SI-N.jpg?alt=media"
+    },
+    "TOM-72L-UF-W(B)-2S-N": {
+      "matched_folder": "TOM-72L-UF-W-2S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-72L-UF-W-2S-N%2FTOM-72L-UF-W-2S-N.jpg?alt=media"
+    },
+    "TOM-72L-UF-W(B)-2SI-N": {
+      "matched_folder": "TOM-72L-UF-W-2SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-72L-UF-W-2SI-N%2FTOM-72L-UF-W-2SI-N.jpg?alt=media"
+    },
+    "TOM-72L-UF-W(B)-3S-N": {
+      "matched_folder": "TOM-72L-UF-W-3S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-72L-UF-W-3S-N%2FTOM-72L-UF-W-3S-N.jpg?alt=media"
+    },
+    "TOM-72L-UF-W(B)-3SI-N": {
+      "matched_folder": "TOM-72L-UF-W-3SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-72L-UF-W-3SI-N%2FTOM-72L-UF-W-3SI-N.jpg?alt=media"
+    },
+    "TOM-72L-UFD-W(B)-1S-N": {
+      "matched_folder": "TOM-72L-UFD-W-1S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-72L-UFD-W-1S-N%2FTOM-72L-UFD-W-1S-N.jpg?alt=media"
+    },
+    "TOM-72L-UFD-W(B)-1SI-N": {
+      "matched_folder": "TOM-72L-UFD-W-1SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-72L-UFD-W-1SI-N%2FTOM-72L-UFD-W-1SI-N.jpg?alt=media"
+    },
+    "TOM-72L-UFD-W(B)-2S-N": {
+      "matched_folder": "TOM-72L-UFD-W-2S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-72L-UFD-W-2S-N%2FTOM-72L-UFD-W-2S-N.jpg?alt=media"
+    },
+    "TOM-72L-UFD-W(B)-2SI-N": {
+      "matched_folder": "TOM-72L-UFD-W-2SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-72L-UFD-W-2SI-N%2FTOM-72L-UFD-W-2SI-N.jpg?alt=media"
+    },
+    "TOM-72L-UFD-W(B)-3S-N": {
+      "matched_folder": "TOM-72L-UFD-W-3S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-72L-UFD-W-3S-N%2FTOM-72L-UFD-W-3S-N.jpg?alt=media"
+    },
+    "TOM-72L-UFD-W(B)-3SI-N": {
+      "matched_folder": "TOM-72L-UFD-W-3SI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-72L-UFD-W-3SI-N%2FTOM-72L-UFD-W-3SI-N.jpg?alt=media"
+    },
+    "TOM-72UC-W(B)-N": {
+      "matched_folder": "TOM-72UC-W-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-72UC-W-N%2FTOM-72UC-W-N.jpg?alt=media"
+    },
+    "TOM-75LB-SP(-A)-N": {
+      "matched_folder": "TOM-75LB-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-75LB-SP-N%2FTOM-75LB-SP-N.jpg?alt=media"
+    },
+    "TOM-75LW(B)-N": {
+      "matched_folder": "TOM-75LW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-75LW-N%2FTOM-75LW-N.jpg?alt=media"
+    },
+    "TOM-75MSEW(B)-N": {
+      "matched_folder": "TOM-75MSEW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-75MSEW-N%2FTOM-75MSEW-N.jpg?alt=media"
+    },
+    "TOM-75SB-SP(-A)-N": {
+      "matched_folder": "TOM-75SB-SP-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-75SB-SP-N%2FTOM-75SB-SP-N.jpg?alt=media"
+    },
+    "TOM-75SEW(B)-N": {
+      "matched_folder": "TOM-75SEW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-75SEW-N%2FTOM-75SEW-N.jpg?alt=media"
+    },
+    "TOM-75SW(B)-N": {
+      "matched_folder": "TOM-75SW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-75SW-N%2FTOM-75SW-N.jpg?alt=media"
+    },
+    "TOM-96SEW(B)-N": {
+      "matched_folder": "TOM-96SEW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-96SEW-N%2FTOM-96SEW-N.jpg?alt=media"
+    },
+    "TOM20-60N-W(B)": {
+      "matched_folder": "TOM20-60N-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM20-60N-W%2FTOM20-60N-W.jpg?alt=media"
+    },
+    "TOM20-75N-W(B)": {
+      "matched_folder": "TOM20-75N-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM20-75N-W%2FTOM20-75N-W.jpg?alt=media"
+    },
+    "TOS-30NN-D-W(B)": {
+      "matched_folder": "TOS-30NN-D-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOS-30NN-D-W%2FTOS-30NN-D-W.jpg?alt=media"
+    },
+    "TOS-30NN-W(B)": {
+      "matched_folder": "TOS-30NN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOS-30NN-W%2FTOS-30NN-W.jpg?alt=media"
+    },
+    "TOS-30PN-W(B)": {
+      "matched_folder": "TOS-30PN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOS-30PN-W%2FTOS-30PN-W.jpg?alt=media"
+    },
+    "TOS-40NN-D-W(B)": {
+      "matched_folder": "TOS-40NN-D-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOS-40NN-D-W%2FTOS-40NN-D-W.jpg?alt=media"
+    },
+    "TOS-40NN-W(B)": {
+      "matched_folder": "TOS-40NN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOS-40NN-W%2FTOS-40NN-W.jpg?alt=media"
+    },
+    "TOS-40PN-W(B)": {
+      "matched_folder": "TOS-40PN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOS-40PN-W%2FTOS-40PN-W.jpg?alt=media"
+    },
+    "TOS-50NN-D-W(B)": {
+      "matched_folder": "TOS-50NN-D-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOS-50NN-D-W%2FTOS-50NN-D-W.jpg?alt=media"
+    },
+    "TOS-50NN-W(B)": {
+      "matched_folder": "TOS-50NN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOS-50NN-W%2FTOS-50NN-W.jpg?alt=media"
+    },
+    "TOS-50PN-W(B)": {
+      "matched_folder": "TOS-50PN-W",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOS-50PN-W%2FTOS-50PN-W.jpg?alt=media"
+    },
+    "TPR-67SD-D2-N": {
+      "matched_folder": "TPR-67SD-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTPR-67SD-D4-N%2FTPR-67SD-D4-N.jpg?alt=media"
+    },
+    "TPR-93SD-D2-N": {
+      "matched_folder": "TPR-93SD-D6-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTPR-93SD-D6-N%2FTPR-93SD-D6-N.jpg?alt=media"
+    },
+    "TPR-93SD-D4-N": {
+      "matched_folder": "TPR-93SD-D6-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTPR-93SD-D6-N%2FTPR-93SD-D6-N.jpg?alt=media"
+    },
+    "TSF-23SD-N(-L)": {
+      "matched_folder": "TSF-23SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTSF-23SD-N%2FTSF-23SD-N.jpg?alt=media"
+    },
+    "TSR-23GSD-N6": {
+      "matched_folder": "TSR-23SD-N6",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTSR-23SD-N6%2FTSR-23SD-N6.jpg?alt=media"
+    },
+    "TSR-23SD-N6(-L)": {
+      "matched_folder": "TSR-23SD-N6",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTSR-23SD-N6%2FTSR-23SD-N6.jpg?alt=media"
+    },
+    "TSR-35GSD-N": {
+      "matched_folder": "TSR-35SD-N6",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTSR-35SD-N6%2FTSR-35SD-N6.jpg?alt=media"
+    },
+    "TSR-49GSD-N": {
+      "matched_folder": "TSR-49SD-N6",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTSR-49SD-N6%2FTSR-49SD-N6.jpg?alt=media"
+    },
+    "TSR-72GSD-N": {
+      "matched_folder": "TSR-72SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTSR-72SD-N%2FTSR-72SD-N.jpg?alt=media"
+    },
+    "TST-28SD-12-FB-N": {
+      "matched_folder": "TST-48SD-12-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-12-N%2FTST-48SD-12-N.jpg?alt=media"
+    },
+    "TST-28SD-12-N-SL": {
+      "matched_folder": "TST-48SD-12-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-12-N%2FTST-48SD-12-N.jpg?alt=media"
+    },
+    "TST-28SD-12-N": {
+      "matched_folder": "TST-28SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-28SD-N%2FTST-28SD-N.jpg?alt=media"
+    },
+    "TST-28SD-D2-FB-N": {
+      "matched_folder": "TST-28SD-D2-N_Left",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-28SD-D2-N_Left%2FTST-28SD-D2-N_Left.jpg?alt=media"
+    },
+    "TST-28SD-D2-N": {
+      "matched_folder": "TST-28SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-28SD-N%2FTST-28SD-N.jpg?alt=media"
+    },
+    "TST-28SD-FB-N": {
+      "matched_folder": "TST-28SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-28SD-N%2FTST-28SD-N.jpg?alt=media"
+    },
+    "TST-36SD-15-N6": {
+      "matched_folder": "TST-36SD-N6",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-36SD-N6%2FTST-36SD-N6.jpg?alt=media"
+    },
+    "TST-36SD-FB-N": {
+      "matched_folder": "TST-36SD-N6",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-36SD-N6%2FTST-36SD-N6.jpg?alt=media"
+    },
+    "TST-48SD-08S-N(-LW)": {
+      "matched_folder": "TST-48SD-08S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-08S-N%2FTST-48SD-08S-N.jpg?alt=media"
+    },
+    "TST-48SD-12M-N(-LW)": {
+      "matched_folder": "TST-48SD-12M-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-12M-N%2FTST-48SD-12M-N.jpg?alt=media"
+    },
+    "TST-48SD-18-D2R(L)-FB-N": {
+      "matched_folder": "TST-48SD-18-D2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-18-D2-N%2FTST-48SD-18-D2-N.jpg?alt=media"
+    },
+    "TST-48SD-18-D4-FB-N": {
+      "matched_folder": "TST-48SD-18-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-18-D4-N%2FTST-48SD-18-D4-N.jpg?alt=media"
+    },
+    "TST-48SD-18-FB-N-GL": {
+      "matched_folder": "TST-48SD-18-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-18-D4-N%2FTST-48SD-18-D4-N.jpg?alt=media"
+    },
+    "TST-48SD-18-FB-N": {
+      "matched_folder": "TST-48SD-18-N-FL",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-18-N-FL%2FTST-48SD-18-N-FL.jpg?alt=media"
+    },
+    "TST-48SD-18-N-DS": {
+      "matched_folder": "TST-48SD-18-N-FL",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-18-N-FL%2FTST-48SD-18-N-FL.jpg?alt=media"
+    },
+    "TST-48SD-18-N-GL": {
+      "matched_folder": "TST-48SD-12-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-12-N%2FTST-48SD-12-N.jpg?alt=media"
+    },
+    "TST-48SD-18-N-SL": {
+      "matched_folder": "TST-48SD-12-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-12-N%2FTST-48SD-12-N.jpg?alt=media"
+    },
+    "TST-48SD-18-N": {
+      "matched_folder": "TST-48SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-N%2FTST-48SD-N.jpg?alt=media"
+    },
+    "TST-48SD-D2-N": {
+      "matched_folder": "TST-48SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-N%2FTST-48SD-N.jpg?alt=media"
+    },
+    "TST-48SD-D4-FB-N": {
+      "matched_folder": "TST-48SD-D4-N_Left",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-D4-N_Left%2FTST-48SD-D4-N_Left.jpg?alt=media"
+    },
+    "TST-48SD-D4-N": {
+      "matched_folder": "TST-48SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-N%2FTST-48SD-N.jpg?alt=media"
+    },
+    "TST-48SD-FB-N": {
+      "matched_folder": "TST-48SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-N%2FTST-48SD-N.jpg?alt=media"
+    },
+    "TST-48SD-N-CL": {
+      "matched_folder": "TST-48SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-N%2FTST-48SD-N.jpg?alt=media"
+    },
+    "TST-60SD-08S-N(-LW)": {
+      "matched_folder": "TST-60SD-08S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-60SD-08S-N%2FTST-60SD-08S-N.jpg?alt=media"
+    },
+    "TST-60SD-12M-N(-LW)": {
+      "matched_folder": "TST-60SD-12M-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-60SD-12M-N%2FTST-60SD-12M-N.jpg?alt=media"
+    },
+    "TST-60SD-18M-N(-LW)": {
+      "matched_folder": "TST-60SD-18M-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-60SD-18M-N%2FTST-60SD-18M-N.jpg?alt=media"
+    },
+    "TST-60SD-24-D2R(L)-FB-N": {
+      "matched_folder": "TST-60SD-24-D2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-60SD-24-D2-N%2FTST-60SD-24-D2-N.jpg?alt=media"
+    },
+    "TST-60SD-24-D4-FB-N": {
+      "matched_folder": "TST-60SD-24-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-60SD-24-D4-N%2FTST-60SD-24-D4-N.jpg?alt=media"
+    },
+    "TST-60SD-24-FB-N": {
+      "matched_folder": "TST-60SD-24-N-FL",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-60SD-24-N-FL%2FTST-60SD-24-N-FL.jpg?alt=media"
+    },
+    "TST-60SD-24-N-DS": {
+      "matched_folder": "TST-60SD-24-N-FL",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-60SD-24-N-FL%2FTST-60SD-24-N-FL.jpg?alt=media"
+    },
+    "TST-60SD-24-N-GL": {
+      "matched_folder": "TST-60SD-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-60SD-D4-N%2FTST-60SD-D4-N.jpg?alt=media"
+    },
+    "TST-60SD-24-N-SL": {
+      "matched_folder": "TST-60SD-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-60SD-D4-N%2FTST-60SD-D4-N.jpg?alt=media"
+    },
+    "TST-60SD-24-N": {
+      "matched_folder": "TST-60SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-60SD-N%2FTST-60SD-N.jpg?alt=media"
+    },
+    "TST-60SD-D2-N": {
+      "matched_folder": "TST-60SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-60SD-N%2FTST-60SD-N.jpg?alt=media"
+    },
+    "TST-60SD-D4-FB-N": {
+      "matched_folder": "TST-60SD-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-60SD-D4-N%2FTST-60SD-D4-N.jpg?alt=media"
+    },
+    "TST-60SD-FB-N": {
+      "matched_folder": "TST-60SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-60SD-N%2FTST-60SD-N.jpg?alt=media"
+    },
+    "TST-72SD-08S-N(-LW)": {
+      "matched_folder": "TST-72SD-08S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-72SD-08S-N%2FTST-72SD-08S-N.jpg?alt=media"
+    },
+    "TST-72SD-10S-N(-LW)": {
+      "matched_folder": "TST-72SD-10S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-72SD-10S-N%2FTST-72SD-10S-N.jpg?alt=media"
+    },
+    "TST-72SD-12S-N(-LW)": {
+      "matched_folder": "TST-72SD-12S-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-72SD-12S-N%2FTST-72SD-12S-N.jpg?alt=media"
+    },
+    "TST-72SD-15M-N(-LW)": {
+      "matched_folder": "TST-72SD-15M-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-72SD-15M-N%2FTST-72SD-15M-N.jpg?alt=media"
+    },
+    "TST-72SD-18M-N(-LW)": {
+      "matched_folder": "TST-72SD-18M-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-72SD-18M-N%2FTST-72SD-18M-N.jpg?alt=media"
+    },
+    "TST-72SD-30-D4R(L)-FB-N": {
+      "matched_folder": "TST-72SD-30-N-FL",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-72SD-30-N-FL%2FTST-72SD-30-N-FL.jpg?alt=media"
+    },
+    "TST-72SD-30-D6-FB-N": {
+      "matched_folder": "TST-72SD-30-N-FL",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-72SD-30-N-FL%2FTST-72SD-30-N-FL.jpg?alt=media"
+    },
+    "TST-72SD-30-D6-N": {
+      "matched_folder": "TST-72SD-30-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-72SD-30-N%2FTST-72SD-30-N.jpg?alt=media"
+    },
+    "TST-72SD-30-FB-N": {
+      "matched_folder": "TST-72SD-30-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-72SD-30-N%2FTST-72SD-30-N.jpg?alt=media"
+    },
+    "TST-72SD-D6-N": {
+      "matched_folder": "TST-72SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-72SD-N%2FTST-72SD-N.jpg?alt=media"
+    },
+    "TST-72SD-FB-N": {
+      "matched_folder": "TST-72SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-72SD-N%2FTST-72SD-N.jpg?alt=media"
+    },
+    "TUF-28SD-D2-N": {
+      "matched_folder": "TUF-28SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUF-28SD-N%2FTUF-28SD-N.jpg?alt=media"
+    },
+    "TUF-28SD-FB-N": {
+      "matched_folder": "TUF-28SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUF-28SD-N%2FTUF-28SD-N.jpg?alt=media"
+    },
+    "TUF-36SD-N": {
+      "matched_folder": "TUF-36SD-N6",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUF-36SD-N6%2FTUF-36SD-N6.jpg?alt=media"
+    },
+    "TUF-48SD-D4-FB-N": {
+      "matched_folder": "TUF-48SD-D2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUF-48SD-D2-N%2FTUF-48SD-D2-N.jpg?alt=media"
+    },
+    "TUF-48SD-D4-N": {
+      "matched_folder": "TWF-48SD-D4",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTWF-48SD-D4%2FTWF-48SD-D4.jpg?alt=media"
+    },
+    "TUF-48SD-FB-N": {
+      "matched_folder": "TUF-48SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUF-48SD-N%2FTUF-48SD-N.jpg?alt=media"
+    },
+    "TUR-28SD-D2-N": {
+      "matched_folder": "TUR-28SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUR-28SD-N%2FTUR-28SD-N.jpg?alt=media"
+    },
+    "TUR-28SD-FB-N": {
+      "matched_folder": "TUR-28SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUR-28SD-N%2FTUR-28SD-N.jpg?alt=media"
+    },
+    "TUR-28SD-N(-L)": {
+      "matched_folder": "TUR-28SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUR-28SD-N%2FTUR-28SD-N.jpg?alt=media"
+    },
+    "TUR-48SD-D2R(L)-FB-N": {
+      "matched_folder": "TUR-48SD-D2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUR-48SD-D2-N%2FTUR-48SD-D2-N.jpg?alt=media"
+    },
+    "TUR-48SD-D4-FB-N": {
+      "matched_folder": "TWR-48SD-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTWR-48SD-D4-N%2FTWR-48SD-D4-N.jpg?alt=media"
+    },
+    "TUR-48SD-D4-N": {
+      "matched_folder": "TUR-48SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUR-48SD-N%2FTUR-48SD-N.jpg?alt=media"
+    },
+    "TUR-48SD-FB-N": {
+      "matched_folder": "TUR-48SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUR-48SD-N%2FTUR-48SD-N.jpg?alt=media"
+    },
+    "TUR-48SD-N(-AL)(-AR)": {
+      "matched_folder": "TUR-48SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUR-48SD-N%2FTUR-48SD-N.jpg?alt=media"
+    },
+    "TUR-60SD-D2R(L)-FB-N": {
+      "matched_folder": "TUR-60SD-D2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUR-60SD-D2-N%2FTUR-60SD-D2-N.jpg?alt=media"
+    },
+    "TUR-60SD-D4-N": {
+      "matched_folder": "TUR-60SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUR-60SD-N%2FTUR-60SD-N.jpg?alt=media"
+    },
+    "TUR-60SD-FB-N": {
+      "matched_folder": "TUR-60SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUR-60SD-N%2FTUR-60SD-N.jpg?alt=media"
+    },
+    "TUR-72SD-D6-FB-N": {
+      "matched_folder": "TUR-28SD-D2-FB-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUR-28SD-D2-FB-N%2FTUR-28SD-D2-FB-N.jpg?alt=media"
+    },
+    "TUR-72SD-D6-N": {
+      "matched_folder": "TUR-72SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUR-72SD-N%2FTUR-72SD-N.jpg?alt=media"
+    },
+    "TUR-72SD-FB-N": {
+      "matched_folder": "TUR-72SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUR-72SD-N%2FTUR-72SD-N.jpg?alt=media"
+    },
+    "TWF-28SD-D2-N": {
+      "matched_folder": "TWF-28SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTWF-28SD-N%2FTWF-28SD-N.jpg?alt=media"
+    },
+    "TWF-48SD-D2-N": {
+      "matched_folder": "TWF-48SD-D4",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTWF-48SD-D4%2FTWF-48SD-D4.jpg?alt=media"
+    },
+    "TWF-48SD-D4-N": {
+      "matched_folder": "TWF-48SD-D4",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTWF-48SD-D4%2FTWF-48SD-D4.jpg?alt=media"
+    },
+    "TWF-48SD-FB-N": {
+      "matched_folder": "TWF-48SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTWF-48SD-N%2FTWF-48SD-N.jpg?alt=media"
+    },
+    "TWR-48SD-FB-N": {
+      "matched_folder": "TWR-48SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTWR-48SD-N%2FTWR-48SD-N.jpg?alt=media"
+    },
+    "TWR-60SD-D2R(L)-FB-N": {
+      "matched_folder": "TWR-60SD-D2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTWR-60SD-D2-N%2FTWR-60SD-D2-N.jpg?alt=media"
+    },
+    "TWR-60SD-FB-N": {
+      "matched_folder": "TWR-60SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTWR-60SD-N%2FTWR-60SD-N.jpg?alt=media"
+    },
+    "TWR-72SD-FB-N": {
+      "matched_folder": "TWR-72SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTWR-72SD-N%2FTWR-72SD-N.jpg?alt=media"
+    },
+    "PRO-12-2R-N(-L)": {
+      "matched_folder": "PRO-12-2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-12-2R-N%2FPRO-12-2R-N.jpg?alt=media"
+    },
+    "PRO-15-2R-N(-L)": {
+      "matched_folder": "PRO-15-2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-15-2R-N%2FPRO-15-2R-N.jpg?alt=media"
+    },
+    "PRO-12-2R-G-N(-L)": {
+      "matched_folder": "PRO-12-2R-G-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-12-2R-G-N%2FPRO-12-2R-G-N.jpg?alt=media"
+    },
+    "PRO-15-2R-G-N(-L)": {
+      "matched_folder": "PRO-15-2R-G-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-15-2R-G-N%2FPRO-15-2R-G-N.jpg?alt=media"
+    },
+    "PRO-26-2R-G-PT-N(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26-2R-G-PT-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2R-G-PT-N%2FPRO-26-2R-G-PT-N.jpg?alt=media"
+    },
+    "PRO-26R-GS(SG)-PT-N(-L)": {
+      "matched_folder": "PRO-26R-GS-PT-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26R-GS-PT-N%2FPRO-26R-GS-PT-N.jpg?alt=media"
+    },
+    "PRO-26-2R-GS(SG)-PT-N(-L)(-RL)": {
+      "matched_folder": "PRO-26-2R-GS-PT-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2R-GS-PT-N%2FPRO-26-2R-GS-PT-N.jpg?alt=media"
+    },
+    "PRO-26R-RI-N(-L)": {
+      "matched_folder": "PRO-26R-RI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26R-RI-N%2FPRO-26R-RI-N.jpg?alt=media"
+    },
+    "PRO-26R-G-RI-N(-L)": {
+      "matched_folder": "PRO-26R-G-RI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26R-G-RI-N%2FPRO-26R-G-RI-N.jpg?alt=media"
+    },
+    "PRO-26F-RI-N(-L)": {
+      "matched_folder": "PRO-26F-RI-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26F-RI-N%2FPRO-26F-RI-N.jpg?alt=media"
+    },
+    "PRO-26R-RT-N(-L)": {
+      "matched_folder": "PRO-26R-RT-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26R-RT-N%2FPRO-26R-RT-N.jpg?alt=media"
+    },
+    "PRO-26R-G-RT-N(-L)": {
+      "matched_folder": "PRO-26R-G-RT-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26R-G-RT-N%2FPRO-26R-G-RT-N.jpg?alt=media"
+    },
+    "PRO-26H(-L)": {
+      "matched_folder": "PRO-26H",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H%2FPRO-26H.jpg?alt=media"
+    },
+    "PRO-26H2(-L)": {
+      "matched_folder": "PRO-26H2",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H2%2FPRO-26H2.jpg?alt=media"
+    },
+    "PRO-26-2H(-L)": {
+      "matched_folder": "PRO-26-2H",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2H%2FPRO-26-2H.jpg?alt=media"
+    },
+    "PRO-26-2H2(-L)": {
+      "matched_folder": "PRO-26-2H2",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2H2%2FPRO-26-2H2.jpg?alt=media"
+    },
+    "PRO-26H-G(-L)": {
+      "matched_folder": "PRO-26H-G",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H-G%2FPRO-26H-G.jpg?alt=media"
+    },
+    "PRO-26H2-G(-L)": {
+      "matched_folder": "PRO-26H2",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H2%2FPRO-26H2.jpg?alt=media"
+    },
+    "PRO-26-2H-G(-L)": {
+      "matched_folder": "PRO-26-2H-G",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2H-G%2FPRO-26-2H-G.jpg?alt=media"
+    },
+    "PRO-26-2H2-G(-L)": {
+      "matched_folder": "PRO-26-2H2-G",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2H2-G%2FPRO-26-2H2-G.jpg?alt=media"
+    },
+    "PRO-26H-PT(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26H",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H%2FPRO-26H.jpg?alt=media"
+    },
+    "PRO-26H2-PT(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26H2",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H2%2FPRO-26H2.jpg?alt=media"
+    },
+    "PRO-26-2H-PT(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26-2H",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2H%2FPRO-26-2H.jpg?alt=media"
+    },
+    "PRO-26-2H2-PT(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26-2H2",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2H2%2FPRO-26-2H2.jpg?alt=media"
+    },
+    "PRO-26H-G-PT(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26H-G",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H-G%2FPRO-26H-G.jpg?alt=media"
+    },
+    "PRO-26H2-G-PT(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26H2-G-PT",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H2-G-PT%2FPRO-26H2-G-PT.jpg?alt=media"
+    },
+    "PRO-26-2H-G-PT(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26-2H-G",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2H-G%2FPRO-26-2H-G.jpg?alt=media"
+    },
+    "PRO-26-2H2-G-PT(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26-2H2-G",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2H2-G%2FPRO-26-2H2-G.jpg?alt=media"
+    },
+    "PRO-26H-GS-PT(-L)": {
+      "matched_folder": "PRO-26H-GS-PT",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H-GS-PT%2FPRO-26H-GS-PT.jpg?alt=media"
+    },
+    "PRO-26H2-GS-PT(-L)": {
+      "matched_folder": "PRO-26H2-GS-PT",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H2-GS-PT%2FPRO-26H2-GS-PT.jpg?alt=media"
+    },
+    "PRO-26H-SG-PT(-L)": {
+      "matched_folder": "PRO-26H-SG-PT",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H-SG-PT%2FPRO-26H-SG-PT.jpg?alt=media"
+    },
+    "PRO-26H2-SG-PT(-L)": {
+      "matched_folder": "PRO-26H2-SG-PT",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H2-SG-PT%2FPRO-26H2-SG-PT.jpg?alt=media"
+    },
+    "PRO-26-2H-GS-PT(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26-2H-GS-PT",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2H-GS-PT%2FPRO-26-2H-GS-PT.jpg?alt=media"
+    },
+    "PRO-26-2H2-GS-PT(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26-2H2-GS-PT",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2H2-GS-PT%2FPRO-26-2H2-GS-PT.jpg?alt=media"
+    },
+    "PRO-26-2H-SG-PT(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26-2H-SG-PT",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2H-SG-PT%2FPRO-26-2H-SG-PT.jpg?alt=media"
+    },
+    "PRO-26-2H2-SG-PT(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26-2H2-SG-PT",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26-2H2-SG-PT%2FPRO-26-2H2-SG-PT.jpg?alt=media"
+    },
+    "PRO-26H-RI(-L)": {
+      "matched_folder": "PRO-26H",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H%2FPRO-26H.jpg?alt=media"
+    },
+    "PRO-26H2-RI(-L)": {
+      "matched_folder": "PRO-26H2",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H2%2FPRO-26H2.jpg?alt=media"
+    },
+    "PRO-26H-G-RI(-L)": {
+      "matched_folder": "PRO-26H-G",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H-G%2FPRO-26H-G.jpg?alt=media"
+    },
+    "PRO-26H2-G-RI(-L)": {
+      "matched_folder": "PRO-26H2-G-RI",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H2-G-RI%2FPRO-26H2-G-RI.jpg?alt=media"
+    },
+    "PRO-26H-RT(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26H",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H%2FPRO-26H.jpg?alt=media"
+    },
+    "PRO-26H2-RT(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26H2",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H2%2FPRO-26H2.jpg?alt=media"
+    },
+    "PRO-26H-G-RT(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26H-G",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H-G%2FPRO-26H-G.jpg?alt=media"
+    },
+    "PRO-26H2-G-RT(-L)(-LR)(-RL)": {
+      "matched_folder": "PRO-26H2-G-RT",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPRO-26H2-G-RT%2FPRO-26H2-G-RT.jpg?alt=media"
+    },
+    "PST-48-18-D2R(L)-N-SL": {
+      "matched_folder": "PST-48-18-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-48-18-D2R-N%2FPST-48-18-D2R-N.jpg?alt=media"
+    },
+    "PST-60-24-D2R(L)-N-SL": {
+      "matched_folder": "PST-60-24-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-60-24-D2R-N%2FPST-60-24-D2R-N.jpg?alt=media"
+    },
+    "PST-72-30-D2R(L)-N-SL": {
+      "matched_folder": "PST-72-30-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-72-30-D2R-N%2FPST-72-30-D2R-N.jpg?alt=media"
+    },
+    "PST-60-18M-N-GL(-LW)": {
+      "matched_folder": "PST-60-18M-N-GL",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-60-18M-N-GL%2FPST-60-18M-N-GL.jpg?alt=media"
+    },
+    "PST-72-18M-N-GL(-LW)": {
+      "matched_folder": "PST-72-18M-N-GL",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-72-18M-N-GL%2FPST-72-18M-N-GL.jpg?alt=media"
+    },
+    "PST-72-D2R(L)-FB-N": {
+      "matched_folder": "PST-72-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-72-D2R-N%2FPST-72-D2R-N.jpg?alt=media"
+    },
+    "PST-72-30-D2R(L)-FB-N": {
+      "matched_folder": "PST-72-30-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-72-30-D2R-N%2FPST-72-30-D2R-N.jpg?alt=media"
+    },
+    "PST-72-30-D4-FB-N": {
+      "matched_folder": "PST-72-30-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-72-30-D4-N%2FPST-72-30-D4-N.jpg?alt=media"
+    },
+    "PST-48-18-FB-N-GL": {
+      "matched_folder": "PST-48-18-FB-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-48-18-FB-N%2FPST-48-18-FB-N.jpg?alt=media"
+    },
+    "PST-60-24-FB-N-GL": {
+      "matched_folder": "PST-60-D4-FB-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPST-60-D4-FB-N%2FPST-60-D4-FB-N.jpg?alt=media"
+    },
+    "TST-48SD-18-E-N": {
+      "matched_folder": "TST-48SD-12-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-12-N%2FTST-48SD-12-N.jpg?alt=media"
+    },
+    "TST-48SD-18-E-SVC-N": {
+      "matched_folder": "TST-48SD-18-N-CL",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-48SD-18-N-CL%2FTST-48SD-18-N-CL.jpg?alt=media"
+    },
+    "TST-28SD-12-D2-FB-N": {
+      "matched_folder": "TST-28SD-12-D2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-28SD-12-D2-N%2FTST-28SD-12-D2-N.jpg?alt=media"
+    },
+    "TST-60SD-24-FB-N-GL": {
+      "matched_folder": "TST-60SD-24-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-60SD-24-D4-N%2FTST-60SD-24-D4-N.jpg?alt=media"
+    },
+    "TST-72SD-30-FB-N-GL": {
+      "matched_folder": "TST-72SD-30-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTST-72SD-30-N%2FTST-72SD-30-N.jpg?alt=media"
+    },
+    "PUF-28-FB-N(-L)": {
+      "matched_folder": "PUF-28-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPUF-28-N%2FPUF-28-N.jpg?alt=media"
+    },
+    "PUF-48-FB-N": {
+      "matched_folder": "PUF-48-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPUF-48-N%2FPUF-48-N.jpg?alt=media"
+    },
+    "PUF-28-D2-FB-N": {
+      "matched_folder": "PUF-28-D2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPUF-28-D2-N%2FPUF-28-D2-N.jpg?alt=media"
+    },
+    "PUF-48-D2R(L)-FB-N": {
+      "matched_folder": "PUF-48-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPUF-48-D2R-N%2FPUF-48-D2R-N.jpg?alt=media"
+    },
+    "PUF-48-D4-FB-N": {
+      "matched_folder": "PUF-48-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPUF-48-D4-N%2FPUF-48-D4-N.jpg?alt=media"
+    },
+    "TUR-48SD-E-N": {
+      "matched_folder": "TUR-48SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUR-48SD-N%2FTUR-48SD-N.jpg?alt=media"
+    },
+    "TUF-48SD-D2R(L)-FB-N": {
+      "matched_folder": "TUF-48SD-D2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUF-48SD-D2-N%2FTUF-48SD-D2-N.jpg?alt=media"
+    },
+    "PWR-28-G-N(-L)": {
+      "matched_folder": "PWR-28-G-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWR-28-G-N%2FPWR-28-G-N.jpg?alt=media"
+    },
+    "PWR-28-FB-N(-L)": {
+      "matched_folder": "PWR-28-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWR-28-N%2FPWR-28-N.jpg?alt=media"
+    },
+    "PWR-28-D2-FB-N": {
+      "matched_folder": "PWR-28-D2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWR-28-D2-N%2FPWR-28-D2-N.jpg?alt=media"
+    },
+    "PWR-48-FB-N": {
+      "matched_folder": "PWR-48-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWR-48-N%2FPWR-48-N.jpg?alt=media"
+    },
+    "PWR-48-D2R(L)-FB-N": {
+      "matched_folder": "PWR-48-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWR-48-D2R-N%2FPWR-48-D2R-N.jpg?alt=media"
+    },
+    "PWR-48-D4-FB-N": {
+      "matched_folder": "PWR-48-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWR-48-D4-N%2FPWR-48-D4-N.jpg?alt=media"
+    },
+    "PWR-60-FB-N": {
+      "matched_folder": "PWR-60-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWR-60-N%2FPWR-60-N.jpg?alt=media"
+    },
+    "PWR-60-D2R(L)-FB-N": {
+      "matched_folder": "PWR-60-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWR-60-D2R-N%2FPWR-60-D2R-N.jpg?alt=media"
+    },
+    "PWR-60-D4-FB-N": {
+      "matched_folder": "PWR-60-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWR-60-D4-N%2FPWR-60-D4-N.jpg?alt=media"
+    },
+    "PWR-72-FB-N": {
+      "matched_folder": "PWR-72-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWR-72-N%2FPWR-72-N.jpg?alt=media"
+    },
+    "PWR-72-D2R(L)-FB-N": {
+      "matched_folder": "PWR-72-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWR-72-D2R-N%2FPWR-72-D2R-N.jpg?alt=media"
+    },
+    "PWF-28-FB-N(-L)": {
+      "matched_folder": "PWF-28-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWF-28-N%2FPWF-28-N.jpg?alt=media"
+    },
+    "PWF-28-D2-FB-N": {
+      "matched_folder": "PWF-28-D2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWF-28-D2-N%2FPWF-28-D2-N.jpg?alt=media"
+    },
+    "PWF-48-FB-N": {
+      "matched_folder": "PWF-48-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWF-48-N%2FPWF-48-N.jpg?alt=media"
+    },
+    "PWF-48-D2R(L)-FB-N": {
+      "matched_folder": "PWF-48-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWF-48-D2R-N%2FPWF-48-D2R-N.jpg?alt=media"
+    },
+    "PWF-48-D4-FB-N": {
+      "matched_folder": "PWF-48-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWF-48-D4-N%2FPWF-48-D4-N.jpg?alt=media"
+    },
+    "PWF-60-D2R(L)-FB-N": {
+      "matched_folder": "PWF-60-D2R-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FPWF-60-D2R-N%2FPWF-60-D2R-N.jpg?alt=media"
+    },
+    "TWR-72SD-D6-N": {
+      "matched_folder": "TWR-72SD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTWR-72SD-N%2FTWR-72SD-N.jpg?alt=media"
+    },
+    "TWR-28SD-D2-FB-N": {
+      "matched_folder": "TWR-28SD-D2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTWR-28SD-D2-N%2FTWR-28SD-D2-N.jpg?alt=media"
+    },
+    "TWR-48SD-D2R(L)-FB-N": {
+      "matched_folder": "TWR-48SD-D2-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTWR-48SD-D2-N%2FTWR-48SD-D2-N.jpg?alt=media"
+    },
+    "TWR-48SD-D4-FB-N": {
+      "matched_folder": "TWR-48SD-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTWR-48SD-D4-N%2FTWR-48SD-D4-N.jpg?alt=media"
+    },
+    "TWR-60SD-D4-FB-N": {
+      "matched_folder": "TWR-60SD-D4-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTWR-60SD-D4-N%2FTWR-60SD-D4-N.jpg?alt=media"
+    },
+    "TWF-28SD-D2-FB-N": {
+      "matched_folder": "TUF-28SD-D2-FB-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTUF-28SD-D2-FB-N%2FTUF-28SD-D2-FB-N.jpg?alt=media"
+    },
+    "TWF-48SD-D4-FB-N": {
+      "matched_folder": "TWF-48SD-D4",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTWF-48SD-D4%2FTWF-48SD-D4.jpg?alt=media"
+    },
+    "TCBE-36SDR-N6": {
+      "matched_folder": "TCBE-36SDR-N6_left",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCBE-36SDR-N6_left%2FTCBE-36SDR-N6_left.jpg?alt=media"
+    },
+    "TCBE-36SDR-E-N6": {
+      "matched_folder": "TCBE-36SDR-E-N6_left",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCBE-36SDR-E-N6_left%2FTCBE-36SDR-E-N6_left.jpg?alt=media"
+    },
+    "TCBE-48SDR-E-N": {
+      "matched_folder": "TCBE-48SDR-N_left",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCBE-48SDR-N_left%2FTCBE-48SDR-N_left.jpg?alt=media"
+    },
+    "TCBE-52SDR-E-N": {
+      "matched_folder": "TCBE-52SDR-N_left",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCBE-52SDR-N_left%2FTCBE-52SDR-N_left.jpg?alt=media"
+    },
+    "TCBE-72SDR-E-N": {
+      "matched_folder": "TCBE-72SDR-N_left",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCBE-72SDR-N_left%2FTCBE-72SDR-N_left.jpg?alt=media"
+    },
+    "TCBE-82SDR-E-N": {
+      "matched_folder": "TCBE-82SDR-N_left",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTCBE-82SDR-N_left%2FTCBE-82SDR-N_left.jpg?alt=media"
+    },
+    "TGM-5SD*-N6": {
+      "matched_folder": "TGM-5SDW-N6",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGM-5SDW-N6%2FTGM-5SDW-N6.jpg?alt=media"
+    },
+    "TGM-7SD*-N6": {
+      "matched_folder": "TGM-7SDW-N6",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGM-7SDW-N6%2FTGM-7SDW-N6.jpg?alt=media"
+    },
+    "TGM-10SD*-N6": {
+      "matched_folder": "TGM-10SDW-N6",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGM-10SDW-N6%2FTGM-10SDW-N6.jpg?alt=media"
+    },
+    "TGM-12SD*-N6": {
+      "matched_folder": "TGM-12SDW-N6",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGM-12SDW-N6%2FTGM-12SDW-N6.jpg?alt=media"
+    },
+    "TGM-15SD*-N6": {
+      "matched_folder": "TGM-15SDW-N6",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGM-15SDW-N6%2FTGM-15SDW-N6.jpg?alt=media"
+    },
+    "TGM-20SD*-N6": {
+      "matched_folder": "TGM-20SDW-N6",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGM-20SDW-N6%2FTGM-20SDW-N6.jpg?alt=media"
+    },
+    "TGM-23SD*-N6": {
+      "matched_folder": "TGM-23SDW-N6",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGM-23SDW-N6%2FTGM-23SDW-N6.jpg?alt=media"
+    },
+    "TGM-35SD*-N": {
+      "matched_folder": "TGM-35SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGM-35SDW-N%2FTGM-35SDW-N.jpg?alt=media"
+    },
+    "TGM-47SD*-N": {
+      "matched_folder": "TGM-47SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGM-47SDW-N%2FTGM-47SDW-N.jpg?alt=media"
+    },
+    "TGM-72SD*-N": {
+      "matched_folder": "TGM-72SDW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGM-72SDW-N%2FTGM-72SDW-N.jpg?alt=media"
+    },
+    "TGM-15SDH*-N6": {
+      "matched_folder": "TGM-15SDHW-N6",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGM-15SDHW-N6%2FTGM-15SDHW-N6.jpg?alt=media"
+    },
+    "TGM-23SDH*-N6": {
+      "matched_folder": "TGM-23SDHW-N6",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGM-23SDHW-N6%2FTGM-23SDHW-N6.jpg?alt=media"
+    },
+    "TGM-35SDH*-N": {
+      "matched_folder": "TGM-35SDH-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGM-35SDH-N%2FTGM-35SDH-N.jpg?alt=media"
+    },
+    "TGM-47SDH*-N": {
+      "matched_folder": "TGM-47SDHW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGM-47SDHW-N%2FTGM-47SDHW-N.jpg?alt=media"
+    },
+    "TGM-72SDH*-N": {
+      "matched_folder": "TGM-72SDHW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGM-72SDHW-N%2FTGM-72SDHW-N.jpg?alt=media"
+    },
+    "TGF-23SDH*-N": {
+      "matched_folder": "TGF-23SDH-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGF-23SDH-N%2FTGF-23SDH-N.jpg?alt=media"
+    },
+    "TGF-35SDH*-N": {
+      "matched_folder": "TGF-35SDHW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGF-35SDHW-N%2FTGF-35SDHW-N.jpg?alt=media"
+    },
+    "TGF-47SDH*-N": {
+      "matched_folder": "TGF-47SDH-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGF-47SDH-N%2FTGF-47SDH-N.jpg?alt=media"
+    },
+    "TGF-72SDH*-N": {
+      "matched_folder": "TGF-72SDH-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGF-72SDH-N%2FTGF-72SDH-N.jpg?alt=media"
+    },
+    "TGF-72FB-N": {
+      "matched_folder": "TGF-72FB-",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTGF-72FB-%2FTGF-72FB-.jpg?alt=media"
+    },
+    "TOM-60MW(B)-N": {
+      "matched_folder": "TOMD-60LW",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOMD-60LW%2FTOMD-60LW.jpg?alt=media"
+    },
+    "TOMD-30HW(B)": {
+      "matched_folder": "TOMD-60HW",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOMD-60HW%2FTOMD-60HW.jpg?alt=media"
+    },
+    "TOMD-40HW(B)": {
+      "matched_folder": "TOMD-60HW",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOMD-60HW%2FTOMD-60HW.jpg?alt=media"
+    },
+    "TOMD-50HW(B)": {
+      "matched_folder": "TOMD-60HW",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOMD-60HW%2FTOMD-60HW.jpg?alt=media"
+    },
+    "TOMD-60HW(B)": {
+      "matched_folder": "TOMD-60HW",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOMD-60HW%2FTOMD-60HW.jpg?alt=media"
+    },
+    "TOMD-30LW(B)": {
+      "matched_folder": "TOMD-60LW",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOMD-60LW%2FTOMD-60LW.jpg?alt=media"
+    },
+    "TOMD-40LW(B)": {
+      "matched_folder": "TOMD-60LW",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOMD-60LW%2FTOMD-60LW.jpg?alt=media"
+    },
+    "TOMD-50LW(B)": {
+      "matched_folder": "TOMD-60LW",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOMD-60LW%2FTOMD-60LW.jpg?alt=media"
+    },
+    "TOMD-60LW(B)": {
+      "matched_folder": "TOMD-60LW",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOMD-60LW%2FTOMD-60LW.jpg?alt=media"
+    },
+    "TOMD-75LW(B)": {
+      "matched_folder": "TOM-75LW-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-75LW-N%2FTOM-75LW-N.jpg?alt=media"
+    },
+    "TOMD-30HS": {
+      "matched_folder": "TOMD-60HS",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOMD-60HS%2FTOMD-60HS.jpg?alt=media"
+    },
+    "TOMD-40HS": {
+      "matched_folder": "TOMD-60HS",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOMD-60HS%2FTOMD-60HS.jpg?alt=media"
+    },
+    "TOMD-50HS": {
+      "matched_folder": "TOMD-60HS",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOMD-60HS%2FTOMD-60HS.jpg?alt=media"
+    },
+    "TOMD-30LS": {
+      "matched_folder": "TOMD-60LS",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOMD-60LS%2FTOMD-60LS.jpg?alt=media"
+    },
+    "TOMD-40LS": {
+      "matched_folder": "TOMD-60LS",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOMD-60LS%2FTOMD-60LS.jpg?alt=media"
+    },
+    "TOMD-50LS": {
+      "matched_folder": "TOMD-60LS",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOMD-60LS%2FTOMD-60LS.jpg?alt=media"
+    },
+    "TOMD-75LS": {
+      "matched_folder": "TOM-75LS-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTOM-75LS-N%2FTOM-75LS-N.jpg?alt=media"
+    },
+    "TSSC-4": {
+      "matched_folder": "TSSC",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTSSC%2FTSSC.jpg?alt=media"
+    },
+    "TSSC-5": {
+      "matched_folder": "TSSC",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTSSC%2FTSSC.jpg?alt=media"
+    },
+    "TSSC-6": {
+      "matched_folder": "TSSC",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTSSC%2FTSSC.jpg?alt=media"
+    },
+    "TBD-3SDD-N6": {
+      "matched_folder": "TBD-3SDD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBD-3SDD-N%2FTBD-3SDD-N.jpg?alt=media"
+    },
+    "TBD-3SBD-N6": {
+      "matched_folder": "TBD-3SBD-N",
+      "thumbnailUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/thumbnails%2FTBD-3SBD-N%2FTBD-3SBD-N.jpg?alt=media"
+    }
+  },
+  "smart_screenshot_mappings": {
+    "TST-72SD-D4R(L)-FB-N": {
+      "matched_folder": "TST-72SD-D4R-N",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/screenshots%2FTST-72SD-D4R-N%2FTST-72SD-D4R-N%20P.1.png?alt=media"
+    },
+    "TWR-72SD-D4R(L)-FB-N": {
+      "matched_folder": "TUR-72SD-D4R(L)-FB-N",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/screenshots%2FTUR-72SD-D4R(L)-FB-N%2FTUR-72SD-D4R(L)-FB-N%20P.1.png?alt=media"
+    },
+    "TWR-72SD-D6-FB-N": {
+      "matched_folder": "TUR-72SD-D6-FB-N",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/screenshots%2FTUR-72SD-D6-FB-N%2FTUR-72SD-D6-FB-N%20P.1.png?alt=media"
+    },
+    "TWF-48SD-D2R(L)-FB-N": {
+      "matched_folder": "TWF-48SD-D2-N",
+      "imageUrl": "https://firebasestorage.googleapis.com/v0/b/taquotes.firebasestorage.app/o/screenshots%2FTWF-48SD-D2-N%2FTWF-48SD-D2-N%20P.1.png?alt=media"
+    }
+  },
+  "missing_completely": [
+    {
+      "sku": "JUF-44D-N",
+      "name": "Turbo Air JUF-44D-N",
+      "category": "Equipment",
+      "normalized": "JUF-44D"
+    },
+    {
+      "sku": "JUF-67D-N",
+      "name": "Turbo Air JUF-67D-N",
+      "category": "Equipment",
+      "normalized": "JUF-67D"
+    },
+    {
+      "sku": "JUF-93D-N",
+      "name": "Turbo Air JUF-93D-N",
+      "category": "Equipment",
+      "normalized": "JUF-93D"
+    },
+    {
+      "sku": "TIDC-26G(W)-N",
+      "name": "Turbo Air TIDC-26G(W)-N",
+      "category": "Equipment",
+      "normalized": "TIDC-26G"
+    },
+    {
+      "sku": "TIDC-47G(W)-N",
+      "name": "Turbo Air TIDC-47G(W)-N",
+      "category": "Equipment",
+      "normalized": "TIDC-47G"
+    },
+    {
+      "sku": "TIDC-70G(W)-N",
+      "name": "Turbo Air TIDC-70G(W)-N",
+      "category": "Equipment",
+      "normalized": "TIDC-70G"
+    },
+    {
+      "sku": "TIDC-91G(W)-N",
+      "name": "Turbo Air TIDC-91G(W)-N",
+      "category": "Equipment",
+      "normalized": "TIDC-91G"
+    },
+    {
+      "sku": "TOMD-75HW(B)",
+      "name": "Turbo Air TOMD-75HW(B)",
+      "category": "Equipment",
+      "normalized": "TOMD-75HW"
+    },
+    {
+      "sku": "TOMD-75HS",
+      "name": "Turbo Air TOMD-75HS",
+      "category": "Equipment",
+      "normalized": "TOMD-75HS"
+    },
+    {
+      "sku": "JUF-44D-N",
+      "name": "Turbo Air JUF-44D-N",
+      "category": "Equipment",
+      "normalized": "JUF-44D"
+    },
+    {
+      "sku": "JUF-67D-N",
+      "name": "Turbo Air JUF-67D-N",
+      "category": "Equipment",
+      "normalized": "JUF-67D"
+    },
+    {
+      "sku": "JUF-93D-N",
+      "name": "Turbo Air JUF-93D-N",
+      "category": "Equipment",
+      "normalized": "JUF-93D"
+    },
+    {
+      "sku": "TIDC-26G(W)-N",
+      "name": "Turbo Air TIDC-26G(W)-N",
+      "category": "Equipment",
+      "normalized": "TIDC-26G"
+    },
+    {
+      "sku": "TIDC-47G(W)-N",
+      "name": "Turbo Air TIDC-47G(W)-N",
+      "category": "Equipment",
+      "normalized": "TIDC-47G"
+    },
+    {
+      "sku": "TIDC-70G(W)-N",
+      "name": "Turbo Air TIDC-70G(W)-N",
+      "category": "Equipment",
+      "normalized": "TIDC-70G"
+    },
+    {
+      "sku": "TIDC-91G(W)-N",
+      "name": "Turbo Air TIDC-91G(W)-N",
+      "category": "Equipment",
+      "normalized": "TIDC-91G"
+    },
+    {
+      "sku": "TOMD-75HW(B)",
+      "name": "Turbo Air TOMD-75HW(B)",
+      "category": "Equipment",
+      "normalized": "TOMD-75HW"
+    },
+    {
+      "sku": "TOMD-75HS",
+      "name": "Turbo Air TOMD-75HS",
+      "category": "Equipment",
+      "normalized": "TOMD-75HS"
+    }
+  ]
+}
