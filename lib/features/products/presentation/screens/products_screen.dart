@@ -23,6 +23,9 @@ final productsProvider =
   try {
     final database = FirebaseDatabase.instance;
     
+    // Keep Firebase persistence synced for faster initial load
+    database.ref('products').keepSynced(true);
+    
     // Return a stream that listens to products changes
     return database.ref('products').onValue.map((event) {
       final List<Product> products = [];
