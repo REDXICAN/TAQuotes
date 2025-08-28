@@ -1,0 +1,41 @@
+MANUAL FIX FOR PRODUCTS WITH ASTERISKS IN SKUs
+=============================================
+
+Since the asterisk (*) character is causing issues with Firebase CLI commands,
+here's how to fix these manually in the Firebase Console:
+
+1. Go to: https://console.firebase.google.com/project/taquotes/database/taquotes-default-rtdb/data/products
+
+2. Fix these 19 products by renaming their keys (remove the asterisk):
+
+   TGF-72SDH*-N    →  TGF-72SDH-N
+   TGF-35SDH*-N    →  TGF-35SDH-N
+   TGM-15SDH*-N6   →  TGM-15SDH-N6
+   TGM-35SDH*-N    →  TGM-35SDH-N
+   TGM-72SDH*-N    →  TGM-72SDH-N
+   TGF-23SDH*-N    →  TGF-23SDH-N
+   TGM-47SD*-N     →  TGM-47SD-N
+   TGF-47SDH*-N    →  TGF-47SDH-N
+   TGM-15SD*-N6    →  TGM-15SD-N6
+   TGM-47SDH*-N    →  TGM-47SDH-N
+   TGM-23SDH*-N6   →  TGM-23SDH-N6
+   TGM-5SD*-N6     →  TGM-5SD-N6
+   TGM-72SD*-N     →  TGM-72SD-N
+   TGM-20SD*-N6    →  TGM-20SD-N6
+   TGM-7SD*-N6     →  TGM-7SD-N6
+   TGM-35SD*-N     →  TGM-35SD-N
+   TGM-12SD*-N6    →  TGM-12SD-N6
+   TGM-23SD*-N6    →  TGM-23SD-N6
+   TGM-10SD*-N6    →  TGM-10SD-N6
+
+3. For each product:
+   a. Click on the product with asterisk (e.g., TGF-72SDH*-N)
+   b. Click the three dots menu → Export JSON (save it as backup)
+   c. Delete the product (three dots menu → Delete)
+   d. Click the + button next to "products"
+   e. Enter the clean name without asterisk (e.g., TGF-72SDH-N)
+   f. Import the JSON you exported
+   g. Edit the "sku" field to also remove the asterisk
+
+This will ensure the thumbnail system works properly since the folder names 
+don't have asterisks.

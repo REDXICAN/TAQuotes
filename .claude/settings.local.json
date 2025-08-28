@@ -164,7 +164,15 @@
       "WebFetch(domain:www.restaurantwebstore.com)",
       "Bash(firebase database:set:*)",
       "Bash(firebase database:push:*)",
-      "Read(D:\\OneDrive\\Documentos\\-- TurboAir\\7 Bots\\Turbots\\TURBO_VISION_SIMPLIFIED\\pdfs/**)"
+      "Read(D:\\OneDrive\\Documentos\\-- TurboAir\\7 Bots\\Turbots\\TURBO_VISION_SIMPLIFIED\\pdfs/**)",
+      "Bash(bash:*)",
+      "Bash(for:*)",
+      "Bash(do if [ -d \"assets/thumbnails/$sku\" ])",
+      "Bash(then echo \"✓ Thumbnail folder exists: $sku\")",
+      "Bash(else echo \"✗ NO thumbnail folder: $sku\")",
+      "Bash(do if [ -d \"assets/screenshots/$sku\" ])",
+      "Bash(then echo \"✓ Screenshot folder exists: $sku\")",
+      "Bash(else echo \"✗ NO screenshot folder: $sku\")"
     ],
     "deny": [],
     "ask": [
