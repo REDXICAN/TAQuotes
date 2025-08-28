@@ -6,7 +6,7 @@ class SimpleImageWidget extends StatelessWidget {
   final double? width;
   final double? height;
   final BoxFit fit;
-  final String? imageUrl;  // Keep for compatibility but ignore for now
+  final String? imageUrl;  // Firebase Storage URL support
   
   const SimpleImageWidget({
     super.key,
@@ -15,15 +15,56 @@ class SimpleImageWidget extends StatelessWidget {
     this.width,
     this.height,
     this.fit = BoxFit.contain,
-    this.imageUrl,  // Keep for compatibility but ignore for now
+    this.imageUrl,
   });
   
   @override
   Widget build(BuildContext context) {
+    // Check if we have a valid Firebase Storage URL
+    final hasValidFirebaseUrl = imageUrl != null && 
+                                imageUrl!.isNotEmpty && 
+                                (imageUrl!.startsWith('https://') || imageUrl!.startsWith('gs://'));
+    
+    // If we have a valid Firebase Storage URL, use it first
+    if (hasValidFirebaseUrl) {
+      return Image.network(
+        imageUrl!,
+        width: width,
+        height: height,
+        fit: fit,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            width: width,
+            height: height,
+            color: Colors.grey[100],
+            child: Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
+                strokeWidth: 2,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          // Fall back to local asset images if network fails
+          return _buildAssetImage();
+        },
+      );
+    }
+    
     if (sku.isEmpty) {
       return _buildPlaceholder();
     }
     
+    // Use local asset images as fallback
+    return _buildAssetImage();
+  }
+  
+  Widget _buildAssetImage() {
     // Clean SKU - just uppercase and trim
     final cleanSku = sku.toUpperCase().trim();
     
