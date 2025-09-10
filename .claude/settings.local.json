@@ -172,7 +172,8 @@
       "Bash(else echo \"✗ NO thumbnail folder: $sku\")",
       "Bash(do if [ -d \"assets/screenshots/$sku\" ])",
       "Bash(then echo \"✓ Screenshot folder exists: $sku\")",
-      "Bash(else echo \"✗ NO screenshot folder: $sku\")"
+      "Bash(else echo \"✗ NO screenshot folder: $sku\")",
+      "Bash(if [ -f \"O:\\OneDrive\\Documentos\\-- TurboAir\\7 Bots\\turbo-air-extractor\\turbo_air_100_complete_final_fixed.xlsx\" ])"
     ],
     "deny": [],
     "ask": [

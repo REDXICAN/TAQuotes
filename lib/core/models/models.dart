@@ -145,6 +145,105 @@ class Client {
   factory Client.fromJson(Map<String, dynamic> json) => Client.fromMap(json);
 }
 
+// Warehouse Stock Model
+class WarehouseStock {
+  final int available;
+  final int reserved;
+  final DateTime lastUpdate;
+  final int? minStock;
+  final String? location;
+  
+  WarehouseStock({
+    required this.available,
+    required this.reserved,
+    required this.lastUpdate,
+    this.minStock,
+    this.location,
+  });
+  
+  // Calculate actual available (available - reserved)
+  int get actualAvailable => available - reserved;
+  
+  // Check if stock is low
+  bool get isLowStock => minStock != null && actualAvailable <= minStock!;
+  
+  Map<String, dynamic> toMap() {
+    return {
+      'available': available,
+      'reserved': reserved,
+      'lastUpdate': lastUpdate.toIso8601String(),
+      'minStock': minStock,
+      'location': location,
+    };
+  }
+  
+  factory WarehouseStock.fromMap(Map<String, dynamic> map) {
+    return WarehouseStock(
+      available: map['available'] ?? 0,
+      reserved: map['reserved'] ?? 0,
+      lastUpdate: map['lastUpdate'] != null 
+          ? DateTime.parse(map['lastUpdate']) 
+          : DateTime.now(),
+      minStock: map['minStock'],
+      location: map['location'],
+    );
+  }
+}
+
+// Warehouse Info
+class WarehouseInfo {
+  static const Map<String, Map<String, String>> warehouses = {
+    'KR': {
+      'name': 'Korea',
+      'location': 'Seoul, South Korea',
+      'timezone': 'Asia/Seoul',
+      'flag': '🇰🇷',
+    },
+    'VN': {
+      'name': 'Vietnam', 
+      'location': 'Ho Chi Minh City, Vietnam',
+      'timezone': 'Asia/Ho_Chi_Minh',
+      'flag': '🇻🇳',
+    },
+    'CN': {
+      'name': 'China',
+      'location': 'Shanghai, China', 
+      'timezone': 'Asia/Shanghai',
+      'flag': '🇨🇳',
+    },
+    'TX': {
+      'name': 'Texas',
+      'location': 'Dallas, TX, USA',
+      'timezone': 'America/Chicago',
+      'flag': '🇺🇸',
+    },
+    'CUN': {
+      'name': 'Cancun',
+      'location': 'Cancun, Mexico',
+      'timezone': 'America/Cancun',
+      'flag': '🇲🇽',
+    },
+    'CDMX': {
+      'name': 'CDMX',
+      'location': 'Mexico City, Mexico',
+      'timezone': 'America/Mexico_City',
+      'flag': '🇲🇽',
+    },
+  };
+  
+  static String getWarehouseName(String code) {
+    return warehouses[code]?['name'] ?? code;
+  }
+  
+  static String getWarehouseLocation(String code) {
+    return warehouses[code]?['location'] ?? 'Unknown';
+  }
+  
+  static String getWarehouseFlag(String code) {
+    return warehouses[code]?['flag'] ?? '📦';
+  }
+}
+
 // Product Model
 class Product {
   final String? id;
@@ -183,6 +282,9 @@ class Product {
   final DateTime createdAt;
   final DateTime? updatedAt;
   final bool isTopSeller;
+  
+  // Warehouse stock data
+  final Map<String, WarehouseStock>? warehouseStock;
 
   Product({
     this.id,
@@ -221,6 +323,7 @@ class Product {
     required this.createdAt,
     this.updatedAt,
     this.isTopSeller = false,
+    this.warehouseStock,
   });
 
   Map<String, dynamic> toMap() {
@@ -261,6 +364,7 @@ class Product {
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
       'isTopSeller': isTopSeller,
+      'warehouseStock': warehouseStock?.map((key, value) => MapEntry(key, value.toMap())),
     };
   }
 
@@ -350,12 +454,81 @@ class Product {
           ? parseDateTime(map['updatedAt'] ?? map['updated_at']) 
           : null,
       isTopSeller: map['isTopSeller'] ?? map['is_top_seller'] ?? false,
+      warehouseStock: _parseWarehouseStock(map),
     );
+  }
+  
+  // Helper function to parse warehouse stock data
+  static Map<String, WarehouseStock>? _parseWarehouseStock(Map<String, dynamic> map) {
+    final stockData = <String, WarehouseStock>{};
+    
+    // Try to parse from warehouseStock field
+    if (map['warehouseStock'] != null && map['warehouseStock'] is Map) {
+      final warehouseData = map['warehouseStock'] as Map;
+      warehouseData.forEach((key, value) {
+        if (value is Map) {
+          stockData[key.toString()] = WarehouseStock.fromMap(Map<String, dynamic>.from(value));
+        }
+      });
+      return stockData.isNotEmpty ? stockData : null;
+    }
+    
+    // Parse individual warehouse columns (from Excel import)
+    final warehouses = ['KR', 'VN', 'CN', 'TX', 'CUN', 'CDMX'];
+    for (final warehouse in warehouses) {
+      final stockValue = map[warehouse];
+      if (stockValue != null) {
+        final quantity = stockValue is int ? stockValue : 
+                        stockValue is double ? stockValue.toInt() : 
+                        stockValue is String ? int.tryParse(stockValue) ?? 0 : 0;
+        
+        if (quantity > 0) {
+          stockData[warehouse] = WarehouseStock(
+            available: quantity,
+            reserved: 0,
+            lastUpdate: DateTime.now(),
+          );
+        }
+      }
+    }
+    
+    return stockData.isNotEmpty ? stockData : null;
   }
 
   // JSON methods for compatibility
   String toJson() => toMap().toString();
   factory Product.fromJson(Map<String, dynamic> json) => Product.fromMap(json);
+  
+  // Helper methods for warehouse stock
+  int get totalAvailableStock {
+    if (warehouseStock == null || warehouseStock!.isEmpty) return stock;
+    
+    int total = 0;
+    warehouseStock!.forEach((_, stock) {
+      total += stock.actualAvailable;
+    });
+    return total;
+  }
+  
+  int get totalReservedStock {
+    if (warehouseStock == null || warehouseStock!.isEmpty) return 0;
+    
+    int total = 0;
+    warehouseStock!.forEach((_, stock) {
+      total += stock.reserved;
+    });
+    return total;
+  }
+  
+  Map<String, int> get availableByWarehouse {
+    if (warehouseStock == null || warehouseStock!.isEmpty) return {};
+    
+    final result = <String, int>{};
+    warehouseStock!.forEach((warehouse, stock) {
+      result[warehouse] = stock.actualAvailable;
+    });
+    return result;
+  }
 }
 
 // Quote Model

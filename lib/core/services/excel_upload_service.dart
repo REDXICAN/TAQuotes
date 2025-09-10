@@ -83,6 +83,13 @@ class ExcelUploadService {
               'stock': 100, // Default stock value
               'image_url': 'assets/screenshots/$sku/P.1.png',
               'row_number': i + 1,
+              // Add warehouse stock data
+              'KR': _parseStock(_getCellValue(row, headerIndex['KR'])),
+              'VN': _parseStock(_getCellValue(row, headerIndex['VN'])),
+              'CN': _parseStock(_getCellValue(row, headerIndex['CN'])),
+              'TX': _parseStock(_getCellValue(row, headerIndex['TX'])),
+              'CUN': _parseStock(_getCellValue(row, headerIndex['CUN'])),
+              'CDMX': _parseStock(_getCellValue(row, headerIndex['CDMX'])),
             };
 
             // Remove empty fields
@@ -190,6 +197,13 @@ class ExcelUploadService {
               'created_at': ServerValue.timestamp,
               'updated_at': ServerValue.timestamp,
               'uploaded_by': _auth.currentUser?.email,
+              // Add warehouse stock data
+              'KR': _parseStock(_getCellValue(row, headerIndex['KR'])),
+              'VN': _parseStock(_getCellValue(row, headerIndex['VN'])),
+              'CN': _parseStock(_getCellValue(row, headerIndex['CN'])),
+              'TX': _parseStock(_getCellValue(row, headerIndex['TX'])),
+              'CUN': _parseStock(_getCellValue(row, headerIndex['CUN'])),
+              'CDMX': _parseStock(_getCellValue(row, headerIndex['CDMX'])),
             };
 
             // Remove empty fields
@@ -237,6 +251,14 @@ class ExcelUploadService {
   static String _getCellValue(List<Data?> row, int? index) {
     if (index == null || index >= row.length) return '';
     return row[index]?.value?.toString() ?? '';
+  }
+
+  static int? _parseStock(String stockStr) {
+    if (stockStr.isEmpty) return null;
+    // Remove any non-numeric characters and parse
+    final cleanStr = stockStr.replaceAll(RegExp(r'[^0-9]'), '');
+    if (cleanStr.isEmpty) return null;
+    return int.tryParse(cleanStr);
   }
 
   static double? _parsePrice(String priceStr) {

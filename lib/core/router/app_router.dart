@@ -17,6 +17,7 @@ import '../../features/quotes/presentation/screens/quote_detail_screen.dart';
 import '../../features/quotes/presentation/screens/create_quote_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/admin/presentation/screens/admin_panel_screen.dart';
+import '../../features/stock/presentation/screens/stock_dashboard_screen.dart';
 
 // Router provider
 final routerProvider = Provider<GoRouter>((ref) {
@@ -121,6 +122,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const ProfileScreen(),
           ),
 
+          // Stock
+          GoRoute(
+            path: '/stock',
+            builder: (context, state) => const StockDashboardScreen(),
+          ),
+
           // Admin
           GoRoute(
             path: '/admin',
@@ -153,6 +160,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     '/products',
     '/cart',
     '/quotes',
+    '/stock',
     '/profile',
   ];
 
@@ -249,6 +257,11 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                   label: Text('Quotes'),
                 ),
                 const NavigationRailDestination(
+                  icon: Icon(Icons.warehouse_outlined),
+                  selectedIcon: Icon(Icons.warehouse),
+                  label: Text('Stock'),
+                ),
+                const NavigationRailDestination(
                   icon: Icon(Icons.person_outline),
                   selectedIcon: Icon(Icons.person),
                   label: Text('Profile'),
@@ -317,6 +330,11 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             icon: Icon(Icons.receipt_long_outlined),
             selectedIcon: Icon(Icons.receipt_long),
             label: 'Quotes',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.warehouse_outlined),
+            selectedIcon: Icon(Icons.warehouse),
+            label: 'Stock',
           ),
           const NavigationDestination(
             icon: Icon(Icons.person_outline),
