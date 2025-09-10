@@ -17,6 +17,7 @@ import '../../features/quotes/presentation/screens/quote_detail_screen.dart';
 import '../../features/quotes/presentation/screens/create_quote_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/admin/presentation/screens/admin_panel_screen.dart';
+import '../../features/admin/presentation/screens/performance_dashboard_screen.dart';
 import '../../features/stock/presentation/screens/stock_dashboard_screen.dart';
 
 // Router provider
@@ -132,6 +133,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/admin',
             builder: (context, state) => const AdminPanelScreen(),
+            routes: [
+              GoRoute(
+                path: 'performance',
+                builder: (context, state) => const PerformanceDashboardScreen(),
+              ),
+            ],
           ),
         ],
       ),

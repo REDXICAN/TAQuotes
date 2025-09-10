@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
@@ -221,6 +222,10 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                 label: Text('Analytics'),
               ),
               NavigationRailDestination(
+                icon: Icon(Icons.trending_up),
+                label: Text('Performance'),
+              ),
+              NavigationRailDestination(
                 icon: Icon(Icons.settings),
                 label: Text('Settings'),
               ),
@@ -247,6 +252,10 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
       case 2:
         return _buildAnalytics();
       case 3:
+        // Navigate to Performance Dashboard
+        Future.microtask(() => context.go('/admin/performance'));
+        return const Center(child: CircularProgressIndicator());
+      case 4:
         return _buildSettings();
       default:
         return _buildDashboard();
