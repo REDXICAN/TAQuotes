@@ -760,9 +760,47 @@ Application successfully deployed to Firebase Hosting and fully operational.
 - The storage bucket name is `taquotes.firebasestorage.app`
 - Image loading falls back to local assets if Firebase fails
 
+## 🚀 Recent Updates (December 2024)
+
+### Spare Parts System Implementation
+- **Complete spare parts management system added**
+- 525 spare parts loaded in Firebase with stock and warehouse data
+- Dedicated spare parts screen with search and filtering
+- Integration with cart and quotes system
+- Real-time inventory tracking across 14 Mexican warehouses
+
+### Stock Management Integration
+- **Products updated with real-time stock data**
+- 10,112 total units tracked (184 products + 9,928 spare parts)
+- Warehouse distribution: CA, CA1-4, PU, SI, MEE, COCZ, COPZ, XCA, XPU, 999
+- Stock-based sorting (highest quantity first)
+- Visual stock indicators on product cards
+
+### UI/UX Improvements
+- **0-based quantity system**: All quantities start at 0
+- **Auto-add to cart**: Plus/minus buttons instantly update cart
+- **Real-time data sync**: No manual refresh needed
+- **Smart cart updates**: Prevents duplicates, updates existing items
+- **Improved navigation**: Spare Parts added to main menu
+
+### Database Enhancements
+- **User/Profile synchronization**: Fixed orphaned profiles
+- **Security rules updated**: Added spare parts access control
+- **Data integrity**: All sections preserved during updates
+- **Complete backup system**: Timestamped database exports
+
 ## 🔄 Version History
 
-### Version 1.4.0 (Current - August 2025)
+### Version 1.5.0 (Current - December 2024)
+- Added complete spare parts management system
+- Implemented real-time stock tracking from Excel
+- Updated quantity system to start from 0
+- Fixed real-time data loading issues
+- Enhanced cart to handle both products and spare parts
+- Added warehouse distribution tracking
+- Synchronized users and user_profiles
+
+### Version 1.4.0 (August 2025)
 - **MAJOR: Migrated all 3,534 product images to Firebase Storage**
 - Fixed thumbnails not displaying in production (Flutter web asset limitation)
 - Added Firebase Storage URLs to database (thumbnailUrl, imageUrl, imageUrl2)

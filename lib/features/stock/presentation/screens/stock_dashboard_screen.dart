@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/services/realtime_database_service.dart';
+import '../../../../core/services/inventory_service.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../products/presentation/screens/products_screen.dart';
 
@@ -38,7 +39,7 @@ class StockStatistics {
     final lowStockProducts = <Product>[];
     final categoryStock = <String, int>{};
     
-    // Initialize warehouse stats with dummy data for now
+    // Initialize ALL warehouse locations from WarehouseInfo
     for (final code in WarehouseInfo.warehouses.keys) {
       warehouseStats[code] = WarehouseStats(
         code: code,
@@ -49,58 +50,43 @@ class StockStatistics {
       );
     }
     
-    // Process each product
+    // Process each product and distribute to warehouses based on warehouse field
     for (final product in products) {
-      // Add dummy warehouse stock data for demonstration
-      if (product.warehouseStock == null) {
-        // Generate random stock for each warehouse
-        final dummyStock = <String, WarehouseStock>{};
-        for (final code in WarehouseInfo.warehouses.keys) {
-          final available = (product.hashCode.abs() + code.hashCode.abs()) % 100;
-          final reserved = ((product.hashCode.abs() + code.hashCode.abs()) % 20);
-          
-          dummyStock[code] = WarehouseStock(
-            available: available,
-            reserved: reserved,
-            lastUpdate: DateTime.now(),
-            minStock: 10,
-          );
-          
-          // Update warehouse stats
-          warehouseStats[code]!.totalAvailable += available;
-          warehouseStats[code]!.totalReserved += reserved;
-          if (available > 0) warehouseStats[code]!.productCount++;
-          if (available - reserved <= 10) warehouseStats[code]!.lowStockCount++;
-          
-          totalAvailable += available;
-          totalReserved += reserved;
+      final stockQty = product.stock ?? 0;
+      final warehouseCode = product.warehouse;
+      
+      if (stockQty > 0 && warehouseCode != null && warehouseStats.containsKey(warehouseCode)) {
+        totalAvailable += stockQty;
+        
+        // Add stock to the specific warehouse
+        warehouseStats[warehouseCode]!.totalAvailable += stockQty;
+        warehouseStats[warehouseCode]!.productCount++;
+        
+        // Check if product is low stock (10 or less)
+        if (stockQty <= 10) {
+          lowStockProducts.add(product);
+          warehouseStats[warehouseCode]!.lowStockCount++;
         }
         
-        // Check if product is low stock
-        final totalStock = dummyStock.values.fold(0, (sum, stock) => sum + stock.actualAvailable);
-        if (totalStock <= 50) {
-          lowStockProducts.add(product);
+        // Mark as reserved if in warehouse 999
+        if (warehouseCode == '999') {
+          warehouseStats[warehouseCode]!.totalReserved += stockQty;
+          totalReserved += stockQty;
         }
-      } else {
-        // Use actual warehouse stock data
-        product.warehouseStock!.forEach((code, stock) {
-          warehouseStats[code]!.totalAvailable += stock.available;
-          warehouseStats[code]!.totalReserved += stock.reserved;
-          if (stock.available > 0) warehouseStats[code]!.productCount++;
-          if (stock.isLowStock) warehouseStats[code]!.lowStockCount++;
-          
-          totalAvailable += stock.available;
-          totalReserved += stock.reserved;
-        });
+      } else if (stockQty > 0) {
+        // If no warehouse specified but has stock, put in main CA warehouse
+        totalAvailable += stockQty;
+        warehouseStats['CA']!.totalAvailable += stockQty;
+        warehouseStats['CA']!.productCount++;
         
-        if (product.totalAvailableStock <= 50) {
+        if (stockQty <= 10) {
           lowStockProducts.add(product);
+          warehouseStats['CA']!.lowStockCount++;
         }
       }
       
       // Update category stock
-      categoryStock[product.category] = (categoryStock[product.category] ?? 0) + 
-          (product.totalAvailableStock > 0 ? product.totalAvailableStock : 50);
+      categoryStock[product.category] = (categoryStock[product.category] ?? 0) + stockQty;
     }
     
     return StockStatistics(
@@ -353,7 +339,12 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
   }
   
   Widget _buildWarehouseCard(String code, WarehouseStats stats, ThemeData theme, NumberFormat format) {
-    final info = WarehouseInfo.warehouses[code]!;
+    // Use the warehouse info from the model
+    final info = WarehouseInfo.warehouses[code] ?? {
+        'name': code,
+        'location': 'Mexico',
+        'flag': '📦',
+    };
     final utilizationColor = stats.utilizationRate > 80 ? Colors.red :
                             stats.utilizationRate > 60 ? Colors.orange :
                             Colors.green;
@@ -424,9 +415,10 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
                       ),
                       Text(
                         format.format(stats.actualAvailable),
-                        style: theme.textTheme.titleLarge?.copyWith(
+                        style: theme.textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: Colors.green,
+                          fontSize: 28,
                         ),
                       ),
                     ],
@@ -442,9 +434,10 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
                       ),
                       Text(
                         format.format(stats.totalReserved),
-                        style: theme.textTheme.titleLarge?.copyWith(
+                        style: theme.textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: Colors.orange,
+                          fontSize: 28,
                         ),
                       ),
                     ],
@@ -541,7 +534,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '${product.totalAvailableStock} units',
+                      '${product.stock} units',
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: Colors.orange,
                         fontWeight: FontWeight.bold,

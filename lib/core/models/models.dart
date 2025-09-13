@@ -193,41 +193,89 @@ class WarehouseStock {
 // Warehouse Info
 class WarehouseInfo {
   static const Map<String, Map<String, String>> warehouses = {
-    'KR': {
-      'name': 'Korea',
-      'location': 'Seoul, South Korea',
-      'timezone': 'Asia/Seoul',
-      'flag': '🇰🇷',
-    },
-    'VN': {
-      'name': 'Vietnam', 
-      'location': 'Ho Chi Minh City, Vietnam',
-      'timezone': 'Asia/Ho_Chi_Minh',
-      'flag': '🇻🇳',
-    },
-    'CN': {
-      'name': 'China',
-      'location': 'Shanghai, China', 
-      'timezone': 'Asia/Shanghai',
-      'flag': '🇨🇳',
-    },
-    'TX': {
-      'name': 'Texas',
-      'location': 'Dallas, TX, USA',
-      'timezone': 'America/Chicago',
-      'flag': '🇺🇸',
-    },
-    'CUN': {
-      'name': 'Cancun',
-      'location': 'Cancun, Mexico',
+    'CA1': {
+      'name': 'Cancún Exhibición',
+      'location': 'Cancún, Mexico',
       'timezone': 'America/Cancun',
       'flag': '🇲🇽',
     },
-    'CDMX': {
-      'name': 'CDMX',
+    '999': {
+      'name': 'Mercancía Apartada',
+      'location': 'Already Quoted/Reserved',
+      'timezone': 'America/Mexico_City',
+      'flag': '🔒',
+    },
+    'CA': {
+      'name': 'Cancún',
+      'location': 'Cancún, Mexico',
+      'timezone': 'America/Cancun',
+      'flag': '🇲🇽',
+    },
+    'CA2': {
+      'name': 'Cancún Equipos a Prueba',
+      'location': 'Cancún, Mexico',
+      'timezone': 'America/Cancun',
+      'flag': '🔧',
+    },
+    'CA3': {
+      'name': 'Cancún Laboratorio',
+      'location': 'Cancún, Mexico',
+      'timezone': 'America/Cancun',
+      'flag': '🔬',
+    },
+    'CA4': {
+      'name': 'Cancún Área de Ajuste',
+      'location': 'Cancún, Mexico',
+      'timezone': 'America/Cancun',
+      'flag': '⚙️',
+    },
+    'COCZ': {
+      'name': 'Consignación Cancún Zicor',
+      'location': 'Cancún, Mexico',
+      'timezone': 'America/Cancun',
+      'flag': '🤝',
+    },
+    'COPZ': {
+      'name': 'Consignación Puebla Zicor',
+      'location': 'Puebla, Mexico',
+      'timezone': 'America/Mexico_City',
+      'flag': '🤝',
+    },
+    'INT': {
+      'name': 'Internacional',
+      'location': 'International',
+      'timezone': 'UTC',
+      'flag': '🌎',
+    },
+    'MEE': {
+      'name': 'México Proyectos Especiales',
       'location': 'Mexico City, Mexico',
       'timezone': 'America/Mexico_City',
+      'flag': '🚀',
+    },
+    'PU': {
+      'name': 'Puebla BINEX',
+      'location': 'Puebla, Mexico',
+      'timezone': 'America/Mexico_City',
       'flag': '🇲🇽',
+    },
+    'SI': {
+      'name': 'Silao BINEX',
+      'location': 'Silao, Mexico',
+      'timezone': 'America/Mexico_City',
+      'flag': '🇲🇽',
+    },
+    'XCA': {
+      'name': 'Refrigeration X Cancún',
+      'location': 'Cancún, Mexico',
+      'timezone': 'America/Cancun',
+      'flag': '❄️',
+    },
+    'XPU': {
+      'name': 'Refrigeration X Puebla',
+      'location': 'Puebla, Mexico',
+      'timezone': 'America/Mexico_City',
+      'flag': '❄️',
     },
   };
   
@@ -261,6 +309,7 @@ class Product {
   final String? thumbnailUrl;
   final String? pdfUrl;  // PDF specification file
   final int stock;
+  final String? warehouse;  // Warehouse location code (CA, PU, SI, etc.)
   final String? dimensions;
   final String? weight;
   final String? voltage;
@@ -302,6 +351,7 @@ class Product {
     this.thumbnailUrl,
     this.pdfUrl,
     required this.stock,
+    this.warehouse,
     this.dimensions,
     this.weight,
     this.voltage,
@@ -343,6 +393,7 @@ class Product {
       'thumbnailUrl': thumbnailUrl,
       'pdfUrl': pdfUrl,
       'stock': stock,
+      'warehouse': warehouse,
       'dimensions': dimensions,
       'weight': weight,
       'voltage': voltage,
@@ -431,6 +482,7 @@ class Product {
       thumbnailUrl: map['thumbnailUrl'] ?? map['thumbnail_url'],  // Handle both formats
       pdfUrl: map['pdfUrl'] ?? map['pdf_url'],  // PDF specification file
       stock: parseIntWithDefault(map['stock']),
+      warehouse: map['warehouse'],
       dimensions: map['dimensions'],
       weight: map['weight'],
       voltage: map['voltage'],
@@ -474,7 +526,7 @@ class Product {
     }
     
     // Parse individual warehouse columns (from Excel import)
-    final warehouses = ['KR', 'VN', 'CN', 'TX', 'CUN', 'CDMX'];
+    final warehouses = ['CA1', '999', 'CA', 'CA2', 'CA3', 'CA4', 'COCZ', 'COPZ', 'INT', 'MEE', 'PU', 'SI', 'XCA', 'XPU'];
     for (final warehouse in warehouses) {
       final stockValue = map[warehouse];
       if (stockValue != null) {
@@ -501,13 +553,8 @@ class Product {
   
   // Helper methods for warehouse stock
   int get totalAvailableStock {
-    if (warehouseStock == null || warehouseStock!.isEmpty) return stock;
-    
-    int total = 0;
-    warehouseStock!.forEach((_, stock) {
-      total += stock.actualAvailable;
-    });
-    return total;
+    // Always use the simple stock field as the primary source
+    return stock;
   }
   
   int get totalReservedStock {

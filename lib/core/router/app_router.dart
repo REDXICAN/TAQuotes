@@ -19,6 +19,7 @@ import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/admin/presentation/screens/admin_panel_screen.dart';
 import '../../features/admin/presentation/screens/performance_dashboard_screen.dart';
 import '../../features/stock/presentation/screens/stock_dashboard_screen.dart';
+import '../../features/spareparts/presentation/screens/spareparts_screen.dart';
 
 // Router provider
 final routerProvider = Provider<GoRouter>((ref) {
@@ -129,6 +130,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const StockDashboardScreen(),
           ),
 
+          // Spare Parts
+          GoRoute(
+            path: '/spareparts',
+            builder: (context, state) => const SparePartsScreen(),
+          ),
+
           // Admin
           GoRoute(
             path: '/admin',
@@ -168,6 +175,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     '/cart',
     '/quotes',
     '/stock',
+    '/spareparts',
     '/profile',
   ];
 
@@ -182,6 +190,10 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
 
     if (location.startsWith('/admin')) {
       return _routes.length;
+    }
+
+    if (location.startsWith('/spareparts')) {
+      return 6; // Index for spare parts
     }
 
     return 0;
@@ -269,6 +281,11 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                   label: Text('Stock'),
                 ),
                 const NavigationRailDestination(
+                  icon: Icon(Icons.build_outlined),
+                  selectedIcon: Icon(Icons.build),
+                  label: Text('Spare Parts'),
+                ),
+                const NavigationRailDestination(
                   icon: Icon(Icons.person_outline),
                   selectedIcon: Icon(Icons.person),
                   label: Text('Profile'),
@@ -342,6 +359,11 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             icon: Icon(Icons.warehouse_outlined),
             selectedIcon: Icon(Icons.warehouse),
             label: 'Stock',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.build_outlined),
+            selectedIcon: Icon(Icons.build),
+            label: 'Spare Parts',
           ),
           const NavigationDestination(
             icon: Icon(Icons.person_outline),

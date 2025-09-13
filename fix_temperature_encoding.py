@@ -4,9 +4,18 @@ import re
 print("FIXING TEMPERATURE RANGE ENCODING ISSUES")
 print("=" * 80)
 
-# Load the final database
-with open('FINAL_COMPLETE_DATABASE.json', 'r', encoding='utf-8') as f:
-    database = json.load(f)
+# Load the database - try different files
+import os
+
+if os.path.exists('FULL_PRODUCTS_RESTORED.json'):
+    with open('FULL_PRODUCTS_RESTORED.json', 'r', encoding='utf-8') as f:
+        database = json.load(f)
+elif os.path.exists('FINAL_COMPLETE_DATABASE.json'):
+    with open('FINAL_COMPLETE_DATABASE.json', 'r', encoding='utf-8') as f:
+        database = json.load(f)
+else:
+    print("Error: Could not find database file!")
+    exit()
 
 print(f"Loaded {len(database)} products")
 

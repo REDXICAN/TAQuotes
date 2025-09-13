@@ -1,0 +1,969 @@
+{
+  "products/product_0049/warehouseStock": {
+    "999": {
+      "available": 3,
+      "reserved": 3,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0049/totalStock": 3,
+  "products/product_0049/availableStock": 0,
+  "products/product_0072/warehouseStock": {
+    "999": {
+      "available": 2,
+      "reserved": 2,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA1": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "MEE": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0072/totalStock": 7,
+  "products/product_0072/availableStock": 5,
+  "products/product_0075/warehouseStock": {
+    "999": {
+      "available": 1,
+      "reserved": 1,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA1": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0075/totalStock": 5,
+  "products/product_0075/availableStock": 4,
+  "products/product_0091/warehouseStock": {
+    "999": {
+      "available": 6,
+      "reserved": 6,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA1": {
+      "available": 3,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "MEE": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0091/totalStock": 13,
+  "products/product_0091/availableStock": 7,
+  "products/product_0095/warehouseStock": {
+    "999": {
+      "available": 2,
+      "reserved": 2,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA": {
+      "available": 3,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA1": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "PU": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0095/totalStock": 9,
+  "products/product_0095/availableStock": 7,
+  "products/product_0104/warehouseStock": {
+    "999": {
+      "available": 2,
+      "reserved": 2,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0104/totalStock": 3,
+  "products/product_0104/availableStock": 1,
+  "products/product_0109/warehouseStock": {
+    "999": {
+      "available": 1,
+      "reserved": 1,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA1": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "MEE": {
+      "available": 3,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0109/totalStock": 7,
+  "products/product_0109/availableStock": 6,
+  "products/product_0114/warehouseStock": {
+    "999": {
+      "available": 2,
+      "reserved": 2,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "MEE": {
+      "available": 4,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0114/totalStock": 7,
+  "products/product_0114/availableStock": 5,
+  "products/product_0116/warehouseStock": {
+    "999": {
+      "available": 2,
+      "reserved": 2,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA": {
+      "available": 4,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0116/totalStock": 7,
+  "products/product_0116/availableStock": 5,
+  "products/product_0122/warehouseStock": {
+    "999": {
+      "available": 4,
+      "reserved": 4,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA1": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "PU": {
+      "available": 3,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0122/totalStock": 10,
+  "products/product_0122/availableStock": 6,
+  "products/product_0127/warehouseStock": {
+    "999": {
+      "available": 1,
+      "reserved": 1,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "MEE": {
+      "available": 3,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0127/totalStock": 5,
+  "products/product_0127/availableStock": 4,
+  "products/product_0128/warehouseStock": {
+    "999": {
+      "available": 2,
+      "reserved": 2,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA1": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0128/totalStock": 3,
+  "products/product_0128/availableStock": 1,
+  "products/product_0532/warehouseStock": {
+    "999": {
+      "available": 1,
+      "reserved": 1,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "COPZ": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0532/totalStock": 3,
+  "products/product_0532/availableStock": 2,
+  "products/product_0614/warehouseStock": {
+    "999": {
+      "available": 1,
+      "reserved": 1,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "COPZ": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0614/totalStock": 3,
+  "products/product_0614/availableStock": 2,
+  "products/product_0693/warehouseStock": {
+    "999": {
+      "available": 1,
+      "reserved": 1,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "PU": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0693/totalStock": 3,
+  "products/product_0693/availableStock": 2,
+  "products/product_0698/warehouseStock": {
+    "999": {
+      "available": 2,
+      "reserved": 2,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "PU": {
+      "available": 3,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0698/totalStock": 7,
+  "products/product_0698/availableStock": 5,
+  "products/product_0796/warehouseStock": {
+    "999": {
+      "available": 2,
+      "reserved": 2,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0796/totalStock": 2,
+  "products/product_0796/availableStock": 0,
+  "products/product_0827/warehouseStock": {
+    "999": {
+      "available": 2,
+      "reserved": 2,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "PU": {
+      "available": 3,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA": {
+      "available": 3,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0827/totalStock": 8,
+  "products/product_0827/availableStock": 6,
+  "products/product_0103/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0103/totalStock": 1,
+  "products/product_0103/availableStock": 1,
+  "products/product_0107/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0107/totalStock": 2,
+  "products/product_0107/availableStock": 2,
+  "products/product_0111/warehouseStock": {
+    "CA": {
+      "available": 7,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA1": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "PU": {
+      "available": 3,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0111/totalStock": 11,
+  "products/product_0111/availableStock": 11,
+  "products/product_0117/warehouseStock": {
+    "CA": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0117/totalStock": 2,
+  "products/product_0117/availableStock": 2,
+  "products/product_0209/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0209/totalStock": 1,
+  "products/product_0209/availableStock": 1,
+  "products/product_0347/warehouseStock": {
+    "PU": {
+      "available": 4,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0347/totalStock": 4,
+  "products/product_0347/availableStock": 4,
+  "products/product_0454/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0454/totalStock": 1,
+  "products/product_0454/availableStock": 1,
+  "products/product_0679/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0679/totalStock": 3,
+  "products/product_0679/availableStock": 3,
+  "products/product_0682/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0682/totalStock": 1,
+  "products/product_0682/availableStock": 1,
+  "products/product_0692/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0692/totalStock": 1,
+  "products/product_0692/availableStock": 1,
+  "products/product_0736/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0736/totalStock": 1,
+  "products/product_0736/availableStock": 1,
+  "products/product_0757/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0757/totalStock": 2,
+  "products/product_0757/availableStock": 2,
+  "products/product_0786/warehouseStock": {
+    "PU": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0786/totalStock": 3,
+  "products/product_0786/availableStock": 3,
+  "products/product_0814/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0814/totalStock": 1,
+  "products/product_0814/availableStock": 1,
+  "products/product_0818/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0818/totalStock": 1,
+  "products/product_0818/availableStock": 1,
+  "products/product_0819/warehouseStock": {
+    "PU": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0819/totalStock": 2,
+  "products/product_0819/availableStock": 2,
+  "products/product_0822/warehouseStock": {
+    "PU": {
+      "available": 8,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0822/totalStock": 8,
+  "products/product_0822/availableStock": 8,
+  "products/product_0082/warehouseStock": {
+    "CA1": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0082/totalStock": 1,
+  "products/product_0082/availableStock": 1,
+  "products/product_0167/warehouseStock": {
+    "CA1": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0167/totalStock": 1,
+  "products/product_0167/availableStock": 1,
+  "products/product_0170/warehouseStock": {
+    "CA1": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0170/totalStock": 1,
+  "products/product_0170/availableStock": 1,
+  "products/product_0183/warehouseStock": {
+    "CA1": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0183/totalStock": 1,
+  "products/product_0183/availableStock": 1,
+  "products/product_0193/warehouseStock": {
+    "CA1": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0193/totalStock": 1,
+  "products/product_0193/availableStock": 1,
+  "products/product_0444/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0444/totalStock": 1,
+  "products/product_0444/availableStock": 1,
+  "products/product_0683/warehouseStock": {
+    "PU": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0683/totalStock": 2,
+  "products/product_0683/availableStock": 2,
+  "products/product_0724/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0724/totalStock": 1,
+  "products/product_0724/availableStock": 1,
+  "products/product_0726/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0726/totalStock": 1,
+  "products/product_0726/availableStock": 1,
+  "products/product_0789/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0789/totalStock": 1,
+  "products/product_0789/availableStock": 1,
+  "products/product_0057/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0057/totalStock": 1,
+  "products/product_0057/availableStock": 1,
+  "products/product_0084/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0084/totalStock": 1,
+  "products/product_0084/availableStock": 1,
+  "products/product_0102/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0102/totalStock": 2,
+  "products/product_0102/availableStock": 2,
+  "products/product_0166/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0166/totalStock": 1,
+  "products/product_0166/availableStock": 1,
+  "products/product_0680/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "PU": {
+      "available": 6,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0680/totalStock": 7,
+  "products/product_0680/availableStock": 7,
+  "products/product_0691/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    },
+    "PU": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0691/totalStock": 3,
+  "products/product_0691/availableStock": 3,
+  "products/product_0700/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0700/totalStock": 1,
+  "products/product_0700/availableStock": 1,
+  "products/product_0728/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0728/totalStock": 1,
+  "products/product_0728/availableStock": 1,
+  "products/product_0735/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0735/totalStock": 1,
+  "products/product_0735/availableStock": 1,
+  "products/product_0774/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0774/totalStock": 1,
+  "products/product_0774/availableStock": 1,
+  "products/product_0777/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0777/totalStock": 1,
+  "products/product_0777/availableStock": 1,
+  "products/product_0079/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0079/totalStock": 1,
+  "products/product_0079/availableStock": 1,
+  "products/product_0206/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0206/totalStock": 1,
+  "products/product_0206/availableStock": 1,
+  "products/product_0009/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0009/totalStock": 1,
+  "products/product_0009/availableStock": 1,
+  "products/product_0489/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0489/totalStock": 1,
+  "products/product_0489/availableStock": 1,
+  "products/product_0718/warehouseStock": {
+    "CA": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0718/totalStock": 1,
+  "products/product_0718/availableStock": 1,
+  "products/product_0458/warehouseStock": {
+    "COPZ": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0458/totalStock": 1,
+  "products/product_0458/availableStock": 1,
+  "products/product_0488/warehouseStock": {
+    "COPZ": {
+      "available": 3,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0488/totalStock": 3,
+  "products/product_0488/availableStock": 3,
+  "products/product_0042/warehouseStock": {
+    "MEE": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0042/totalStock": 2,
+  "products/product_0042/availableStock": 2,
+  "products/product_0105/warehouseStock": {
+    "MEE": {
+      "available": 9,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0105/totalStock": 9,
+  "products/product_0105/availableStock": 9,
+  "products/product_0108/warehouseStock": {
+    "MEE": {
+      "available": 5,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0108/totalStock": 5,
+  "products/product_0108/availableStock": 5,
+  "products/product_0110/warehouseStock": {
+    "MEE": {
+      "available": 3,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0110/totalStock": 3,
+  "products/product_0110/availableStock": 3,
+  "products/product_0115/warehouseStock": {
+    "MEE": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0115/totalStock": 1,
+  "products/product_0115/availableStock": 1,
+  "products/product_0441/warehouseStock": {
+    "MEE": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0441/totalStock": 1,
+  "products/product_0441/availableStock": 1,
+  "products/product_0690/warehouseStock": {
+    "MEE": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0690/totalStock": 1,
+  "products/product_0690/availableStock": 1,
+  "products/product_0046/warehouseStock": {
+    "PU": {
+      "available": 6,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0046/totalStock": 6,
+  "products/product_0046/availableStock": 6,
+  "products/product_0089/warehouseStock": {
+    "PU": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0089/totalStock": 2,
+  "products/product_0089/availableStock": 2,
+  "products/product_0100/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0100/totalStock": 1,
+  "products/product_0100/availableStock": 1,
+  "products/product_0456/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0456/totalStock": 1,
+  "products/product_0456/availableStock": 1,
+  "products/product_0461/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0461/totalStock": 1,
+  "products/product_0461/availableStock": 1,
+  "products/product_0576/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0576/totalStock": 1,
+  "products/product_0576/availableStock": 1,
+  "products/product_0655/warehouseStock": {
+    "PU": {
+      "available": 5,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0655/totalStock": 5,
+  "products/product_0655/availableStock": 5,
+  "products/product_0688/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0688/totalStock": 1,
+  "products/product_0688/availableStock": 1,
+  "products/product_0696/warehouseStock": {
+    "PU": {
+      "available": 2,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0696/totalStock": 2,
+  "products/product_0696/availableStock": 2,
+  "products/product_0697/warehouseStock": {
+    "PU": {
+      "available": 4,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0697/totalStock": 4,
+  "products/product_0697/availableStock": 4,
+  "products/product_0704/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0704/totalStock": 1,
+  "products/product_0704/availableStock": 1,
+  "products/product_0832/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0832/totalStock": 1,
+  "products/product_0832/availableStock": 1,
+  "products/product_0834/warehouseStock": {
+    "PU": {
+      "available": 1,
+      "reserved": 0,
+      "lastUpdate": "2025-09-12T18:54:16.817184"
+    }
+  },
+  "products/product_0834/totalStock": 1,
+  "products/product_0834/availableStock": 1
+}

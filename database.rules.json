@@ -68,6 +68,12 @@
     "app_settings": {
       ".read": true,
       ".write": "auth != null && auth.token.email == 'andres@turboairmexico.com'"
+    },
+    
+    "spareparts": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.token.email == 'andres@turboairmexico.com'",
+      ".indexOn": ["sku", "warehouse", "stock"]
     }
   }
 }

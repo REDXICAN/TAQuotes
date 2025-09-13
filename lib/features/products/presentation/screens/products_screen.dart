@@ -19,7 +19,7 @@ import '../../widgets/zoomable_image_viewer.dart';
 
 // Products provider using StreamProvider for real-time updates without heavy caching
 final productsProvider =
-    StreamProvider.family<List<Product>, String?>((ref, category) {
+    StreamProvider.autoDispose.family<List<Product>, String?>((ref, category) {
   try {
     final database = FirebaseDatabase.instance;
     
@@ -58,15 +58,32 @@ final productsProvider =
         });
       }
       
-      // Sort products: Top sellers first, then by SKU
+      // Sort products by stock quantity (highest stock first)
       products.sort((a, b) {
-        // First sort by isTopSeller (true comes before false)
+        // Sort by stock quantity in descending order (highest first)
+        final stockA = a.stock ?? 0;
+        final stockB = b.stock ?? 0;
+        
+        if (stockA != stockB) {
+          return stockB.compareTo(stockA); // Descending order
+        }
+        
+        // If stock is the same, then sort by isTopSeller
         if (a.isTopSeller != b.isTopSeller) {
           return a.isTopSeller ? -1 : 1;
         }
-        // Then sort by SKU
+        
+        // Finally sort by SKU as a fallback
         return (a.sku ?? '').compareTo(b.sku ?? '');
       });
+      
+      // Debug: Log first 5 products to see if stock is populated
+      if (products.isNotEmpty) {
+        AppLogger.info('First 5 products after sorting by stock:', category: LogCategory.ui);
+        for (int i = 0; i < products.length && i < 5; i++) {
+          AppLogger.info('  ${products[i].sku}: stock=${products[i].stock}', category: LogCategory.ui);
+        }
+      }
       return products;
     });
   } catch (e) {
@@ -1415,6 +1432,16 @@ class ProductCard extends ConsumerWidget {
                     ),
                     maxLines: isMobile ? 2 : 1,
                     overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  // Simple stock quantity display
+                  Text(
+                    'Stock: ${product.stock ?? 0}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: theme.textTheme.bodyMedium?.color,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   // Price and Quantity Selector

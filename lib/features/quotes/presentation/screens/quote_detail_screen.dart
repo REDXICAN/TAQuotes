@@ -220,7 +220,7 @@ class QuoteDetailScreen extends ConsumerWidget {
                                 ),
                               ],
                             ),
-                            _buildStatusChip(quote.status, theme),
+                            _buildStatusDropdown(context, quote, theme, ref),
                           ],
                         ),
                       ],
@@ -682,38 +682,131 @@ class QuoteDetailScreen extends ConsumerWidget {
     }
   }
 
-  Widget _buildStatusChip(String status, ThemeData theme) {
-    Color color;
-    switch (status.toLowerCase()) {
-      case 'draft':
-        color = Colors.grey;
-        break;
-      case 'sent':
-        color = Colors.blue;
-        break;
-      case 'accepted':
-        color = Colors.green;
-        break;
-      case 'rejected':
-        color = Colors.red;
-        break;
-      default:
-        color = Colors.grey;
+  Widget _buildStatusDropdown(BuildContext context, Quote quote, ThemeData theme, WidgetRef ref) {
+    Color getStatusColor(String status) {
+      switch (status.toLowerCase()) {
+        case 'draft':
+          return Colors.grey;
+        case 'sent':
+          return Colors.blue;
+        case 'accepted':
+          return Colors.green;
+        case 'rejected':
+          return Colors.red;
+        default:
+          return Colors.grey;
+      }
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color),
-      ),
-      child: Text(
-        status.toUpperCase(),
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
+    final currentColor = getStatusColor(quote.status);
+    final statuses = ['draft', 'sent', 'accepted', 'rejected'];
+
+    return PopupMenuButton<String>(
+      initialValue: quote.status.toLowerCase(),
+      onSelected: (String newStatus) async {
+        if (newStatus != quote.status.toLowerCase()) {
+          // Show confirmation dialog
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Update Status'),
+              content: Text('Change quote status from ${quote.status.toUpperCase()} to ${newStatus.toUpperCase()}?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Update'),
+                ),
+              ],
+            ),
+          );
+
+          if (confirmed == true) {
+            try {
+              final dbService = ref.read(databaseServiceProvider);
+              await dbService.updateQuoteStatus(quote.id ?? '', newStatus);
+              ref.invalidate(quoteDetailProvider(quote.id ?? ''));
+              
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Quote status updated to ${newStatus.toUpperCase()}'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error updating status: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          }
+        }
+      },
+      itemBuilder: (context) => statuses.map((status) {
+        final color = getStatusColor(status);
+        return PopupMenuItem<String>(
+          value: status,
+          child: Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                status.toUpperCase(),
+                style: TextStyle(
+                  color: status == quote.status.toLowerCase() ? color : null,
+                  fontWeight: status == quote.status.toLowerCase() ? FontWeight.bold : null,
+                ),
+              ),
+              if (status == quote.status.toLowerCase())
+                const Padding(
+                  padding: EdgeInsets.only(left: 8),
+                  child: Icon(Icons.check, size: 16),
+                ),
+            ],
+          ),
+        );
+      }).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: currentColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: currentColor),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              quote.status.toUpperCase(),
+              style: TextStyle(
+                color: currentColor,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_drop_down,
+              color: currentColor,
+              size: 16,
+            ),
+          ],
         ),
       ),
     );

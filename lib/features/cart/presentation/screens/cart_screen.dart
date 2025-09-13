@@ -23,7 +23,7 @@ import '../../../../core/utils/price_formatter.dart';
 final selectedClientProvider = StateProvider<Client?>((ref) => null);
 
 // Cart provider using Realtime Database with real-time updates
-final cartProvider = StreamProvider<List<CartItem>>((ref) {
+final cartProvider = StreamProvider.autoDispose<List<CartItem>>((ref) {
   // Check authentication
   final user = ref.watch(currentUserProvider);
   if (user == null) {
@@ -32,6 +32,9 @@ final cartProvider = StreamProvider<List<CartItem>>((ref) {
   
   final dbService = ref.watch(databaseServiceProvider);
   final database = FirebaseDatabase.instance;
+  
+  // Keep cart synced for real-time updates
+  database.ref('cart_items/${user.uid}').keepSynced(true);
   
   return database.ref('cart_items/${user.uid}').onValue.asyncMap((event) async {
     try {
@@ -49,24 +52,60 @@ final cartProvider = StreamProvider<List<CartItem>>((ref) {
       final List<CartItem> cartItems = [];
 
       for (final item in items) {
-        final productData = await dbService.getProduct(item['product_id']);
-
-        final product = productData != null ? Product.fromMap(productData) : null;
-        final unitPrice = product?.price ?? item['unit_price']?.toDouble() ?? 0.0;
+        final itemType = item['type'] ?? 'product';
+        Product? product;
+        String productName = '';
+        double unitPrice = 0.0;
+        
+        if (itemType == 'spare_part') {
+          // Handle spare parts
+          final sparePartSnapshot = await database.ref('spareparts/${item['product_id']}').get();
+          if (sparePartSnapshot.exists && sparePartSnapshot.value != null) {
+            final sparePartData = Map<String, dynamic>.from(sparePartSnapshot.value as Map);
+            productName = item['name'] ?? sparePartData['name'] ?? '';
+            unitPrice = item['price']?.toDouble() ?? sparePartData['price']?.toDouble() ?? 0.0;
+            // Create a minimal product object for spare parts
+            product = Product(
+              id: item['product_id'],
+              sku: item['sku'] ?? item['product_id'],
+              model: item['sku'] ?? item['product_id'],
+              displayName: productName,
+              name: productName,
+              description: productName,
+              price: unitPrice,
+              category: 'Spare Parts',
+              stock: sparePartData['stock'] ?? 0,
+              createdAt: DateTime.now(),
+            );
+          } else {
+            // Use data from cart item if spare part not found
+            productName = item['name'] ?? 'Spare Part';
+            unitPrice = item['price']?.toDouble() ?? 0.0;
+          }
+        } else {
+          // Handle regular products
+          final productData = await dbService.getProduct(item['product_id']);
+          product = productData != null ? Product.fromMap(productData) : null;
+          productName = product?.description ?? item['product_name'] ?? '';
+          unitPrice = product?.price ?? item['unit_price']?.toDouble() ?? 0.0;
+        }
+        
         final quantity = item['quantity'] ?? 1;
         
         cartItems.add(CartItem(
           id: item['id'],
           userId: item['user_id'] ?? user.uid,
           productId: item['product_id'],
-          productName: product?.description ?? item['product_name'] ?? '',
+          productName: productName,
           quantity: quantity,
           unitPrice: unitPrice,
           total: unitPrice * quantity,
           product: product,
-          addedAt: item['created_at'] != null
-              ? DateTime.fromMillisecondsSinceEpoch(item['created_at'])
-              : DateTime.now(),
+          addedAt: item['added_at'] != null
+              ? DateTime.fromMillisecondsSinceEpoch(item['added_at'])
+              : item['created_at'] != null
+                  ? DateTime.fromMillisecondsSinceEpoch(item['created_at'])
+                  : DateTime.now(),
         ));
       }
 
@@ -79,7 +118,7 @@ final cartProvider = StreamProvider<List<CartItem>>((ref) {
 });
 
 // Clients provider with real-time updates - fixed to prevent infinite loading
-final clientsStreamProvider = StreamProvider<List<Client>>((ref) {
+final clientsStreamProvider = StreamProvider.autoDispose<List<Client>>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) {
     return Stream.value([]);
@@ -468,7 +507,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                             ),
                                           ),
                                           child: Icon(
-                                            Icons.inventory_2,
+                                            product?.category == 'Spare Parts' ? Icons.build : Icons.inventory_2,
                                             size: ResponsiveHelper.getIconSize(context, baseSize: 20),
                                           ),
                                         ),

@@ -83,6 +83,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _totalQuotes = 0;
   int _cartItems = 0;
   int _totalProducts = 0;
+  int _totalSpareParts = 0;
 
   @override
   void initState() {
@@ -220,6 +221,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final data = event.snapshot.value as Map;
         setState(() {
           _cartItems = data.length;
+        });
+      }
+    });
+
+    // Listen to spare parts
+    database.ref('spareparts').onValue.listen((event) {
+      if (event.snapshot.value != null && mounted) {
+        final data = event.snapshot.value as Map;
+        setState(() {
+          _totalSpareParts = data.length;
         });
       }
     });
@@ -404,6 +415,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Icons.shopping_cart,
                     Colors.purple,
                     () => context.go('/cart'),
+                  ),
+                  _buildStatCard(
+                    'Spare Parts',
+                    _totalSpareParts.toString(),
+                    Icons.build,
+                    Colors.teal,
+                    () => context.go('/spareparts'),
                   ),
                 ],
               ),

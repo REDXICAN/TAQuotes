@@ -565,23 +565,117 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // Status chip
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isMobile ? 8 : 12, 
-                      vertical: isMobile ? 2 : 4
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: statusColor),
-                    ),
-                    child: Text(
-                      quote.status.toUpperCase(),
-                      style: TextStyle(
-                        color: statusColor,
-                        fontSize: isMobile ? 10 : 12,
-                        fontWeight: FontWeight.bold,
+                  // Status dropdown
+                  PopupMenuButton<String>(
+                    initialValue: quote.status.toLowerCase(),
+                    onSelected: (String newStatus) async {
+                      if (newStatus != quote.status.toLowerCase()) {
+                        // Show confirmation dialog
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Update Status'),
+                            content: Text('Change quote status from ${quote.status.toUpperCase()} to ${newStatus.toUpperCase()}?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Update'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirmed == true) {
+                          try {
+                            final dbService = ref.read(databaseServiceProvider);
+                            await dbService.updateQuoteStatus(quote.id ?? '', newStatus);
+                            ref.invalidate(quotesProvider);
+                            
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Quote status updated to ${newStatus.toUpperCase()}'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error updating status: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      }
+                    },
+                    itemBuilder: (context) => ['draft', 'sent', 'accepted', 'rejected'].map((status) {
+                      final color = _getStatusColor(status);
+                      return PopupMenuItem<String>(
+                        value: status,
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              status.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: isMobile ? 10 : 12,
+                                color: status == quote.status.toLowerCase() ? color : null,
+                                fontWeight: status == quote.status.toLowerCase() ? FontWeight.bold : null,
+                              ),
+                            ),
+                            if (status == quote.status.toLowerCase())
+                              const Padding(
+                                padding: EdgeInsets.only(left: 8),
+                                child: Icon(Icons.check, size: 14),
+                              ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 8 : 12,
+                        vertical: isMobile ? 2 : 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: statusColor),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            quote.status.toUpperCase(),
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: isMobile ? 10 : 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(
+                            Icons.arrow_drop_down,
+                            color: statusColor,
+                            size: 14,
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1420,6 +1514,17 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         filename: filename,
         mimeType: mimeType,
       );
+
+      // Update quote status to 'sent' if it was 'draft'
+      if (quote.status == 'draft') {
+        try {
+          final dbService = ref.read(databaseServiceProvider);
+          await dbService.updateQuoteStatus(quote.id ?? '', 'sent');
+          ref.invalidate(quotesProvider);
+        } catch (_) {
+          // Continue even if status update fails
+        }
+      }
 
       // Show success message
       if (mounted) {
