@@ -15,6 +15,7 @@ import '../../core/widgets/app_bar_with_client.dart';
 import '../auth/presentation/providers/auth_provider.dart';
 import '../products/presentation/screens/products_screen.dart';
 import '../../core/widgets/recent_searches_widget.dart';
+import '../admin/presentation/widgets/user_approvals_widget.dart';
 
 // Search history provider - stores last 10 searched products
 final searchHistoryProvider = StreamProvider<List<Product>>((ref) {
@@ -322,6 +323,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               SizedBox(
                 height: ResponsiveHelper.getSpacing(context, extraLarge: 24),
               ),
+
+              // User approval notifications for admins and superadmins
+              if (userProfile?.role == 'superadmin' ||
+                  userProfile?.role == 'admin' ||
+                  userProfile?.email == 'andres@turboairmexico.com' ||
+                  (userProfile?.isAdmin ?? false))
+                const UserApprovalsWidget(),
 
               // Connection status
               if (!_isOnline || _syncQueueCount > 0)

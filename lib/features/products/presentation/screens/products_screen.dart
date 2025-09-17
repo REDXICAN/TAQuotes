@@ -19,7 +19,7 @@ import '../../widgets/zoomable_image_viewer.dart';
 
 // Products provider using StreamProvider for real-time updates without heavy caching
 final productsProvider =
-    StreamProvider.autoDispose.family<List<Product>, String?>((ref, category) {
+    StreamProvider.family<List<Product>, String?>((ref, category) {
   try {
     final database = FirebaseDatabase.instance;
     
@@ -58,32 +58,15 @@ final productsProvider =
         });
       }
       
-      // Sort products by stock quantity (highest stock first)
+      // Sort products: Top sellers first, then by SKU
       products.sort((a, b) {
-        // Sort by stock quantity in descending order (highest first)
-        final stockA = a.stock ?? 0;
-        final stockB = b.stock ?? 0;
-        
-        if (stockA != stockB) {
-          return stockB.compareTo(stockA); // Descending order
-        }
-        
-        // If stock is the same, then sort by isTopSeller
+        // First sort by isTopSeller (true comes before false)
         if (a.isTopSeller != b.isTopSeller) {
           return a.isTopSeller ? -1 : 1;
         }
-        
-        // Finally sort by SKU as a fallback
+        // Then sort by SKU
         return (a.sku ?? '').compareTo(b.sku ?? '');
       });
-      
-      // Debug: Log first 5 products to see if stock is populated
-      if (products.isNotEmpty) {
-        AppLogger.info('First 5 products after sorting by stock:', category: LogCategory.ui);
-        for (int i = 0; i < products.length && i < 5; i++) {
-          AppLogger.info('  ${products[i].sku}: stock=${products[i].stock}', category: LogCategory.ui);
-        }
-      }
       return products;
     });
   } catch (e) {
@@ -305,7 +288,7 @@ Future<void> _handleExcelUpload() async {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Failed to pick file: $e'),
-              backgroundColor: Colors.red,
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         }
@@ -471,7 +454,7 @@ Future<void> _handleExcelUpload() async {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -501,18 +484,24 @@ Future<void> _handleExcelUpload() async {
         children: [
           // Search Bar
           Container(
-            color: theme.primaryColor,
+            color: theme.appBarTheme.backgroundColor,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: TextField(
               controller: _searchController,
-              style: const TextStyle(color: Colors.black), // Make text black
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onPrimary,
+              ),
               decoration: InputDecoration(
                 hintText: 'Search by SKU, category or description',
-                hintStyle: TextStyle(color: Colors.grey[600]),
-                prefixIcon: Icon(Icons.search, color: Colors.grey[700]),
+                hintStyle: theme.inputDecorationTheme.hintStyle?.copyWith(
+                  color: theme.colorScheme.onPrimary.withOpacity(0.7),
+                ),
+                prefixIcon: Icon(Icons.search, 
+                  color: theme.colorScheme.onPrimary.withOpacity(0.7)),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: Icon(Icons.clear, color: Colors.grey[700]),
+                        icon: Icon(Icons.clear, 
+                          color: theme.colorScheme.onPrimary.withOpacity(0.7)),
                         onPressed: () {
                           _searchController.clear();
                           ref.read(searchQueryProvider.notifier).state = '';
@@ -863,7 +852,7 @@ Future<void> _handleExcelUpload() async {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Error updating cart: $e'),
-                        backgroundColor: Colors.red,
+                        backgroundColor: Theme.of(context).colorScheme.error,
                       ),
                     );
                   }
@@ -925,7 +914,7 @@ Future<void> _handleExcelUpload() async {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Error updating cart: $e'),
-                          backgroundColor: Colors.red,
+                          backgroundColor: Theme.of(context).colorScheme.error,
                         ),
                       );
                     }
@@ -968,7 +957,7 @@ Future<void> _handleExcelUpload() async {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error adding to cart: $e'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: Theme.of(context).colorScheme.error,
                     ),
                   );
                 }
@@ -1215,7 +1204,7 @@ class ProductCard extends ConsumerWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Error updating cart: $e'),
-                        backgroundColor: Colors.red,
+                        backgroundColor: Theme.of(context).colorScheme.error,
                       ),
                     );
                   }
@@ -1277,7 +1266,7 @@ class ProductCard extends ConsumerWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Error updating cart: $e'),
-                          backgroundColor: Colors.red,
+                          backgroundColor: Theme.of(context).colorScheme.error,
                         ),
                       );
                     }
@@ -1320,7 +1309,7 @@ class ProductCard extends ConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error adding to cart: $e'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: Theme.of(context).colorScheme.error,
                     ),
                   );
                 }
@@ -1357,6 +1346,45 @@ class ProductCard extends ConsumerWidget {
         (Match m) => '${m[1]},',
       );
       return '\$$wholePart.${parts[1]}';
+    }
+
+    // Calculate total stock across all warehouses
+    int calculateTotalStock() {
+      if (product.warehouseStock == null || product.warehouseStock!.isEmpty) {
+        return 0;
+      }
+      
+      int total = 0;
+      for (var entry in product.warehouseStock!.entries) {
+        final available = entry.value.available;
+        final reserved = entry.value.reserved;
+        total += (available - reserved);
+      }
+      return total;
+    }
+
+    final totalStock = calculateTotalStock();
+    
+    // Determine stock status
+    Color stockColor;
+    String stockText;
+    IconData stockIcon;
+    if (totalStock > 50) {
+      stockColor = Colors.green;
+      stockText = 'In Stock ($totalStock)';
+      stockIcon = Icons.check_circle;
+    } else if (totalStock > 10) {
+      stockColor = Colors.orange;
+      stockText = 'Low Stock ($totalStock)';
+      stockIcon = Icons.warning;
+    } else if (totalStock > 0) {
+      stockColor = Colors.red;
+      stockText = 'Critical ($totalStock)';
+      stockIcon = Icons.error;
+    } else {
+      stockColor = Colors.grey;
+      stockText = 'Out of Stock';
+      stockIcon = Icons.cancel;
     }
 
     return Card(
@@ -1433,14 +1461,36 @@ class ProductCard extends ConsumerWidget {
                     maxLines: isMobile ? 2 : 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
-                  // Simple stock quantity display
-                  Text(
-                    'Stock: ${product.stock ?? 0}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: theme.textTheme.bodyMedium?.color,
+                  const SizedBox(height: 6),
+                  // Stock Status Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: stockColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: stockColor.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          stockIcon,
+                          size: 12,
+                          color: stockColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          stockText,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: stockColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 8),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/config/env_config.dart';
@@ -258,6 +259,29 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _checkAccess();
+  }
+  
+  void _checkAccess() {
+    // Simplified check - just verify user is authenticated
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      // Not authenticated
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please log in to access this page'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      });
+      return;
+    }
+    
+    // For now, allow any authenticated user
+    // Later you can add: if (user.email == 'andres@turboairmexico.com')
+    print('Performance Dashboard access granted for: ${user.email}');
   }
   
   @override
@@ -274,15 +298,15 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
     final currencyFormat = NumberFormat.currency(symbol: '\$');
     final isMobile = ResponsiveHelper.isMobile(context);
     
-    // Check if user is admin
+    // Simple auth check - allow any logged in user for now
     final currentUser = ref.watch(authStateProvider).valueOrNull;
-    if (currentUser?.email != EnvConfig.adminEmail) {
+    if (currentUser == null) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Performance Dashboard'),
         ),
         body: const Center(
-          child: Text('Access Denied: Admin privileges required'),
+          child: Text('Please log in to access this page'),
         ),
       );
     }
@@ -593,6 +617,8 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
     // Aggregate data for charts
     final Map<String, double> categoryRevenue = {};
     final Map<String, int> productsSold = {};
+    final Map<String, double> monthlyRevenue = {};
+    final Map<String, int> userQuoteCount = {};
     
     for (final user in metrics) {
       user.categoryRevenue.forEach((category, revenue) {
@@ -601,6 +627,17 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
       user.productsSold.forEach((product, quantity) {
         productsSold[product] = (productsSold[product] ?? 0) + quantity;
       });
+      userQuoteCount[user.displayName] = user.totalQuotes;
+      
+      // Calculate monthly revenue from recent quotes
+      for (final quote in user.recentQuotes) {
+        final monthKey = DateFormat('MMM').format(quote.createdAt);
+        if (quote.status.toLowerCase() == 'accepted' || 
+            quote.status.toLowerCase() == 'closed' || 
+            quote.status.toLowerCase() == 'sold') {
+          monthlyRevenue[monthKey] = (monthlyRevenue[monthKey] ?? 0) + quote.total;
+        }
+      }
     }
     
     // Sort and get top items
@@ -614,7 +651,27 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Revenue by Category
+          // Revenue Trend Chart
+          Text(
+            'Revenue Trend',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            height: 300,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.cardColor,
+              border: Border.all(color: theme.dividerColor),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: _buildRevenueLineChart(monthlyRevenue, theme),
+          ),
+          const SizedBox(height: 32),
+          
+          // Category Revenue Pie Chart
           Text(
             'Revenue by Category',
             style: theme.textTheme.headlineSmall?.copyWith(
@@ -622,54 +679,53 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
             ),
           ),
           const SizedBox(height: 16),
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: theme.dividerColor),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              children: topCategories.take(10).map((entry) {
-                final maxRevenue = topCategories.first.value;
-                final percentage = (entry.value / maxRevenue);
-                
-                return Container(
-                  padding: const EdgeInsets.all(12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Pie Chart
+              Expanded(
+                flex: isMobile ? 1 : 2,
+                child: Container(
+                  height: 300,
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    border: Border(bottom: BorderSide(color: theme.dividerColor)),
+                    color: theme.cardColor,
+                    border: Border.all(color: theme.dividerColor),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            entry.key,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            currencyFormat.format(entry.value),
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: theme.primaryColor,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      LinearProgressIndicator(
-                        value: percentage,
-                        backgroundColor: theme.dividerColor,
-                        valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
-                      ),
-                    ],
+                  child: _buildCategoryPieChart(topCategories.take(5).toList(), theme),
+                ),
+              ),
+              if (!isMobile) ...[  
+                const SizedBox(width: 16),
+                // Legend
+                Expanded(
+                  child: Container(
+                    height: 300,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      border: Border.all(color: theme.dividerColor),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: _buildChartLegend(topCategories.take(5).toList(), currencyFormat, theme),
                   ),
-                );
-              }).toList(),
-            ),
+                ),
+              ],
+            ],
           ),
+          if (isMobile) ...[  
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.cardColor,
+                border: Border.all(color: theme.dividerColor),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: _buildChartLegend(topCategories.take(5).toList(), currencyFormat, theme),
+            ),
+          ],
           const SizedBox(height: 32),
           
           // Top Products
@@ -1282,5 +1338,255 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
     if (score >= 60) return Colors.orange;
     if (score >= 40) return Colors.amber;
     return Colors.red;
+  }
+  
+  // Chart building methods
+  Widget _buildRevenueLineChart(Map<String, double> monthlyRevenue, ThemeData theme) {
+    if (monthlyRevenue.isEmpty) {
+      return const Center(child: Text('No revenue data available'));
+    }
+    
+    final spots = <FlSpot>[];
+    final months = monthlyRevenue.keys.toList();
+    double maxY = 0;
+    
+    for (int i = 0; i < months.length; i++) {
+      final value = monthlyRevenue[months[i]] ?? 0;
+      spots.add(FlSpot(i.toDouble(), value));
+      if (value > maxY) maxY = value;
+    }
+    
+    return LineChart(
+      LineChartData(
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: true,
+          horizontalInterval: maxY > 0 ? maxY / 5 : 1,
+          getDrawingHorizontalLine: (value) {
+            return FlLine(
+              color: theme.dividerColor.withOpacity(0.3),
+              strokeWidth: 1,
+            );
+          },
+          getDrawingVerticalLine: (value) {
+            return FlLine(
+              color: theme.dividerColor.withOpacity(0.3),
+              strokeWidth: 1,
+            );
+          },
+        ),
+        titlesData: FlTitlesData(
+          show: true,
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 30,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                if (value.toInt() >= 0 && value.toInt() < months.length) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      months[value.toInt()],
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  );
+                }
+                return const Text('');
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: maxY > 0 ? maxY / 5 : 1,
+              reservedSize: 60,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  '\$${(value / 1000).toStringAsFixed(0)}K',
+                  style: const TextStyle(fontSize: 12),
+                );
+              },
+            ),
+          ),
+        ),
+        borderData: FlBorderData(
+          show: true,
+          border: Border.all(color: theme.dividerColor.withOpacity(0.5)),
+        ),
+        minX: 0,
+        maxX: months.length.toDouble() - 1,
+        minY: 0,
+        maxY: maxY * 1.1,
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            gradient: LinearGradient(
+              colors: [theme.primaryColor, theme.primaryColor.withOpacity(0.7)],
+            ),
+            barWidth: 3,
+            isStrokeCapRound: true,
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (spot, percent, barData, index) {
+                return FlDotCirclePainter(
+                  radius: 4,
+                  color: theme.primaryColor,
+                  strokeWidth: 1,
+                  strokeColor: Colors.white,
+                );
+              },
+            ),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                colors: [
+                  theme.primaryColor.withOpacity(0.2),
+                  theme.primaryColor.withOpacity(0.0),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildCategoryPieChart(List<MapEntry<String, double>> categories, ThemeData theme) {
+    if (categories.isEmpty) {
+      return const Center(child: Text('No category data available'));
+    }
+    
+    final colors = [
+      Colors.blue,
+      Colors.green,
+      Colors.orange,
+      Colors.purple,
+      Colors.red,
+    ];
+    
+    final total = categories.fold(0.0, (sum, entry) => sum + entry.value);
+    
+    return PieChart(
+      PieChartData(
+        borderData: FlBorderData(show: false),
+        sectionsSpace: 2,
+        centerSpaceRadius: 40,
+        sections: categories.asMap().entries.map((entry) {
+          final index = entry.key;
+          final category = entry.value;
+          final percentage = (category.value / total * 100);
+          
+          return PieChartSectionData(
+            color: colors[index % colors.length],
+            value: category.value,
+            title: '${percentage.toStringAsFixed(1)}%',
+            radius: 80,
+            titleStyle: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+  
+  Widget _buildChartLegend(
+    List<MapEntry<String, double>> categories,
+    NumberFormat currencyFormat,
+    ThemeData theme,
+  ) {
+    final colors = [
+      Colors.blue,
+      Colors.green,
+      Colors.orange,
+      Colors.purple,
+      Colors.red,
+    ];
+    
+    final total = categories.fold(0.0, (sum, entry) => sum + entry.value);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Category Breakdown',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...categories.asMap().entries.map((entry) {
+          final index = entry.key;
+          final category = entry.value;
+          final percentage = (category.value / total * 100);
+          
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: colors[index % colors.length],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        category.key,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${currencyFormat.format(category.value)} (${percentage.toStringAsFixed(1)}%)',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.disabledColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+        const Spacer(),
+        Divider(color: theme.dividerColor),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Total',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              currencyFormat.format(total),
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }

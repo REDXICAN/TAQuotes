@@ -305,6 +305,227 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       ),
                       const SizedBox(height: 24),
 
+                      // Warehouse Stock Information
+                      if (product.warehouseStock != null && product.warehouseStock!.isNotEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: theme.brightness == Brightness.dark
+                                ? Colors.blue.withOpacity(0.1)
+                                : Colors.blue.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: theme.brightness == Brightness.dark
+                                  ? Colors.blue.withOpacity(0.3)
+                                  : Colors.blue.withOpacity(0.2),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.warehouse,
+                                    size: 20,
+                                    color: theme.primaryColor,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Stock Availability',
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  // Total Stock Summary
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: () {
+                                        // Calculate total stock
+                                        int totalStock = 0;
+                                        for (var entry in product.warehouseStock!.entries) {
+                                          final available = entry.value.available;
+                                          final reserved = entry.value.reserved;
+                                          totalStock += (available - reserved);
+                                        }
+                                        
+                                        if (totalStock > 50) {
+                                          return Colors.green.withOpacity(0.2);
+                                        } else if (totalStock > 10) {
+                                          return Colors.orange.withOpacity(0.2);
+                                        } else if (totalStock > 0) {
+                                          return Colors.red.withOpacity(0.2);
+                                        } else {
+                                          return Colors.grey.withOpacity(0.2);
+                                        }
+                                      }(),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: () {
+                                          // Calculate total stock
+                                          int totalStock = 0;
+                                          for (var entry in product.warehouseStock!.entries) {
+                                            final available = entry.value.available;
+                                            final reserved = entry.value.reserved;
+                                            totalStock += (available - reserved);
+                                          }
+                                          
+                                          if (totalStock > 50) {
+                                            return Colors.green;
+                                          } else if (totalStock > 10) {
+                                            return Colors.orange;
+                                          } else if (totalStock > 0) {
+                                            return Colors.red;
+                                          } else {
+                                            return Colors.grey;
+                                          }
+                                        }(),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Total: ${() {
+                                        int totalStock = 0;
+                                        for (var entry in product.warehouseStock!.entries) {
+                                          final available = entry.value.available;
+                                          final reserved = entry.value.reserved;
+                                          totalStock += (available - reserved);
+                                        }
+                                        return totalStock;
+                                      }()} units',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: () {
+                                          // Calculate total stock
+                                          int totalStock = 0;
+                                          for (var entry in product.warehouseStock!.entries) {
+                                            final available = entry.value.available;
+                                            final reserved = entry.value.reserved;
+                                            totalStock += (available - reserved);
+                                          }
+                                          
+                                          if (totalStock > 50) {
+                                            return Colors.green;
+                                          } else if (totalStock > 10) {
+                                            return Colors.orange;
+                                          } else if (totalStock > 0) {
+                                            return Colors.red;
+                                          } else {
+                                            return Colors.grey;
+                                          }
+                                        }(),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              ...product.warehouseStock!.entries.map((entry) {
+                                final warehouse = entry.key;
+                                final stock = entry.value;
+                                final available = stock.available;
+                                final reserved = stock.reserved;
+                                final totalStock = available - reserved;
+                                
+                                // Determine stock status color
+                                Color stockColor;
+                                String stockStatus;
+                                if (totalStock > 20) {
+                                  stockColor = Colors.green;
+                                  stockStatus = 'In Stock';
+                                } else if (totalStock > 5) {
+                                  stockColor = Colors.orange;
+                                  stockStatus = 'Low Stock';
+                                } else if (totalStock > 0) {
+                                  stockColor = Colors.red;
+                                  stockStatus = 'Critical';
+                                } else {
+                                  stockColor = Colors.grey;
+                                  stockStatus = 'Out of Stock';
+                                }
+                                
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 50,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: theme.brightness == Brightness.dark
+                                              ? Colors.grey[800]
+                                              : Colors.grey[200],
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          warehouse,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              totalStock > 0
+                                                  ? Icons.check_circle
+                                                  : Icons.cancel,
+                                              size: 16,
+                                              color: stockColor,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              stockStatus,
+                                              style: TextStyle(
+                                                color: stockColor,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              '($totalStock available)',
+                                              style: TextStyle(
+                                                color: theme.brightness == Brightness.dark
+                                                    ? Colors.grey[400]
+                                                    : Colors.grey[600],
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Stock levels are updated in real-time',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: theme.brightness == Brightness.dark
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600],
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
                       // Quantity selector and Add to Cart
                       Row(
                         children: [
@@ -696,6 +917,228 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                             style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                           const SizedBox(height: 24),
+
+                          // Warehouse Stock Information (Mobile)
+                          if (product.warehouseStock != null && product.warehouseStock!.isNotEmpty) ...[
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: theme.brightness == Brightness.dark
+                                    ? Colors.blue.withOpacity(0.1)
+                                    : Colors.blue.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: theme.brightness == Brightness.dark
+                                      ? Colors.blue.withOpacity(0.3)
+                                      : Colors.blue.withOpacity(0.2),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.warehouse,
+                                        size: 20,
+                                        color: theme.primaryColor,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Stock Availability',
+                                          style: theme.textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      // Total Stock Summary for Mobile
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: () {
+                                            // Calculate total stock
+                                            int totalStock = 0;
+                                            for (var entry in product.warehouseStock!.entries) {
+                                              final available = entry.value.available;
+                                              final reserved = entry.value.reserved;
+                                              totalStock += (available - reserved);
+                                            }
+                                            
+                                            if (totalStock > 50) {
+                                              return Colors.green.withOpacity(0.2);
+                                            } else if (totalStock > 10) {
+                                              return Colors.orange.withOpacity(0.2);
+                                            } else if (totalStock > 0) {
+                                              return Colors.red.withOpacity(0.2);
+                                            } else {
+                                              return Colors.grey.withOpacity(0.2);
+                                            }
+                                          }(),
+                                          borderRadius: BorderRadius.circular(10),
+                                          border: Border.all(
+                                            color: () {
+                                              // Calculate total stock
+                                              int totalStock = 0;
+                                              for (var entry in product.warehouseStock!.entries) {
+                                                final available = entry.value.available;
+                                                final reserved = entry.value.reserved;
+                                                totalStock += (available - reserved);
+                                              }
+                                              
+                                              if (totalStock > 50) {
+                                                return Colors.green;
+                                              } else if (totalStock > 10) {
+                                                return Colors.orange;
+                                              } else if (totalStock > 0) {
+                                                return Colors.red;
+                                              } else {
+                                                return Colors.grey;
+                                              }
+                                            }(),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '${() {
+                                            int totalStock = 0;
+                                            for (var entry in product.warehouseStock!.entries) {
+                                              final available = entry.value.available;
+                                              final reserved = entry.value.reserved;
+                                              totalStock += (available - reserved);
+                                            }
+                                            return totalStock;
+                                          }()} total',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: () {
+                                              // Calculate total stock
+                                              int totalStock = 0;
+                                              for (var entry in product.warehouseStock!.entries) {
+                                                final available = entry.value.available;
+                                                final reserved = entry.value.reserved;
+                                                totalStock += (available - reserved);
+                                              }
+                                              
+                                              if (totalStock > 50) {
+                                                return Colors.green;
+                                              } else if (totalStock > 10) {
+                                                return Colors.orange;
+                                              } else if (totalStock > 0) {
+                                                return Colors.red;
+                                              } else {
+                                                return Colors.grey;
+                                              }
+                                            }(),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  ...product.warehouseStock!.entries.map((entry) {
+                                    final warehouse = entry.key;
+                                    final stock = entry.value;
+                                    final available = stock.available;
+                                    final reserved = stock.reserved;
+                                    final totalStock = available - reserved;
+                                    
+                                    // Determine stock status color
+                                    Color stockColor;
+                                    String stockStatus;
+                                    if (totalStock > 20) {
+                                      stockColor = Colors.green;
+                                      stockStatus = 'In Stock';
+                                    } else if (totalStock > 5) {
+                                      stockColor = Colors.orange;
+                                      stockStatus = 'Low Stock';
+                                    } else if (totalStock > 0) {
+                                      stockColor = Colors.red;
+                                      stockStatus = 'Critical';
+                                    } else {
+                                      stockColor = Colors.grey;
+                                      stockStatus = 'Out of Stock';
+                                    }
+                                    
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 8),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 50,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: theme.brightness == Brightness.dark
+                                                  ? Colors.grey[800]
+                                                  : Colors.grey[200],
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              warehouse,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  totalStock > 0
+                                                      ? Icons.check_circle
+                                                      : Icons.cancel,
+                                                  size: 16,
+                                                  color: stockColor,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  stockStatus,
+                                                  style: TextStyle(
+                                                    color: stockColor,
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  '($totalStock available)',
+                                                  style: TextStyle(
+                                                    color: theme.brightness == Brightness.dark
+                                                        ? Colors.grey[400]
+                                                        : Colors.grey[600],
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Stock levels are updated in real-time',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: theme.brightness == Brightness.dark
+                                          ? Colors.grey[400]
+                                          : Colors.grey[600],
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
 
                           // Quantity selector and Add to Cart
                           Row(

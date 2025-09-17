@@ -35,9 +35,20 @@ firebase_options.dart
 taquotes-firebase-adminsdk-*.json
 firebase-admin-key.json
 *-firebase-adminsdk-*.json
+*admin-key*
+*service-account*
 # Deployment scripts with sensitive data
 *.env.local
 *.env.production
+
+# === SCRIPTS AND TEMP FILES ===
+scripts/*.py
+scripts/*.js
+scripts/*.dart
+FIX_LOGIN_ISSUE.md
+SESSION_SUMMARY.md
+TOMORROW_NOTES.md
+.claude/
 
 # === EMAIL CONFIG - NEVER COMMIT ===
 lib/core/config/email_config.dart

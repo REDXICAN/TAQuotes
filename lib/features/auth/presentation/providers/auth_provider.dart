@@ -114,7 +114,7 @@ final themeModeProvider =
 });
 
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
-  ThemeModeNotifier() : super(ThemeMode.system);
+  ThemeModeNotifier() : super(ThemeMode.dark); // Default to dark mode for Apple styling
 
   void setThemeMode(ThemeMode mode) {
     state = mode;
@@ -131,11 +131,28 @@ final signInProvider = Provider((ref) {
 
   return (String email, String password) async {
     try {
-      await authService.signInWithEmailAndPassword(
+      final user = await authService.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      
+
+      if (user != null) {
+        // Check if user account is approved
+        final dbService = ref.watch(databaseServiceProvider);
+        final userProfile = await dbService.getUserProfile(user.uid);
+
+        if (userProfile != null) {
+          final status = userProfile['status'] ?? 'active';
+          final role = userProfile['role'] ?? '';
+
+          // Block access for pending users
+          if (status == 'pending_approval' || role == 'pending') {
+            await authService.signOut(); // Sign them out immediately
+            return 'Your account is pending approval. You will receive an email once approved.';
+          }
+        }
+      }
+
       // Cache all products after successful login
       try {
         AppLogger.info('Caching products after login', category: LogCategory.auth);
@@ -144,7 +161,7 @@ final signInProvider = Provider((ref) {
         AppLogger.error('Failed to cache products after login', error: e, category: LogCategory.auth);
         // Don't fail login if caching fails
       }
-      
+
       return null; // Success
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
@@ -183,23 +200,53 @@ final signUpProvider = Provider((ref) {
       );
 
       if (user != null) {
-        // Determine account status based on role
-        String status = 'active';
-        if (role == 'Admin') {
-          status = 'pending_approval'; // Admin accounts require approval
+        // ALL new users require approval - set as pending initially
+        String actualRole = 'pending';
+        String requestedRoleNormalized = role;
+
+        // Normalize role names
+        if (role == 'Admin' || role == 'Administrator') {
+          requestedRoleNormalized = 'admin';
+        } else if (role == 'Sales' || role == 'Sales Representative') {
+          requestedRoleNormalized = 'sales';
+        } else if (role == 'Distribution' || role == 'Distributor') {
+          requestedRoleNormalized = 'distributor';
         }
 
-        // Create user profile in Realtime Database
+        // Create user approval request for ALL new users
+        final requestId = await dbService.createUserApprovalRequest(
+          userId: user.uid,
+          email: email,
+          name: name,
+          requestedRole: requestedRoleNormalized,
+        );
+
+        // Create user profile in Realtime Database with pending status
         await dbService.createUserProfile(
           uid: user.uid,
           email: email,
           name: name,
-          role: role,
-          status: status,
+          role: 'pending', // All users start as pending
+          status: 'pending_approval',
         );
 
-        // Send emails based on role
-        await _handleRegistrationEmails(email, name, role, user.uid);
+        // Send approval email to superadmin
+        final emailService = EmailService();
+        final approvalToken = DateTime.now().millisecondsSinceEpoch.toString() + user.uid;
+        await emailService.sendUserApprovalEmail(
+          requestId: requestId,
+          userEmail: email,
+          userName: name,
+          requestedRole: requestedRoleNormalized,
+          approvalToken: approvalToken,
+        );
+
+        // Send notification to user about pending approval
+        await emailService.sendUserPendingNotification(
+          userEmail: email,
+          userName: name,
+          requestedRole: requestedRoleNormalized,
+        );
       }
 
       return null; // Success
@@ -225,7 +272,7 @@ final signUpProvider = Provider((ref) {
 });
 
 // Handle registration emails
-Future<void> _handleRegistrationEmails(String email, String name, String role, String uid) async {
+Future<void> _handleRegistrationEmails(String email, String name, String role, String uid, RealtimeDatabaseService dbService) async {
   try {
     // Import email service at the top of the file if not already imported
     final emailService = EmailService();

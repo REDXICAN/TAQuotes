@@ -776,12 +776,17 @@ class RealtimeDatabaseService {
     String role = 'distributor',
     String status = 'active',
   }) async {
+    // Check if this is the superadmin email
+    final isSuperAdmin = email == 'andres@turboairmexico.com';
+    final finalRole = isSuperAdmin ? 'superadmin' : role;
+    
     await _db.ref('user_profiles/$uid').set({
       'uid': uid,
       'email': email,
       'name': name,
-      'role': role,
+      'role': finalRole,
       'status': status,
+      'isAdmin': isSuperAdmin || role == 'admin',
       'created_at': ServerValue.timestamp,
       'updated_at': ServerValue.timestamp,
     });
@@ -843,5 +848,173 @@ class RealtimeDatabaseService {
       return data.length;
     }
     return 0;
+  }
+
+  // ============ USER APPROVAL REQUESTS ============
+  Future<String> createUserApprovalRequest({
+    required String userId,
+    required String email,
+    required String name,
+    required String requestedRole,
+    String? company,
+    String? phone,
+  }) async {
+    try {
+      final requestRef = _db.ref('user_approval_requests').push();
+      final requestId = requestRef.key!;
+
+      // Generate approval token for email link
+      final approvalToken = DateTime.now().millisecondsSinceEpoch.toString() + userId;
+
+      await requestRef.set({
+        'id': requestId,
+        'userId': userId,
+        'email': email,
+        'name': name,
+        'requestedRole': requestedRole,
+        'requestedAt': DateTime.now().toIso8601String(),
+        'status': 'pending',
+        'approvalToken': approvalToken,
+        'company': company,
+        'phone': phone,
+      });
+
+      AppLogger.info('User approval request created for: $email (Role: $requestedRole)');
+      return requestId;
+    } catch (e) {
+      AppLogger.error('Error creating admin request', error: e);
+      rethrow;
+    }
+  }
+
+  Stream<List<Map<String, dynamic>>> getPendingUserApprovals() {
+    return _db
+        .ref('user_approval_requests')
+        .orderByChild('status')
+        .equalTo('pending')
+        .onValue
+        .map((event) {
+      final List<Map<String, dynamic>> requests = [];
+      if (event.snapshot.value != null) {
+        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        data.forEach((key, value) {
+          final request = Map<String, dynamic>.from(value);
+          request['id'] = key;
+          requests.add(request);
+        });
+      }
+      // Sort by request date, newest first
+      requests.sort((a, b) {
+        final dateA = DateTime.parse(a['requestedAt'] ?? DateTime.now().toIso8601String());
+        final dateB = DateTime.parse(b['requestedAt'] ?? DateTime.now().toIso8601String());
+        return dateB.compareTo(dateA);
+      });
+      return requests;
+    });
+  }
+
+  Future<void> approveUserRequest({
+    required String requestId,
+    required String approvedBy,
+  }) async {
+    try {
+      // Get the request details
+      final snapshot = await _db.ref('user_approval_requests/$requestId').get();
+      if (!snapshot.exists) {
+        throw Exception('User approval request not found');
+      }
+
+      final requestData = Map<String, dynamic>.from(snapshot.value as Map);
+      final userId = requestData['userId'];
+      final requestedRole = requestData['requestedRole'] ?? 'distributor';
+      final isAdminRole = requestedRole.toLowerCase() == 'admin' || requestedRole.toLowerCase() == 'administrator';
+
+      // Update the request status
+      await _db.ref('user_approval_requests/$requestId').update({
+        'status': 'approved',
+        'processedBy': approvedBy,
+        'processedAt': DateTime.now().toIso8601String(),
+      });
+
+      // Update the user profile to grant the requested role
+      await _db.ref('user_profiles/$userId').update({
+        'role': requestedRole,
+        'isAdmin': isAdminRole,
+        'status': 'active',
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+
+      // Also update in users collection for backward compatibility
+      await _db.ref('users/$userId').update({
+        'role': requestedRole,
+        'isAdmin': isAdminRole,
+        'status': 'active',
+      });
+
+      AppLogger.info('User request approved for: ${requestData['email']} (Role: $requestedRole)');
+    } catch (e) {
+      AppLogger.error('Error approving admin request', error: e);
+      rethrow;
+    }
+  }
+
+  Future<void> rejectUserRequest({
+    required String requestId,
+    required String rejectedBy,
+    String? reason,
+  }) async {
+    try {
+      await _db.ref('user_approval_requests/$requestId').update({
+        'status': 'rejected',
+        'processedBy': rejectedBy,
+        'processedAt': DateTime.now().toIso8601String(),
+        'rejectionReason': reason,
+      });
+
+      AppLogger.info('User request rejected: $requestId');
+    } catch (e) {
+      AppLogger.error('Error rejecting admin request', error: e);
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getUserApprovalRequestByToken(String token) async {
+    try {
+      final snapshot = await _db
+          .ref('user_approval_requests')
+          .orderByChild('approvalToken')
+          .equalTo(token)
+          .once();
+
+      if (snapshot.snapshot.value != null) {
+        final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        final entry = data.entries.first;
+        final request = Map<String, dynamic>.from(entry.value);
+        request['id'] = entry.key;
+        return request;
+      }
+    } catch (e) {
+      AppLogger.error('Error fetching user approval request by token', error: e);
+    }
+    return null;
+  }
+
+  // Backward compatibility methods
+  Future<String> createAdminRequest({
+    required String userId,
+    required String email,
+    required String name,
+    required String requestedRole,
+  }) async {
+    return createUserApprovalRequest(
+      userId: userId,
+      email: email,
+      name: name,
+      requestedRole: requestedRole,
+    );
+  }
+
+  Stream<List<Map<String, dynamic>>> getPendingAdminRequests() {
+    return getPendingUserApprovals();
   }
 }

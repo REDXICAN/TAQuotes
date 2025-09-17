@@ -20,7 +20,7 @@ class TurboAirApp extends ConsumerWidget {
       title: 'Turbo Air Quotes (TAQ)',
       theme: AppTheme.getTheme(Brightness.light),
       darkTheme: AppTheme.getTheme(Brightness.dark),
-      themeMode: themeMode,
+      themeMode: ThemeMode.dark, // Default to dark mode for Apple styling
       debugShowCheckedModeBanner: false,
       routerConfig: router,
       builder: (context, child) {

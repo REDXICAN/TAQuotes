@@ -18,6 +18,7 @@ import '../../features/quotes/presentation/screens/create_quote_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/admin/presentation/screens/admin_panel_screen.dart';
 import '../../features/admin/presentation/screens/performance_dashboard_screen.dart';
+import '../../features/admin/presentation/screens/user_info_dashboard_screen.dart';
 import '../../features/stock/presentation/screens/stock_dashboard_screen.dart';
 import '../../features/spareparts/presentation/screens/spareparts_screen.dart';
 
@@ -30,17 +31,19 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isAuthenticated = authState.valueOrNull != null;
       final isAuthRoute = state.uri.path.startsWith('/auth');
+      final isAdminRoute = state.uri.path.startsWith('/admin');
 
-      // Fix line 172 - Cast user properly
-      final user = state.extra as Map<String, dynamic>?;
-      if (user != null && user['isAdmin'] == true) {
-        // Handle admin logic if needed
+      // Don't redirect if we're still loading auth state
+      if (authState.isLoading) {
+        return null;
       }
 
+      // Allow authenticated users to access any route except auth routes
       if (!isAuthenticated && !isAuthRoute) {
         return '/auth/login';
       }
 
+      // Redirect authenticated users away from auth routes
       if (isAuthenticated && isAuthRoute) {
         return '/';
       }
@@ -145,6 +148,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: 'performance',
                 builder: (context, state) => const PerformanceDashboardScreen(),
               ),
+              GoRoute(
+                path: 'users',
+                builder: (context, state) => const UserInfoDashboardScreen(),
+              ),
             ],
           ),
         ],
@@ -216,7 +223,8 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
       error: (_, __) => 0,
     );
 
-    final routes = isAdmin ? [..._routes, '/admin'] : _routes;
+    // Always include admin route - let the admin screens handle access control
+    final routes = [..._routes, '/admin'];
     final selectedIndex = _calculateSelectedIndex(currentLocation);
     
     // Check if we should show navigation rail for larger screens
@@ -290,12 +298,12 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                   selectedIcon: Icon(Icons.person),
                   label: Text('Profile'),
                 ),
-                if (isAdmin)
-                  const NavigationRailDestination(
-                    icon: Icon(Icons.admin_panel_settings_outlined),
-                    selectedIcon: Icon(Icons.admin_panel_settings),
-                    label: Text('Admin'),
-                  ),
+                // Always show admin icon - let the screen handle access control
+                const NavigationRailDestination(
+                  icon: Icon(Icons.admin_panel_settings_outlined),
+                  selectedIcon: Icon(Icons.admin_panel_settings),
+                  label: Text('Admin'),
+                ),
               ],
             ),
             const VerticalDivider(thickness: 1, width: 1),
@@ -370,12 +378,12 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             selectedIcon: Icon(Icons.person),
             label: 'Profile',
           ),
-          if (isAdmin)
-            const NavigationDestination(
-              icon: Icon(Icons.admin_panel_settings_outlined),
-              selectedIcon: Icon(Icons.admin_panel_settings),
-              label: 'Admin',
-            ),
+          // Always show admin icon - let the screen handle access control
+          const NavigationDestination(
+            icon: Icon(Icons.admin_panel_settings_outlined),
+            selectedIcon: Icon(Icons.admin_panel_settings),
+            label: 'Admin',
+          ),
         ],
       ),
     );

@@ -53,24 +53,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
 
         if (error == null && mounted) {
-          if (_selectedRole == 'Admin') {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Admin account created! Pending approval from superadmin. Check your email for details.'),
-                backgroundColor: Colors.orange,
-                duration: Duration(seconds: 5),
-              ),
-            );
-            // Don't redirect to home for admin accounts
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Account created successfully! Welcome!'),
-                backgroundColor: Colors.green,
-              ),
-            );
-            context.go('/');
-          }
+          // ALL new accounts now require approval
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Account created! Your registration is pending approval. You\'ll receive an email once approved.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 6),
+            ),
+          );
+          // Clear form and switch to login mode
+          _emailController.clear();
+          _passwordController.clear();
+          _confirmPasswordController.clear();
+          _nameController.clear();
+          setState(() {
+            _isSignUp = false;
+          });
         }
       } else {
         final signIn = ref.read(signInProvider);
@@ -210,12 +208,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               fit: BoxFit.contain,
                               errorBuilder: (context, error2, stackTrace2) {
                                 // Final fallback to text
-                                return const Text(
+                                return Text(
                                   'TURBO AIR',
-                                  style: TextStyle(
-                                    fontSize: 32,
+                                  style: theme.textTheme.headlineMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF20429C),
+                                    color: theme.colorScheme.primary,
                                   ),
                                 );
                               },
@@ -227,9 +224,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         // Title
                         Text(
                           _isSignUp ? 'Create Account' : 'Welcome Back',
-                          style: TextStyle(
-                            fontSize: 20,
-                            color: Colors.grey[700],
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: theme.colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 32),
@@ -413,29 +409,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             },
                           ),
                           
-                          // Admin role warning
-                          if (_selectedRole == 'Admin')
-                            Container(
-                              margin: const EdgeInsets.only(top: 8),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.orange[50],
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.orange[200]!),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.info_outline, size: 20, color: Colors.orange[700]),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Admin accounts require approval from the super admin',
-                                      style: TextStyle(fontSize: 12, color: Colors.orange[800]),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          // All accounts now require approval
+                          Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.blue[200]!),
                             ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.info_outline, size: 20, color: Colors.blue[700]),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'All new accounts require admin approval before access',
+                                    style: TextStyle(fontSize: 12, color: Colors.blue[800]),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                           const SizedBox(height: 16),
                         ],
 

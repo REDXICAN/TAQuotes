@@ -36,17 +36,39 @@ class UserProfile {
   }
 
   factory UserProfile.fromMap(Map<String, dynamic> map) {
+    // Helper function to parse dates safely
+    DateTime? parseDate(dynamic value) {
+      if (value == null) return null;
+      try {
+        if (value is DateTime) return value;
+        if (value is String) {
+          // Handle ISO format dates
+          if (value.contains('T') || value.contains('-')) {
+            return DateTime.parse(value);
+          }
+          // Try to parse as milliseconds
+          final millis = int.tryParse(value);
+          if (millis != null) {
+            return DateTime.fromMillisecondsSinceEpoch(millis);
+          }
+        }
+        if (value is int || value is double) {
+          return DateTime.fromMillisecondsSinceEpoch(value.toInt());
+        }
+      } catch (e) {
+        print('Error parsing date: $e');
+      }
+      return null;
+    }
+    
     return UserProfile(
-      uid: map['uid'] ?? '',
+      uid: map['uid'] ?? map['id'] ?? '',
       email: map['email'] ?? '',
-      displayName: map['displayName'],
+      displayName: map['displayName'] ?? map['display_name'],
       role: map['role'] ?? 'user',
-      createdAt:
-          DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
-      lastLoginAt: map['lastLoginAt'] != null
-          ? DateTime.parse(map['lastLoginAt'])
-          : null,
-      isAdmin: map['isAdmin'] ?? false,
+      createdAt: parseDate(map['createdAt'] ?? map['created_at']) ?? DateTime.now(),
+      lastLoginAt: parseDate(map['lastLoginAt'] ?? map['last_login_at']),
+      isAdmin: map['isAdmin'] ?? map['is_admin'] ?? false,
     );
   }
 
