@@ -58,13 +58,36 @@ final productsProvider =
         });
       }
       
-      // Sort products: Top sellers first, then by SKU
+      // Sort products: By total stock quantity (highest first), then top sellers, then by SKU
       products.sort((a, b) {
-        // First sort by isTopSeller (true comes before false)
+        // Calculate total stock for both products
+        int getTotalStock(Product product) {
+          if (product.warehouseStock == null || product.warehouseStock!.isEmpty) {
+            return 0;
+          }
+          int total = 0;
+          for (var entry in product.warehouseStock!.entries) {
+            final available = entry.value.available;
+            final reserved = entry.value.reserved;
+            total += (available - reserved);
+          }
+          return total;
+        }
+
+        final totalStockA = getTotalStock(a);
+        final totalStockB = getTotalStock(b);
+
+        // First sort by total stock (highest first)
+        if (totalStockA != totalStockB) {
+          return totalStockB.compareTo(totalStockA);
+        }
+
+        // Then sort by isTopSeller (true comes before false)
         if (a.isTopSeller != b.isTopSeller) {
           return a.isTopSeller ? -1 : 1;
         }
-        // Then sort by SKU
+
+        // Finally sort by SKU
         return (a.sku ?? '').compareTo(b.sku ?? '');
       });
       return products;
@@ -111,6 +134,7 @@ class ProductQuantitiesNotifier extends StateNotifier<Map<String, int>> {
 // Search provider
 final searchQueryProvider = StateProvider<String>((ref) => '');
 final selectedCategoryProvider = StateProvider<String?>((ref) => null);
+final selectedWarehouseProvider = StateProvider<String?>((ref) => null);
 
 final searchResultsProvider = Provider<List<Product>>((ref) {
   final query = ref.watch(searchQueryProvider).toLowerCase().trim();
@@ -162,6 +186,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
   TabController? _tabController;
   List<String> _productTypes = ['All'];
   String _selectedProductType = 'All';
+  String? _selectedWarehouse; // Warehouse filter state
   
   @override
   void initState() {
@@ -257,6 +282,23 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
     return products.where((product) {
       final sku = product.sku ?? product.model ?? '';
       return sku.toUpperCase().startsWith(line);
+    }).toList();
+  }
+
+  // Filter products by warehouse availability
+  List<Product> _filterByWarehouse(List<Product> products, String? warehouse) {
+    if (warehouse == null) return products;
+    return products.where((product) {
+      // Check if product has stock in the selected warehouse
+      if (product.warehouseStock == null || product.warehouseStock!.isEmpty) {
+        return false; // No stock data means not available
+      }
+      final warehouseStock = product.warehouseStock![warehouse];
+      if (warehouseStock == null) return false;
+
+      // Check if there's available stock (available - reserved > 0)
+      final availableStock = warehouseStock.available - warehouseStock.reserved;
+      return availableStock > 0;
     }).toList();
   }
 
@@ -551,7 +593,137 @@ Future<void> _handleExcelUpload() async {
                     },
                   ),
                   const SizedBox(width: 8),
-                  
+
+                  // Warehouse Filter Dropdown
+                  Container(
+                    constraints: BoxConstraints(
+                      maxWidth: ResponsiveHelper.getValue(
+                        context,
+                        mobile: 130,
+                        tablet: 160,
+                        desktop: 190,
+                      ),
+                    ),
+                    child: PopupMenuButton<String?>(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: _selectedWarehouse != null
+                              ? theme.primaryColor.withOpacity(0.2)
+                              : theme.dividerColor.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: _selectedWarehouse != null
+                                ? theme.primaryColor
+                                : theme.dividerColor,
+                            width: _selectedWarehouse != null ? 2 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.warehouse,
+                              size: 18,
+                              color: _selectedWarehouse != null
+                                  ? theme.primaryColor
+                                  : null,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                _selectedWarehouse ?? 'Warehouse',
+                                style: TextStyle(
+                                  fontSize: ResponsiveHelper.isMobile(context) ? 13 : 14,
+                                  fontWeight: _selectedWarehouse != null
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const Icon(Icons.arrow_drop_down, size: 18),
+                          ],
+                        ),
+                      ),
+                      onSelected: (value) {
+                        setState(() {
+                          _selectedWarehouse = value;
+                          final screenWidth = MediaQuery.of(context).size.width;
+                          _visibleItemCount = screenWidth > 1200 ? 24 : 12;
+                        });
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem<String?>(
+                          value: null,
+                          child: Text('All Warehouses'),
+                        ),
+                        const PopupMenuDivider(),
+                        const PopupMenuItem<String>(
+                          value: 'KR',
+                          child: Row(
+                            children: [
+                              Icon(Icons.flag, size: 16),
+                              SizedBox(width: 8),
+                              Text('KR - Korea'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'VN',
+                          child: Row(
+                            children: [
+                              Icon(Icons.flag, size: 16),
+                              SizedBox(width: 8),
+                              Text('VN - Vietnam'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'CN',
+                          child: Row(
+                            children: [
+                              Icon(Icons.flag, size: 16),
+                              SizedBox(width: 8),
+                              Text('CN - China'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'TX',
+                          child: Row(
+                            children: [
+                              Icon(Icons.flag, size: 16),
+                              SizedBox(width: 8),
+                              Text('TX - Texas'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'CUN',
+                          child: Row(
+                            children: [
+                              Icon(Icons.flag, size: 16),
+                              SizedBox(width: 8),
+                              Text('CUN - Cancun'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'CDMX',
+                          child: Row(
+                            children: [
+                              Icon(Icons.flag, size: 16),
+                              SizedBox(width: 8),
+                              Text('CDMX - Mexico City'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
                   // Product Line Dropdown
                   productsAsync.when(
                     data: (allProducts) {
@@ -665,7 +837,7 @@ Future<void> _handleExcelUpload() async {
                   const Spacer(),
                   
                   // Clear/Reset button
-                  if (selectedProductLine != null || _searchController.text.isNotEmpty)
+                  if (selectedProductLine != null || _selectedWarehouse != null || _searchController.text.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: IconButton(
@@ -677,6 +849,7 @@ Future<void> _handleExcelUpload() async {
                         onPressed: () {
                           setState(() {
                             selectedProductLine = null;
+                            _selectedWarehouse = null;
                             _isSearching = false;
                           });
                           _searchController.clear();
@@ -737,10 +910,15 @@ Future<void> _handleExcelUpload() async {
                     data: (products) {
                       // Apply category filter
                       List<Product> filteredProducts = _filterByProductType(products, _selectedProductType);
-                      
+
                       // Then apply product line filter if selected
                       if (selectedProductLine != null) {
                         filteredProducts = _filterByProductLine(filteredProducts, selectedProductLine);
+                      }
+
+                      // Apply warehouse filter if selected
+                      if (_selectedWarehouse != null) {
+                        filteredProducts = _filterByWarehouse(filteredProducts, _selectedWarehouse);
                       }
                       
                       if (filteredProducts.isEmpty) {
@@ -772,6 +950,7 @@ Future<void> _handleExcelUpload() async {
                                 onPressed: () {
                                   setState(() {
                                     selectedProductLine = null;
+                                    _selectedWarehouse = null;
                                     final screenWidth = MediaQuery.of(context).size.width;
                                     _visibleItemCount = screenWidth > 1200 ? 24 : 12;
                                   });
@@ -1440,6 +1619,18 @@ class ProductCard extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      // Spare parts icon for spare parts products
+                      if (product.category.toLowerCase().contains('spare') ||
+                          product.name.toLowerCase().contains('spare') ||
+                          product.productType?.toLowerCase().contains('spare') == true)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4),
+                          child: Icon(
+                            Icons.build,
+                            color: theme.primaryColor,
+                            size: 16,
+                          ),
+                        ),
                       if (product.isTopSeller)
                         const Padding(
                           padding: EdgeInsets.only(left: 4),
@@ -1493,6 +1684,50 @@ class ProductCard extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 6),
+
+                  // Warehouse Availability Badges
+                  if (product.warehouseStock != null && product.warehouseStock!.isNotEmpty)
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 2,
+                      children: product.warehouseStock!.entries.map((entry) {
+                        final warehouse = entry.key;
+                        final stock = entry.value;
+                        final availableStock = stock.available - stock.reserved;
+
+                        Color badgeColor;
+                        if (availableStock > 50) {
+                          badgeColor = Colors.green;
+                        } else if (availableStock > 10) {
+                          badgeColor = Colors.orange;
+                        } else if (availableStock > 0) {
+                          badgeColor = Colors.red;
+                        } else {
+                          badgeColor = Colors.grey;
+                        }
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: badgeColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: badgeColor.withOpacity(0.3),
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Text(
+                            '$warehouse: $availableStock',
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: badgeColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   const SizedBox(height: 8),
                   // Price and Quantity Selector
                   if (isMobile || isVertical)

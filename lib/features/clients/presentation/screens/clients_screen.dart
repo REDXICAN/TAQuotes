@@ -16,44 +16,42 @@ import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../cart/presentation/screens/cart_screen.dart'; // For cartClientProvider
 
-// Clients provider using Realtime Database
-final clientsProvider = FutureProvider<List<Client>>((ref) async {
+// Clients provider using StreamProvider for real-time updates
+final clientsProvider = StreamProvider<List<Client>>((ref) {
   // Clients require authentication
   final user = ref.watch(currentUserProvider);
   if (user == null) {
-    return [];
+    return Stream.value([]);
   }
-  
-  final dbService = ref.watch(databaseServiceProvider);
-  
+
   try {
-    // Get clients as a one-time read
     final database = FirebaseDatabase.instance;
-    final snapshot = await database.ref('clients/${user.uid}').get();
-    
-    if (!snapshot.exists || snapshot.value == null) {
-      return [];
-    }
-    
-    final data = Map<String, dynamic>.from(snapshot.value as Map);
-    final List<Client> clients = [];
-    
-    data.forEach((key, value) {
-      final clientMap = Map<String, dynamic>.from(value);
-      clientMap['id'] = key;
-      try {
-        clients.add(Client.fromMap(clientMap));
-      } catch (e) {
-        AppLogger.error('Error parsing client $key', error: e);
+
+    // Return a stream that listens to clients changes
+    return database.ref('clients/${user.uid}').onValue.map((event) {
+      final List<Client> clients = [];
+
+      if (event.snapshot.exists && event.snapshot.value != null) {
+        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+
+        data.forEach((key, value) {
+          final clientMap = Map<String, dynamic>.from(value);
+          clientMap['id'] = key;
+          try {
+            clients.add(Client.fromMap(clientMap));
+          } catch (e) {
+            AppLogger.error('Error parsing client $key', error: e);
+          }
+        });
       }
+
+      // Sort by company name
+      clients.sort((a, b) => a.company.compareTo(b.company));
+      return clients;
     });
-    
-    // Sort by company name
-    clients.sort((a, b) => a.company.compareTo(b.company));
-    return clients;
   } catch (e) {
-    AppLogger.error('Error loading clients', error: e);
-    return [];
+    AppLogger.error('Error streaming clients', error: e);
+    return Stream.value([]);
   }
 });
 
@@ -1794,8 +1792,8 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
 
       // Get clients data
       final clientsAsync = ref.read(clientsProvider);
-      final clients = clientsAsync.value ?? [];
-      
+      final clients = clientsAsync.valueOrNull ?? [];
+
       if (clients.isEmpty) {
         throw Exception('No clients to export');
       }

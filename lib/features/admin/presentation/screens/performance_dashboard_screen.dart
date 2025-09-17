@@ -439,7 +439,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 16,
             crossAxisSpacing: 16,
-            childAspectRatio: isMobile ? 1.5 : 1.8,
+            childAspectRatio: isMobile ? 1.2 : 1.5,
             children: [
               _buildKPICard(
                 title: 'Total Revenue',
@@ -821,13 +821,19 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.disabledColor,
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: color,
+          Flexible(
+            child: Text(
+              value,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -861,10 +867,14 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
             children: [
               Icon(icon, color: color),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+              Flexible(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -889,12 +899,16 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       user.email,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.disabledColor,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -908,6 +922,8 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
               color: color,
               fontWeight: FontWeight.bold,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -958,12 +974,16 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           user.email,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.disabledColor,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         if (user.lastActivity != null)
                           Text(
@@ -1039,6 +1059,8 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
             color: color,
             fontWeight: FontWeight.bold,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 4),
         Text(
@@ -1046,6 +1068,8 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.disabledColor,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
@@ -1201,9 +1225,15 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
                 size: 20,
               ),
             ),
-            title: Text('${quote.quoteNumber ?? 'Quote'} - ${user.displayName}'),
+            title: Text(
+              '${quote.quoteNumber ?? 'Quote'} - ${user.displayName}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             subtitle: Text(
               '${quote.client?.company ?? 'Unknown Client'} • ${_formatDate(quote.createdAt)}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             trailing: Text(
               NumberFormat.currency(symbol: '\$').format(quote.total),

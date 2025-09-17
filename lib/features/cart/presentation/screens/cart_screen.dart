@@ -106,6 +106,9 @@ final cartProvider = StreamProvider.autoDispose<List<CartItem>>((ref) {
               : item['created_at'] != null
                   ? DateTime.fromMillisecondsSinceEpoch(item['created_at'])
                   : DateTime.now(),
+          discount: (item['discount'] ?? 0).toDouble(),
+          note: item['note'],
+          sequenceNumber: item['sequence_number'] ?? item['sequenceNumber'],
         ));
       }
 
@@ -660,16 +663,34 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                     ),
                                   ),
                                   Expanded(
-                                    child: Text(
-                                      product?.sku ?? product?.model ?? 'Unknown Product',
-                                      style: TextStyle(
-                                        fontSize: ResponsiveHelper.getValue(
-                                          context,
-                                          mobile: 14,
-                                          tablet: 16,
-                                          desktop: 16,
+                                    child: Row(
+                                      children: [
+                                        // Spare parts icon
+                                        if (product?.category.toLowerCase().contains('spare') == true ||
+                                            item.productName.toLowerCase().contains('spare') ||
+                                            (product?.productType?.toLowerCase().contains('spare') == true))
+                                          Padding(
+                                            padding: const EdgeInsets.only(right: 6),
+                                            child: Icon(
+                                              Icons.build,
+                                              color: theme.primaryColor,
+                                              size: 16,
+                                            ),
+                                          ),
+                                        Expanded(
+                                          child: Text(
+                                            product?.sku ?? product?.model ?? 'Unknown Product',
+                                            style: TextStyle(
+                                              fontSize: ResponsiveHelper.getValue(
+                                                context,
+                                                mobile: 14,
+                                                tablet: 16,
+                                                desktop: 16,
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -677,6 +698,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  // Show original price, with strikethrough if discounted
                                   Text(
                                     '${_formatPrice(product?.price ?? 0)} per unit',
                                     style: TextStyle(
@@ -686,13 +708,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                         tablet: 13,
                                         desktop: 13,
                                       ),
-                                      color: theme.textTheme.bodySmall?.color,
+                                      color: item.discount > 0 ? Colors.grey : theme.textTheme.bodySmall?.color,
+                                      decoration: item.discount > 0 ? TextDecoration.lineThrough : null,
                                     ),
                                   ),
                                   // Show discount if applied
-                                  if (item.discount > 0)
+                                  if (item.discount > 0) ...[
                                     Text(
-                                      'Discount: ${item.discount.toStringAsFixed(0)}%',
+                                      'Discount: ${item.discount.toStringAsFixed(1)}% - Save ${_formatPrice(((product?.price ?? 0) * item.quantity) * (item.discount / 100))}',
                                       style: TextStyle(
                                         fontSize: ResponsiveHelper.getValue(
                                           context,
@@ -704,6 +727,20 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
+                                    Text(
+                                      'Discounted: ${_formatPrice(((product?.price ?? 0) - ((product?.price ?? 0) * (item.discount / 100))))} per unit',
+                                      style: TextStyle(
+                                        fontSize: ResponsiveHelper.getValue(
+                                          context,
+                                          mobile: 12,
+                                          tablet: 13,
+                                          desktop: 13,
+                                        ),
+                                        color: Colors.green,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
                                   Text(
                                     'Total: ${_formatPrice(_calculateItemTotal(item, product))}',
                                     style: TextStyle(
@@ -714,6 +751,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                         desktop: 14,
                                       ),
                                       fontWeight: FontWeight.bold,
+                                      color: item.discount > 0 ? Colors.green : null,
                                     ),
                                   ),
                                   // Show note if exists
@@ -1106,7 +1144,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            '  Discount (${item.discount.toStringAsFixed(1)}%)',
+                                            '  Discount (${item.discount.toStringAsFixed(1)}%) - Save ${_formatPrice(itemDiscount)}',
                                             style: TextStyle(
                                               fontSize: 11,
                                               color: Colors.green[700],

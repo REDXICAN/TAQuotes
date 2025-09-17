@@ -91,12 +91,12 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
       }
     }
 
-    // Use mock data if no real data is available
+    // Use only real Firebase data
     setState(() {
-      _totalProducts = products.isNotEmpty ? products.length : 835; // Mock: 835 products
-      _totalClients = clients.isNotEmpty ? clients.length : 127; // Mock: 127 clients
-      _totalQuotes = quotes.isNotEmpty ? quotes.length : 342; // Mock: 342 quotes
-      _totalRevenue = revenue > 0 ? revenue : 1247892.50; // Mock: $1.2M revenue
+      _totalProducts = products.length;
+      _totalClients = clients.length;
+      _totalQuotes = quotes.length;
+      _totalRevenue = revenue;
     });
   }
 
@@ -107,41 +107,10 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
         .toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-    // Use mock data if no real quotes
-    if (quotes.isEmpty) {
-      final mockQuotes = <Quote>[];
-      final statuses = ['draft', 'sent', 'accepted', 'rejected', 'sent'];
-      final companies = ['ABC Restaurant', 'XYZ Hotel', 'Quick Cafe', 'Prime Diner', 'Metro Bar'];
-      
-      final users = ['John Smith', 'Maria Garcia', 'James Wilson', 'Sarah Johnson', 'Mike Davis'];
-      for (int i = 0; i < 5; i++) {
-        mockQuotes.add(Quote(
-          id: 'mock_$i',
-          quoteNumber: 'Q-2025-${1000 + i}',
-          clientId: 'mock_client_$i',
-          clientName: companies[i],
-          status: statuses[i],
-          items: [],
-          subtotal: 5000.0 + (i * 1500),
-          discountAmount: 0,
-          discountType: 'fixed',
-          discountValue: 0,
-          tax: ((5000.0 + (i * 1500)) * 0.08),
-          total: 5000.0 + (i * 1500),
-          totalAmount: 5000.0 + (i * 1500),
-          createdAt: DateTime.now().subtract(Duration(days: i * 2)),
-          createdBy: users[i],
-          includeCommentInEmail: false,
-        ));
-      }
-      setState(() {
-        _recentQuotes = mockQuotes;
-      });
-    } else {
-      setState(() {
-        _recentQuotes = quotes.take(10).toList();
-      });
-    }
+    // Use only real quotes from Firebase
+    setState(() {
+      _recentQuotes = quotes.take(10).toList();
+    });
   }
 
   Future<void> _loadUsers() async {
@@ -210,22 +179,8 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
       monthlyQ[monthKey] = count;
     }
 
-    // Use mock data if no real data available
-    if (categoryRev.isEmpty) {
-      categoryRev['Refrigeration'] = 452890.00;
-      categoryRev['Freezers'] = 389450.00;
-      categoryRev['Display Cases'] = 278340.00;
-      categoryRev['Ice Machines'] = 127212.50;
-    }
-    
-    if (monthlyQ.values.every((v) => v == 0)) {
-      final mockMonthly = [42, 38, 51, 67, 72, 58];
-      int idx = 0;
-      for (final key in monthlyQ.keys) {
-        monthlyQ[key] = mockMonthly[idx % mockMonthly.length];
-        idx++;
-      }
-    }
+    // Use only real data from Firebase
+    // If no data available, charts will show empty state
 
     setState(() {
       _categoryRevenue = categoryRev;
@@ -274,6 +229,8 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
     switch (_selectedView) {
       case 'dashboard':
         return 'Dashboard Overview';
+      case 'pending_users':
+        return 'Pending User Approvals';
       case 'analytics':
         return 'Analytics';
       case 'settings':
@@ -291,6 +248,8 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
     switch (_selectedView) {
       case 'dashboard':
         return _buildDashboard();
+      case 'pending_users':
+        return _buildPendingUsers();
       case 'analytics':
         return _buildAnalytics();
       case 'settings':
@@ -319,7 +278,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: ResponsiveHelper.isMobile(context) ? 2 : 4,
+            crossAxisCount: ResponsiveHelper.isMobile(context) ? 2 : 3,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
             childAspectRatio: 1.2,
@@ -337,6 +296,13 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                 subtitle: 'Manage users',
                 color: Colors.green,
                 onTap: () => context.go('/admin/users'),
+              ),
+              _buildMenuCard(
+                icon: Icons.pending_actions,
+                title: 'Pending Users',
+                subtitle: 'Review approvals',
+                color: Colors.amber,
+                onTap: () => setState(() => _selectedView = 'pending_users'),
               ),
               _buildMenuCard(
                 icon: Icons.analytics,
@@ -1167,11 +1133,297 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 24),
+
+          // Demo Data Management
+          const Text(
+            'Demo Data Management',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.build),
+              title: const Text('Populate Demo Data'),
+              subtitle: const Text('Add 10 projects and demo quotes for testing'),
+              trailing: ElevatedButton(
+                onPressed: _populateDemoData,
+                child: const Text('Populate'),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.folder_special),
+              title: const Text('View Demo Projects'),
+              subtitle: const Text('10 realistic project names for quote organization'),
+              trailing: IconButton(
+                icon: const Icon(Icons.visibility),
+                onPressed: _showDemoProjects,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
-  
+
+  Widget _buildPendingUsers() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Pending User Approvals',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Review and approve or reject user registration requests',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Pending users table
+          Consumer(
+            builder: (context, ref, child) {
+              final pendingUsersAsync = ref.watch(pendingUserApprovalsProvider);
+
+              return pendingUsersAsync.when(
+                data: (pendingUsers) {
+                  if (pendingUsers.isEmpty) {
+                    return const Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.check_circle_outline,
+                                size: 64,
+                                color: Colors.green,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'No Pending Approvals',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'All user registration requests have been processed.',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Card(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        columns: const [
+                          DataColumn(label: Text('Name')),
+                          DataColumn(label: Text('Email')),
+                          DataColumn(label: Text('Requested Role')),
+                          DataColumn(label: Text('Company')),
+                          DataColumn(label: Text('Phone')),
+                          DataColumn(label: Text('Requested At')),
+                          DataColumn(label: Text('Actions')),
+                        ],
+                        rows: pendingUsers.map((request) {
+                          return DataRow(cells: [
+                            DataCell(Text(request['name'] ?? 'N/A')),
+                            DataCell(Text(request['email'] ?? 'N/A')),
+                            DataCell(_buildRoleChip(request['requestedRole'] ?? 'distributor')),
+                            DataCell(Text(request['company'] ?? 'N/A')),
+                            DataCell(Text(request['phone'] ?? 'N/A')),
+                            DataCell(Text(_formatDate(request['requestedAt']))),
+                            DataCell(
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ElevatedButton.icon(
+                                    onPressed: () => _approveUser(request),
+                                    icon: const Icon(Icons.check, size: 16),
+                                    label: const Text('Approve'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      foregroundColor: Colors.white,
+                                      minimumSize: const Size(100, 36),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ElevatedButton.icon(
+                                    onPressed: () => _rejectUser(request),
+                                    icon: const Icon(Icons.close, size: 16),
+                                    label: const Text('Reject'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                      foregroundColor: Colors.white,
+                                      minimumSize: const Size(100, 36),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ]);
+                        }).toList(),
+                      ),
+                    ),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stack) => Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: Colors.red,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Error Loading Pending Users',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Failed to load pending user approvals: $error',
+                            style: const TextStyle(color: Colors.grey),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: () => ref.refresh(pendingUserApprovalsProvider),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(String? dateString) {
+    if (dateString == null) return 'N/A';
+    try {
+      final date = DateTime.parse(dateString);
+      return DateFormat('MM/dd/yyyy HH:mm').format(date);
+    } catch (e) {
+      return 'Invalid Date';
+    }
+  }
+
+  Future<void> _approveUser(Map<String, dynamic> request) async {
+    try {
+      final user = ref.read(currentUserProvider);
+      if (user == null) {
+        _showError('You must be logged in to approve users');
+        return;
+      }
+
+      final dbService = ref.read(databaseServiceProvider);
+      await dbService.approveUserRequest(
+        requestId: request['id'],
+        approvedBy: user.uid,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('User ${request['name']} approved successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      _showError('Failed to approve user: $e');
+    }
+  }
+
+  Future<void> _rejectUser(Map<String, dynamic> request) async {
+    try {
+      // Show confirmation dialog
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Reject User'),
+          content: Text('Are you sure you want to reject ${request['name']}\'s registration request?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Reject'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true) return;
+
+      final user = ref.read(currentUserProvider);
+      if (user == null) {
+        _showError('You must be logged in to reject users');
+        return;
+      }
+
+      final dbService = ref.read(databaseServiceProvider);
+      await dbService.rejectUserRequest(
+        requestId: request['id'],
+        rejectedBy: user.uid,
+        reason: 'Registration request rejected by administrator',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('User ${request['name']} rejected'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      _showError('Failed to reject user: $e');
+    }
+  }
+
   Widget _buildCategoryProductsTable() {
     final products = CacheManager.getProducts()
         .where((p) => p.category == _selectedCategory)
@@ -1213,6 +1465,151 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
             DataCell(Text(product.stock.toString())),
           ]);
         }).toList(),
+      ),
+    );
+  }
+
+  // Demo data functionality
+  final List<String> _demoProjects = [
+    'Metro Plaza Restaurant Renovation',
+    'Sunrise Hotel Kitchen Upgrade',
+    'QuickServe Fast Food Chain Expansion',
+    'Golden Lotus Asian Cuisine Installation',
+    'Harbor View Conference Center Setup',
+    'Downtown Deli Equipment Replacement',
+    'Seaside Resort Banquet Hall Project',
+    'University Campus Cafeteria Modernization',
+    'Sports Stadium Concession Stand Upgrade',
+    'Shopping Mall Food Court Development',
+  ];
+
+  Future<void> _populateDemoData() async {
+    try {
+      setState(() => _isLoading = true);
+
+      final dbService = ref.read(databaseServiceProvider);
+
+      // Get real clients from Firebase for the quotes
+      final clientsData = CacheManager.getClients();
+      if (clientsData.isEmpty) {
+        _showError('No clients found. Please add clients first before populating demo quotes.');
+        return;
+      }
+
+      // Get some products for the quotes
+      final productsData = CacheManager.getProducts();
+      if (productsData.isEmpty) {
+        _showError('No products found. Cannot create demo quotes without products.');
+        return;
+      }
+
+      // Create 10 demo quotes with real clients, multiple products, and attach to projects
+      final statuses = ['draft', 'sent', 'accepted', 'rejected', 'sent', 'accepted', 'draft', 'sent', 'accepted', 'draft'];
+
+      for (int i = 0; i < 10; i++) {
+        final client = clientsData[i % clientsData.length];
+        final project = _demoProjects[i];
+
+        // Select 2-4 products for each quote
+        final numProducts = 2 + (i % 3); // 2, 3, or 4 products
+        final selectedProducts = <Map<String, dynamic>>[];
+
+        for (int j = 0; j < numProducts; j++) {
+          final product = productsData[(i * 3 + j) % productsData.length];
+          selectedProducts.add({
+            'productId': product['id'],
+            'quantity': 1 + (j % 3), // 1, 2, or 3 quantity
+            'price': product['price'] ?? 0.0,
+            'total': (product['price'] ?? 0.0) * (1 + (j % 3)),
+          });
+        }
+
+        final subtotal = selectedProducts.fold<double>(0.0, (sum, item) => sum + (item['total'] ?? 0.0));
+        final tax = subtotal * 0.08; // 8% tax
+        final total = subtotal + tax;
+
+        // Create the quote data
+        final quoteData = {
+          'quoteNumber': 'Q-2025-${5000 + i}',
+          'clientId': client['id'],
+          'clientName': client['company'] ?? 'Unknown Client',
+          'projectName': project,
+          'status': statuses[i],
+          'items': selectedProducts,
+          'subtotal': subtotal,
+          'tax': tax,
+          'total': total,
+          'totalAmount': total,
+          'discountAmount': 0.0,
+          'discountType': 'fixed',
+          'discountValue': 0.0,
+          'comments': 'Demo quote for project: $project',
+          'includeCommentInEmail': true,
+          'createdAt': DateTime.now().subtract(Duration(days: i * 3)).toIso8601String(),
+          'createdBy': 'Demo System',
+        };
+
+        // Add quote to Firebase
+        await dbService.createQuote(quoteData);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Demo data populated successfully! 10 quotes with projects created.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+      // Refresh the dashboard data
+      await _loadDashboardData();
+
+    } catch (e) {
+      _showError('Failed to populate demo data: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showDemoProjects() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Demo Projects'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: ListView.builder(
+            itemCount: _demoProjects.length,
+            itemBuilder: (context, index) {
+              return Card(
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.blue,
+                    child: Text('${index + 1}'),
+                  ),
+                  title: Text(_demoProjects[index]),
+                  subtitle: Text('Project ID: PROJ-${2025}-${100 + index}'),
+                  trailing: Chip(
+                    label: const Text('ACTIVE'),
+                    backgroundColor: Colors.green.withOpacity(0.2),
+                    labelStyle: const TextStyle(
+                      color: Colors.green,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
       ),
     );
   }

@@ -10,6 +10,7 @@
     },
     
     "clients": {
+      ".read": "auth != null && auth.token.email == 'andres@turboairmexico.com'",
       "$uid": {
         ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
         ".write": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')"
@@ -17,6 +18,7 @@
     },
     
     "quotes": {
+      ".read": "auth != null && auth.token.email == 'andres@turboairmexico.com'",
       "$uid": {
         ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
         ".write": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
@@ -54,6 +56,15 @@
     },
     
     "user_profiles": {
+      ".read": "auth != null && auth.token.email == 'andres@turboairmexico.com'",
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+    
+    "users": {
+      ".read": "auth != null && auth.token.email == 'andres@turboairmexico.com'",
       "$uid": {
         ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
         ".write": "auth != null && auth.uid == $uid"

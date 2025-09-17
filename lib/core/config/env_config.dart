@@ -64,9 +64,9 @@ class EnvConfig {
   static String get firebaseMessagingSenderId => _getEnv('FIREBASE_MESSAGING_SENDER_ID', '118954210086');
   static String get firebaseMeasurementId => _getEnv('FIREBASE_MEASUREMENT_ID');
   
-  // Email Configuration
-  static String get emailSenderAddress => _getEnv('EMAIL_SENDER_ADDRESS', 'turboairquotes@gmail.com');
-  static String get emailAppPassword => _getEnv('EMAIL_APP_PASSWORD', '');
+  // Email Configuration - NEVER HARDCODE CREDENTIALS
+  static String get emailSenderAddress => _getEnv('EMAIL_SENDER_ADDRESS', ''); // NO DEFAULT EMAIL
+  static String get emailAppPassword => _getEnv('EMAIL_APP_PASSWORD', ''); // NEVER ADD DEFAULT PASSWORD
   static String get emailSenderName => _getEnv('EMAIL_SENDER_NAME', 'TurboAir Quote System');
   static String get emailAppUrl => _getEnv('EMAIL_APP_URL', 'https://taquotes.web.app');
   

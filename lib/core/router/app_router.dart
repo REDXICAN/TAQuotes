@@ -175,32 +175,42 @@ class MainNavigationShell extends ConsumerStatefulWidget {
 }
 
 class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
-  final List<String> _routes = [
-    '/',
-    '/clients',
-    '/products',
-    '/cart',
-    '/quotes',
-    '/stock',
-    '/spareparts',
-    '/profile',
-  ];
+  List<String> _getRoutes(bool isAdmin) {
+    if (isAdmin) {
+      return [
+        '/admin',
+        '/',
+        '/clients',
+        '/products',
+        '/cart',
+        '/quotes',
+        '/stock',
+        '/spareparts',
+        '/profile',
+      ];
+    } else {
+      return [
+        '/',
+        '/clients',
+        '/products',
+        '/cart',
+        '/quotes',
+        '/stock',
+        '/spareparts',
+        '/profile',
+      ];
+    }
+  }
 
-  int _calculateSelectedIndex(String location) {
-    if (location == '/') return 0;
+  int _calculateSelectedIndex(String location, List<String> routes) {
+    if (location == '/') {
+      return routes.indexOf('/');
+    }
 
-    for (int i = 0; i < _routes.length; i++) {
-      if (location.startsWith(_routes[i]) && _routes[i] != '/') {
+    for (int i = 0; i < routes.length; i++) {
+      if (location.startsWith(routes[i]) && routes[i] != '/') {
         return i;
       }
-    }
-
-    if (location.startsWith('/admin')) {
-      return _routes.length;
-    }
-
-    if (location.startsWith('/spareparts')) {
-      return 6; // Index for spare parts
     }
 
     return 0;
@@ -223,9 +233,9 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
       error: (_, __) => 0,
     );
 
-    // Always include admin route - let the admin screens handle access control
-    final routes = [..._routes, '/admin'];
-    final selectedIndex = _calculateSelectedIndex(currentLocation);
+    // Get routes based on admin status
+    final routes = _getRoutes(isAdmin);
+    final selectedIndex = _calculateSelectedIndex(currentLocation, routes);
     
     // Check if we should show navigation rail for larger screens
     // Use navigation rail for tablets and desktop, bottom nav for phones
@@ -249,62 +259,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                   : NavigationRailLabelType.all,
               extended: ResponsiveHelper.isLargeDesktop(context),
               minWidth: ResponsiveHelper.isTablet(context) ? 56 : 72,
-              destinations: [
-                const NavigationRailDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home),
-                  label: Text('Home'),
-                ),
-                const NavigationRailDestination(
-                  icon: Icon(Icons.people_outline),
-                  selectedIcon: Icon(Icons.people),
-                  label: Text('Clients'),
-                ),
-                const NavigationRailDestination(
-                  icon: Icon(Icons.inventory_2_outlined),
-                  selectedIcon: Icon(Icons.inventory_2),
-                  label: Text('Products'),
-                ),
-                NavigationRailDestination(
-                  icon: Badge(
-                    label: cartItemCount > 0 ? Text('$cartItemCount') : null,
-                    isLabelVisible: cartItemCount > 0,
-                    child: const Icon(Icons.shopping_cart_outlined),
-                  ),
-                  selectedIcon: Badge(
-                    label: cartItemCount > 0 ? Text('$cartItemCount') : null,
-                    isLabelVisible: cartItemCount > 0,
-                    child: const Icon(Icons.shopping_cart),
-                  ),
-                  label: const Text('Cart'),
-                ),
-                const NavigationRailDestination(
-                  icon: Icon(Icons.receipt_long_outlined),
-                  selectedIcon: Icon(Icons.receipt_long),
-                  label: Text('Quotes'),
-                ),
-                const NavigationRailDestination(
-                  icon: Icon(Icons.warehouse_outlined),
-                  selectedIcon: Icon(Icons.warehouse),
-                  label: Text('Stock'),
-                ),
-                const NavigationRailDestination(
-                  icon: Icon(Icons.build_outlined),
-                  selectedIcon: Icon(Icons.build),
-                  label: Text('Spare Parts'),
-                ),
-                const NavigationRailDestination(
-                  icon: Icon(Icons.person_outline),
-                  selectedIcon: Icon(Icons.person),
-                  label: Text('Profile'),
-                ),
-                // Always show admin icon - let the screen handle access control
-                const NavigationRailDestination(
-                  icon: Icon(Icons.admin_panel_settings_outlined),
-                  selectedIcon: Icon(Icons.admin_panel_settings),
-                  label: Text('Admin'),
-                ),
-              ],
+              destinations: _buildNavigationRailDestinations(routes, cartItemCount),
             ),
             const VerticalDivider(thickness: 1, width: 1),
             Expanded(
@@ -329,23 +284,128 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
         labelBehavior: ResponsiveHelper.useCompactLayout(context)
             ? NavigationDestinationLabelBehavior.alwaysHide
             : NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: [
-          const NavigationDestination(
+        destinations: _buildNavigationDestinations(routes, cartItemCount),
+      ),
+    );
+  }
+
+  List<NavigationRailDestination> _buildNavigationRailDestinations(List<String> routes, int cartItemCount) {
+    final destinations = <NavigationRailDestination>[];
+
+    for (final route in routes) {
+      switch (route) {
+        case '/admin':
+          destinations.add(const NavigationRailDestination(
+            icon: Icon(Icons.admin_panel_settings_outlined),
+            selectedIcon: Icon(Icons.admin_panel_settings),
+            label: Text('Admin'),
+          ));
+          break;
+        case '/':
+          destinations.add(const NavigationRailDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: Text('Home'),
+          ));
+          break;
+        case '/clients':
+          destinations.add(const NavigationRailDestination(
+            icon: Icon(Icons.people_outline),
+            selectedIcon: Icon(Icons.people),
+            label: Text('Clients'),
+          ));
+          break;
+        case '/products':
+          destinations.add(const NavigationRailDestination(
+            icon: Icon(Icons.inventory_2_outlined),
+            selectedIcon: Icon(Icons.inventory_2),
+            label: Text('Products'),
+          ));
+          break;
+        case '/cart':
+          destinations.add(NavigationRailDestination(
+            icon: Badge(
+              label: cartItemCount > 0 ? Text('$cartItemCount') : null,
+              isLabelVisible: cartItemCount > 0,
+              child: const Icon(Icons.shopping_cart_outlined),
+            ),
+            selectedIcon: Badge(
+              label: cartItemCount > 0 ? Text('$cartItemCount') : null,
+              isLabelVisible: cartItemCount > 0,
+              child: const Icon(Icons.shopping_cart),
+            ),
+            label: const Text('Cart'),
+          ));
+          break;
+        case '/quotes':
+          destinations.add(const NavigationRailDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long),
+            label: Text('Quotes'),
+          ));
+          break;
+        case '/stock':
+          destinations.add(const NavigationRailDestination(
+            icon: Icon(Icons.warehouse_outlined),
+            selectedIcon: Icon(Icons.warehouse),
+            label: Text('Stock'),
+          ));
+          break;
+        case '/spareparts':
+          destinations.add(const NavigationRailDestination(
+            icon: Icon(Icons.build_outlined),
+            selectedIcon: Icon(Icons.build),
+            label: Text('Spare Parts'),
+          ));
+          break;
+        case '/profile':
+          destinations.add(const NavigationRailDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: Text('Profile'),
+          ));
+          break;
+      }
+    }
+
+    return destinations;
+  }
+
+  List<NavigationDestination> _buildNavigationDestinations(List<String> routes, int cartItemCount) {
+    final destinations = <NavigationDestination>[];
+
+    for (final route in routes) {
+      switch (route) {
+        case '/admin':
+          destinations.add(const NavigationDestination(
+            icon: Icon(Icons.admin_panel_settings_outlined),
+            selectedIcon: Icon(Icons.admin_panel_settings),
+            label: 'Admin',
+          ));
+          break;
+        case '/':
+          destinations.add(const NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
             label: 'Home',
-          ),
-          const NavigationDestination(
+          ));
+          break;
+        case '/clients':
+          destinations.add(const NavigationDestination(
             icon: Icon(Icons.people_outline),
             selectedIcon: Icon(Icons.people),
             label: 'Clients',
-          ),
-          const NavigationDestination(
+          ));
+          break;
+        case '/products':
+          destinations.add(const NavigationDestination(
             icon: Icon(Icons.inventory_2_outlined),
             selectedIcon: Icon(Icons.inventory_2),
             label: 'Products',
-          ),
-          NavigationDestination(
+          ));
+          break;
+        case '/cart':
+          destinations.add(NavigationDestination(
             icon: Badge(
               label: cartItemCount > 0 ? Text('$cartItemCount') : null,
               isLabelVisible: cartItemCount > 0,
@@ -357,35 +417,39 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
               child: const Icon(Icons.shopping_cart),
             ),
             label: 'Cart',
-          ),
-          const NavigationDestination(
+          ));
+          break;
+        case '/quotes':
+          destinations.add(const NavigationDestination(
             icon: Icon(Icons.receipt_long_outlined),
             selectedIcon: Icon(Icons.receipt_long),
             label: 'Quotes',
-          ),
-          const NavigationDestination(
+          ));
+          break;
+        case '/stock':
+          destinations.add(const NavigationDestination(
             icon: Icon(Icons.warehouse_outlined),
             selectedIcon: Icon(Icons.warehouse),
             label: 'Stock',
-          ),
-          const NavigationDestination(
+          ));
+          break;
+        case '/spareparts':
+          destinations.add(const NavigationDestination(
             icon: Icon(Icons.build_outlined),
             selectedIcon: Icon(Icons.build),
             label: 'Spare Parts',
-          ),
-          const NavigationDestination(
+          ));
+          break;
+        case '/profile':
+          destinations.add(const NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
             label: 'Profile',
-          ),
-          // Always show admin icon - let the screen handle access control
-          const NavigationDestination(
-            icon: Icon(Icons.admin_panel_settings_outlined),
-            selectedIcon: Icon(Icons.admin_panel_settings),
-            label: 'Admin',
-          ),
-        ],
-      ),
-    );
+          ));
+          break;
+      }
+    }
+
+    return destinations;
   }
 }

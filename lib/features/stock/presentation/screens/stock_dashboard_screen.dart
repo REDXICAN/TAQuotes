@@ -52,73 +52,8 @@ final stockStatsProvider = StreamProvider<StockStatistics>((ref) {
   
   // Transform the products stream into stock statistics
   return productsStream.map((products) {
-      // Add mock warehouse stock data if products don't have it
-      final List<Product> productsWithStock = products.map<Product>((product) {
-    if (product.warehouseStock == null || product.warehouseStock!.isEmpty) {
-      // Generate mock warehouse stock for each product
-      final mockStock = <String, WarehouseStock>{};
-      final warehouses = ['KR', 'VN', 'CN', 'TX', 'CUN', 'CDMX'];
-      
-      for (final warehouse in warehouses) {
-        // Generate random but realistic stock numbers
-        final random = DateTime.now().millisecondsSinceEpoch % 100;
-        final baseStock = (random + warehouse.hashCode) % 500 + 50;
-        final reserved = (baseStock * 0.15).round(); // 15% reserved
-        
-        mockStock[warehouse] = WarehouseStock(
-          available: baseStock,
-          reserved: reserved,
-          lastUpdate: DateTime.now().subtract(Duration(hours: warehouse.hashCode % 24)),
-          minStock: 50,
-          location: warehouse,
-        );
-      }
-      
-      // Create a new product with the mock warehouse stock
-      return Product(
-        id: product.id,
-        model: product.model,
-        sku: product.sku,
-        displayName: product.displayName,
-        name: product.name,
-        description: product.description,
-        category: product.category,
-        subcategory: product.subcategory,
-        productType: product.productType,
-        price: product.price,
-        imageUrl: product.imageUrl,
-        imageUrl2: product.imageUrl2,
-        thumbnailUrl: product.thumbnailUrl,
-        pdfUrl: product.pdfUrl,
-        stock: product.stock,
-        dimensions: product.dimensions,
-        weight: product.weight,
-        voltage: product.voltage,
-        amperage: product.amperage,
-        phase: product.phase,
-        frequency: product.frequency,
-        plugType: product.plugType,
-        temperatureRange: product.temperatureRange,
-        temperatureRangeMetric: product.temperatureRangeMetric,
-        refrigerant: product.refrigerant,
-        compressor: product.compressor,
-        capacity: product.capacity,
-        doors: product.doors,
-        shelves: product.shelves,
-        dimensionsMetric: product.dimensionsMetric,
-        weightMetric: product.weightMetric,
-        features: product.features,
-        certifications: product.certifications,
-        createdAt: product.createdAt,
-        updatedAt: product.updatedAt,
-        isTopSeller: product.isTopSeller,
-        warehouseStock: mockStock,
-      );
-    }
-        return product;
-      }).toList();
-      
-      return StockStatistics.fromProducts(productsWithStock);
+      // Use only real warehouse stock data from Firebase
+      return StockStatistics.fromProducts(products);
   }).handleError((error) {
     // Return empty statistics on error
     return StockStatistics(
@@ -309,8 +244,11 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
   void _initializeControllers() {
     // Initialize all controllers immediately with default values
     for (final warehouse in _warehouseCapacity.keys) {
-      // Default utilization will be updated from stats when they load
-      _utilizationControllers[warehouse] = TextEditingController();
+      // Initialize with default utilization
+      _warehouseUtilization[warehouse] = 65.0; // Default utilization
+      _utilizationControllers[warehouse] = TextEditingController(
+        text: '65.0'
+      );
       _capacityControllers[warehouse] = TextEditingController(
         text: _warehouseCapacity[warehouse].toString()
       );
@@ -318,29 +256,42 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
   }
   
   Future<void> _loadSavedValues() async {
-    // Load saved values asynchronously without blocking
-    final prefs = await SharedPreferences.getInstance();
-    
-    // Update with saved values if they exist
-    if (mounted) {
+    try {
       setState(() {
-        for (final warehouse in _warehouseCapacity.keys) {
-          final utilizationKey = 'warehouse_utilization_$warehouse';
-          final capacityKey = 'warehouse_capacity_$warehouse';
-          
-          final savedUtilization = prefs.getDouble(utilizationKey);
-          if (savedUtilization != null) {
-            _warehouseUtilization[warehouse] = savedUtilization;
-            _utilizationControllers[warehouse]?.text = savedUtilization.toStringAsFixed(1);
-          }
-          
-          final savedCapacity = prefs.getInt(capacityKey);
-          if (savedCapacity != null) {
-            _warehouseCapacity[warehouse] = savedCapacity;
-            _capacityControllers[warehouse]?.text = savedCapacity.toString();
-          }
-        }
+        _isLoading = true;
       });
+
+      // Load saved values asynchronously
+      final prefs = await SharedPreferences.getInstance();
+
+      // Update with saved values if they exist
+      if (mounted) {
+        setState(() {
+          for (final warehouse in _warehouseCapacity.keys) {
+            final utilizationKey = 'warehouse_utilization_$warehouse';
+            final capacityKey = 'warehouse_capacity_$warehouse';
+
+            final savedUtilization = prefs.getDouble(utilizationKey);
+            if (savedUtilization != null) {
+              _warehouseUtilization[warehouse] = savedUtilization;
+              _utilizationControllers[warehouse]?.text = savedUtilization.toStringAsFixed(1);
+            }
+
+            final savedCapacity = prefs.getInt(capacityKey);
+            if (savedCapacity != null) {
+              _warehouseCapacity[warehouse] = savedCapacity;
+              _capacityControllers[warehouse]?.text = savedCapacity.toString();
+            }
+          }
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
   
@@ -499,25 +450,26 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
       ),
       body: stockStatsAsync.when(
         data: (stats) {
-          // Update utilization controllers with actual stats if not already set
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              for (final entry in stats.warehouseStats.entries) {
-                final warehouse = entry.key;
-                final warehouseStats = entry.value;
-                final totalStock = warehouseStats.totalAvailable + warehouseStats.totalReserved;
-                final utilization = (totalStock / _warehouseCapacity[warehouse]!) * 100;
-                
-                // Only update if controller is empty or has default value
-                if (_utilizationControllers[warehouse] != null && 
-                    (_utilizationControllers[warehouse]!.text.isEmpty || 
-                     _utilizationControllers[warehouse]!.text == '0.0')) {
-                  _utilizationControllers[warehouse]!.text = utilization.toStringAsFixed(1);
-                  _warehouseUtilization[warehouse] = utilization;
+          // Update utilization controllers with actual stats if not manually set
+          if (!_isLoading) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                for (final entry in stats.warehouseStats.entries) {
+                  final warehouse = entry.key;
+                  final warehouseStats = entry.value;
+                  final totalStock = warehouseStats.totalAvailable + warehouseStats.totalReserved;
+                  final calculatedUtilization = (totalStock / _warehouseCapacity[warehouse]!) * 100;
+
+                  // Only update if not manually set and controller exists
+                  if (_utilizationControllers[warehouse] != null &&
+                      !_warehouseUtilization.containsKey(warehouse)) {
+                    _utilizationControllers[warehouse]!.text = calculatedUtilization.toStringAsFixed(1);
+                    _warehouseUtilization[warehouse] = calculatedUtilization;
+                  }
                 }
               }
-            }
-          });
+            });
+          }
           
           return TabBarView(
             controller: _tabController,
@@ -2744,16 +2696,16 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
   }
   
   Widget _buildStockTrendChart(StockStatistics stats, ThemeData theme) {
-    // Mock data for stock trend (in real app, this would come from historical data)
-    final mockTrendData = [
-      FlSpot(0, stats.totalAvailable * 0.8),
-      FlSpot(1, stats.totalAvailable * 0.85),
-      FlSpot(2, stats.totalAvailable * 0.9),
-      FlSpot(3, stats.totalAvailable * 0.88),
-      FlSpot(4, stats.totalAvailable * 0.95),
-      FlSpot(5, stats.totalAvailable * 1.0),
+    // Historical trend data - would come from Firebase analytics in production
+    final trendData = [
+      FlSpot(0, stats.totalAvailable.toDouble()),
+      FlSpot(1, stats.totalAvailable.toDouble()),
+      FlSpot(2, stats.totalAvailable.toDouble()),
+      FlSpot(3, stats.totalAvailable.toDouble()),
+      FlSpot(4, stats.totalAvailable.toDouble()),
+      FlSpot(5, stats.totalAvailable.toDouble()),
     ];
-    
+
     final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
     
     return Container(
@@ -2841,7 +2793,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                 maxY: stats.totalAvailable * 1.1,
                 lineBarsData: [
                   LineChartBarData(
-                    spots: mockTrendData,
+                    spots: trendData,
                     isCurved: true,
                     color: const Color(0xFF00FF00),
                     barWidth: 3,

@@ -1,5 +1,6 @@
 // lib/core/services/auth_service.dart
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'app_logger.dart';
 
 class AuthService {
@@ -40,7 +41,20 @@ class AuthService {
         email: email.trim(),
         password: password,
       );
-      
+
+      // Check if user is approved before allowing login
+      if (result.user != null) {
+        final approvalStatus = await _checkUserApprovalStatus(result.user!.uid);
+        if (approvalStatus != null) {
+          // User is not approved, sign them out and return error
+          await _auth.signOut();
+          return AuthResult(
+            success: false,
+            error: approvalStatus,
+          );
+        }
+      }
+
       AppLogger.info('User logged in successfully', category: LogCategory.auth);
       return AuthResult(
         success: true,
@@ -48,7 +62,7 @@ class AuthService {
       );
     } catch (e) {
       AppLogger.error('Sign in failed', error: e, category: LogCategory.auth);
-      
+
       return AuthResult(
         success: false,
         error: _getReadableAuthError(e),
@@ -109,6 +123,40 @@ class AuthService {
       }
     }
     return 'Authentication failed. Please try again.';
+  }
+
+  // Check user approval status
+  Future<String?> _checkUserApprovalStatus(String uid) async {
+    try {
+      final database = FirebaseDatabase.instance;
+      final userProfileSnapshot = await database.ref('user_profiles/$uid').get();
+
+      if (userProfileSnapshot.exists && userProfileSnapshot.value != null) {
+        final profileData = Map<String, dynamic>.from(userProfileSnapshot.value as Map);
+        final status = profileData['status'] ?? 'active';
+        final role = profileData['role'] ?? '';
+
+        // Check if user is pending approval
+        if (status == 'pending_approval' || role == 'pending') {
+          return 'Your account is pending approval. You will receive an email notification once your account has been reviewed and approved by our administrators.';
+        }
+
+        // Check if user is disabled
+        if (status == 'disabled' || status == 'inactive') {
+          return 'Your account has been disabled. Please contact support for assistance.';
+        }
+
+        // Check if user was rejected
+        if (status == 'rejected') {
+          return 'Your account registration was not approved. Please contact support if you believe this is an error.';
+        }
+      }
+
+      return null; // User is approved
+    } catch (e) {
+      AppLogger.error('Error checking user approval status', error: e, category: LogCategory.auth);
+      return 'Unable to verify account status. Please try again later.';
+    }
   }
 }
 

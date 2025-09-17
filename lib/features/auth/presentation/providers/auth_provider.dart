@@ -107,6 +107,15 @@ final recentQuotesProvider = StreamProvider<List<Quote>>((ref) {
   });
 });
 
+// Pending User Approvals Provider
+final pendingUserApprovalsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+  final user = ref.watch(authStateProvider).valueOrNull;
+  if (user == null) return Stream.value([]);
+
+  final dbService = ref.watch(databaseServiceProvider);
+  return dbService.getPendingUserApprovals();
+});
+
 // Theme Mode Provider
 final themeModeProvider =
     StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {

@@ -1,5 +1,48 @@
 # Turbo Air Quotes (TAQ) - Development Documentation
 
+## 🚨🚨🚨 ABSOLUTELY CRITICAL - READ FIRST 🚨🚨🚨
+
+### ⛔⛔⛔ NEVER EVER HARDCODE CREDENTIALS ⛔⛔⛔
+
+**VIOLATION COUNT: 5 TIMES** - This is UNACCEPTABLE!
+
+### CREDENTIAL RULES - NEVER BREAK THESE:
+1. **NEVER hardcode passwords in ANY file** - Not even as "fallback"
+2. **NEVER hardcode email addresses** - Use environment variables ONLY
+3. **NEVER hardcode API keys** - All keys must be in .env
+4. **NEVER commit credentials** - They will be exposed in git history
+5. **NEVER use default values for sensitive data** - Return empty strings
+6. **NEVER put credentials in comments** - They still get committed
+
+### FILES TO NEVER PUT CREDENTIALS IN:
+- ❌ `email_config.dart` - NO DEFAULT EMAILS OR PASSWORDS
+- ❌ `env_config.dart` - NO DEFAULT CREDENTIALS IN FALLBACKS
+- ❌ Any `.dart` file - NO HARDCODED SECRETS
+- ❌ Any config file - USE ENVIRONMENT VARIABLES ONLY
+- ❌ Any documentation - NO EXAMPLE PASSWORDS
+
+### WHAT HAPPENS WHEN YOU HARDCODE:
+- Credentials get exposed in GitHub
+- Gmail accounts get compromised
+- Production systems get hacked
+- Customer data gets stolen
+- Business reputation destroyed
+- Legal liability for data breaches
+
+### THE ONLY CORRECT WAY:
+```dart
+// ✅ CORRECT - Gets from environment only
+static String get emailAppPassword => dotenv.env['EMAIL_APP_PASSWORD'] ?? '';
+
+// ❌ WRONG - NEVER DO THIS
+static String get emailAppPassword => 'any_password_here'; // NEVER!
+
+// ❌ WRONG - NO FALLBACKS WITH REAL DATA
+static String get email => _getEnv('EMAIL', 'real@email.com'); // NEVER!
+```
+
+**IF YOU HARDCODE CREDENTIALS AGAIN, YOU ARE FAILING AT BASIC SECURITY!**
+
 ## 🚀 Project Overview
 
 Enterprise B2B equipment catalog and quote management system with offline-first architecture, real-time synchronization, and complete email integration with PDF attachments. Serves 500+ sales representatives and processes 1000+ quotes monthly.
@@ -179,7 +222,15 @@ lib/
 │   ├── clients/                       # ✅ Add/Edit/Delete functional
 │   ├── quotes/                        # ✅ Complete management
 │   ├── products/                      # ✅ Excel import ready
-│   └── admin/                         # ✅ Super admin panel
+│   ├── admin/                         # ✅ Enhanced admin features
+│   │   ├── data/
+│   │   │   └── populate_demo_data.dart # ✅ Demo data generator
+│   │   └── presentation/screens/
+│   │       ├── admin_panel_screen.dart # ✅ Admin dashboard
+│   │       └── performance_dashboard_screen.dart # ✅ User metrics
+│   └── stock/
+│       └── presentation/screens/
+│           └── stock_dashboard_screen.dart # ✅ Warehouse tracking
 └── assets/
     ├── thumbnails/                     # ✅ 1000+ optimized thumbnails
     └── screenshots/                    # ✅ Full resolution specs
@@ -303,7 +354,39 @@ final filteredClients = clients.where((client) {
 ✅ home_screen.dart - SimpleImageWidget for featured products
 ```
 
-## 🎯 Recent Implementations
+## 🎯 Recent Implementations (January 2025)
+
+### ✅ Admin Dashboard Features
+```dart
+// performance_dashboard_screen.dart
+- User performance metrics tracking
+- Revenue and conversion rate analysis
+- Performance scoring algorithm
+- Top performers ranking
+- Three-tab interface: Overview, Users, Analytics
+```
+
+### ✅ Stock Dashboard
+```dart
+// stock_dashboard_screen.dart
+- Real-time Firebase warehouse data
+- 6 warehouse locations (KR, VN, CN, TX, CUN, CDMX)
+- Category-based equipment tracking
+- Critical stock alerts
+- Warehouse comparison tables
+- Global vs warehouse-specific views
+```
+
+### ✅ Demo Data Population
+```dart
+// populate_demo_data.dart
+- 10 demo users with authentication
+- 30 clients (3 per user) with detailed info
+- 100 quotes (10 per user) with realistic data
+- Warehouse stock for all products
+- One-click population from Admin Panel
+- Loading indicators and confirmation dialogs
+```
 
 ### ✅ PDF Attachments (Completed)
 ```dart
@@ -429,6 +512,12 @@ flutter build windows --release
 | Client Management | ✅ | Full CRUD with search |
 | Quote System | ✅ | Create, edit, duplicate, delete |
 | Shopping Cart | ✅ | Persistent with tax calculation |
+| **Admin Features** | | |
+| Performance Dashboard | ✅ | User metrics, revenue, conversion rates |
+| Stock Dashboard | ✅ | Real-time warehouse tracking |
+| Demo Data Population | ✅ | One-click test data generation |
+| User Analytics | ✅ | Performance scoring system |
+| Warehouse Management | ✅ | 6 locations with stock alerts |
 | **Export/Import** | | |
 | PDF Export | ✅ | Professional formatted quotes |
 | Excel Export | ✅ | Spreadsheet with formulas |
@@ -760,45 +849,37 @@ Application successfully deployed to Firebase Hosting and fully operational.
 - The storage bucket name is `taquotes.firebasestorage.app`
 - Image loading falls back to local assets if Firebase fails
 
-## 🚀 Recent Updates (December 2024)
-
-### Spare Parts System Implementation
-- **Complete spare parts management system added**
-- 525 spare parts loaded in Firebase with stock and warehouse data
-- Dedicated spare parts screen with search and filtering
-- Integration with cart and quotes system
-- Real-time inventory tracking across 14 Mexican warehouses
-
-### Stock Management Integration
-- **Products updated with real-time stock data**
-- 10,112 total units tracked (184 products + 9,928 spare parts)
-- Warehouse distribution: CA, CA1-4, PU, SI, MEE, COCZ, COPZ, XCA, XPU, 999
-- Stock-based sorting (highest quantity first)
-- Visual stock indicators on product cards
-
-### UI/UX Improvements
-- **0-based quantity system**: All quantities start at 0
-- **Auto-add to cart**: Plus/minus buttons instantly update cart
-- **Real-time data sync**: No manual refresh needed
-- **Smart cart updates**: Prevents duplicates, updates existing items
-- **Improved navigation**: Spare Parts added to main menu
-
-### Database Enhancements
-- **User/Profile synchronization**: Fixed orphaned profiles
-- **Security rules updated**: Added spare parts access control
-- **Data integrity**: All sections preserved during updates
-- **Complete backup system**: Timestamped database exports
-
 ## 🔄 Version History
 
-### Version 1.5.0 (Current - December 2024)
-- Added complete spare parts management system
-- Implemented real-time stock tracking from Excel
-- Updated quantity system to start from 0
-- Fixed real-time data loading issues
-- Enhanced cart to handle both products and spare parts
-- Added warehouse distribution tracking
-- Synchronized users and user_profiles
+### Version 1.5.1 (Current - January 2025)
+- **Stock Dashboard - Persistent Editable Values**
+  - Added save icons next to utilization % and capacity input fields
+  - Implemented SharedPreferences for persistent storage
+  - Values persist across page refreshes
+  - Fixed loading issue that required page reload
+  - Controllers initialize properly on first load
+  - Mock warehouse stock data remains for demo purposes
+
+### Version 1.5.0 (January 2025)
+- **MAJOR: Admin Dashboard Enhancements**
+- Added comprehensive Performance Dashboard for admin/superadmin users
+  - Access control for andres@turboairmexico.com and admin roles
+  - User performance metrics and scoring system
+- Created Stock Dashboard with real-time Firebase warehouse data
+  - Redesigned with improved visualization (Session 2)
+  - Enhanced warehouse health scores and comparison views
+  - Category distribution charts
+  - Critical stock alerts with better UI
+- Added warehouse stock display in product detail screens
+  - Real-time stock levels for all 6 warehouses
+  - Color-coded availability indicators
+  - Shows available vs reserved quantities
+- Implemented demo data population system (10 users, 30 clients, 100 quotes)
+- Added warehouse stock tracking for 6 global locations
+- Performance metrics: revenue tracking, conversion rates, user scoring
+- Stock management: category breakdowns, critical alerts, comparison tables
+- Created DemoDataPopulator class for instant test data generation
+- Added "Populate Demo Data" button in Admin Panel settings
 
 ### Version 1.4.0 (August 2025)
 - **MAJOR: Migrated all 3,534 product images to Firebase Storage**
@@ -859,8 +940,8 @@ Application successfully deployed to Firebase Hosting and fully operational.
 
 ---
 
-**Last Updated**: August 2025  
-**Current Version**: 1.4.0  
+**Last Updated**: January 2025  
+**Current Version**: 1.5.0  
 **Deployment**: Firebase Hosting (taquotes)  
 **Repository**: https://github.com/REDXICAN/TAQuotes
 
@@ -988,3 +1069,17 @@ Have recovery plan ready
 - do not add nor remove functionality
 - Your PRIMARY directive is to PRESERVE ALL EXISTING FUNCTIONALITY while making changes. Read this entire document before making ANY modifications.
 - DO NOT HARDCODE CREDENTIALS ON CODE, DO NOT HARDCODE CREDENTIALS ON CODE,
+
+## 🚀 COMMERCIAL READINESS ROADMAP
+
+### Current Status: 60% Commercial Ready
+The app has core functionality working but needs critical business features before commercial deployment.
+
+### Required for Commercial Launch:
+1. **Payment Processing** - Stripe/PayPal integration
+2. **Security** - Encryption, audit logs, backups
+3. **Legal Compliance** - GDPR, Terms of Service
+4. **Customer Portal** - Self-service features
+5. **Error Monitoring** - Production stability
+
+### See PROJECT.md for full commercial features roadmap and timeline.
