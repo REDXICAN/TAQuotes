@@ -1550,7 +1550,21 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
         };
 
         // Add quote to Firebase
-        await dbService.createQuote(quoteData);
+        await dbService.createQuote(
+          clientId: quoteData['client_id'] ?? '',
+          items: List<Map<String, dynamic>>.from(quoteData['items'] ?? []),
+          subtotal: (quoteData['subtotal'] ?? 0).toDouble(),
+          taxRate: (quoteData['tax_rate'] ?? 0).toDouble(),
+          taxAmount: (quoteData['tax_amount'] ?? 0).toDouble(),
+          totalAmount: (quoteData['total_amount'] ?? 0).toDouble(),
+          discountAmount: quoteData['discount_amount']?.toDouble(),
+          discountType: quoteData['discount_type'],
+          discountValue: quoteData['discount_value']?.toDouble(),
+          comments: quoteData['comments'],
+          includeCommentInEmail: quoteData['include_comment_in_email'],
+          projectId: quoteData['project_id'],
+          projectName: quoteData['project_name'],
+        );
       }
 
       if (mounted) {

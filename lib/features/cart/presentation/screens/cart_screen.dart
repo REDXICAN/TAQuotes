@@ -1144,7 +1144,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            '  Discount (${item.discount.toStringAsFixed(1)}%) - Save ${_formatPrice(itemDiscount)}',
+                                            '  Discount (${item.discount.toStringAsFixed(1)}%) - Save ${_formatPrice(itemDiscount.toDouble())}',
                                             style: TextStyle(
                                               fontSize: 11,
                                               color: Colors.green[700],
