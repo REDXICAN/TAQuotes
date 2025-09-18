@@ -660,62 +660,142 @@ Future<void> _handleExcelUpload() async {
                         ),
                         const PopupMenuDivider(),
                         const PopupMenuItem<String>(
-                          value: 'KR',
+                          value: 'CA1',
                           child: Row(
                             children: [
-                              Icon(Icons.flag, size: 16),
+                              Icon(Icons.warehouse, size: 16),
                               SizedBox(width: 8),
-                              Text('KR - Korea'),
+                              Text('CA1'),
                             ],
                           ),
                         ),
                         const PopupMenuItem<String>(
-                          value: 'VN',
+                          value: '999',
                           child: Row(
                             children: [
-                              Icon(Icons.flag, size: 16),
+                              Icon(Icons.warehouse, size: 16),
                               SizedBox(width: 8),
-                              Text('VN - Vietnam'),
+                              Text('999'),
                             ],
                           ),
                         ),
                         const PopupMenuItem<String>(
-                          value: 'CN',
+                          value: 'CA',
                           child: Row(
                             children: [
-                              Icon(Icons.flag, size: 16),
+                              Icon(Icons.warehouse, size: 16),
                               SizedBox(width: 8),
-                              Text('CN - China'),
+                              Text('CA'),
                             ],
                           ),
                         ),
                         const PopupMenuItem<String>(
-                          value: 'TX',
+                          value: 'CA2',
                           child: Row(
                             children: [
-                              Icon(Icons.flag, size: 16),
+                              Icon(Icons.warehouse, size: 16),
                               SizedBox(width: 8),
-                              Text('TX - Texas'),
+                              Text('CA2'),
                             ],
                           ),
                         ),
                         const PopupMenuItem<String>(
-                          value: 'CUN',
+                          value: 'CA3',
                           child: Row(
                             children: [
-                              Icon(Icons.flag, size: 16),
+                              Icon(Icons.warehouse, size: 16),
                               SizedBox(width: 8),
-                              Text('CUN - Cancun'),
+                              Text('CA3'),
                             ],
                           ),
                         ),
                         const PopupMenuItem<String>(
-                          value: 'CDMX',
+                          value: 'CA4',
                           child: Row(
                             children: [
-                              Icon(Icons.flag, size: 16),
+                              Icon(Icons.warehouse, size: 16),
                               SizedBox(width: 8),
-                              Text('CDMX - Mexico City'),
+                              Text('CA4'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'COCZ',
+                          child: Row(
+                            children: [
+                              Icon(Icons.warehouse, size: 16),
+                              SizedBox(width: 8),
+                              Text('COCZ'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'COPZ',
+                          child: Row(
+                            children: [
+                              Icon(Icons.warehouse, size: 16),
+                              SizedBox(width: 8),
+                              Text('COPZ'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'INT',
+                          child: Row(
+                            children: [
+                              Icon(Icons.warehouse, size: 16),
+                              SizedBox(width: 8),
+                              Text('INT'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'MEE',
+                          child: Row(
+                            children: [
+                              Icon(Icons.warehouse, size: 16),
+                              SizedBox(width: 8),
+                              Text('MEE'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'PU',
+                          child: Row(
+                            children: [
+                              Icon(Icons.warehouse, size: 16),
+                              SizedBox(width: 8),
+                              Text('PU'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'SI',
+                          child: Row(
+                            children: [
+                              Icon(Icons.warehouse, size: 16),
+                              SizedBox(width: 8),
+                              Text('SI'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'XCA',
+                          child: Row(
+                            children: [
+                              Icon(Icons.warehouse, size: 16),
+                              SizedBox(width: 8),
+                              Text('XCA'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'XPU',
+                          child: Row(
+                            children: [
+                              Icon(Icons.warehouse, size: 16),
+                              SizedBox(width: 8),
+                              Text('XPU'),
                             ],
                           ),
                         ),

@@ -2,6 +2,7 @@
 
 // Export UserRole enum
 export 'user_role.dart';
+export 'project.dart';
 
 // UserProfile Model
 class UserProfile {
@@ -878,75 +879,3 @@ class CartItem {
   factory CartItem.fromJson(Map<String, dynamic> json) => CartItem.fromMap(json);
 }
 
-// Project Model
-class Project {
-  final String? id;
-  final String name;
-  final String? description;
-  final String clientId;
-  final String? clientName;
-  final String status; // active, completed, on-hold, cancelled
-  final DateTime createdAt;
-  final DateTime? startDate;
-  final DateTime? endDate;
-  final String createdBy;
-  final int quoteCount;
-  final double totalValue;
-
-  Project({
-    this.id,
-    required this.name,
-    this.description,
-    required this.clientId,
-    this.clientName,
-    this.status = 'active',
-    required this.createdAt,
-    this.startDate,
-    this.endDate,
-    required this.createdBy,
-    this.quoteCount = 0,
-    this.totalValue = 0,
-  });
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'description': description,
-      'clientId': clientId,
-      'clientName': clientName,
-      'status': status,
-      'createdAt': createdAt.toIso8601String(),
-      'startDate': startDate?.toIso8601String(),
-      'endDate': endDate?.toIso8601String(),
-      'createdBy': createdBy,
-      'quoteCount': quoteCount,
-      'totalValue': totalValue,
-    };
-  }
-
-  factory Project.fromMap(Map<String, dynamic> map) {
-    return Project(
-      id: map['id'],
-      name: map['name'] ?? '',
-      description: map['description'],
-      clientId: map['clientId'] ?? map['client_id'] ?? '',
-      clientName: map['clientName'] ?? map['client_name'],
-      status: map['status'] ?? 'active',
-      createdAt: DateTime.parse(map['createdAt'] ?? map['created_at'] ?? DateTime.now().toIso8601String()),
-      startDate: map['startDate'] != null || map['start_date'] != null 
-          ? DateTime.parse(map['startDate'] ?? map['start_date']) 
-          : null,
-      endDate: map['endDate'] != null || map['end_date'] != null 
-          ? DateTime.parse(map['endDate'] ?? map['end_date']) 
-          : null,
-      createdBy: map['createdBy'] ?? map['created_by'] ?? '',
-      quoteCount: map['quoteCount'] ?? map['quote_count'] ?? 0,
-      totalValue: (map['totalValue'] ?? map['total_value'] ?? 0).toDouble(),
-    );
-  }
-
-  // JSON methods for compatibility
-  String toJson() => toMap().toString();
-  factory Project.fromJson(Map<String, dynamic> json) => Project.fromMap(json);
-}

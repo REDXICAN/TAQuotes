@@ -10,40 +10,6 @@ import '../../../../core/services/realtime_database_service.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../products/presentation/screens/products_screen.dart';
 
-// Apple Dark Mode Color System
-class AppleColors {
-  // Core backgrounds
-  static const Color bgPrimary = Color(0xFF000000);        // Pure black background
-  static const Color bgElevated = Color(0xFF1C1C1E);       // Elevated surfaces
-  static const Color bgSecondary = Color(0xFF2C2C2E);      // Secondary backgrounds
-  static const Color bgTertiary = Color(0xFF3A3A3C);       // Tertiary backgrounds
-  static const Color bgQuaternary = Color(0xFF48484A);     // Quaternary backgrounds
-  
-  // Text colors
-  static const Color textPrimary = Color(0xFFFFFFFF);      // Primary text
-  static const Color textSecondary = Color(0xFFEBEBF5);    // Secondary text (92% opacity)
-  static const Color textTertiary = Color(0xFF8E8E93);     // Tertiary text (55% opacity)
-  static const Color textQuaternary = Color(0xFF636366);   // Quaternary text (40% opacity)
-  
-  // System colors
-  static const Color accentPrimary = Color(0xFF007AFF);    // iOS blue
-  static const Color accentSuccess = Color(0xFF34C759);    // iOS green
-  static const Color accentWarning = Color(0xFFFF9500);    // iOS orange
-  static const Color accentDanger = Color(0xFFFF3B30);     // iOS red
-  static const Color accentPurple = Color(0xFFAF52DE);     // iOS purple
-  static const Color accentTeal = Color(0xFF5AC8FA);       // iOS teal
-  
-  // UI elements
-  static const Color borderSubtle = Color(0x26FFFFFF);     // 15% white for subtle borders
-  static const Color borderOpaque = Color(0xFF38383A);     // Opaque borders
-  static const Color fillPrimary = Color(0x33787880);      // 20% gray for fills
-  static const Color fillSecondary = Color(0x28787880);    // 16% gray for fills
-  static const Color fillTertiary = Color(0x1E787880);     // 12% gray for fills
-  
-  // Glass morphism
-  static const Color glassBg = Color(0xCC1C1C1E);          // Background with blur
-  static const Color glassStroke = Color(0x26FFFFFF);      // Glass stroke
-}
 
 // Provider for stock statistics using StreamProvider for real-time updates
 final stockStatsProvider = StreamProvider<StockStatistics>((ref) {
@@ -65,6 +31,7 @@ final stockStatsProvider = StreamProvider<StockStatistics>((ref) {
       categoryStock: {},
       categoryByWarehouse: {},
       criticalStockByWarehouse: {},
+      totalStockValue: 0.0,
     );
   });
 });
@@ -79,7 +46,8 @@ class StockStatistics {
   final Map<String, int> categoryStock;
   final Map<String, Map<String, int>> categoryByWarehouse; // Category stock per warehouse
   final Map<String, List<Product>> criticalStockByWarehouse; // Critical items per warehouse
-  
+  final double totalStockValue; // Total value of all stock
+
   StockStatistics({
     required this.totalProducts,
     required this.warehouseStats,
@@ -89,17 +57,19 @@ class StockStatistics {
     required this.categoryStock,
     required this.categoryByWarehouse,
     required this.criticalStockByWarehouse,
+    required this.totalStockValue,
   });
   
   factory StockStatistics.fromProducts(List<Product> products) {
     final warehouseStats = <String, WarehouseStats>{};
     int totalAvailable = 0;
     int totalReserved = 0;
+    double totalStockValue = 0.0;
     final lowStockProducts = <Product>[];
     final categoryStock = <String, int>{};
     final categoryByWarehouse = <String, Map<String, int>>{};
     final criticalStockByWarehouse = <String, List<Product>>{};
-    
+
     // Initialize warehouse stats
     for (final code in WarehouseInfo.warehouses.keys) {
       warehouseStats[code] = WarehouseStats(
@@ -110,6 +80,7 @@ class StockStatistics {
         lowStockCount: 0,
         categoryBreakdown: {},
         categoryProducts: {},
+        totalValue: 0.0,
       );
       categoryByWarehouse[code] = {};
       criticalStockByWarehouse[code] = [];
@@ -120,41 +91,46 @@ class StockStatistics {
       // Use actual warehouse stock data if available
       if (product.warehouseStock != null && product.warehouseStock!.isNotEmpty) {
         product.warehouseStock!.forEach((code, stock) {
+          // Calculate value for this warehouse based on actual product price and stock
+          final stockValue = stock.available * product.price;
+
           // Update warehouse stats
           warehouseStats[code]!.totalAvailable += stock.available;
           warehouseStats[code]!.totalReserved += stock.reserved;
+          warehouseStats[code]!.totalValue += stockValue;
           if (stock.available > 0) warehouseStats[code]!.productCount++;
           if (stock.isLowStock) {
             warehouseStats[code]!.lowStockCount++;
             criticalStockByWarehouse[code]!.add(product);
           }
-          
+
           // Track category breakdown per warehouse
           final category = product.category;
-          warehouseStats[code]!.categoryBreakdown[category] = 
+          warehouseStats[code]!.categoryBreakdown[category] =
               (warehouseStats[code]!.categoryBreakdown[category] ?? 0) + stock.actualAvailable;
-          
+
           // Track products per category per warehouse
           if (!warehouseStats[code]!.categoryProducts.containsKey(category)) {
             warehouseStats[code]!.categoryProducts[category] = [];
           }
           warehouseStats[code]!.categoryProducts[category]!.add(product);
-          
-          categoryByWarehouse[code]![category] = 
+
+          categoryByWarehouse[code]![category] =
               (categoryByWarehouse[code]![category] ?? 0) + stock.actualAvailable;
-          
+
           totalAvailable += stock.available;
           totalReserved += stock.reserved;
+          totalStockValue += stockValue;
         });
-        
+
         // Check for low stock across all warehouses
         if (product.totalAvailableStock <= 50) {
           lowStockProducts.add(product);
         }
       }
-      
+
       // Update global category stock
-      categoryStock[product.category] = (categoryStock[product.category] ?? 0) + 
+      categoryStock[product.category] = (categoryStock[product.category] ?? 0) +
           product.totalAvailableStock;
     }
     
@@ -178,6 +154,7 @@ class StockStatistics {
       categoryStock: categoryStock,
       categoryByWarehouse: categoryByWarehouse,
       criticalStockByWarehouse: criticalStockByWarehouse,
+      totalStockValue: totalStockValue,
     );
   }
 }
@@ -192,7 +169,8 @@ class WarehouseStats {
   Map<String, int> categoryBreakdown;
   Map<String, List<Product>> categoryProducts;
   double manualUtilizationRate;
-  
+  double totalValue; // Track actual value based on product prices
+
   WarehouseStats({
     required this.code,
     required this.totalAvailable,
@@ -202,11 +180,12 @@ class WarehouseStats {
     required this.categoryBreakdown,
     this.categoryProducts = const {},
     this.manualUtilizationRate = 0.0,
+    this.totalValue = 0.0,
   });
-  
+
   int get actualAvailable => totalAvailable - totalReserved;
   double get utilizationRate => manualUtilizationRate > 0 ? manualUtilizationRate : (totalAvailable > 0 ? (totalReserved / totalAvailable * 100) : 0);
-  double get warehouseValue => totalAvailable * 1250.0; // Average price per unit
+  double get warehouseValue => totalValue; // Use actual calculated value
 }
 
 class StockDashboardScreen extends ConsumerStatefulWidget {
@@ -540,28 +519,28 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                                 label: 'Total Products',
                                 value: numberFormat.format(stats.totalProducts),
                                 icon: Icons.inventory_2_rounded,
-                                color: AppleColors.accentPrimary,
+                                color: theme.primaryColor,
                                 theme: theme,
                               ),
                               _buildQuickStat(
                                 label: 'Total Stock Value',
-                                value: '\$${numberFormat.format(stats.totalAvailable * 1250)}',
+                                value: '\$${numberFormat.format(stats.totalStockValue)}',
                                 icon: Icons.attach_money_rounded,
-                                color: AppleColors.accentSuccess,
+                                color: Colors.green,
                                 theme: theme,
                               ),
                               _buildQuickStat(
                                 label: 'Total Available',
                                 value: numberFormat.format(stats.totalAvailable),
                                 icon: Icons.check_circle_rounded,
-                                color: AppleColors.accentTeal,
+                                color: Colors.teal,
                                 theme: theme,
                               ),
                               _buildQuickStat(
                                 label: 'Total Committed',
                                 value: numberFormat.format(stats.totalReserved),
                                 icon: Icons.pending_rounded,
-                                color: AppleColors.accentWarning,
+                                color: Colors.orange,
                                 theme: theme,
                               ),
                           ],
@@ -3366,9 +3345,9 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppleColors.bgElevated,
+        color: theme.cardColor,
         border: Border.all(
-          color: AppleColors.borderSubtle,
+          color: theme.dividerColor,
           width: 0.5,
         ),
         borderRadius: BorderRadius.circular(12),
@@ -3631,7 +3610,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Value: \$${format.format((warehouseStats.totalAvailable * 1250).round())}',
+                      'Value: \$${format.format(warehouseStats.warehouseValue.round())}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: const Color(0xFF37474F),
                         fontWeight: FontWeight.bold,

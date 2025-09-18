@@ -177,7 +177,8 @@
       "Bash(firebase database:update:*)",
       "Bash(start https://taquotes.web.app/admin)",
       "Bash(nc localhost 54748)",
-      "Bash(then echo \"✓ .env file not found (good)\")"
+      "Bash(then echo \"✓ .env file not found (good)\")",
+      "Read(//c/Users/andre/Downloads/**)"
     ],
     "deny": [],
     "ask": [

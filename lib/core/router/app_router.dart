@@ -21,6 +21,7 @@ import '../../features/admin/presentation/screens/performance_dashboard_screen.d
 import '../../features/admin/presentation/screens/user_info_dashboard_screen.dart';
 import '../../features/stock/presentation/screens/stock_dashboard_screen.dart';
 import '../../features/spareparts/presentation/screens/spareparts_screen.dart';
+import '../../features/projects/presentation/screens/projects_screen.dart';
 
 // Router provider
 final routerProvider = Provider<GoRouter>((ref) {
@@ -139,6 +140,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const SparePartsScreen(),
           ),
 
+          // Projects
+          GoRoute(
+            path: '/projects',
+            builder: (context, state) => const ProjectsScreen(),
+          ),
+
           // Admin
           GoRoute(
             path: '/admin',
@@ -181,6 +188,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
         '/admin',
         '/',
         '/clients',
+        '/projects',
         '/products',
         '/cart',
         '/quotes',
@@ -192,6 +200,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
       return [
         '/',
         '/clients',
+        '/projects',
         '/products',
         '/cart',
         '/quotes',
@@ -315,6 +324,13 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             label: Text('Clients'),
           ));
           break;
+        case '/projects':
+          destinations.add(const NavigationRailDestination(
+            icon: Icon(Icons.folder_outlined),
+            selectedIcon: Icon(Icons.folder),
+            label: Text('Projects'),
+          ));
+          break;
         case '/products':
           destinations.add(const NavigationRailDestination(
             icon: Icon(Icons.inventory_2_outlined),
@@ -395,6 +411,13 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             icon: Icon(Icons.people_outline),
             selectedIcon: Icon(Icons.people),
             label: 'Clients',
+          ));
+          break;
+        case '/projects':
+          destinations.add(const NavigationDestination(
+            icon: Icon(Icons.folder_outlined),
+            selectedIcon: Icon(Icons.folder),
+            label: 'Projects',
           ));
           break;
         case '/products':

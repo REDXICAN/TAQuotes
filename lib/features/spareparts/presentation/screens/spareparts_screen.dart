@@ -357,7 +357,7 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                                     ),
                                   ),
                                   Text(
-                                    '\$${PriceFormatter.formatPrice(part.price)}',
+                                    PriceFormatter.formatPrice(part.price),
                                     style: theme.textTheme.titleMedium?.copyWith(
                                       fontWeight: FontWeight.bold,
                                       color: theme.primaryColor,

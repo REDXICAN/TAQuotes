@@ -635,42 +635,53 @@ class RealtimeDatabaseService {
     }
   }
   
-  Future<List<Map<String, dynamic>>> getProjects({String? clientId}) async {
-    if (userId == null) return [];
-    
-    try {
-      Query query = _db.ref('projects/$userId');
-      
-      // Filter by client if specified
-      if (clientId != null) {
-        query = query.orderByChild('clientId').equalTo(clientId);
-      }
-      
-      final snapshot = await query.get();
-      
-      if (!snapshot.exists || snapshot.value == null) return [];
-      
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
-      final projects = <Map<String, dynamic>>[];
-      
-      data.forEach((key, value) {
-        final project = Map<String, dynamic>.from(value);
-        project['id'] = key;
-        projects.add(project);
-      });
-      
-      // Sort by created date (most recent first)
-      projects.sort((a, b) {
-        final aDate = a['createdAt'] ?? 0;
-        final bDate = b['createdAt'] ?? 0;
-        return bDate.compareTo(aDate);
-      });
-      
-      return projects;
-    } catch (e) {
-      AppLogger.error('Error fetching projects', error: e);
-      return [];
+  Stream<List<Map<String, dynamic>>> getProjects({String? clientId}) {
+    if (userId == null) return Stream.value([]);
+
+    Query query = _db.ref('projects/$userId');
+
+    // Filter by client if specified
+    if (clientId != null) {
+      query = query.orderByChild('clientId').equalTo(clientId);
     }
+
+    return query.onValue.map((event) {
+      final projects = <Map<String, dynamic>>[];
+
+      if (event.snapshot.value != null) {
+        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+
+        // Process each project and add client names
+        data.forEach((key, value) async {
+          final project = Map<String, dynamic>.from(value);
+          project['id'] = key;
+
+          // Get client name if available
+          if (project['clientId'] != null) {
+            _db.ref('clients/$userId/${project['clientId']}').get().then((clientSnapshot) {
+              if (clientSnapshot.exists && clientSnapshot.value != null) {
+                final client = Map<String, dynamic>.from(clientSnapshot.value as Map);
+                project['clientName'] = client['company'] ?? client['contactName'] ?? '';
+              }
+            });
+          }
+
+          projects.add(project);
+        });
+
+        // Sort by created date (most recent first)
+        projects.sort((a, b) {
+          final dateA = DateTime.parse(a['createdAt'] ?? DateTime.now().toIso8601String());
+          final dateB = DateTime.parse(b['createdAt'] ?? DateTime.now().toIso8601String());
+          return dateB.compareTo(dateA);
+        });
+      }
+
+      return projects;
+    }).handleError((error) {
+      AppLogger.error('Error fetching projects', error: error);
+      return <Map<String, dynamic>>[];
+    });
   }
   
   Future<void> updateProject(String projectId, Map<String, dynamic> updates) async {
@@ -744,18 +755,75 @@ class RealtimeDatabaseService {
   
   Future<void> updateProjectStatus(String projectId, String status) async {
     if (userId == null) throw Exception('User not authenticated');
-    
+
     try {
       await _db.ref('projects/$userId/$projectId').update({
         'status': status,
         'updatedAt': ServerValue.timestamp,
       });
-      
+
       AppLogger.info('Project status updated: $projectId -> $status', category: LogCategory.business);
     } catch (e) {
       AppLogger.error('Error updating project status', error: e);
       throw Exception('Failed to update project status: $e');
     }
+  }
+
+  Future<Map<String, dynamic>?> getProjectById(String projectId) async {
+    if (userId == null) return null;
+
+    try {
+      final snapshot = await _db.ref('projects/$userId/$projectId').get();
+
+      if (!snapshot.exists || snapshot.value == null) return null;
+
+      final project = Map<String, dynamic>.from(snapshot.value as Map);
+      project['id'] = projectId;
+
+      // Get client name if available
+      if (project['clientId'] != null) {
+        final clientSnapshot = await _db.ref('clients/$userId/${project['clientId']}').get();
+        if (clientSnapshot.exists && clientSnapshot.value != null) {
+          final client = Map<String, dynamic>.from(clientSnapshot.value as Map);
+          project['clientName'] = client['company'] ?? client['contactName'] ?? '';
+        }
+      }
+
+      return project;
+    } catch (e) {
+      AppLogger.error('Error fetching project $projectId', error: e);
+      return null;
+    }
+  }
+
+  Stream<List<Map<String, dynamic>>> getProjectsByClient(String clientId) {
+    if (userId == null) return Stream.value([]);
+
+    return _db.ref('projects/$userId')
+        .orderByChild('clientId')
+        .equalTo(clientId)
+        .onValue
+        .map((event) {
+      final projects = <Map<String, dynamic>>[];
+
+      if (event.snapshot.value != null) {
+        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        data.forEach((key, value) {
+          final project = Map<String, dynamic>.from(value);
+          project['id'] = key;
+          projects.add(project);
+        });
+      }
+
+      // Sort by createdAt descending
+      projects.sort((a, b) {
+        final dateA = DateTime.parse(a['createdAt'] ?? DateTime.now().toIso8601String());
+        final dateB = DateTime.parse(b['createdAt'] ?? DateTime.now().toIso8601String());
+        return dateB.compareTo(dateA);
+      });
+
+      return projects;
+    });
   }
 
   // ============ USER PROFILES ============

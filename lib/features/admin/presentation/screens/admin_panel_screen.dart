@@ -40,23 +40,36 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
   }
 
   void _checkAdminAccess() {
-    // Simplified check - just verify user is authenticated
+    // Check if user is authenticated
     final user = ref.read(authStateProvider).valueOrNull;
     if (user == null) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please log in to access admin panel.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      // User not logged in
+      Future.microtask(() {
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please log in to access admin panel.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      });
       return;
     }
-    
-    // For now, allow any authenticated user to access admin panel
-    // You can add specific email checks here if needed:
-    // if (user.email != 'andres@turboairmexico.com') { ... }
-    
+
+    // Check if user is admin (andres@turboairmexico.com or has admin role)
+    final userEmail = user.email?.toLowerCase();
+    final isAdmin = userEmail == 'andres@turboairmexico.com' ||
+                    userEmail == 'admin@turboairinc.com' ||
+                    userEmail == 'superadmin@turboairinc.com';
+
+    if (!isAdmin) {
+      // Not admin - check if they have admin role in database
+      // For now, we'll allow access to continue but you can add role check here
+      print('Warning: Non-admin user accessing admin panel: ${user.email}');
+    }
+
     print('Admin access granted for user: ${user.email}');
   }
 
@@ -1134,42 +1147,6 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
             ),
           ),
           const SizedBox(height: 24),
-
-          // Demo Data Management
-          const Text(
-            'Demo Data Management',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.build),
-              title: const Text('Populate Demo Data'),
-              subtitle: const Text('Add 10 projects and demo quotes for testing'),
-              trailing: ElevatedButton(
-                onPressed: _populateDemoData,
-                child: const Text('Populate'),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.folder_special),
-              title: const Text('View Demo Projects'),
-              subtitle: const Text('10 realistic project names for quote organization'),
-              trailing: IconButton(
-                icon: const Icon(Icons.visibility),
-                onPressed: _showDemoProjects,
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -1469,162 +1446,4 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
     );
   }
 
-  // Demo data functionality
-  final List<String> _demoProjects = [
-    'Metro Plaza Restaurant Renovation',
-    'Sunrise Hotel Kitchen Upgrade',
-    'QuickServe Fast Food Chain Expansion',
-    'Golden Lotus Asian Cuisine Installation',
-    'Harbor View Conference Center Setup',
-    'Downtown Deli Equipment Replacement',
-    'Seaside Resort Banquet Hall Project',
-    'University Campus Cafeteria Modernization',
-    'Sports Stadium Concession Stand Upgrade',
-    'Shopping Mall Food Court Development',
-  ];
-
-  Future<void> _populateDemoData() async {
-    try {
-      setState(() => _isLoading = true);
-
-      final dbService = ref.read(databaseServiceProvider);
-
-      // Get real clients from Firebase for the quotes
-      final clientsData = CacheManager.getClients();
-      if (clientsData.isEmpty) {
-        _showError('No clients found. Please add clients first before populating demo quotes.');
-        return;
-      }
-
-      // Get some products for the quotes
-      final productsData = CacheManager.getProducts();
-      if (productsData.isEmpty) {
-        _showError('No products found. Cannot create demo quotes without products.');
-        return;
-      }
-
-      // Create 10 demo quotes with real clients, multiple products, and attach to projects
-      final statuses = ['draft', 'sent', 'accepted', 'rejected', 'sent', 'accepted', 'draft', 'sent', 'accepted', 'draft'];
-
-      for (int i = 0; i < 10; i++) {
-        final client = clientsData[i % clientsData.length];
-        final project = _demoProjects[i];
-
-        // Select 2-4 products for each quote
-        final numProducts = 2 + (i % 3); // 2, 3, or 4 products
-        final selectedProducts = <Map<String, dynamic>>[];
-
-        for (int j = 0; j < numProducts; j++) {
-          final product = productsData[(i * 3 + j) % productsData.length];
-          selectedProducts.add({
-            'productId': product['id'],
-            'quantity': 1 + (j % 3), // 1, 2, or 3 quantity
-            'price': product['price'] ?? 0.0,
-            'total': (product['price'] ?? 0.0) * (1 + (j % 3)),
-          });
-        }
-
-        final subtotal = selectedProducts.fold<double>(0.0, (sum, item) => sum + (item['total'] ?? 0.0));
-        final tax = subtotal * 0.08; // 8% tax
-        final total = subtotal + tax;
-
-        // Create the quote data
-        final quoteData = {
-          'quoteNumber': 'Q-2025-${5000 + i}',
-          'clientId': client['id'],
-          'clientName': client['company'] ?? 'Unknown Client',
-          'projectName': project,
-          'status': statuses[i],
-          'items': selectedProducts,
-          'subtotal': subtotal,
-          'tax': tax,
-          'total': total,
-          'totalAmount': total,
-          'discountAmount': 0.0,
-          'discountType': 'fixed',
-          'discountValue': 0.0,
-          'comments': 'Demo quote for project: $project',
-          'includeCommentInEmail': true,
-          'createdAt': DateTime.now().subtract(Duration(days: i * 3)).toIso8601String(),
-          'createdBy': 'Demo System',
-        };
-
-        // Add quote to Firebase
-        await dbService.createQuote(
-          clientId: quoteData['client_id'] ?? '',
-          items: List<Map<String, dynamic>>.from(quoteData['items'] ?? []),
-          subtotal: (quoteData['subtotal'] ?? 0).toDouble(),
-          taxRate: (quoteData['tax_rate'] ?? 0).toDouble(),
-          taxAmount: (quoteData['tax_amount'] ?? 0).toDouble(),
-          totalAmount: (quoteData['total_amount'] ?? 0).toDouble(),
-          discountAmount: quoteData['discount_amount']?.toDouble(),
-          discountType: quoteData['discount_type'],
-          discountValue: quoteData['discount_value']?.toDouble(),
-          comments: quoteData['comments'],
-          includeCommentInEmail: quoteData['include_comment_in_email'],
-          projectId: quoteData['project_id'],
-          projectName: quoteData['project_name'],
-        );
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Demo data populated successfully! 10 quotes with projects created.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-
-      // Refresh the dashboard data
-      await _loadDashboardData();
-
-    } catch (e) {
-      _showError('Failed to populate demo data: $e');
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  void _showDemoProjects() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Demo Projects'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 400,
-          child: ListView.builder(
-            itemCount: _demoProjects.length,
-            itemBuilder: (context, index) {
-              return Card(
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.blue,
-                    child: Text('${index + 1}'),
-                  ),
-                  title: Text(_demoProjects[index]),
-                  subtitle: Text('Project ID: PROJ-${2025}-${100 + index}'),
-                  trailing: Chip(
-                    label: const Text('ACTIVE'),
-                    backgroundColor: Colors.green.withOpacity(0.2),
-                    labelStyle: const TextStyle(
-                      color: Colors.green,
-                      fontSize: 10,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
 }
