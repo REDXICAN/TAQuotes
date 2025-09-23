@@ -9,6 +9,7 @@ import '../../../../core/models/models.dart';
 import '../../../../core/services/realtime_database_service.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../products/presentation/screens/products_screen.dart';
+import '../../../../core/theme/apple_colors.dart';
 
 
 // Provider for stock statistics using StreamProvider for real-time updates
@@ -285,12 +286,12 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
         content: Text(
           'Utilization saved for $warehouse',
           style: TextStyle(
-            color: AppleColors.textPrimary,
+            color: Theme.of(context).primaryColor,
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
         ),
-        backgroundColor: AppleColors.bgSecondary,
+        backgroundColor: Theme.of(context).primaryColor,
         duration: const Duration(seconds: 2),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
@@ -312,12 +313,12 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
         content: Text(
           'Capacity saved for $warehouse',
           style: TextStyle(
-            color: AppleColors.textPrimary,
+            color: Theme.of(context).primaryColor,
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
         ),
-        backgroundColor: AppleColors.bgSecondary,
+        backgroundColor: Theme.of(context).primaryColor,
         duration: const Duration(seconds: 2),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
@@ -345,17 +346,17 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
     final numberFormat = NumberFormat('#,###');
     
     return Scaffold(
-      backgroundColor: AppleColors.bgPrimary,
+      backgroundColor: Theme.of(context).primaryColor,
       appBar: AppBar(
-        backgroundColor: AppleColors.glassBg,
+        backgroundColor: Theme.of(context).primaryColor,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            color: AppleColors.glassBg,
+            color: Theme.of(context).primaryColor,
             border: Border(
               bottom: BorderSide(
-                color: AppleColors.borderSubtle,
+                color: Theme.of(context).primaryColor,
                 width: 0.5,
               ),
             ),
@@ -364,15 +365,15 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
         title: Text(
           'Stock Management Dashboard',
           style: TextStyle(
-            color: AppleColors.textPrimary,
+            color: Theme.of(context).primaryColor,
             fontWeight: FontWeight.w600,
             fontSize: 17,
             letterSpacing: -0.4,
           ),
         ),
         centerTitle: true,
-        iconTheme: const IconThemeData(
-          color: AppleColors.accentPrimary,
+        iconTheme: IconThemeData(
+          color: Theme.of(context).primaryColor,
           size: 22,
         ),
         actions: const [],
@@ -380,21 +381,21 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
           preferredSize: const Size.fromHeight(48),
           child: Container(
             decoration: BoxDecoration(
-              color: AppleColors.glassBg,
+              color: Theme.of(context).primaryColor,
               border: Border(
                 bottom: BorderSide(
-                  color: AppleColors.borderSubtle,
+                  color: Theme.of(context).primaryColor,
                   width: 0.5,
                 ),
               ),
             ),
             child: TabBar(
               controller: _tabController,
-              indicatorColor: AppleColors.accentPrimary,
+              indicatorColor: Theme.of(context).primaryColor,
               indicatorWeight: 2,
               indicatorSize: TabBarIndicatorSize.label,
-              labelColor: AppleColors.accentPrimary,
-              unselectedLabelColor: AppleColors.textTertiary,
+              labelColor: Theme.of(context).primaryColor,
+              unselectedLabelColor: Theme.of(context).primaryColor,
               labelStyle: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -463,10 +464,10 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: AppleColors.bgElevated,
+                        color: Theme.of(context).primaryColor,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: AppleColors.borderSubtle,
+                          color: Theme.of(context).primaryColor,
                           width: 0.5,
                         ),
                         boxShadow: [
@@ -485,13 +486,13 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                               Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
-                                  color: AppleColors.accentPrimary.withOpacity(0.1),
+                                  color: Theme.of(context).primaryColor.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Icon(
                                   Icons.assessment_rounded, 
                                   size: 18, 
-                                  color: AppleColors.accentPrimary,
+                                  color: Theme.of(context).primaryColor,
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -500,7 +501,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                                 style: TextStyle(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w600,
-                                  color: AppleColors.textPrimary,
+                                  color: Theme.of(context).primaryColor,
                                   letterSpacing: -0.4,
                                 ),
                               ),
@@ -557,13 +558,13 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                         Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: AppleColors.accentPurple.withOpacity(0.1),
+                            color: Theme.of(context).primaryColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Icon(
                             Icons.bar_chart_rounded,
                             size: 16,
-                            color: AppleColors.accentPurple,
+                            color: Theme.of(context).primaryColor,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -572,7 +573,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
-                            color: AppleColors.textPrimary,
+                            color: Theme.of(context).primaryColor,
                             letterSpacing: -0.6,
                           ),
                         ),
@@ -588,13 +589,13 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                         Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: AppleColors.accentTeal.withOpacity(0.1),
+                            color: Theme.of(context).primaryColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Icon(
                             Icons.category_rounded,
                             size: 16,
-                            color: AppleColors.accentTeal,
+                            color: Theme.of(context).primaryColor,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -603,7 +604,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
-                            color: AppleColors.textPrimary,
+                            color: Theme.of(context).primaryColor,
                             letterSpacing: -0.6,
                           ),
                         ),
@@ -704,7 +705,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
         },
         loading: () {
           return Container(
-            color: AppleColors.bgPrimary,
+            color: Theme.of(context).primaryColor,
             child: TabBarView(
               controller: _tabController,
               children: [
@@ -717,10 +718,10 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: AppleColors.bgElevated,
+                          color: Theme.of(context).primaryColor,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AppleColors.borderSubtle,
+                            color: Theme.of(context).primaryColor,
                             width: 0.5,
                           ),
                         ),
@@ -729,7 +730,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                             Text(
                               'Loading Stock Data',
                               style: TextStyle(
-                                color: AppleColors.textPrimary,
+                                color: Theme.of(context).primaryColor,
                                 fontSize: 17,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: -0.4,
@@ -739,8 +740,8 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                             SizedBox(
                               height: 2,
                               child: LinearProgressIndicator(
-                                backgroundColor: AppleColors.fillTertiary,
-                                valueColor: AlwaysStoppedAnimation<Color>(AppleColors.accentPrimary),
+                                backgroundColor: Theme.of(context).primaryColor,
+                                valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
                               ),
                             ),
                             const SizedBox(height: 20),
@@ -751,10 +752,10 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                                   width: 100,
                                   height: 60,
                                   decoration: BoxDecoration(
-                                    color: AppleColors.bgSecondary,
+                                    color: Theme.of(context).primaryColor,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: AppleColors.borderSubtle,
+                                      color: Theme.of(context).primaryColor,
                                       width: 0.5,
                                     ),
                                   ),
@@ -764,7 +765,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                                       height: 16,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        color: AppleColors.accentPrimary,
+                                        color: Theme.of(context).primaryColor,
                                       ),
                                     ),
                                   ),
@@ -789,10 +790,10 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                         itemBuilder: (context, index) {
                           return Container(
                             decoration: BoxDecoration(
-                              color: AppleColors.bgElevated,
+                              color: Theme.of(context).primaryColor,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: AppleColors.borderSubtle,
+                                color: Theme.of(context).primaryColor,
                                 width: 0.5,
                               ),
                             ),
@@ -802,7 +803,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: AppleColors.accentPrimary,
+                                  color: Theme.of(context).primaryColor,
                                 ),
                               ),
                             ),
@@ -814,7 +815,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                 ),
                 // Warehouse Details Tab - Loading state
                 Container(
-                  color: AppleColors.bgPrimary,
+                  color: Theme.of(context).primaryColor,
                   child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -824,14 +825,14 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                           height: 24,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            color: AppleColors.accentPrimary,
+                            color: Theme.of(context).primaryColor,
                           ),
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'Loading Warehouse Details',
                           style: TextStyle(
-                            color: AppleColors.textSecondary,
+                            color: Theme.of(context).primaryColor,
                             fontSize: 15,
                             fontWeight: FontWeight.w400,
                             letterSpacing: -0.2,
@@ -846,16 +847,16 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
           );
         },
         error: (error, stack) => Container(
-          color: AppleColors.bgPrimary,
+          color: Theme.of(context).primaryColor,
           child: Center(
             child: Container(
               margin: const EdgeInsets.all(24),
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppleColors.bgElevated,
+                color: Theme.of(context).primaryColor,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AppleColors.borderSubtle,
+                  color: Theme.of(context).primaryColor,
                   width: 0.5,
                 ),
               ),
@@ -865,13 +866,13 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                   Icon(
                     Icons.warning_rounded,
                     size: 48,
-                    color: AppleColors.accentDanger,
+                    color: Theme.of(context).primaryColor,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'Unable to Load Data',
                     style: TextStyle(
-                      color: AppleColors.textPrimary,
+                      color: Theme.of(context).primaryColor,
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.4,
@@ -881,7 +882,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                   Text(
                     'Please check your connection and try again.',
                     style: TextStyle(
-                      color: AppleColors.textTertiary,
+                      color: Theme.of(context).primaryColor,
                       fontSize: 13,
                       fontWeight: FontWeight.w400,
                     ),
@@ -890,7 +891,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                   const SizedBox(height: 20),
                   Container(
                     decoration: BoxDecoration(
-                      color: AppleColors.accentPrimary,
+                      color: Theme.of(context).primaryColor,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Material(
@@ -979,10 +980,10 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppleColors.bgSecondary,
+        color: Theme.of(context).primaryColor,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: AppleColors.borderSubtle,
+          color: Theme.of(context).primaryColor,
           width: 0.5,
         ),
       ),
@@ -1010,7 +1011,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: AppleColors.textPrimary,
+                color: Theme.of(context).primaryColor,
                 letterSpacing: -0.5,
               ),
             ),
@@ -1019,7 +1020,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
           Text(
             label,
             style: TextStyle(
-              color: AppleColors.textTertiary,
+              color: Theme.of(context).primaryColor,
               fontSize: 11,
               fontWeight: FontWeight.w400,
             ),
@@ -1792,24 +1793,24 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
   
   Widget _buildWarehouseCard(String code, WarehouseStats stats, ThemeData theme, NumberFormat format) {
     final info = WarehouseInfo.warehouses[code]!;
-    final utilizationColor = stats.utilizationRate > 80 ? AppleColors.accentDanger :
-                            stats.utilizationRate > 60 ? AppleColors.accentWarning :
-                            AppleColors.accentSuccess;
+    final utilizationColor = stats.utilizationRate > 80 ? Theme.of(context).primaryColor :
+                            stats.utilizationRate > 60 ? Theme.of(context).primaryColor :
+                            Theme.of(context).primaryColor;
     
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
       decoration: BoxDecoration(
-        color: AppleColors.bgElevated,
+        color: Theme.of(context).primaryColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: selectedWarehouse == code ? AppleColors.accentPrimary : AppleColors.borderSubtle,
+          color: selectedWarehouse == code ? Theme.of(context).primaryColor : Theme.of(context).primaryColor,
           width: selectedWarehouse == code ? 1.5 : 0.5,
         ),
         boxShadow: [
           if (selectedWarehouse == code)
             BoxShadow(
-              color: AppleColors.accentPrimary.withOpacity(0.2),
+              color: Theme.of(context).primaryColor.withOpacity(0.2),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -1825,8 +1826,8 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
             });
           },
           borderRadius: BorderRadius.circular(12),
-          splashColor: AppleColors.accentPrimary.withOpacity(0.1),
-          highlightColor: AppleColors.accentPrimary.withOpacity(0.05),
+          splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
+          highlightColor: Theme.of(context).primaryColor.withOpacity(0.05),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -1849,7 +1850,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: AppleColors.textPrimary,
+                            color: Theme.of(context).primaryColor,
                             letterSpacing: -0.2,
                           ),
                         ),
@@ -1858,7 +1859,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w400,
-                            color: AppleColors.textTertiary,
+                            color: Theme.of(context).primaryColor,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1879,7 +1880,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w400,
-                          color: AppleColors.textTertiary,
+                          color: Theme.of(context).primaryColor,
                         ),
                       ),
                       Text(
@@ -1887,7 +1888,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
-                          color: AppleColors.accentSuccess,
+                          color: Theme.of(context).primaryColor,
                           letterSpacing: -0.5,
                         ),
                       ),
@@ -1901,7 +1902,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w400,
-                          color: AppleColors.textTertiary,
+                          color: Theme.of(context).primaryColor,
                         ),
                       ),
                       Text(
@@ -1909,7 +1910,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
-                          color: AppleColors.accentWarning,
+                          color: Theme.of(context).primaryColor,
                           letterSpacing: -0.5,
                         ),
                       ),
@@ -1921,7 +1922,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
               Container(
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppleColors.fillTertiary,
+                  color: Theme.of(context).primaryColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
                 child: ClipRRect(
@@ -1942,14 +1943,14 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: AppleColors.textTertiary,
+                      color: Theme.of(context).primaryColor,
                     ),
                   ),
                   if (stats.lowStockCount > 0)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppleColors.accentDanger.withOpacity(0.1),
+                        color: Theme.of(context).primaryColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -1957,7 +1958,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: AppleColors.accentDanger,
+                          color: Theme.of(context).primaryColor,
                         ),
                       ),
                     ),
@@ -3380,10 +3381,10 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
               return Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppleColors.bgSecondary,
+                  color: Theme.of(context).primaryColor,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: AppleColors.borderSubtle,
+                    color: Theme.of(context).primaryColor,
                     width: 0.5,
                   ),
                   boxShadow: [

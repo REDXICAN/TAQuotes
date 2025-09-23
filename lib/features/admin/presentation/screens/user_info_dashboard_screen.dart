@@ -295,7 +295,55 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
   String _selectedRole = 'all';
   String _sortBy = 'lastLogin';
   int? _selectedUserId; // For showing user details
-  
+  bool _hasAccess = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAdminAccess();
+  }
+
+  void _checkAdminAccess() {
+    // Check if user is admin (hardcoded for security)
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please log in to access this page'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      });
+      return;
+    }
+
+    final userEmail = user.email?.toLowerCase();
+    final isAdmin = userEmail == 'andres@turboairmexico.com' ||
+                    userEmail == 'admin@turboairinc.com' ||
+                    userEmail == 'superadmin@turboairinc.com';
+
+    if (!isAdmin) {
+      // Not admin - BLOCK ACCESS
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Access Denied: Admin privileges required for User Dashboard.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      });
+      return;
+    }
+
+    setState(() {
+      _hasAccess = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -306,7 +354,16 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
     final timeFormat = DateFormat('hh:mm a');
     final isMobile = ResponsiveHelper.isMobile(context);
     
-    // Simple authentication check - allow any logged in user for now
+    // Show loading while checking access
+    if (!_hasAccess) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // Additional check for current auth state
     final currentUser = ref.watch(authStateProvider).valueOrNull;
     if (currentUser == null) {
       return Scaffold(

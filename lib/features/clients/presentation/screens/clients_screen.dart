@@ -18,8 +18,15 @@ import '../../../cart/presentation/screens/cart_screen.dart'; // For cartClientP
 
 // Clients provider using StreamProvider for real-time updates
 final clientsProvider = StreamProvider<List<Client>>((ref) {
-  // Clients require authentication
-  final user = ref.watch(currentUserProvider);
+  // Watch auth state directly for better reactivity
+  final authState = ref.watch(authStateProvider);
+
+  // Handle loading state
+  if (authState.isLoading) {
+    return const Stream.empty();
+  }
+
+  final user = authState.valueOrNull;
   if (user == null) {
     return Stream.value([]);
   }
@@ -166,6 +173,11 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+
+    // Force refresh the clients provider on screen load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(clientsProvider);
+    });
   }
 
   @override
@@ -474,6 +486,8 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
           // Clients List
           Expanded(
             child: clientsAsync.when(
+              skipLoadingOnReload: false,
+              skipLoadingOnRefresh: false,
               data: (clients) {
                 if (clients.isEmpty) {
                   return Center(

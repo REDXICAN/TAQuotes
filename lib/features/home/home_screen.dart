@@ -242,6 +242,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final userAsync = ref.watch(currentUserProfileProvider);
     final user = ref.watch(currentUserProvider);
     final userProfile = userAsync.valueOrNull;
+    final userEmail = user?.email ?? '';
 
     return Scaffold(
       appBar: const AppBarWithClient(
@@ -311,7 +312,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ],
                       ),
                     ),
-                    if (userProfile?.role == 'admin')
+                    // Only show admin button for hardcoded admin emails
+                    if (userEmail == 'andres@turboairmexico.com' ||
+                        userEmail == 'admin@turboairinc.com' ||
+                        userEmail == 'superadmin@turboairinc.com')
                       IconButton(
                         icon: const Icon(Icons.admin_panel_settings, color: Colors.white),
                         onPressed: () => context.go('/admin'),
@@ -324,11 +328,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 height: ResponsiveHelper.getSpacing(context, extraLarge: 24),
               ),
 
-              // User approval notifications for admins and superadmins
-              if (userProfile?.role == 'superadmin' ||
-                  userProfile?.role == 'admin' ||
-                  userProfile?.email == 'andres@turboairmexico.com' ||
-                  (userProfile?.isAdmin ?? false))
+              // User approval notifications for admins and superadmins (hardcoded check)
+              if (userEmail == 'andres@turboairmexico.com' ||
+                  userEmail == 'admin@turboairinc.com' ||
+                  userEmail == 'superadmin@turboairinc.com')
                 const UserApprovalsWidget(),
 
               // Connection status

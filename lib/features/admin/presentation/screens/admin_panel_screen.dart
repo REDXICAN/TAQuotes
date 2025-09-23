@@ -7,7 +7,9 @@ import '../../../../core/services/cache_manager.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../widgets/backup_status_widget.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class AdminPanelScreen extends ConsumerStatefulWidget {
   const AdminPanelScreen({super.key});
@@ -65,9 +67,21 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                     userEmail == 'superadmin@turboairinc.com';
 
     if (!isAdmin) {
-      // Not admin - check if they have admin role in database
-      // For now, we'll allow access to continue but you can add role check here
-      print('Warning: Non-admin user accessing admin panel: ${user.email}');
+      // Not admin - BLOCK ACCESS
+      Future.microtask(() {
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Access Denied: Admin privileges required.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      });
+      print('Access denied for non-admin user: ${user.email}');
+      return;
     }
 
     print('Admin access granted for user: ${user.email}');
@@ -323,6 +337,20 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                 subtitle: 'View analytics',
                 color: Colors.orange,
                 onTap: () => setState(() => _selectedView = 'analytics'),
+              ),
+              _buildMenuCard(
+                icon: Icons.error_outline,
+                title: 'Error Monitoring',
+                subtitle: 'View system errors',
+                color: Colors.red,
+                onTap: () => context.go('/admin/errors'),
+              ),
+              _buildMenuCard(
+                icon: Icons.backup,
+                title: 'Backup Status',
+                subtitle: 'Manage backups',
+                color: Colors.indigo,
+                onTap: () => setState(() => _selectedView = 'settings'),
               ),
               _buildMenuCard(
                 icon: Icons.settings,
@@ -1024,6 +1052,10 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
           ),
           const SizedBox(height: 24),
 
+          // Backup Status Section
+          const BackupStatusWidget(),
+          const SizedBox(height: 24),
+
           // Export data
           Card(
             child: ListTile(
@@ -1445,5 +1477,6 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
       ),
     );
   }
+
 
 }

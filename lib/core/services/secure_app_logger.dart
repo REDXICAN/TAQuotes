@@ -26,6 +26,8 @@ enum LogCategory {
   email,
   error,
   general,
+  system,
+  audit,
 }
 
 /// Secure App Logger with data sanitization

@@ -22,14 +22,14 @@ final databaseServiceProvider = Provider<RealtimeDatabaseService>((ref) {
 });
 
 // Project-related providers
-final allProjectsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final allProjectsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
   final dbService = ref.watch(databaseServiceProvider);
-  return await dbService.getProjects();
+  return dbService.getProjects();
 });
 
-final projectsByClientProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, clientId) async {
+final projectsByClientProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, clientId) {
   final dbService = ref.watch(databaseServiceProvider);
-  return await dbService.getProjects(clientId: clientId);
+  return dbService.getProjects(clientId: clientId);
 });
 
 final quotesByProjectProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, projectId) async {

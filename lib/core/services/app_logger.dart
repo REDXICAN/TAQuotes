@@ -20,10 +20,14 @@ class AppLogger {
   static void debug(String message, {dynamic data, dynamic error, dynamic stackTrace, LogCategory? category}) {
     SecureAppLogger.debug(message, data: data, error: error, stackTrace: stackTrace, category: category ?? LogCategory.general);
   }
-  
+
+  static void critical(String message, {dynamic data, dynamic error, dynamic stackTrace, LogCategory? category}) {
+    SecureAppLogger.error(message, data: data, error: error, stackTrace: stackTrace, category: category ?? LogCategory.error);
+  }
+
   // Add missing timer methods for backward compatibility
   static Stopwatch startTimer() => Stopwatch()..start();
-  
+
   static void logTimer(String message, Stopwatch stopwatch) {
     stopwatch.stop();
     info('$message (${stopwatch.elapsedMilliseconds}ms)', category: LogCategory.performance);

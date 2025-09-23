@@ -527,7 +527,7 @@ Future<void> _handleExcelUpload() async {
           // Search Bar
           Container(
             color: theme.appBarTheme.backgroundColor,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: TextField(
               controller: _searchController,
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -1766,47 +1766,78 @@ class ProductCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 6),
 
-                  // Warehouse Availability Badges
+                  // Warehouse Availability Badges (Mexican warehouses first)
                   if (product.warehouseStock != null && product.warehouseStock!.isNotEmpty)
                     Wrap(
                       spacing: 4,
                       runSpacing: 2,
-                      children: product.warehouseStock!.entries.map((entry) {
-                        final warehouse = entry.key;
-                        final stock = entry.value;
-                        final availableStock = stock.available - stock.reserved;
+                      children: () {
+                        // Sort warehouses: Mexican warehouses first (CDMX, CUN), then others
+                        final sortedEntries = product.warehouseStock!.entries.toList()
+                          ..sort((a, b) {
+                            // Mexican warehouses come first
+                            final mexicanWarehouses = ['CDMX', 'CUN'];
+                            final aIsMexican = mexicanWarehouses.contains(a.key);
+                            final bIsMexican = mexicanWarehouses.contains(b.key);
 
-                        Color badgeColor;
-                        if (availableStock > 50) {
-                          badgeColor = Colors.green;
-                        } else if (availableStock > 10) {
-                          badgeColor = Colors.orange;
-                        } else if (availableStock > 0) {
-                          badgeColor = Colors.red;
-                        } else {
-                          badgeColor = Colors.grey;
-                        }
+                            if (aIsMexican && !bIsMexican) return -1;
+                            if (!aIsMexican && bIsMexican) return 1;
 
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: badgeColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: badgeColor.withOpacity(0.3),
-                              width: 0.5,
+                            // Then sort by available stock (highest first)
+                            final aStock = a.value.available - a.value.reserved;
+                            final bStock = b.value.available - b.value.reserved;
+                            return bStock.compareTo(aStock);
+                          });
+
+                        return sortedEntries.map((entry) {
+                          final warehouse = entry.key;
+                          final stock = entry.value;
+                          final availableStock = stock.available - stock.reserved;
+                          final isMexicanWarehouse = ['CDMX', 'CUN'].contains(warehouse);
+
+                          Color badgeColor;
+                          if (availableStock > 50) {
+                            badgeColor = Colors.green;
+                          } else if (availableStock > 10) {
+                            badgeColor = Colors.orange;
+                          } else if (availableStock > 0) {
+                            badgeColor = Colors.red;
+                          } else {
+                            badgeColor = Colors.grey;
+                          }
+
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: badgeColor.withOpacity(isMexicanWarehouse ? 0.15 : 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: badgeColor.withOpacity(isMexicanWarehouse ? 0.5 : 0.3),
+                                width: isMexicanWarehouse ? 1.0 : 0.5,
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            '$warehouse: $availableStock',
-                            style: TextStyle(
-                              fontSize: 9,
-                              color: badgeColor,
-                              fontWeight: FontWeight.w600,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isMexicanWarehouse)
+                                  Icon(
+                                    Icons.location_on,
+                                    size: 10,
+                                    color: badgeColor,
+                                  ),
+                                Text(
+                                  '${warehouse}: $availableStock',
+                                  style: TextStyle(
+                                    fontSize: isMexicanWarehouse ? 10 : 9,
+                                    color: badgeColor,
+                                    fontWeight: isMexicanWarehouse ? FontWeight.w700 : FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        );
-                      }).toList(),
+                          );
+                        }).toList();
+                      }(),
                     ),
                   const SizedBox(height: 8),
                   // Price and Quantity Selector

@@ -19,9 +19,10 @@ import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/admin/presentation/screens/admin_panel_screen.dart';
 import '../../features/admin/presentation/screens/performance_dashboard_screen.dart';
 import '../../features/admin/presentation/screens/user_info_dashboard_screen.dart';
+import '../../features/admin/presentation/screens/error_monitoring_dashboard.dart';
 import '../../features/stock/presentation/screens/stock_dashboard_screen.dart';
 import '../../features/spareparts/presentation/screens/spareparts_screen.dart';
-import '../../features/projects/presentation/screens/projects_screen.dart';
+// import '../../features/projects/presentation/screens/projects_screen.dart';
 
 // Router provider
 final routerProvider = Provider<GoRouter>((ref) {
@@ -30,7 +31,8 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
     redirect: (context, state) {
-      final isAuthenticated = authState.valueOrNull != null;
+      final user = authState.valueOrNull;
+      final isAuthenticated = user != null;
       final isAuthRoute = state.uri.path.startsWith('/auth');
       final isAdminRoute = state.uri.path.startsWith('/admin');
 
@@ -47,6 +49,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Redirect authenticated users away from auth routes
       if (isAuthenticated && isAuthRoute) {
         return '/';
+      }
+
+      // Check admin access for admin routes
+      if (isAdminRoute && isAuthenticated) {
+        final userEmail = user.email?.toLowerCase();
+        final isAdmin = userEmail == 'andres@turboairmexico.com' ||
+                       userEmail == 'admin@turboairinc.com' ||
+                       userEmail == 'superadmin@turboairinc.com';
+
+        if (!isAdmin) {
+          // Non-admin trying to access admin route - redirect to home
+          return '/';
+        }
       }
 
       return null;
@@ -141,10 +156,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
 
           // Projects
-          GoRoute(
-            path: '/projects',
-            builder: (context, state) => const ProjectsScreen(),
-          ),
+          // GoRoute(
+          //   path: '/projects',
+          //   builder: (context, state) => const ProjectsScreen(),
+          // ),
 
           // Admin
           GoRoute(
@@ -158,6 +173,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'users',
                 builder: (context, state) => const UserInfoDashboardScreen(),
+              ),
+              GoRoute(
+                path: 'errors',
+                builder: (context, state) => const ErrorMonitoringDashboard(),
               ),
             ],
           ),
@@ -227,12 +246,12 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUserProfileAsync = ref.watch(currentUserProfileProvider);
-    final isAdmin = currentUserProfileAsync.when(
-      data: (profile) => profile?.isAdmin ?? false,
-      loading: () => false,
-      error: (_, __) => false,
-    );
+    // Check if user is admin based on email (hardcoded for security)
+    final authState = ref.watch(authStateProvider);
+    final userEmail = authState.valueOrNull?.email?.toLowerCase();
+    final isAdmin = userEmail == 'andres@turboairmexico.com' ||
+                   userEmail == 'admin@turboairinc.com' ||
+                   userEmail == 'superadmin@turboairinc.com';
 
     final currentLocation = GoRouterState.of(context).uri.toString();
     final cartItemCountAsync = ref.watch(cartItemCountProvider);

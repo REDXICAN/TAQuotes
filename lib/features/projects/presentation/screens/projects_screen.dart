@@ -4,9 +4,11 @@ import 'package:intl/intl.dart';
 import '../../../../core/services/realtime_database_service.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../clients/domain/models/client_model.dart';
-import '../../../clients/presentation/providers/clients_provider.dart';
-import '../../domain/models/project_model.dart';
+// import '../../../clients/domain/models/client_model.dart';
+// import '../../../clients/presentation/providers/clients_provider.dart';
+import '../../../../core/models/models.dart';
+import '../../../clients/presentation/screens/clients_screen.dart';
+// import '../../domain/models/project_model.dart';
 import '../providers/projects_provider.dart';
 
 class ProjectsScreen extends ConsumerStatefulWidget {
@@ -154,7 +156,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                   // Client Selection
                   Consumer(
                     builder: (context, ref, child) {
-                      final clientsAsync = ref.watch(clientsStreamProvider);
+                      final clientsAsync = ref.watch(clientsProvider);
                       return clientsAsync.when(
                         data: (clients) => DropdownButtonFormField<String>(
                           value: _selectedClientId,
@@ -387,10 +389,9 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
       } else {
         // Create new project
         await dbService.createProject(
-          projectName: _nameController.text,
+          name: _nameController.text,
           clientId: _selectedClientId!,
-          productLines: _selectedProductLines,
-          address: _addressController.text,
+          description: _descriptionController.text,
           status: _selectedProjectStatus,
           estimatedValue: double.parse(_estimatedValueController.text),
           startDate: _startDate!,
@@ -458,7 +459,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
   @override
   Widget build(BuildContext context) {
     final projectsAsync = ref.watch(projectsProvider);
-    final clientsAsync = ref.watch(clientsStreamProvider);
+    final clientsAsync = ref.watch(clientsProvider);
 
     return Scaffold(
       appBar: AppBar(

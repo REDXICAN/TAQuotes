@@ -178,7 +178,10 @@
       "Bash(start https://taquotes.web.app/admin)",
       "Bash(nc localhost 54748)",
       "Bash(then echo \"✓ .env file not found (good)\")",
-      "Read(//c/Users/andre/Downloads/**)"
+      "Read(//c/Users/andre/Downloads/**)",
+      "Bash(if [ -f firebase-admin-key.json ])",
+      "Bash(then echo \"WARNING: firebase-admin-key.json exists - SHOULD BE GITIGNORED!\")",
+      "Bash(else echo \"✓ firebase-admin-key.json not found (good)\")"
     ],
     "deny": [],
     "ask": [

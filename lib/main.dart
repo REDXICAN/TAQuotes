@@ -7,38 +7,55 @@ import 'firebase_options.dart';
 import 'app.dart';
 import 'core/services/product_cache_service.dart';
 import 'core/services/realtime_database_service.dart';
+import 'core/services/error_monitoring_service.dart';
+import 'core/services/backup_service.dart';
+import 'dart:async';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Load environment variables
   try {
     await dotenv.load(fileName: '.env');
   } catch (e) {
     // .env file is optional, continue without it
   }
-  
+
   // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  
+
   // Initialize Hive for offline caching
   await Hive.initFlutter();
-  
+
   // Enable Firebase offline persistence
   final dbService = RealtimeDatabaseService();
   await dbService.enableOfflinePersistence();
-  
+
   // Give Firebase a moment to connect
   await Future.delayed(const Duration(seconds: 1));
-  
+
   // Initialize product cache service
   await ProductCacheService.instance.initialize();
 
-  runApp(
-    const ProviderScope(
-      child: TurboAirApp(),
-    ),
-  );
+  // Initialize error monitoring
+  await ErrorMonitoringService().initialize();
+
+  // Initialize backup service with automated backups
+  await BackupService().initialize();
+
+  // Run app with error boundary
+  runZonedGuarded(() {
+    runApp(
+      const ProviderScope(
+        child: TurboAirApp(),
+      ),
+    );
+  }, (error, stack) {
+    ErrorMonitoringService().captureError(
+      error: error,
+      stackTrace: stack,
+    );
+  });
 }

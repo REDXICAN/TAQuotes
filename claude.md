@@ -1076,10 +1076,25 @@ Have recovery plan ready
 The app has core functionality working but needs critical business features before commercial deployment.
 
 ### Required for Commercial Launch:
-1. **Payment Processing** - Stripe/PayPal integration
-2. **Security** - Encryption, audit logs, backups
-3. **Legal Compliance** - GDPR, Terms of Service
-4. **Customer Portal** - Self-service features
-5. **Error Monitoring** - Production stability
+1. ~~**Payment Processing**~~ - NOT IN SCOPE
+2. **Security** - Encryption, audit logs, automated backups (IMPLEMENTED)
+3. **Legal Compliance** - GDPR, Terms of Service (IMPLEMENTED)
+4. ~~**Customer Portal**~~ - NOT IN SCOPE
+5. **Error Monitoring** - Production stability (IMPLEMENTED)
+
+## 📌 MOCK DATA PERMISSIONS
+**ALLOWED Mock Data (for demo/testing):**
+- Users (demo users for testing)
+- Projects (project management demos)
+- Quotes (quote generation demos)
+- **Spare Parts with Pricing** (50+ realistic spare parts with prices ranging $6.50 - $450.00)
+  - Includes categories: Compressor, Refrigeration, Temperature Control, Door Parts, Electrical, Fan Motors, Shelving, Filters, Lighting, Casters, Drain Parts, Refrigerants, Seals, Hardware, Control Boards, Pumps/Valves
+  - Warehouse locations: CA, CA1, CA2, CA3, CA4, 999, COCZ, COPZ, MEE, PU, SI, XCA, XPU
+  - Stock levels and availability tracking
+
+**MUST USE REAL DATA (from Excel/Firebase):**
+- Products (835+ real products from Excel)
+- Clients (real client data only)
+- All product specifications and pricing (except spare parts)
 
 ### See PROJECT.md for full commercial features roadmap and timeline.

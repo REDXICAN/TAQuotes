@@ -263,7 +263,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
   }
   
   void _checkAccess() {
-    // Simplified check - just verify user is authenticated
+    // Check if user is authenticated and has admin access
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       // Not authenticated
@@ -278,10 +278,30 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
       });
       return;
     }
-    
-    // For now, allow any authenticated user
-    // Later you can add: if (user.email == 'andres@turboairmexico.com')
-    print('Performance Dashboard access granted for: ${user.email}');
+
+    // Check if user is admin (hardcoded for security)
+    final userEmail = user.email?.toLowerCase();
+    final isAdmin = userEmail == 'andres@turboairmexico.com' ||
+                    userEmail == 'admin@turboairinc.com' ||
+                    userEmail == 'superadmin@turboairinc.com';
+
+    if (!isAdmin) {
+      // Not admin - BLOCK ACCESS
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Access Denied: Admin privileges required for Performance Dashboard.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      });
+      print('Access denied for non-admin user: ${user.email}');
+      return;
+    }
+
+    print('Performance Dashboard access granted for admin: ${user.email}');
   }
   
   @override
@@ -298,7 +318,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
     final currencyFormat = NumberFormat.currency(symbol: '\$');
     final isMobile = ResponsiveHelper.isMobile(context);
     
-    // Simple auth check - allow any logged in user for now
+    // Admin access check
     final currentUser = ref.watch(authStateProvider).valueOrNull;
     if (currentUser == null) {
       return Scaffold(
@@ -307,6 +327,35 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
         ),
         body: const Center(
           child: Text('Please log in to access this page'),
+        ),
+      );
+    }
+
+    // Check if user is admin
+    final userEmail = currentUser.email?.toLowerCase();
+    final isAdmin = userEmail == 'andres@turboairmexico.com' ||
+                   userEmail == 'admin@turboairinc.com' ||
+                   userEmail == 'superadmin@turboairinc.com';
+
+    if (!isAdmin) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Performance Dashboard'),
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.lock, size: 64, color: Colors.red),
+              SizedBox(height: 16),
+              Text(
+                'Access Denied',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('Admin privileges required'),
+            ],
+          ),
         ),
       );
     }

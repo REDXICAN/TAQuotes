@@ -123,8 +123,9 @@ class BackupService {
 
   Timer? _scheduledBackupTimer;
   bool _isScheduledBackupEnabled = true;
-  Duration _backupInterval = const Duration(days: 1); // Daily backups
-  TimeOfDay _backupTime = TimeOfDay(hour: 2, minute: 0); // 2:00 AM
+  Duration _backupInterval = const Duration(hours: 12); // Every 12 hours
+  static const int _backupRetentionDays = 15; // Keep backups for 15 days
+  TimeOfDay _backupTime = TimeOfDay(hour: 2, minute: 0); // 2:00 AM and 2:00 PM
 
   final _backupStatusController = StreamController<BackupEntry>.broadcast();
   final _restoreStatusController = StreamController<String>.broadcast();
@@ -144,6 +145,9 @@ class BackupService {
     if (_isScheduledBackupEnabled) {
       _scheduleNextBackup();
     }
+
+    // Clean up old backups on initialization
+    await cleanupOldBackups();
 
     AppLogger.info('BackupService initialized', category: LogCategory.business);
   }
@@ -812,45 +816,38 @@ class BackupService {
     );
   }
 
-  /// Schedule next backup
+  /// Schedule next backup (every 12 hours)
   void _scheduleNextBackup() {
     if (!_isScheduledBackupEnabled) return;
 
-    final now = DateTime.now();
-    var nextBackup = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      _backupTime.hour,
-      _backupTime.minute,
-    );
+    // Cancel existing timer
+    _scheduledBackupTimer?.cancel();
 
-    // If today's backup time has passed, schedule for tomorrow
-    if (nextBackup.isBefore(now)) {
-      nextBackup = nextBackup.add(const Duration(days: 1));
-    }
+    // Schedule backup to run every 12 hours
+    _scheduledBackupTimer = Timer.periodic(_backupInterval, (timer) async {
+      try {
+        // Create scheduled backup
+        final result = await createScheduledBackup();
 
-    final delay = nextBackup.difference(now);
-
-    _scheduledBackupTimer = Timer(delay, () {
-      // Create scheduled backup
-      createScheduledBackup().then((result) {
         if (result.success) {
-          AppLogger.info('Scheduled backup completed', category: LogCategory.business);
+          AppLogger.info(
+            'Scheduled backup completed - ID: ${result.backupId}, Size: ${result.fileSize} bytes',
+            category: LogCategory.business,
+          );
+
+          // Clean up old backups after successful backup
+          await cleanupOldBackups();
         } else {
           AppLogger.error('Scheduled backup failed: ${result.error}', category: LogCategory.business);
         }
-
-        // Schedule next backup
-        _scheduleNextBackup();
-      }).catchError((e) {
+      } catch (e) {
         AppLogger.error('Scheduled backup error', error: e, category: LogCategory.business);
-        _scheduleNextBackup(); // Still schedule next one
-      });
+      }
     });
 
+    final nextBackup = DateTime.now().add(_backupInterval);
     AppLogger.info(
-      'Next scheduled backup: ${nextBackup.toIso8601String()}',
+      'Scheduled backups enabled - Running every 12 hours. Next backup: ${nextBackup.toIso8601String()}',
       category: LogCategory.business,
     );
   }
@@ -928,7 +925,10 @@ class BackupService {
   }
 
   bool _isCurrentUserAdminOrSuperAdmin() {
-    return userEmail == 'andres@turboairmexico.com';
+    final email = userEmail?.toLowerCase();
+    return email == 'andres@turboairmexico.com' ||
+           email == 'admin@turboairinc.com' ||
+           email == 'superadmin@turboairinc.com';
   }
 
   int _countItems(Map<String, dynamic> backupData) {
@@ -942,6 +942,75 @@ class BackupService {
     }
 
     return count;
+  }
+
+  /// Clean up old backups (keep only last 15 days)
+  Future<void> cleanupOldBackups() async {
+    try {
+      AppLogger.info('Starting backup cleanup (keeping last $_backupRetentionDays days)', category: LogCategory.business);
+
+      final cutoffDate = DateTime.now().subtract(Duration(days: _backupRetentionDays));
+
+      // Get all backups from database
+      final snapshot = await _db.ref('backups').get();
+      if (!snapshot.exists) return;
+
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final backupsToDelete = <String>[];
+      final storageFilesToDelete = <String>[];
+
+      for (final entry in data.entries) {
+        final backup = BackupEntry.fromMap(Map<String, dynamic>.from(entry.value));
+
+        // Check if backup is older than retention period
+        if (backup.createdAt.isBefore(cutoffDate)) {
+          backupsToDelete.add(backup.id);
+
+          // Add storage file to deletion list if it exists
+          if (backup.downloadUrl != null) {
+            try {
+              // Extract file path from download URL
+              final uri = Uri.parse(backup.downloadUrl!);
+              final pathSegments = uri.pathSegments;
+              if (pathSegments.length > 2) {
+                // Reconstruct the storage path
+                final storagePath = pathSegments.skip(2).join('/').split('?')[0];
+                storageFilesToDelete.add(Uri.decodeComponent(storagePath));
+              }
+            } catch (e) {
+              AppLogger.warning('Could not parse download URL for deletion: ${backup.downloadUrl}', category: LogCategory.business);
+            }
+          }
+        }
+      }
+
+      // Delete old backup entries from database
+      for (final backupId in backupsToDelete) {
+        await _db.ref('backups/$backupId').remove();
+      }
+
+      // Delete old backup files from storage
+      for (final filePath in storageFilesToDelete) {
+        try {
+          await _storage.ref(filePath).delete();
+          AppLogger.info('Deleted old backup file: $filePath', category: LogCategory.business);
+        } catch (e) {
+          AppLogger.warning('Could not delete storage file: $filePath - ${e.toString()}', category: LogCategory.business);
+        }
+      }
+
+      if (backupsToDelete.isNotEmpty) {
+        AppLogger.info(
+          'Cleanup completed - Deleted ${backupsToDelete.length} old backups and ${storageFilesToDelete.length} storage files',
+          category: LogCategory.business,
+        );
+      } else {
+        AppLogger.info('No old backups to clean up', category: LogCategory.business);
+      }
+
+    } catch (e) {
+      AppLogger.error('Backup cleanup failed', error: e, category: LogCategory.business);
+    }
   }
 
   /// Dispose resources
