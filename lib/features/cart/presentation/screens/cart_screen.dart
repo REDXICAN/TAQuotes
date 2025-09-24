@@ -167,7 +167,7 @@ class CartScreen extends ConsumerStatefulWidget {
   ConsumerState<CartScreen> createState() => _CartScreenState();
 }
 
-class _CartScreenState extends ConsumerState<CartScreen> {
+class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAliveClientMixin {
   final _taxRateController = TextEditingController(text: '8.0');
   final _discountController = TextEditingController(text: '0');
   final _commentController = TextEditingController();
@@ -182,6 +182,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   bool _createNewProject = false;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void dispose() {
     _taxRateController.dispose();
     _discountController.dispose();
@@ -192,6 +195,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final cartAsync = ref.watch(cartProvider);
     // Watch both providers and sync them
     final cartClient = ref.watch(cartClientProvider);
@@ -395,6 +399,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         final clientsAsync = ref.watch(clientsStreamProvider);
                         
                         return clientsAsync.when(
+                          skipLoadingOnReload: true,
+                          skipLoadingOnRefresh: true,
                           data: (clients) => SearchableClientDropdown(
                             clients: clients,
                             selectedClient: selectedClient,
@@ -407,10 +413,34 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                             showAddButton: true,
                             onAddClient: _addNewClient,
                           ),
-                          loading: () => const LinearProgressIndicator(),
-                          error: (error, stack) => Text(
-                            'Error loading clients: $error',
-                            style: TextStyle(color: theme.colorScheme.error),
+                          loading: () => const SizedBox(
+                            height: 56,
+                            child: Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          ),
+                          error: (error, stack) => Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.red.withOpacity(0.5)),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.error_outline, color: theme.colorScheme.error),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Unable to load clients. Tap to retry.',
+                                    style: TextStyle(color: theme.colorScheme.error),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.refresh),
+                                  onPressed: () => ref.invalidate(clientsStreamProvider),
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       },

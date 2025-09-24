@@ -272,6 +272,45 @@ FIREBASE_DATABASE_URL=https://taquotes-default-rtdb.firebaseio.com
 }
 ```
 
+## 🔧 ENCODING ISSUES FIX (PERMANENT SOLUTION)
+
+### ⚠️ COMMON ENCODING PROBLEM
+Temperature displays show "Â°F" and "Â°C" instead of "°F" and "°C" due to UTF-8 encoding issues.
+
+### ✅ SOLUTION FOR FLUTTER APP
+In any widget displaying temperature or specifications:
+```dart
+String _cleanEncodingIssues(String text) {
+  return text
+      .replaceAll('Â°F', '°F')  // Fix Fahrenheit
+      .replaceAll('Â°C', '°C')  // Fix Celsius
+      .replaceAll('Â°', '°')    // Fix any other degree symbols
+      .replaceAll('Â', '');      // Remove any remaining Â characters
+}
+
+// Usage in widgets:
+Text(_cleanEncodingIssues(product.temperatureRange ?? ''))
+```
+
+### ✅ SOLUTION FOR DATABASE IMPORTS
+When importing JSON to Firebase, ALWAYS clean encoding first:
+```python
+def fix_encoding_issues(text):
+    if not isinstance(text, str):
+        return text
+    text = text.replace('Â°F', '°F')  # Fix Fahrenheit
+    text = text.replace('Â°C', '°C')  # Fix Celsius
+    text = text.replace('Â°', '°')    # Fix degree symbols
+    text = text.replace('Â', '')       # Remove Â characters
+    return text
+```
+
+### 📝 PREVENTION RULES
+1. **ALWAYS** use UTF-8 encoding when reading/writing JSON files
+2. **ALWAYS** clean temperature data before database import
+3. **ALWAYS** use the `_cleanEncodingIssues()` helper in Flutter widgets
+4. **NEVER** trust external data sources to have clean encoding
+
 ## ⚠️ CRITICAL: DO NOT BREAK THESE (UPDATED DEC 2024)
 
 ### ✅ FULLY WORKING FEATURES - DO NOT MODIFY
@@ -623,8 +662,29 @@ flutter test
 # Clean and rebuild
 flutter clean
 flutter pub get
-flutter build web --release --web-renderer html
+flutter build web --release
 ```
+
+#### Screen Requires Reload to Display Data?
+**Common causes and fixes:**
+1. **Provider using authStateProvider with loading states**
+   - Solution: Use `currentUserProvider` instead for immediate user data
+2. **Stream.empty() during auth loading**
+   - Solution: Return proper stream or Stream.value([]) instead
+3. **Forced invalidation in initState**
+   - Solution: Remove `ref.invalidate()` calls from initState
+4. **Missing AutomaticKeepAliveClientMixin**
+   - Solution: Add mixin and implement `wantKeepAlive => true`
+5. **Not skipping loading on refresh**
+   - Solution: Add `skipLoadingOnReload: true` to `.when()` calls
+
+#### Colors All Showing Same Color (Blue)?
+**Issue:** Using `Theme.of(context).primaryColor` for both backgrounds AND text
+**Solution:** Use proper Apple colors:
+- Backgrounds: `AppleColors.bgPrimary`, `AppleColors.bgSecondary`
+- Text: `AppleColors.textPrimary`, `AppleColors.textSecondary`
+- Accents: `AppleColors.accentPrimary`, `AppleColors.accentSuccess`
+- Borders: `AppleColors.borderSubtle`
 
 ### Known Limitations
 - Email attachments limited to 25MB
@@ -851,7 +911,35 @@ Application successfully deployed to Firebase Hosting and fully operational.
 
 ## 🔄 Version History
 
-### Version 1.5.1 (Current - January 2025)
+### Version 1.5.3 (Current - January 2025)
+- **Prepared Warehouse Stock Data for Firebase**
+  - Created `firebase_warehouse_stock_updates.json` with 83 products' warehouse stock data
+  - Products screen already has sorting by stock implemented (highest stock first)
+  - Stock data includes warehouse distribution across 14 Mexican locations
+  - Total stock tracking with available vs reserved quantities
+  - **ACTION REQUIRED**: Upload `firebase_warehouse_stock_updates.json` to Firebase via Console
+
+### Version 1.5.2 (January 2025)
+- **Fixed Stock Dashboard Blue Display Issue**
+  - Replaced all `Theme.of(context).primaryColor` with proper Apple colors
+  - Fixed background colors using `AppleColors.bgPrimary` and `bgSecondary`
+  - Fixed text colors using `AppleColors.textPrimary` and `textSecondary`
+  - Fixed accent colors using `AppleColors.accentPrimary`
+  - Fixed loading and error states with appropriate colors
+- **Fixed Clients Screen Loading Issue**
+  - Changed from `authStateProvider` to `currentUserProvider` to avoid loading states
+  - Removed `Stream.empty()` during auth loading that caused blank screens
+  - Added `AutomaticKeepAliveClientMixin` to maintain screen state
+  - Removed `ref.invalidate()` in initState that caused unnecessary reloads
+  - Added `skipLoadingOnReload` and `skipLoadingOnRefresh` flags
+  - Added proper error handling with `.handleError()` for streams
+- **Fixed Cart Screen Client Selection Not Loading**
+  - Added `skipLoadingOnReload` and `skipLoadingOnRefresh` to client dropdown
+  - Implemented `AutomaticKeepAliveClientMixin` for cart screen state persistence
+  - Improved error handling UI with retry button for client loading failures
+  - Enhanced loading state with proper sized container instead of LinearProgressIndicator
+
+### Version 1.5.1 (January 2025)
 - **Stock Dashboard - Persistent Editable Values**
   - Added save icons next to utilization % and capacity input fields
   - Implemented SharedPreferences for persistent storage
@@ -940,8 +1028,8 @@ Application successfully deployed to Firebase Hosting and fully operational.
 
 ---
 
-**Last Updated**: January 2025  
-**Current Version**: 1.5.0  
+**Last Updated**: January 2025
+**Current Version**: 1.5.2
 **Deployment**: Firebase Hosting (taquotes)  
 **Repository**: https://github.com/REDXICAN/TAQuotes
 
@@ -1098,3 +1186,107 @@ The app has core functionality working but needs critical business features befo
 - All product specifications and pricing (except spare parts)
 
 ### See PROJECT.md for full commercial features roadmap and timeline.
+
+## 📋 TODO - Technical Debt & Improvements
+
+### 🟡 Functionality Limitations
+
+1. **Email Service Limitations**
+   - emailjs_service_web.dart:61 - EmailJS doesn't support file attachments in free tier (noted but not resolved)
+   - Stub implementations exist for non-web platforms (emailjs_service_stub.dart)
+
+2. **Error Handling Issues**
+   - Empty catch blocks in env_config.dart (lines 14, 27, 37) - errors silently ignored
+   - Empty catch in products_screen.dart:494 - potential error swallowing
+
+3. **Debug Code in Production**
+   - Multiple print() statements found that should be removed:
+     - product_detail_screen.dart:1435-1450 - Debug product data printing
+     - performance_dashboard_screen.dart:239, 300, 304 - Debug prints
+     - admin_panel_screen.dart:83, 87 - Access logging prints
+     - models.dart:60 - Error parsing date print
+     - user_info_dashboard_screen.dart:91 - Error loading users print
+
+### 🟠 Incomplete Features
+
+4. **Image Optimization**
+   - storage_service.dart - Image optimization code exists but may not be fully utilized
+   - product_image_helper.dart:1147 - Comment indicates "Missing methods that are being called"
+
+5. **Download Helper**
+   - download_helper_stub.dart - Stub implementation for non-web platforms needs completion
+
+### 🟢 Minor Issues
+
+6. **Type Safety Issues**
+   - Multiple .toDouble() conversions that could cause runtime errors if data is null
+   - Inconsistent null checking in price/number conversions
+
+7. **Note Field Handling**
+   - Quote item notes are sometimes set to null, sometimes to empty string - needs consistency
+
+8. **Performance Optimizations Mentioned**
+   - products_screen.dart:1327 - Comment about "Optimize repainting" but not clear if fully optimized
+
+### 📝 Documentation/Comments Issues
+
+9. **Misleading Comments**
+   - app_config.dart - References to removed Supabase still in comments
+   - product_image_optimizer.dart - File has optimization class but unclear if fully used
+
+### 🔍 Validation & Testing Gaps
+
+10. **Missing Input Validation**
+    - No comprehensive validation for numeric fields before .toDouble() conversions
+    - Limited error messages for failed operations
+
+### 🛡️ Security Considerations
+
+11. **Sensitive Data in Logs**
+    - User emails being printed in logs (performance_dashboard_screen.dart)
+    - CSRF token errors printed to console
+
+### 💾 Data Management
+
+12. **~~Backup/Restore~~** ✅ COMPLETED (December 2025)
+    - ~~Backup download functionality not implemented~~
+    - ~~No automated backup scheduling visible~~
+    - Now fully implemented with Firebase integration and download capability
+
+### 🎨 UI/UX Inconsistencies
+
+13. **Disabled States**
+    - Multiple references to theme.disabledColor but unclear if all disabled states are properly handled
+
+### ✅ Recently Fixed Issues (December 2025)
+
+1. **Export Functions** - ✅ FIXED
+   - Previously commented out in admin_panel_screen.dart
+   - Now fully functional for Products, Clients, and Quotes export
+
+2. **Backup Functionality** - ✅ IMPLEMENTED
+   - Full backup service with Firebase integration
+   - Download functionality for database backups
+   - Admin-only access control
+   - Real-time backup history tracking
+
+---
+
+### 📊 Current Status Summary
+
+- **Critical Issues**: 0 (previously 2, now fixed)
+- **Functionality Limitations**: 3
+- **Incomplete Features**: 2
+- **Minor Issues**: 5
+- **Documentation Issues**: 2
+- **Security Considerations**: 1
+- **Total Remaining Items**: 13 areas needing attention
+
+### Priority Recommendations:
+1. ~~Fix the commented-out export functions~~ ✅ COMPLETED
+2. ~~Implement backup download functionality~~ ✅ COMPLETED
+3. Remove debug print statements (Medium)
+4. Fix empty catch blocks (Medium)
+5. Complete stub implementations (Low)
+6. Add comprehensive input validation (Medium)
+7. Clean up misleading comments (Low)

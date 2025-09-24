@@ -10,6 +10,8 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../widgets/backup_status_widget.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_database/firebase_database.dart';
+import '../../../../core/services/export_service.dart';
+import '../../../../core/utils/download_helper.dart';
 
 class AdminPanelScreen extends ConsumerStatefulWidget {
   const AdminPanelScreen({super.key});
@@ -1065,17 +1067,46 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
               trailing: PopupMenuButton<String>(
                 onSelected: (format) async {
                   try {
+                    // Show loading indicator
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+
                     // Fetch all products first
-                    final products = CacheManager.getProducts();
-                    // Export functionality removed from products screen
-                    // await ExportService.exportProducts(products);
+                    final products = CacheManager.getProducts()
+                        .map((p) => Product.fromMap(Map<String, dynamic>.from(p)))
+                        .toList();
+
+                    // Generate Excel file
+                    final bytes = await ExportService.generateProductsExcel(products);
+
+                    // Download the file
+                    final filename = 'products_export_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.xlsx';
+                    await DownloadHelper.downloadFile(
+                      bytes: bytes,
+                      filename: filename,
+                      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    );
+
+                    // Close loading dialog
                     if (mounted) {
+                      Navigator.of(context).pop();
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Products exported successfully')),
+                        SnackBar(
+                          content: Text('Products exported successfully (${products.length} items)'),
+                          backgroundColor: Colors.green,
+                        ),
                       );
                     }
                   } catch (e) {
+                    // Close loading dialog if error
+                    if (mounted) {
+                      Navigator.of(context).pop();
+                    }
                     _showError('Export failed: $e');
                   }
                 },
@@ -1099,17 +1130,46 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
               trailing: PopupMenuButton<String>(
                 onSelected: (format) async {
                   try {
+                    // Show loading indicator
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+
                     // Fetch all clients first
-                    final clients = CacheManager.getClients();
-                    // Export functionality for clients
-                    // await ExportService.exportClients(clients);
+                    final clients = CacheManager.getClients()
+                        .map((c) => Client.fromMap(Map<String, dynamic>.from(c)))
+                        .toList();
+
+                    // Generate Excel file
+                    final bytes = await ExportService.generateClientsExcel(clients);
+
+                    // Download the file
+                    final filename = 'clients_export_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.xlsx';
+                    await DownloadHelper.downloadFile(
+                      bytes: bytes,
+                      filename: filename,
+                      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    );
+
+                    // Close loading dialog
                     if (mounted) {
+                      Navigator.of(context).pop();
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Clients exported successfully')),
+                        SnackBar(
+                          content: Text('Clients exported successfully (${clients.length} items)'),
+                          backgroundColor: Colors.green,
+                        ),
                       );
                     }
                   } catch (e) {
+                    // Close loading dialog if error
+                    if (mounted) {
+                      Navigator.of(context).pop();
+                    }
                     _showError('Export failed: $e');
                   }
                 },
@@ -1133,17 +1193,46 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
               trailing: PopupMenuButton<String>(
                 onSelected: (format) async {
                   try {
+                    // Show loading indicator
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+
                     // Fetch all quotes first
-                    final quotes = CacheManager.getQuotes();
-                    // Export functionality for quotes
-                    // await ExportService.exportQuotes(quotes);
+                    final quotesData = CacheManager.getQuotes()
+                        .map((q) => Map<String, dynamic>.from(q))
+                        .toList();
+
+                    // Generate Excel file
+                    final bytes = await ExportService.generateQuotesExcel(quotesData);
+
+                    // Download the file
+                    final filename = 'quotes_export_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.xlsx';
+                    await DownloadHelper.downloadFile(
+                      bytes: bytes,
+                      filename: filename,
+                      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    );
+
+                    // Close loading dialog
                     if (mounted) {
+                      Navigator.of(context).pop();
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Quotes exported successfully')),
+                        SnackBar(
+                          content: Text('Quotes exported successfully (${quotesData.length} items)'),
+                          backgroundColor: Colors.green,
+                        ),
                       );
                     }
                   } catch (e) {
+                    // Close loading dialog if error
+                    if (mounted) {
+                      Navigator.of(context).pop();
+                    }
                     _showError('Export failed: $e');
                   }
                 },

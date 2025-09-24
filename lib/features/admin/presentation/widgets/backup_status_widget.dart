@@ -403,13 +403,47 @@ class _BackupStatusWidgetState extends ConsumerState<BackupStatusWidget> {
                         trailing: backup.downloadUrl != null
                             ? IconButton(
                                 icon: const Icon(Icons.download),
-                                onPressed: () {
-                                  // TODO: Implement download functionality
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Download feature coming soon'),
-                                    ),
-                                  );
+                                onPressed: () async {
+                                  // Download the backup
+                                  try {
+                                    // Show loading indicator
+                                    showDialog(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (context) => const Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    );
+
+                                    // Generate and download backup
+                                    final backupService = BackupService();
+                                    final backupData = await backupService.generateBackup();
+                                    await backupService.downloadBackup(backupData);
+
+                                    // Close loading dialog
+                                    if (context.mounted) {
+                                      Navigator.of(context).pop();
+
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Backup downloaded successfully (${backupData.sizeInMB} MB)'),
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    // Close loading dialog
+                                    if (context.mounted) {
+                                      Navigator.of(context).pop();
+
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Failed to download backup: $e'),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  }
                                 },
                                 tooltip: 'Download Backup',
                               )

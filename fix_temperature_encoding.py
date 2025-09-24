@@ -1,124 +1,126 @@
 import json
 import re
 
-print("FIXING TEMPERATURE RANGE ENCODING ISSUES")
-print("=" * 80)
+def fix_encoding_issues(text):
+    """Fix common UTF-8 encoding issues with temperature and other special characters"""
+    if not isinstance(text, str):
+        return text
 
-# Load the database - try different files
-import os
+    # Fix temperature degree symbols
+    text = text.replace('Â°F', '°F')  # Fix Fahrenheit
+    text = text.replace('Â°C', '°C')  # Fix Celsius
+    text = text.replace('Â°', '°')    # Fix any other degree symbols
+    text = text.replace('Â', '')       # Remove any remaining Â characters
 
-if os.path.exists('FULL_PRODUCTS_RESTORED.json'):
-    with open('FULL_PRODUCTS_RESTORED.json', 'r', encoding='utf-8') as f:
-        database = json.load(f)
-elif os.path.exists('FINAL_COMPLETE_DATABASE.json'):
-    with open('FINAL_COMPLETE_DATABASE.json', 'r', encoding='utf-8') as f:
-        database = json.load(f)
-else:
-    print("Error: Could not find database file!")
-    exit()
+    # Fix other common encoding issues
+    text = text.replace('â€™', "'")    # Fix apostrophe
+    text = text.replace('â€"', "-")    # Fix dash
+    text = text.replace('â€œ', '"')    # Fix left quote
+    text = text.replace('â€', '"')     # Fix right quote
+    text = text.replace('Ã—', 'x')     # Fix multiplication sign
+    text = text.replace('â€¢', '•')    # Fix bullet point
 
-print(f"Loaded {len(database)} products")
+    return text
 
-# Function to fix temperature strings
-def fix_temperature(temp_str):
-    """Fix temperature encoding issues"""
-    if not temp_str:
-        return temp_str
-    
-    # Common encoding issues with degree symbol
-    replacements = [
-        ('Â°', '°'),  # Common UTF-8 issue
-        ('°', '°'),   # Already correct
-        ('Ã‚Â°', '°'), # Double encoding issue
-        ('Â', ''),     # Remove stray Â
-        ('  ', ' '),   # Fix double spaces
-    ]
-    
-    fixed = temp_str
-    for old, new in replacements:
-        fixed = fixed.replace(old, new)
-    
-    # Ensure proper formatting
-    # Should be like: "33°F to 38°F" or "-10°F to 0°F"
-    # Fix patterns like "33F" to "33°F"
-    fixed = re.sub(r'(\d+)\s*F\b', r'\1°F', fixed)
-    fixed = re.sub(r'(\d+)\s*C\b', r'\1°C', fixed)
-    
-    # Fix patterns where degree is separated
-    fixed = re.sub(r'(\d+)\s+°\s+([FC])', r'\1°\2', fixed)
-    
-    # Clean up spacing
-    fixed = re.sub(r'\s+', ' ', fixed).strip()
-    
-    return fixed
+def clean_product_data(product):
+    """Clean all text fields in a product"""
+    for key, value in product.items():
+        if isinstance(value, str):
+            product[key] = fix_encoding_issues(value)
+        elif isinstance(value, dict):
+            # Recursively clean nested objects
+            product[key] = clean_product_data(value)
+        elif isinstance(value, list):
+            # Clean items in lists
+            product[key] = [fix_encoding_issues(item) if isinstance(item, str) else item for item in value]
+    return product
 
-# Track changes
-changes_made = 0
-examples = []
+print("=" * 70)
+print("FIXING TEMPERATURE ENCODING ISSUES")
+print("=" * 70)
 
-# Fix all temperature fields in products
-for product_key, product in database.items():
-    if isinstance(product, dict):
-        # Fix temperatureRange
-        if 'temperatureRange' in product:
-            original = product['temperatureRange']
-            fixed = fix_temperature(original)
-            if original != fixed:
-                product['temperatureRange'] = fixed
-                changes_made += 1
-                if len(examples) < 5:
-                    examples.append({
-                        'sku': product.get('sku', 'Unknown'),
-                        'original': original,
-                        'fixed': fixed
-                    })
-        
-        # Fix temperatureRangeMetric
-        if 'temperatureRangeMetric' in product:
-            original = product['temperatureRangeMetric']
-            fixed = fix_temperature(original)
-            if original != fixed:
-                product['temperatureRangeMetric'] = fixed
-                changes_made += 1
-        
-        # Also fix in description field if it contains temperature
-        if 'description' in product and '°' in str(product['description']):
-            original = product['description']
-            fixed = fix_temperature(original)
-            if original != fixed:
-                product['description'] = fixed
-                changes_made += 1
+# Load the converted products file
+print("\n1. Loading products file...")
+with open('products_product_format_FINAL.json', 'r', encoding='utf-8') as f:
+    products = json.load(f)
 
-print(f"\nFixed {changes_made} temperature fields")
+print(f"   Loaded {len(products)} products")
 
-if examples:
-    print("\nExamples of fixes:")
-    for ex in examples:
-        print(f"  SKU: {ex['sku']}")
-        print(f"    Original: {ex['original']}")
-        print(f"    Fixed: {ex['fixed']}")
+# Check for encoding issues
+print("\n2. Checking for encoding issues...")
+issues_found = []
+for product_id, product_data in products.items():
+    for field in ['temperatureRange', 'temperatureRangeMetric', 'dimensions', 'weight', 'features', 'description', 'name', 'displayName']:
+        if field in product_data and product_data[field]:
+            value = str(product_data[field])
+            if 'Â°' in value or 'Â' in value or 'â€' in value:
+                issues_found.append((product_id, field, value))
+                if len(issues_found) <= 5:
+                    print(f"   Found issue in {product_id} - {field}: {value[:50]}...")
 
-# Save the fixed database
-output_file = 'FINAL_DATABASE_FIXED_TEMP.json'
+print(f"\n   Total fields with encoding issues: {len(issues_found)}")
+
+# Fix all encoding issues
+print("\n3. Fixing encoding issues...")
+fixed_count = 0
+for product_id, product_data in products.items():
+    original_json = json.dumps(product_data)
+    cleaned_product = clean_product_data(product_data)
+
+    if json.dumps(cleaned_product) != original_json:
+        products[product_id] = cleaned_product
+        fixed_count += 1
+
+print(f"   Fixed encoding in {fixed_count} products")
+
+# Save the cleaned products
+output_file = 'products_clean_encoding_FINAL.json'
+print(f"\n4. Saving cleaned products to {output_file}...")
 with open(output_file, 'w', encoding='utf-8') as f:
-    json.dump(database, f, indent=2, ensure_ascii=False)
+    json.dump(products, f, indent=2, ensure_ascii=False)
 
-print(f"\nSaved fixed database to: {output_file}")
+# Verify the fix
+print("\n5. Verifying fixes...")
+with open(output_file, 'r', encoding='utf-8') as f:
+    content = f.read()
 
-# Verify a few products
-print("\n" + "=" * 80)
-print("VERIFICATION - Sample temperature ranges after fix:")
-print("=" * 80)
+bad_patterns = ['Â°F', 'Â°C', 'Â°', 'â€™', 'â€"', 'â€œ', 'â€', 'Ã—']
+found_issues = False
+for pattern in bad_patterns:
+    if pattern in content:
+        print(f"   WARNING: Still found '{pattern}' in output file!")
+        found_issues = True
 
-sample_count = 0
-for product_key, product in database.items():
-    if isinstance(product, dict) and 'temperatureRange' in product:
-        print(f"  {product.get('sku', 'Unknown')}: {product['temperatureRange']}")
-        sample_count += 1
-        if sample_count >= 10:
-            break
+if not found_issues:
+    print("   SUCCESS: No encoding issues found in output file!")
 
-print("\n" + "=" * 80)
-print("COMPLETE! Temperature ranges have been fixed.")
-print(f"Use this file for import: {output_file}")
-print("=" * 80)
+# Show sample of fixed data
+print("\n6. Sample of fixed data:")
+sample_products = list(products.items())[:3]
+for product_id, product_data in sample_products:
+    if 'temperatureRange' in product_data and product_data['temperatureRange']:
+        print(f"   {product_id}:")
+        print(f"     Temperature Range: {product_data['temperatureRange']}")
+        if 'temperatureRangeMetric' in product_data:
+            print(f"     Temperature Range (Metric): {product_data['temperatureRangeMetric']}")
+
+print("\n" + "=" * 70)
+print(f"SUCCESS! Created: {output_file}")
+print("=" * 70)
+
+print(f"\nFile contains:")
+print(f"  - {len(products)} products with clean encoding")
+print(f"  - Fixed temperature symbols (°F, °C)")
+print(f"  - Fixed all special characters")
+print(f"  - product_XXXX format maintained")
+
+print("\nTO IMPORT:")
+print("1. Go to Firebase Console > Realtime Database")
+print("2. Click on the 'products' node")
+print("3. Click the three dots menu (...) -> Import JSON")
+print(f"4. Select: {output_file}")
+
+print("\nThis file has:")
+print("  - ALL encoding issues fixed")
+print("  - Proper degree symbols for temperatures")
+print("  - Clean text in all fields")

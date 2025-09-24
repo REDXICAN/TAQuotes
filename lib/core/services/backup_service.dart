@@ -1,27 +1,652 @@
 // lib/core/services/backup_service.dart
-import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 import 'app_logger.dart';
+import '../utils/download_helper.dart';
+import '../models/models.dart';
 
-enum BackupType { manual, scheduled, emergency }
-enum BackupStatus { pending, running, completed, failed, cancelled }
+/// Service for handling database backups
+class BackupService {
+  static final BackupService _instance = BackupService._internal();
+  factory BackupService() => _instance;
+  BackupService._internal();
 
+  final FirebaseDatabase _db = FirebaseDatabase.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  /// Generate a complete database backup
+  Future<BackupData> generateBackup({
+    bool includeProducts = true,
+    bool includeClients = true,
+    bool includeQuotes = true,
+    bool includeUsers = true,
+    bool includeSpareParts = true,
+    bool includeWarehouseData = true,
+  }) async {
+    try {
+      AppLogger.info('Starting database backup generation');
+
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // Check if user is admin
+      final isAdmin = user.email == 'andres@turboairmexico.com';
+
+      final Map<String, dynamic> backupData = {
+        'metadata': {
+          'version': '1.0',
+          'created_at': DateTime.now().toIso8601String(),
+          'created_by': user.email,
+          'app_version': '1.5.3',
+          'is_complete': isAdmin,
+          'sections': [],
+        },
+        'data': {},
+      };
+
+      // Fetch products (all users can backup)
+      if (includeProducts) {
+        AppLogger.info('Fetching products for backup');
+        final productsSnapshot = await _db.ref('products').get();
+        if (productsSnapshot.exists) {
+          backupData['data']['products'] = productsSnapshot.value;
+          backupData['metadata']['sections'].add('products');
+          AppLogger.info('Added products to backup');
+        }
+      }
+
+      // Fetch spare parts (all users can backup)
+      if (includeSpareParts) {
+        AppLogger.info('Fetching spare parts for backup');
+        final sparePartsSnapshot = await _db.ref('spare_parts').get();
+        if (sparePartsSnapshot.exists) {
+          backupData['data']['spare_parts'] = sparePartsSnapshot.value;
+          backupData['metadata']['sections'].add('spare_parts');
+          AppLogger.info('Added spare parts to backup');
+        }
+      }
+
+      // Fetch user-specific data
+      if (includeClients) {
+        AppLogger.info('Fetching clients for backup');
+        if (isAdmin) {
+          // Admin gets all clients
+          final clientsSnapshot = await _db.ref('clients').get();
+          if (clientsSnapshot.exists) {
+            backupData['data']['clients'] = clientsSnapshot.value;
+            backupData['metadata']['sections'].add('clients');
+          }
+        } else {
+          // Regular user gets only their clients
+          final clientsSnapshot = await _db.ref('clients/${user.uid}').get();
+          if (clientsSnapshot.exists) {
+            backupData['data']['clients'] = {
+              user.uid: clientsSnapshot.value,
+            };
+            backupData['metadata']['sections'].add('clients');
+          }
+        }
+        AppLogger.info('Added clients to backup');
+      }
+
+      if (includeQuotes) {
+        AppLogger.info('Fetching quotes for backup');
+        if (isAdmin) {
+          // Admin gets all quotes
+          final quotesSnapshot = await _db.ref('quotes').get();
+          if (quotesSnapshot.exists) {
+            backupData['data']['quotes'] = quotesSnapshot.value;
+            backupData['metadata']['sections'].add('quotes');
+          }
+        } else {
+          // Regular user gets only their quotes
+          final quotesSnapshot = await _db.ref('quotes/${user.uid}').get();
+          if (quotesSnapshot.exists) {
+            backupData['data']['quotes'] = {
+              user.uid: quotesSnapshot.value,
+            };
+            backupData['metadata']['sections'].add('quotes');
+          }
+        }
+        AppLogger.info('Added quotes to backup');
+      }
+
+      // Admin-only sections
+      if (isAdmin) {
+        if (includeUsers) {
+          AppLogger.info('Fetching users for backup');
+          final usersSnapshot = await _db.ref('users').get();
+          if (usersSnapshot.exists) {
+            backupData['data']['users'] = usersSnapshot.value;
+            backupData['metadata']['sections'].add('users');
+          }
+
+          final profilesSnapshot = await _db.ref('user_profiles').get();
+          if (profilesSnapshot.exists) {
+            backupData['data']['user_profiles'] = profilesSnapshot.value;
+            backupData['metadata']['sections'].add('user_profiles');
+          }
+          AppLogger.info('Added users to backup');
+        }
+
+        if (includeWarehouseData) {
+          AppLogger.info('Fetching warehouse data for backup');
+          final warehouseSnapshot = await _db.ref('warehouse_stock').get();
+          if (warehouseSnapshot.exists) {
+            backupData['data']['warehouse_stock'] = warehouseSnapshot.value;
+            backupData['metadata']['sections'].add('warehouse_stock');
+          }
+          AppLogger.info('Added warehouse data to backup');
+        }
+      }
+
+      // Calculate backup size
+      final jsonString = jsonEncode(backupData);
+      final bytes = utf8.encode(jsonString);
+      final sizeInMB = (bytes.length / (1024 * 1024)).toStringAsFixed(2);
+
+      backupData['metadata']['size_mb'] = sizeInMB;
+      backupData['metadata']['item_counts'] = _calculateItemCounts(backupData['data']);
+
+      AppLogger.info('Backup generated successfully', data: {
+        'size_mb': sizeInMB,
+        'sections': backupData['metadata']['sections'],
+      });
+
+      return BackupData(
+        data: backupData,
+        sizeInMB: double.parse(sizeInMB),
+        timestamp: DateTime.now(),
+        sections: List<String>.from(backupData['metadata']['sections']),
+      );
+
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to generate backup', error: e, stackTrace: stackTrace);
+      throw Exception('Failed to generate backup: $e');
+    }
+  }
+
+  /// Download backup as JSON file
+  Future<void> downloadBackup(BackupData backup) async {
+    try {
+      // Convert backup data to JSON
+      final jsonString = const JsonEncoder.withIndent('  ').convert(backup.data);
+      final bytes = Uint8List.fromList(utf8.encode(jsonString));
+
+      // Generate filename with timestamp
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(backup.timestamp);
+      final filename = 'taquotes_backup_$timestamp.json';
+
+      // Use DownloadHelper to handle platform-specific download
+      await DownloadHelper.downloadFile(
+        bytes: bytes,
+        filename: filename,
+        mimeType: 'application/json',
+      );
+
+      AppLogger.info('Backup downloaded', data: {
+        'filename': filename,
+        'size_mb': backup.sizeInMB,
+      });
+
+    } catch (e) {
+      AppLogger.error('Failed to download backup', error: e);
+      throw Exception('Failed to download backup: $e');
+    }
+  }
+
+  /// Download a partial backup with selected sections
+  Future<void> downloadPartialBackup({
+    required List<String> sections,
+    String? customFilename,
+  }) async {
+    try {
+      // Generate backup with only selected sections
+      final backup = await generateBackup(
+        includeProducts: sections.contains('products'),
+        includeClients: sections.contains('clients'),
+        includeQuotes: sections.contains('quotes'),
+        includeUsers: sections.contains('users'),
+        includeSpareParts: sections.contains('spare_parts'),
+        includeWarehouseData: sections.contains('warehouse_stock'),
+      );
+
+      // Download the backup
+      await downloadBackup(backup);
+
+    } catch (e) {
+      AppLogger.error('Failed to download partial backup', error: e);
+      throw e;
+    }
+  }
+
+  /// Restore database from backup
+  Future<RestoreResult> restoreFromBackup(String jsonContent) async {
+    try {
+      AppLogger.info('Starting database restore');
+
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // Parse the backup JSON
+      final Map<String, dynamic> backupData = jsonDecode(jsonContent);
+
+      // Validate backup structure
+      if (!backupData.containsKey('metadata') || !backupData.containsKey('data')) {
+        throw Exception('Invalid backup file structure');
+      }
+
+      final metadata = backupData['metadata'];
+      final data = backupData['data'] as Map<String, dynamic>;
+
+      // Check if user is admin
+      final isAdmin = user.email == 'andres@turboairmexico.com';
+
+      int itemsRestored = 0;
+      final List<String> restoredSections = [];
+      final List<String> errors = [];
+
+      // Restore products (admin only)
+      if (data.containsKey('products') && isAdmin) {
+        try {
+          await _db.ref('products').set(data['products']);
+          restoredSections.add('products');
+          itemsRestored += (data['products'] as Map).length;
+        } catch (e) {
+          errors.add('Failed to restore products: $e');
+        }
+      }
+
+      // Restore spare parts (admin only)
+      if (data.containsKey('spare_parts') && isAdmin) {
+        try {
+          await _db.ref('spare_parts').set(data['spare_parts']);
+          restoredSections.add('spare_parts');
+          itemsRestored += (data['spare_parts'] as Map).length;
+        } catch (e) {
+          errors.add('Failed to restore spare parts: $e');
+        }
+      }
+
+      // Restore clients
+      if (data.containsKey('clients')) {
+        try {
+          if (isAdmin) {
+            // Admin can restore all clients
+            await _db.ref('clients').set(data['clients']);
+            itemsRestored += _countNestedItems(data['clients'] as Map);
+          } else {
+            // Regular user can only restore their own clients
+            final userClients = (data['clients'] as Map)[user.uid];
+            if (userClients != null) {
+              await _db.ref('clients/${user.uid}').set(userClients);
+              itemsRestored += (userClients as Map).length;
+            }
+          }
+          restoredSections.add('clients');
+        } catch (e) {
+          errors.add('Failed to restore clients: $e');
+        }
+      }
+
+      // Restore quotes
+      if (data.containsKey('quotes')) {
+        try {
+          if (isAdmin) {
+            // Admin can restore all quotes
+            await _db.ref('quotes').set(data['quotes']);
+            itemsRestored += _countNestedItems(data['quotes'] as Map);
+          } else {
+            // Regular user can only restore their own quotes
+            final userQuotes = (data['quotes'] as Map)[user.uid];
+            if (userQuotes != null) {
+              await _db.ref('quotes/${user.uid}').set(userQuotes);
+              itemsRestored += (userQuotes as Map).length;
+            }
+          }
+          restoredSections.add('quotes');
+        } catch (e) {
+          errors.add('Failed to restore quotes: $e');
+        }
+      }
+
+      // Restore users and profiles (admin only)
+      if (data.containsKey('users') && isAdmin) {
+        try {
+          await _db.ref('users').set(data['users']);
+          restoredSections.add('users');
+          itemsRestored += (data['users'] as Map).length;
+        } catch (e) {
+          errors.add('Failed to restore users: $e');
+        }
+      }
+
+      if (data.containsKey('user_profiles') && isAdmin) {
+        try {
+          await _db.ref('user_profiles').set(data['user_profiles']);
+          restoredSections.add('user_profiles');
+          itemsRestored += (data['user_profiles'] as Map).length;
+        } catch (e) {
+          errors.add('Failed to restore user profiles: $e');
+        }
+      }
+
+      // Restore warehouse data (admin only)
+      if (data.containsKey('warehouse_stock') && isAdmin) {
+        try {
+          await _db.ref('warehouse_stock').set(data['warehouse_stock']);
+          restoredSections.add('warehouse_stock');
+          itemsRestored += _countNestedItems(data['warehouse_stock'] as Map);
+        } catch (e) {
+          errors.add('Failed to restore warehouse stock: $e');
+        }
+      }
+
+      AppLogger.info('Database restore completed', data: {
+        'items_restored': itemsRestored,
+        'sections_restored': restoredSections,
+        'errors': errors.length,
+      });
+
+      return RestoreResult(
+        success: errors.isEmpty,
+        itemsRestored: itemsRestored,
+        sectionsRestored: restoredSections,
+        errors: errors,
+        timestamp: DateTime.now(),
+      );
+
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to restore from backup', error: e, stackTrace: stackTrace);
+      throw Exception('Failed to restore from backup: $e');
+    }
+  }
+
+  /// Calculate item counts in backup data
+  Map<String, int> _calculateItemCounts(Map<String, dynamic> data) {
+    final counts = <String, int>{};
+
+    data.forEach((key, value) {
+      if (value is Map) {
+        // For nested structures (like clients/userId/items)
+        if (key == 'clients' || key == 'quotes') {
+          counts[key] = _countNestedItems(value);
+        } else {
+          counts[key] = value.length;
+        }
+      }
+    });
+
+    return counts;
+  }
+
+  /// Count items in nested map structure
+  int _countNestedItems(Map items) {
+    int count = 0;
+    items.forEach((key, value) {
+      if (value is Map) {
+        count += value.length;
+      }
+    });
+    return count;
+  }
+
+  /// Get backup history from Firebase
+  Stream<List<BackupEntry>> getBackupHistory({int? limit}) {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return Stream.value([]);
+    }
+
+    final isAdmin = user.email == 'andres@turboairmexico.com';
+    final ref = isAdmin
+        ? _db.ref('backup_history')
+        : _db.ref('backup_history').orderByChild('userId').equalTo(user.uid);
+
+    return ref
+        .orderByChild('createdAt')
+        .limitToLast(limit ?? 50)
+        .onValue
+        .map((event) {
+      if (event.snapshot.value == null) {
+        return [];
+      }
+
+      final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+      final entries = <BackupEntry>[];
+
+      data.forEach((key, value) {
+        try {
+          final entry = BackupEntry.fromMap(Map<String, dynamic>.from(value), key);
+          entries.add(entry);
+        } catch (e) {
+          AppLogger.error('Error parsing backup entry', error: e);
+        }
+      });
+
+      // Sort by createdAt descending
+      entries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return entries;
+    });
+  }
+
+  /// Save backup info to Firebase
+  Future<void> saveBackupEntry(BackupEntry entry) async {
+    try {
+      await _db.ref('backup_history/${entry.id}').set(entry.toMap());
+      AppLogger.info('Backup entry saved', data: {
+        'id': entry.id,
+        'size_mb': entry.fileSize != null ? (entry.fileSize! / 1048576).toStringAsFixed(2) : 'N/A',
+      });
+    } catch (e) {
+      AppLogger.error('Failed to save backup entry', error: e);
+    }
+  }
+
+  /// Create manual backup with Firebase tracking
+  Future<BackupResult> createManualBackup({
+    Map<String, dynamic>? metadata,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        return BackupResult(
+          success: false,
+          error: 'User not authenticated',
+        );
+      }
+
+      // Create backup entry
+      final entry = BackupEntry(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        userId: user.uid,
+        userEmail: user.email ?? 'unknown',
+        type: BackupType.manual,
+        status: BackupStatus.running,
+        createdAt: DateTime.now(),
+        metadata: metadata,
+      );
+
+      // Save initial entry
+      await saveBackupEntry(entry);
+
+      // Generate backup
+      final backup = await generateBackup();
+
+      // Update entry with success
+      entry.status = BackupStatus.completed;
+      entry.completedAt = DateTime.now();
+      entry.fileSize = (backup.sizeInMB * 1048576).round();
+      entry.sections = backup.sections;
+      entry.downloadUrl = 'local'; // Mark as available for download
+
+      await saveBackupEntry(entry);
+
+      return BackupResult(
+        success: true,
+        fileSize: entry.fileSize,
+        entry: entry,
+      );
+
+    } catch (e) {
+      AppLogger.error('Failed to create manual backup', error: e);
+      return BackupResult(
+        success: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  /// Get backup statistics
+  Future<Map<String, dynamic>> getBackupStats() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        return {
+          'totalBackups': 0,
+          'completedBackups': 0,
+          'failedBackups': 0,
+          'totalSize': 0,
+        };
+      }
+
+      final isAdmin = user.email == 'andres@turboairmexico.com';
+
+      final snapshot = await (isAdmin
+          ? _db.ref('backup_history').get()
+          : _db.ref('backup_history').orderByChild('userId').equalTo(user.uid).get());
+
+      if (!snapshot.exists || snapshot.value == null) {
+        return {
+          'totalBackups': 0,
+          'completedBackups': 0,
+          'failedBackups': 0,
+          'totalSize': 0,
+        };
+      }
+
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      int totalBackups = 0;
+      int completedBackups = 0;
+      int failedBackups = 0;
+      int totalSize = 0;
+
+      data.forEach((key, value) {
+        final entry = Map<String, dynamic>.from(value);
+        totalBackups++;
+
+        final status = entry['status'];
+        if (status == 'completed') {
+          completedBackups++;
+          totalSize += (entry['fileSize'] ?? 0) as int;
+        } else if (status == 'failed') {
+          failedBackups++;
+        }
+      });
+
+      return {
+        'totalBackups': totalBackups,
+        'completedBackups': completedBackups,
+        'failedBackups': failedBackups,
+        'totalSize': totalSize,
+      };
+
+    } catch (e) {
+      AppLogger.error('Failed to get backup stats', error: e);
+      return {
+        'totalBackups': 0,
+        'completedBackups': 0,
+        'failedBackups': 0,
+        'totalSize': 0,
+      };
+    }
+  }
+}
+
+/// Backup data model
+class BackupData {
+  final Map<String, dynamic> data;
+  final double sizeInMB;
+  final DateTime timestamp;
+  final List<String> sections;
+
+  BackupData({
+    required this.data,
+    required this.sizeInMB,
+    required this.timestamp,
+    required this.sections,
+  });
+}
+
+/// Restore result model
+class RestoreResult {
+  final bool success;
+  final int itemsRestored;
+  final List<String> sectionsRestored;
+  final List<String> errors;
+  final DateTime timestamp;
+
+  RestoreResult({
+    required this.success,
+    required this.itemsRestored,
+    required this.sectionsRestored,
+    required this.errors,
+    required this.timestamp,
+  });
+}
+
+/// Backup result model
+class BackupResult {
+  final bool success;
+  final String? error;
+  final int? fileSize;
+  final BackupEntry? entry;
+
+  BackupResult({
+    required this.success,
+    this.error,
+    this.fileSize,
+    this.entry,
+  });
+}
+
+/// Backup types
+enum BackupType {
+  manual,
+  scheduled,
+  emergency,
+}
+
+/// Backup status
+enum BackupStatus {
+  pending,
+  running,
+  completed,
+  failed,
+  cancelled,
+}
+
+/// Backup entry model for Firebase
 class BackupEntry {
   final String id;
   final String userId;
   final String userEmail;
-  final BackupType type;
-  final BackupStatus status;
+  BackupType type;
+  BackupStatus status;
   final DateTime createdAt;
-  final DateTime? completedAt;
-  final String? downloadUrl;
-  final int? fileSize;
-  final String? error;
-  final Map<String, dynamic> metadata;
+  DateTime? completedAt;
+  int? fileSize;
+  List<String>? sections;
+  String? downloadUrl;
+  String? error;
+  Map<String, dynamic>? metadata;
 
   BackupEntry({
     required this.id,
@@ -31,1003 +656,55 @@ class BackupEntry {
     required this.status,
     required this.createdAt,
     this.completedAt,
-    this.downloadUrl,
     this.fileSize,
+    this.sections,
+    this.downloadUrl,
     this.error,
-    this.metadata = const {},
+    this.metadata,
   });
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
       'userId': userId,
       'userEmail': userEmail,
       'type': type.toString().split('.').last,
       'status': status.toString().split('.').last,
       'createdAt': createdAt.millisecondsSinceEpoch,
-      'createdAtIso': createdAt.toIso8601String(),
       'completedAt': completedAt?.millisecondsSinceEpoch,
-      'completedAtIso': completedAt?.toIso8601String(),
-      'downloadUrl': downloadUrl,
       'fileSize': fileSize,
+      'sections': sections,
+      'downloadUrl': downloadUrl,
       'error': error,
       'metadata': metadata,
     };
   }
 
-  factory BackupEntry.fromMap(Map<String, dynamic> map) {
+  factory BackupEntry.fromMap(Map<String, dynamic> map, String id) {
     return BackupEntry(
-      id: map['id'] ?? '',
+      id: id,
       userId: map['userId'] ?? '',
       userEmail: map['userEmail'] ?? '',
       type: BackupType.values.firstWhere(
-        (e) => e.toString().split('.').last == map['type'],
+        (t) => t.toString().split('.').last == map['type'],
         orElse: () => BackupType.manual,
       ),
       status: BackupStatus.values.firstWhere(
-        (e) => e.toString().split('.').last == map['status'],
+        (s) => s.toString().split('.').last == map['status'],
         orElse: () => BackupStatus.pending,
       ),
-      createdAt: map['createdAt'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(map['createdAt'])
-          : DateTime.now(),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
       completedAt: map['completedAt'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['completedAt'])
           : null,
-      downloadUrl: map['downloadUrl'],
       fileSize: map['fileSize'],
+      sections: map['sections'] != null
+          ? List<String>.from(map['sections'])
+          : null,
+      downloadUrl: map['downloadUrl'],
       error: map['error'],
       metadata: map['metadata'] != null
           ? Map<String, dynamic>.from(map['metadata'])
-          : {},
+          : null,
     );
   }
-}
-
-class BackupResult {
-  final bool success;
-  final String? backupId;
-  final String? downloadUrl;
-  final int? fileSize;
-  final String? error;
-  final Duration duration;
-
-  BackupResult({
-    required this.success,
-    this.backupId,
-    this.downloadUrl,
-    this.fileSize,
-    this.error,
-    required this.duration,
-  });
-}
-
-class RestoreResult {
-  final bool success;
-  final int itemsRestored;
-  final String? error;
-  final Duration duration;
-
-  RestoreResult({
-    required this.success,
-    required this.itemsRestored,
-    this.error,
-    required this.duration,
-  });
-}
-
-class BackupService {
-  final FirebaseDatabase _db = FirebaseDatabase.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  Timer? _scheduledBackupTimer;
-  bool _isScheduledBackupEnabled = true;
-  Duration _backupInterval = const Duration(hours: 12); // Every 12 hours
-  static const int _backupRetentionDays = 15; // Keep backups for 15 days
-  TimeOfDay _backupTime = TimeOfDay(hour: 2, minute: 0); // 2:00 AM and 2:00 PM
-
-  final _backupStatusController = StreamController<BackupEntry>.broadcast();
-  final _restoreStatusController = StreamController<String>.broadcast();
-
-  // Streams
-  Stream<BackupEntry> get backupStatusStream => _backupStatusController.stream;
-  Stream<String> get restoreStatusStream => _restoreStatusController.stream;
-
-  String? get userId => _auth.currentUser?.uid;
-  String? get userEmail => _auth.currentUser?.email;
-
-  /// Initialize the backup service
-  Future<void> initialize() async {
-    AppLogger.info('BackupService initializing', category: LogCategory.business);
-
-    // Start scheduled backups if enabled
-    if (_isScheduledBackupEnabled) {
-      _scheduleNextBackup();
-    }
-
-    // Clean up old backups on initialization
-    await cleanupOldBackups();
-
-    AppLogger.info('BackupService initialized', category: LogCategory.business);
-  }
-
-  /// Create a manual backup
-  Future<BackupResult> createManualBackup({
-    List<String>? collections,
-    Map<String, dynamic>? metadata,
-  }) async {
-    return await _createBackup(
-      type: BackupType.manual,
-      collections: collections,
-      metadata: metadata ?? {},
-    );
-  }
-
-  /// Create a scheduled backup (admin only)
-  Future<BackupResult> createScheduledBackup() async {
-    if (!_isCurrentUserAdminOrSuperAdmin()) {
-      throw Exception('Only admin or superadmin users can create scheduled backups');
-    }
-
-    return await _createBackup(
-      type: BackupType.scheduled,
-      collections: ['products', 'clients', 'quotes', 'users', 'user_profiles'],
-      metadata: {'scheduled': true, 'autoGenerated': true},
-    );
-  }
-
-  /// Create an emergency backup
-  Future<BackupResult> createEmergencyBackup() async {
-    return await _createBackup(
-      type: BackupType.emergency,
-      collections: ['products', 'clients', 'quotes', 'users', 'user_profiles'],
-      metadata: {'emergency': true, 'priority': 'high'},
-    );
-  }
-
-  /// Main backup creation method
-  Future<BackupResult> _createBackup({
-    required BackupType type,
-    List<String>? collections,
-    Map<String, dynamic> metadata = const {},
-  }) async {
-    if (userId == null) {
-      throw Exception('User not authenticated');
-    }
-
-    final startTime = DateTime.now();
-    final backupId = _db.ref().push().key!;
-
-    // Create backup entry
-    final backupEntry = BackupEntry(
-      id: backupId,
-      userId: userId!,
-      userEmail: userEmail ?? '',
-      type: type,
-      status: BackupStatus.running,
-      createdAt: startTime,
-      metadata: metadata,
-    );
-
-    try {
-      AppLogger.info('Starting backup - Type: $type, ID: $backupId', category: LogCategory.business);
-
-      // Save backup entry to database
-      await _db.ref('backups/$backupId').set(backupEntry.toMap());
-      _backupStatusController.add(backupEntry);
-
-      // Determine collections to backup
-      final collectionsToBackup = collections ?? _getDefaultCollections();
-
-      // Create backup data
-      final backupData = await _createBackupData(collectionsToBackup);
-
-      // Convert to JSON
-      final jsonData = jsonEncode(backupData);
-      final bytes = utf8.encode(jsonData);
-
-      // Upload to Firebase Storage
-      final fileName = 'backup_${backupId}_${DateTime.now().millisecondsSinceEpoch}.json';
-      final storageRef = _storage.ref().child('backups/$userId/$fileName');
-
-      final uploadTask = storageRef.putData(
-        Uint8List.fromList(bytes),
-        SettableMetadata(
-          contentType: 'application/json',
-          customMetadata: {
-            'backupId': backupId,
-            'userId': userId!,
-            'type': type.toString().split('.').last,
-            'collections': collectionsToBackup.join(','),
-          },
-        ),
-      );
-
-      final snapshot = await uploadTask;
-      final downloadUrl = await snapshot.ref.getDownloadURL();
-
-      // Update backup entry with completion
-      final completedEntry = BackupEntry(
-        id: backupId,
-        userId: userId!,
-        userEmail: userEmail ?? '',
-        type: type,
-        status: BackupStatus.completed,
-        createdAt: startTime,
-        completedAt: DateTime.now(),
-        downloadUrl: downloadUrl,
-        fileSize: bytes.length,
-        metadata: {
-          ...metadata,
-          'collections': collectionsToBackup,
-          'itemCount': _countItems(backupData),
-        },
-      );
-
-      await _db.ref('backups/$backupId').update(completedEntry.toMap());
-      _backupStatusController.add(completedEntry);
-
-      final duration = DateTime.now().difference(startTime);
-      AppLogger.info(
-        'Backup completed - ID: $backupId, Size: ${bytes.length} bytes, Duration: ${duration.inSeconds}s',
-        category: LogCategory.business,
-      );
-
-      return BackupResult(
-        success: true,
-        backupId: backupId,
-        downloadUrl: downloadUrl,
-        fileSize: bytes.length,
-        duration: duration,
-      );
-
-    } catch (e) {
-      AppLogger.error('Backup failed - ID: $backupId', error: e, category: LogCategory.business);
-
-      // Update backup entry with error
-      final failedEntry = BackupEntry(
-        id: backupId,
-        userId: userId!,
-        userEmail: userEmail ?? '',
-        type: type,
-        status: BackupStatus.failed,
-        createdAt: startTime,
-        completedAt: DateTime.now(),
-        error: e.toString(),
-        metadata: metadata,
-      );
-
-      await _db.ref('backups/$backupId').update(failedEntry.toMap());
-      _backupStatusController.add(failedEntry);
-
-      return BackupResult(
-        success: false,
-        error: e.toString(),
-        duration: DateTime.now().difference(startTime),
-      );
-    }
-  }
-
-  /// Create backup data from specified collections
-  Future<Map<String, dynamic>> _createBackupData(List<String> collections) async {
-    final backupData = <String, dynamic>{
-      'metadata': {
-        'createdAt': DateTime.now().toIso8601String(),
-        'userId': userId,
-        'userEmail': userEmail,
-        'collections': collections,
-        'version': '1.0',
-      },
-      'data': <String, dynamic>{},
-    };
-
-    for (final collection in collections) {
-      try {
-        backupData['data'][collection] = await _exportCollection(collection);
-      } catch (e) {
-        AppLogger.error('Error backing up collection $collection', error: e, category: LogCategory.business);
-        backupData['data'][collection] = {'error': e.toString()};
-      }
-    }
-
-    return backupData;
-  }
-
-  /// Export a single collection
-  Future<Map<String, dynamic>> _exportCollection(String collection) async {
-    switch (collection) {
-      case 'products':
-        return await _exportProducts();
-      case 'clients':
-        return await _exportClients();
-      case 'quotes':
-        return await _exportQuotes();
-      case 'users':
-        return await _exportUsers();
-      case 'user_profiles':
-        return await _exportUserProfiles();
-      case 'cart_items':
-        return await _exportCartItems();
-      default:
-        throw Exception('Unknown collection: $collection');
-    }
-  }
-
-  /// Export products (admin only)
-  Future<Map<String, dynamic>> _exportProducts() async {
-    if (!_isCurrentUserAdminOrSuperAdmin()) {
-      throw Exception('Only admin users can backup products');
-    }
-
-    final snapshot = await _db.ref('products').get();
-    if (snapshot.exists && snapshot.value != null) {
-      return Map<String, dynamic>.from(snapshot.value as Map);
-    }
-    return {};
-  }
-
-  /// Export clients for current user
-  Future<Map<String, dynamic>> _exportClients() async {
-    if (userId == null) return {};
-
-    final snapshot = await _db.ref('clients/$userId').get();
-    if (snapshot.exists && snapshot.value != null) {
-      return Map<String, dynamic>.from(snapshot.value as Map);
-    }
-    return {};
-  }
-
-  /// Export quotes for current user
-  Future<Map<String, dynamic>> _exportQuotes() async {
-    if (userId == null) return {};
-
-    final snapshot = await _db.ref('quotes/$userId').get();
-    if (snapshot.exists && snapshot.value != null) {
-      return Map<String, dynamic>.from(snapshot.value as Map);
-    }
-    return {};
-  }
-
-  /// Export users (admin only)
-  Future<Map<String, dynamic>> _exportUsers() async {
-    if (!_isCurrentUserAdminOrSuperAdmin()) {
-      throw Exception('Only admin users can backup user data');
-    }
-
-    final snapshot = await _db.ref('users').get();
-    if (snapshot.exists && snapshot.value != null) {
-      return Map<String, dynamic>.from(snapshot.value as Map);
-    }
-    return {};
-  }
-
-  /// Export user profiles (admin only)
-  Future<Map<String, dynamic>> _exportUserProfiles() async {
-    if (!_isCurrentUserAdminOrSuperAdmin()) {
-      throw Exception('Only admin users can backup user profiles');
-    }
-
-    final snapshot = await _db.ref('user_profiles').get();
-    if (snapshot.exists && snapshot.value != null) {
-      return Map<String, dynamic>.from(snapshot.value as Map);
-    }
-    return {};
-  }
-
-  /// Export cart items for current user
-  Future<Map<String, dynamic>> _exportCartItems() async {
-    if (userId == null) return {};
-
-    final snapshot = await _db.ref('cart_items/$userId').get();
-    if (snapshot.exists && snapshot.value != null) {
-      return Map<String, dynamic>.from(snapshot.value as Map);
-    }
-    return {};
-  }
-
-  /// Restore from backup
-  Future<RestoreResult> restoreFromBackup(String backupId, {
-    List<String>? collections,
-    bool overwriteExisting = false,
-  }) async {
-    if (userId == null) {
-      throw Exception('User not authenticated');
-    }
-
-    final startTime = DateTime.now();
-    int itemsRestored = 0;
-
-    try {
-      AppLogger.info('Starting restore from backup: $backupId', category: LogCategory.business);
-      _restoreStatusController.add('Starting restore from backup: $backupId');
-
-      // Get backup entry
-      final backupSnapshot = await _db.ref('backups/$backupId').get();
-      if (!backupSnapshot.exists) {
-        throw Exception('Backup not found');
-      }
-
-      final backupEntry = BackupEntry.fromMap(
-        Map<String, dynamic>.from(backupSnapshot.value as Map),
-      );
-
-      if (backupEntry.downloadUrl == null) {
-        throw Exception('Backup file not available');
-      }
-
-      // Download backup file
-      _restoreStatusController.add('Downloading backup file...');
-      final storageRef = _storage.refFromURL(backupEntry.downloadUrl!);
-      final backupBytes = await storageRef.getData();
-
-      if (backupBytes == null) {
-        throw Exception('Failed to download backup file');
-      }
-
-      // Parse backup data
-      _restoreStatusController.add('Parsing backup data...');
-      final backupJson = utf8.decode(backupBytes);
-      final backupData = jsonDecode(backupJson) as Map<String, dynamic>;
-
-      final data = backupData['data'] as Map<String, dynamic>;
-      final collectionsToRestore = collections ?? data.keys.toList();
-
-      // Restore each collection
-      for (final collection in collectionsToRestore) {
-        if (!data.containsKey(collection)) {
-          continue;
-        }
-
-        _restoreStatusController.add('Restoring $collection...');
-        final collectionData = Map<String, dynamic>.from(data[collection]);
-
-        final restored = await _restoreCollection(
-          collection,
-          collectionData,
-          overwriteExisting,
-        );
-
-        itemsRestored += restored;
-      }
-
-      final duration = DateTime.now().difference(startTime);
-      AppLogger.info(
-        'Restore completed - Items: $itemsRestored, Duration: ${duration.inSeconds}s',
-        category: LogCategory.business,
-      );
-
-      _restoreStatusController.add('Restore completed successfully');
-
-      return RestoreResult(
-        success: true,
-        itemsRestored: itemsRestored,
-        duration: duration,
-      );
-
-    } catch (e) {
-      AppLogger.error('Restore failed', error: e, category: LogCategory.business);
-      _restoreStatusController.add('Restore failed: ${e.toString()}');
-
-      return RestoreResult(
-        success: false,
-        itemsRestored: itemsRestored,
-        error: e.toString(),
-        duration: DateTime.now().difference(startTime),
-      );
-    }
-  }
-
-  /// Restore a single collection
-  Future<int> _restoreCollection(
-    String collection,
-    Map<String, dynamic> data,
-    bool overwriteExisting,
-  ) async {
-    int itemsRestored = 0;
-
-    switch (collection) {
-      case 'clients':
-        itemsRestored = await _restoreClients(data, overwriteExisting);
-        break;
-      case 'quotes':
-        itemsRestored = await _restoreQuotes(data, overwriteExisting);
-        break;
-      case 'cart_items':
-        itemsRestored = await _restoreCartItems(data, overwriteExisting);
-        break;
-      case 'products':
-        if (_isCurrentUserAdminOrSuperAdmin()) {
-          itemsRestored = await _restoreProducts(data, overwriteExisting);
-        }
-        break;
-      case 'users':
-      case 'user_profiles':
-        if (_isCurrentUserAdminOrSuperAdmin()) {
-          itemsRestored = await _restoreUserData(collection, data, overwriteExisting);
-        }
-        break;
-      default:
-        AppLogger.warning('Unknown collection for restore: $collection', category: LogCategory.business);
-    }
-
-    return itemsRestored;
-  }
-
-  /// Restore clients
-  Future<int> _restoreClients(Map<String, dynamic> data, bool overwriteExisting) async {
-    if (userId == null) return 0;
-
-    int count = 0;
-    final updates = <String, dynamic>{};
-
-    for (final entry in data.entries) {
-      final clientId = entry.key;
-      final clientData = Map<String, dynamic>.from(entry.value);
-
-      if (!overwriteExisting) {
-        // Check if client already exists
-        final exists = await _db.ref('clients/$userId/$clientId').get();
-        if (exists.exists) continue;
-      }
-
-      updates['clients/$userId/$clientId'] = clientData;
-      count++;
-    }
-
-    if (updates.isNotEmpty) {
-      await _db.ref().update(updates);
-    }
-
-    return count;
-  }
-
-  /// Restore quotes
-  Future<int> _restoreQuotes(Map<String, dynamic> data, bool overwriteExisting) async {
-    if (userId == null) return 0;
-
-    int count = 0;
-    final updates = <String, dynamic>{};
-
-    for (final entry in data.entries) {
-      final quoteId = entry.key;
-      final quoteData = Map<String, dynamic>.from(entry.value);
-
-      if (!overwriteExisting) {
-        // Check if quote already exists
-        final exists = await _db.ref('quotes/$userId/$quoteId').get();
-        if (exists.exists) continue;
-      }
-
-      updates['quotes/$userId/$quoteId'] = quoteData;
-      count++;
-    }
-
-    if (updates.isNotEmpty) {
-      await _db.ref().update(updates);
-    }
-
-    return count;
-  }
-
-  /// Restore cart items
-  Future<int> _restoreCartItems(Map<String, dynamic> data, bool overwriteExisting) async {
-    if (userId == null) return 0;
-
-    int count = 0;
-    final updates = <String, dynamic>{};
-
-    for (final entry in data.entries) {
-      final itemId = entry.key;
-      final itemData = Map<String, dynamic>.from(entry.value);
-
-      if (!overwriteExisting) {
-        // Check if item already exists
-        final exists = await _db.ref('cart_items/$userId/$itemId').get();
-        if (exists.exists) continue;
-      }
-
-      updates['cart_items/$userId/$itemId'] = itemData;
-      count++;
-    }
-
-    if (updates.isNotEmpty) {
-      await _db.ref().update(updates);
-    }
-
-    return count;
-  }
-
-  /// Restore products (admin only)
-  Future<int> _restoreProducts(Map<String, dynamic> data, bool overwriteExisting) async {
-    int count = 0;
-    final updates = <String, dynamic>{};
-
-    for (final entry in data.entries) {
-      final productId = entry.key;
-      final productData = Map<String, dynamic>.from(entry.value);
-
-      if (!overwriteExisting) {
-        // Check if product already exists
-        final exists = await _db.ref('products/$productId').get();
-        if (exists.exists) continue;
-      }
-
-      updates['products/$productId'] = productData;
-      count++;
-    }
-
-    if (updates.isNotEmpty) {
-      await _db.ref().update(updates);
-    }
-
-    return count;
-  }
-
-  /// Restore user data (admin only)
-  Future<int> _restoreUserData(String collection, Map<String, dynamic> data, bool overwriteExisting) async {
-    int count = 0;
-    final updates = <String, dynamic>{};
-
-    for (final entry in data.entries) {
-      final itemId = entry.key;
-      final itemData = Map<String, dynamic>.from(entry.value);
-
-      if (!overwriteExisting) {
-        // Check if item already exists
-        final exists = await _db.ref('$collection/$itemId').get();
-        if (exists.exists) continue;
-      }
-
-      updates['$collection/$itemId'] = itemData;
-      count++;
-    }
-
-    if (updates.isNotEmpty) {
-      await _db.ref().update(updates);
-    }
-
-    return count;
-  }
-
-  /// Get backup history
-  Stream<List<BackupEntry>> getBackupHistory({
-    String? targetUserId,
-    BackupType? type,
-    BackupStatus? status,
-    int? limit,
-  }) {
-    final isAdmin = _isCurrentUserAdminOrSuperAdmin();
-    final searchUserId = isAdmin ? (targetUserId ?? userId) : userId;
-
-    if (searchUserId == null) {
-      return Stream.value([]);
-    }
-
-    Query query = _db.ref('backups');
-
-    // Filter by user if not admin or specific user requested
-    if (!isAdmin || targetUserId != null) {
-      query = query.orderByChild('userId').equalTo(searchUserId);
-    } else {
-      query = query.orderByChild('createdAt');
-    }
-
-    return query.onValue.map((event) {
-      final List<BackupEntry> entries = [];
-
-      if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
-
-        for (final entry in data.entries) {
-          try {
-            final backupEntry = BackupEntry.fromMap(
-              Map<String, dynamic>.from(entry.value),
-            );
-
-            // Apply filters
-            if (type != null && backupEntry.type != type) continue;
-            if (status != null && backupEntry.status != status) continue;
-
-            entries.add(backupEntry);
-          } catch (e) {
-            AppLogger.error('Error parsing backup entry', error: e, category: LogCategory.business);
-          }
-        }
-      }
-
-      // Sort by creation date (newest first) and apply limit
-      entries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-      if (limit != null && entries.length > limit) {
-        return entries.take(limit).toList();
-      }
-
-      return entries;
-    });
-  }
-
-  /// Delete backup
-  Future<void> deleteBackup(String backupId) async {
-    try {
-      // Get backup entry
-      final snapshot = await _db.ref('backups/$backupId').get();
-      if (!snapshot.exists) {
-        throw Exception('Backup not found');
-      }
-
-      final backupEntry = BackupEntry.fromMap(
-        Map<String, dynamic>.from(snapshot.value as Map),
-      );
-
-      // Check permissions
-      if (!_isCurrentUserAdminOrSuperAdmin() && backupEntry.userId != userId) {
-        throw Exception('Permission denied');
-      }
-
-      // Delete file from storage if it exists
-      if (backupEntry.downloadUrl != null) {
-        try {
-          final storageRef = _storage.refFromURL(backupEntry.downloadUrl!);
-          await storageRef.delete();
-        } catch (e) {
-          AppLogger.warning('Failed to delete backup file from storage', category: LogCategory.business);
-        }
-      }
-
-      // Delete database entry
-      await _db.ref('backups/$backupId').remove();
-
-      AppLogger.info('Backup deleted: $backupId', category: LogCategory.business);
-
-    } catch (e) {
-      AppLogger.error('Error deleting backup', error: e, category: LogCategory.business);
-      rethrow;
-    }
-  }
-
-  /// Configure scheduled backups
-  void configureScheduledBackups({
-    bool? enabled,
-    Duration? interval,
-    TimeOfDay? time,
-  }) {
-    if (enabled != null) {
-      _isScheduledBackupEnabled = enabled;
-    }
-
-    if (interval != null) {
-      _backupInterval = interval;
-    }
-
-    if (time != null) {
-      _backupTime = time;
-    }
-
-    // Restart scheduling
-    _scheduledBackupTimer?.cancel();
-    if (_isScheduledBackupEnabled) {
-      _scheduleNextBackup();
-    }
-
-    AppLogger.info(
-      'Scheduled backups configured - Enabled: $_isScheduledBackupEnabled, Interval: ${_backupInterval.inDays} days',
-      category: LogCategory.business,
-    );
-  }
-
-  /// Schedule next backup (every 12 hours)
-  void _scheduleNextBackup() {
-    if (!_isScheduledBackupEnabled) return;
-
-    // Cancel existing timer
-    _scheduledBackupTimer?.cancel();
-
-    // Schedule backup to run every 12 hours
-    _scheduledBackupTimer = Timer.periodic(_backupInterval, (timer) async {
-      try {
-        // Create scheduled backup
-        final result = await createScheduledBackup();
-
-        if (result.success) {
-          AppLogger.info(
-            'Scheduled backup completed - ID: ${result.backupId}, Size: ${result.fileSize} bytes',
-            category: LogCategory.business,
-          );
-
-          // Clean up old backups after successful backup
-          await cleanupOldBackups();
-        } else {
-          AppLogger.error('Scheduled backup failed: ${result.error}', category: LogCategory.business);
-        }
-      } catch (e) {
-        AppLogger.error('Scheduled backup error', error: e, category: LogCategory.business);
-      }
-    });
-
-    final nextBackup = DateTime.now().add(_backupInterval);
-    AppLogger.info(
-      'Scheduled backups enabled - Running every 12 hours. Next backup: ${nextBackup.toIso8601String()}',
-      category: LogCategory.business,
-    );
-  }
-
-  /// Get backup statistics
-  Future<Map<String, dynamic>> getBackupStats() async {
-    try {
-      final isAdmin = _isCurrentUserAdminOrSuperAdmin();
-      Query query = _db.ref('backups');
-
-      if (!isAdmin && userId != null) {
-        query = query.orderByChild('userId').equalTo(userId);
-      }
-
-      final snapshot = await query.get();
-
-      if (!snapshot.exists) {
-        return {
-          'totalBackups': 0,
-          'successfulBackups': 0,
-          'failedBackups': 0,
-          'totalSize': 0,
-          'lastBackup': null,
-        };
-      }
-
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
-      int totalBackups = 0;
-      int successfulBackups = 0;
-      int failedBackups = 0;
-      int totalSize = 0;
-      DateTime? lastBackup;
-
-      for (final entry in data.values) {
-        final backupEntry = BackupEntry.fromMap(
-          Map<String, dynamic>.from(entry),
-        );
-
-        totalBackups++;
-
-        if (backupEntry.status == BackupStatus.completed) {
-          successfulBackups++;
-          totalSize += backupEntry.fileSize ?? 0;
-        } else if (backupEntry.status == BackupStatus.failed) {
-          failedBackups++;
-        }
-
-        if (lastBackup == null || backupEntry.createdAt.isAfter(lastBackup)) {
-          lastBackup = backupEntry.createdAt;
-        }
-      }
-
-      return {
-        'totalBackups': totalBackups,
-        'successfulBackups': successfulBackups,
-        'failedBackups': failedBackups,
-        'totalSize': totalSize,
-        'lastBackup': lastBackup?.toIso8601String(),
-        'isScheduledEnabled': _isScheduledBackupEnabled,
-        'backupInterval': _backupInterval.inDays,
-      };
-
-    } catch (e) {
-      AppLogger.error('Error getting backup stats', error: e, category: LogCategory.business);
-      return {'error': e.toString()};
-    }
-  }
-
-  /// Helper methods
-  List<String> _getDefaultCollections() {
-    if (_isCurrentUserAdminOrSuperAdmin()) {
-      return ['products', 'clients', 'quotes', 'users', 'user_profiles'];
-    }
-    return ['clients', 'quotes', 'cart_items'];
-  }
-
-  bool _isCurrentUserAdminOrSuperAdmin() {
-    final email = userEmail?.toLowerCase();
-    return email == 'andres@turboairmexico.com' ||
-           email == 'admin@turboairinc.com' ||
-           email == 'superadmin@turboairinc.com';
-  }
-
-  int _countItems(Map<String, dynamic> backupData) {
-    int count = 0;
-    final data = backupData['data'] as Map<String, dynamic>? ?? {};
-
-    for (final collection in data.values) {
-      if (collection is Map) {
-        count += collection.length;
-      }
-    }
-
-    return count;
-  }
-
-  /// Clean up old backups (keep only last 15 days)
-  Future<void> cleanupOldBackups() async {
-    try {
-      AppLogger.info('Starting backup cleanup (keeping last $_backupRetentionDays days)', category: LogCategory.business);
-
-      final cutoffDate = DateTime.now().subtract(Duration(days: _backupRetentionDays));
-
-      // Get all backups from database
-      final snapshot = await _db.ref('backups').get();
-      if (!snapshot.exists) return;
-
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
-      final backupsToDelete = <String>[];
-      final storageFilesToDelete = <String>[];
-
-      for (final entry in data.entries) {
-        final backup = BackupEntry.fromMap(Map<String, dynamic>.from(entry.value));
-
-        // Check if backup is older than retention period
-        if (backup.createdAt.isBefore(cutoffDate)) {
-          backupsToDelete.add(backup.id);
-
-          // Add storage file to deletion list if it exists
-          if (backup.downloadUrl != null) {
-            try {
-              // Extract file path from download URL
-              final uri = Uri.parse(backup.downloadUrl!);
-              final pathSegments = uri.pathSegments;
-              if (pathSegments.length > 2) {
-                // Reconstruct the storage path
-                final storagePath = pathSegments.skip(2).join('/').split('?')[0];
-                storageFilesToDelete.add(Uri.decodeComponent(storagePath));
-              }
-            } catch (e) {
-              AppLogger.warning('Could not parse download URL for deletion: ${backup.downloadUrl}', category: LogCategory.business);
-            }
-          }
-        }
-      }
-
-      // Delete old backup entries from database
-      for (final backupId in backupsToDelete) {
-        await _db.ref('backups/$backupId').remove();
-      }
-
-      // Delete old backup files from storage
-      for (final filePath in storageFilesToDelete) {
-        try {
-          await _storage.ref(filePath).delete();
-          AppLogger.info('Deleted old backup file: $filePath', category: LogCategory.business);
-        } catch (e) {
-          AppLogger.warning('Could not delete storage file: $filePath - ${e.toString()}', category: LogCategory.business);
-        }
-      }
-
-      if (backupsToDelete.isNotEmpty) {
-        AppLogger.info(
-          'Cleanup completed - Deleted ${backupsToDelete.length} old backups and ${storageFilesToDelete.length} storage files',
-          category: LogCategory.business,
-        );
-      } else {
-        AppLogger.info('No old backups to clean up', category: LogCategory.business);
-      }
-
-    } catch (e) {
-      AppLogger.error('Backup cleanup failed', error: e, category: LogCategory.business);
-    }
-  }
-
-  /// Dispose resources
-  void dispose() {
-    _scheduledBackupTimer?.cancel();
-    _backupStatusController.close();
-    _restoreStatusController.close();
-    AppLogger.info('BackupService disposed', category: LogCategory.business);
-  }
-}
-
-class TimeOfDay {
-  final int hour;
-  final int minute;
-
-  TimeOfDay({required this.hour, required this.minute});
-
-  @override
-  String toString() => '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
 }
