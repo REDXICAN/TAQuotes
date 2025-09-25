@@ -37,9 +37,7 @@ final cartProvider = StreamProvider.autoDispose<List<CartItem>>((ref) {
   
   return database.ref('cart_items/${user.uid}').onValue.asyncMap((event) async {
     try {
-      AppLogger.debug('Cart data event received', data: {'hasData': event.snapshot.exists});
       if (!event.snapshot.exists || event.snapshot.value == null) {
-        AppLogger.debug('Cart is empty for user', data: {'userId': user.uid});
         return <CartItem>[];
       }
       
@@ -114,13 +112,10 @@ final cartProvider = StreamProvider.autoDispose<List<CartItem>>((ref) {
       }
 
       return cartItems;
-    } catch (e, stack) {
-      AppLogger.error('Error loading cart items', error: e, stackTrace: stack);
+    } catch (e) {
+      AppLogger.error('Error loading cart items', error: e);
       return <CartItem>[];
     }
-  }).handleError((error, stack) {
-    AppLogger.error('Cart stream error', error: error, stackTrace: stack);
-    return <CartItem>[];
   });
 });
 
@@ -1497,29 +1492,21 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) {
-          // Log the error for debugging
-          AppLogger.error('Cart loading error', error: error, stackTrace: stack);
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                const SizedBox(height: 16),
-                Text('Error loading cart: $error'),
-                const SizedBox(height: 8),
-                Text('Stack: ${stack.toString().split('\n').take(3).join('\n')}',
-                  style: TextStyle(fontSize: 10, color: Colors.grey),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => ref.invalidate(cartProvider),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          );
-        },
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error loading cart: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(cartProvider),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
             ),
           ),
         ],
