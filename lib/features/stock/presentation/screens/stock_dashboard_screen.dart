@@ -11,7 +11,7 @@ import '../../../../core/theme/apple_colors.dart';
 
 
 // Provider for stock statistics using StreamProvider for real-time updates
-final stockStatsProvider = StreamProvider<StockStatistics>((ref) {
+final stockStatsProvider = StreamProvider.autoDispose<StockStatistics>((ref) {
   // Directly watch the stream from products provider for better initialization
   final productsStream = ref.watch(productsProvider(null).stream);
   

@@ -20,7 +20,7 @@ import '../../../../core/utils/responsive_helper.dart';
 import '../../../cart/presentation/screens/cart_screen.dart'; // For cartClientProvider
 
 // Clients provider using StreamProvider for real-time updates
-final clientsProvider = StreamProvider<List<Client>>((ref) {
+final clientsProvider = StreamProvider.autoDispose<List<Client>>((ref) {
   // Use currentUserProvider instead of authStateProvider to avoid loading states
   final user = ref.watch(currentUserProvider);
 
@@ -66,84 +66,102 @@ final clientsProvider = StreamProvider<List<Client>>((ref) {
 // Selected client provider
 final selectedClientProvider = StateProvider<Client?>((ref) => null);
 
-// Provider to fetch quotes for a specific client
-final clientQuotesProvider = FutureProvider.family<List<Quote>, String>((ref, clientId) async {
+// Provider to fetch quotes for a specific client - StreamProvider.autoDispose.family for real-time updates
+final clientQuotesProvider = StreamProvider.autoDispose.family<List<Quote>, String>((ref, clientId) {
   final user = ref.watch(currentUserProvider);
   if (user == null) {
-    return [];
+    return Stream.value([]);
   }
-  
-  try {
-    final database = FirebaseDatabase.instance;
-    final snapshot = await database.ref('quotes/${user.uid}').get();
-    
-    if (!snapshot.exists || snapshot.value == null) {
-      return [];
-    }
-    
-    final data = Map<String, dynamic>.from(snapshot.value as Map);
-    final List<Quote> quotes = [];
-    
-    data.forEach((key, value) {
-      try {
-        final quoteMap = Map<String, dynamic>.from(value);
-        quoteMap['id'] = key;
-        final quote = Quote.fromMap(quoteMap);
-        
-        // Filter quotes for this specific client
-        if (quote.clientId == clientId) {
-          quotes.add(quote);
-        }
-      } catch (e) {
-        AppLogger.error('Error parsing quote $key', error: e);
+
+  // Use Firebase real-time listener for automatic updates
+  final database = FirebaseDatabase.instance;
+  return database.ref('quotes/${user.uid}').onValue.map((event) {
+    try {
+      if (!event.snapshot.exists || event.snapshot.value == null) {
+        return <Quote>[];
       }
-    });
-    
-    // Sort by created date (most recent first)
-    quotes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    return quotes;
-  } catch (e) {
-    AppLogger.error('Error loading client quotes', error: e);
-    return [];
-  }
+
+      final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+      final List<Quote> quotes = [];
+
+      data.forEach((key, value) {
+        try {
+          final quoteMap = Map<String, dynamic>.from(value);
+          quoteMap['id'] = key;
+          final quote = Quote.fromMap(quoteMap);
+
+          // Filter quotes for this specific client
+          if (quote.clientId == clientId) {
+            quotes.add(quote);
+          }
+        } catch (e) {
+          AppLogger.error('Error parsing quote $key', error: e);
+        }
+      });
+
+      // Sort by created date (most recent first)
+      quotes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return quotes;
+    } catch (e) {
+      AppLogger.error('Error loading client quotes', error: e);
+      return <Quote>[];
+    }
+  }).handleError((error) {
+    AppLogger.error('Client quotes stream error', error: error);
+    return <Quote>[];
+  });
 });
 
-// Provider to fetch projects for a specific client
-final clientProjectsProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, clientId) async {
-  try {
-    final user = ref.read(currentUserProvider);
-    if (user == null) return [];
-    
-    final database = FirebaseDatabase.instance;
-    final snapshot = await database.ref('projects/${user.uid}').orderByChild('clientId').equalTo(clientId).get();
-    
-    if (!snapshot.exists || snapshot.value == null) return [];
-    
-    final data = Map<String, dynamic>.from(snapshot.value as Map);
-    final projects = <Map<String, dynamic>>[];
-    
-    data.forEach((key, value) {
-      try {
-        final projectMap = Map<String, dynamic>.from(value);
-        projectMap['id'] = key;
-        projects.add(projectMap);
-      } catch (e) {
-        AppLogger.error('Error parsing project $key', error: e);
-      }
-    });
-    
-    // Sort by created date (most recent first)
-    projects.sort((a, b) {
-      final aDate = a['createdAt'] ?? 0;
-      final bDate = b['createdAt'] ?? 0;
-      return bDate.compareTo(aDate);
-    });
-    
-    return projects;
-  } catch (e) {
-    AppLogger.error('Error loading client projects', error: e);
-    return [];
+// Provider to fetch projects for a specific client - StreamProvider.autoDispose.family for real-time updates
+final clientProjectsProvider = StreamProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, clientId) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) {
+    return Stream.value([]);
   }
+
+  // Since Firebase doesn't support real-time listeners with orderByChild + equalTo,
+  // use periodic refresh with Firebase listener on all projects and filter client-side
+  final database = FirebaseDatabase.instance;
+
+  return database.ref('projects/${user.uid}').onValue.map((event) {
+    try {
+      if (!event.snapshot.exists || event.snapshot.value == null) {
+        return <Map<String, dynamic>>[];
+      }
+
+      final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+      final List<Map<String, dynamic>> projects = [];
+
+      data.forEach((key, value) {
+        try {
+          final projectMap = Map<String, dynamic>.from(value);
+          projectMap['id'] = key;
+
+          // Filter projects for this specific client
+          if (projectMap['clientId'] == clientId) {
+            projects.add(projectMap);
+          }
+        } catch (e) {
+          AppLogger.error('Error parsing project $key', error: e);
+        }
+      });
+
+      // Sort by created date (most recent first)
+      projects.sort((a, b) {
+        final aDate = a['createdAt'] ?? 0;
+        final bDate = b['createdAt'] ?? 0;
+        return bDate.compareTo(aDate);
+      });
+
+      return projects;
+    } catch (e) {
+      AppLogger.error('Error loading client projects', error: e);
+      return <Map<String, dynamic>>[];
+    }
+  }).handleError((error) {
+    AppLogger.error('Client projects stream error', error: error);
+    return <Map<String, dynamic>>[];
+  });
 });
 
 class ClientsScreen extends ConsumerStatefulWidget {

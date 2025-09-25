@@ -5,7 +5,7 @@ import '../services/firebase_init_service.dart';
 import '../services/app_logger.dart';
 
 /// Provider for Firebase connection status
-final firebaseConnectionProvider = StreamProvider<bool>((ref) {
+final firebaseConnectionProvider = StreamProvider.autoDispose<bool>((ref) {
   return FirebaseDatabase.instance
       .ref('.info/connected')
       .onValue

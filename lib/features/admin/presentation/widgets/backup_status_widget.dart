@@ -9,7 +9,7 @@ final backupServiceProvider = Provider<BackupService>((ref) {
 });
 
 // Stream provider for backup entries
-final backupEntriesProvider = StreamProvider<List<BackupEntry>>((ref) {
+final backupEntriesProvider = StreamProvider.autoDispose<List<BackupEntry>>((ref) {
   final service = ref.watch(backupServiceProvider);
   return service.getBackupHistory(limit: 10);
 });

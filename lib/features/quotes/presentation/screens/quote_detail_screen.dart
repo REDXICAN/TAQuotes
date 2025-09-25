@@ -21,53 +21,72 @@ import 'dart:html' as html;
 import '../../../../core/services/realtime_database_service.dart';
 import '../../../../core/utils/download_helper.dart';
 
-// Quote detail provider
+// Quote detail provider - StreamProvider.autoDispose.family for real-time updates
 final quoteDetailProvider =
-    FutureProvider.family<Quote?, String>((ref, quoteId) async {
+    StreamProvider.autoDispose.family<Quote?, String>((ref, quoteId) {
   final dbService = ref.watch(databaseServiceProvider);
-  final quoteData = await dbService.getQuote(quoteId);
 
-  if (quoteData == null) return null;
+  // Helper function to fetch quote with all details
+  Future<Quote?> fetchQuoteWithDetails() async {
+    try {
+      final quoteData = await dbService.getQuote(quoteId);
+      if (quoteData == null) return null;
 
-  // Fetch client data
-  Map<String, dynamic>? clientData;
-  if (quoteData['client_id'] != null) {
-    clientData = await dbService.getClient(quoteData['client_id']);
-  }
+      // Fetch client data
+      Map<String, dynamic>? clientData;
+      if (quoteData['client_id'] != null) {
+        clientData = await dbService.getClient(quoteData['client_id']);
+      }
 
-  // Fetch quote items with product details
-  final List<QuoteItem> items = [];
-  if (quoteData['quote_items'] != null) {
-    for (final itemData in quoteData['quote_items']) {
-      // Fetch product data for each item
-      final productData = await dbService.getProduct(itemData['product_id']);
-      items.add(QuoteItem(
-        productId: itemData['product_id'] ?? '',
-        productName: productData?['name'] ?? 'Unknown Product',
-        quantity: itemData['quantity'] ?? 1,
-        unitPrice: SafeConversions.toPrice(itemData['unit_price']),
-        total: SafeConversions.toPrice(itemData['total_price']),
-        product: productData != null ? Product.fromMap(productData) : null,
-        addedAt: DateTime.now(),
-      ));
+      // Fetch quote items with product details
+      final List<QuoteItem> items = [];
+      if (quoteData['quote_items'] != null) {
+        for (final itemData in quoteData['quote_items']) {
+          // Fetch product data for each item
+          final productData = await dbService.getProduct(itemData['product_id']);
+          items.add(QuoteItem(
+            productId: itemData['product_id'] ?? '',
+            productName: productData?['name'] ?? 'Unknown Product',
+            quantity: itemData['quantity'] ?? 1,
+            unitPrice: SafeConversions.toPrice(itemData['unit_price']),
+            total: SafeConversions.toPrice(itemData['total_price']),
+            product: productData != null ? Product.fromMap(productData) : null,
+            addedAt: DateTime.now(),
+          ));
+        }
+      }
+
+      return Quote(
+        id: quoteData['id'],
+        clientId: quoteData['client_id'],
+        quoteNumber: quoteData['quote_number'],
+        subtotal: (quoteData['subtotal'] ?? 0).toDouble(),
+        tax: (quoteData['tax_amount'] ?? 0).toDouble(),
+        total: (quoteData['total_amount'] ?? 0).toDouble(),
+        status: quoteData['status'] ?? 'draft',
+        items: items,
+        client: clientData != null ? Client.fromMap(clientData) : null,
+        createdBy: quoteData['user_id'] ?? '',
+        createdAt: quoteData['created_at'] != null
+            ? DateTime.fromMillisecondsSinceEpoch(quoteData['created_at'])
+            : DateTime.now(),
+      );
+    } catch (e) {
+      AppLogger.error('Error loading quote details', error: e, category: LogCategory.business);
+      return null;
     }
   }
 
-  return Quote(
-    id: quoteData['id'],
-    clientId: quoteData['client_id'],
-    quoteNumber: quoteData['quote_number'],
-    subtotal: (quoteData['subtotal'] ?? 0).toDouble(),
-    tax: (quoteData['tax_amount'] ?? 0).toDouble(),
-    total: (quoteData['total_amount'] ?? 0).toDouble(),
-    status: quoteData['status'] ?? 'draft',
-    items: items,
-    client: clientData != null ? Client.fromMap(clientData) : null,
-    createdBy: quoteData['user_id'] ?? '',
-    createdAt: quoteData['created_at'] != null
-        ? DateTime.fromMillisecondsSinceEpoch(quoteData['created_at'])
-        : DateTime.now(),
-  );
+  // Create stream with immediate fetch and periodic updates
+  return () async* {
+    // Initial fetch
+    yield await fetchQuoteWithDetails();
+
+    // Then update every 30 seconds
+    await for (final _ in Stream.periodic(const Duration(seconds: 30))) {
+      yield await fetchQuoteWithDetails();
+    }
+  }();
 });
 
 class QuoteDetailScreen extends ConsumerWidget {

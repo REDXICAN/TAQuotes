@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
-final connectivityProvider = StreamProvider<ConnectivityResult>((ref) {
+final connectivityProvider = StreamProvider.autoDispose<ConnectivityResult>((ref) {
   return Connectivity().onConnectivityChanged.map((results) => 
     results.isNotEmpty ? results.first : ConnectivityResult.none
   );

@@ -21,7 +21,7 @@ import 'package:mailer/mailer.dart';
 import 'edit_quote_screen.dart';
 
 // Quotes provider using Realtime Database with real-time updates
-final quotesProvider = StreamProvider<List<Quote>>((ref) {
+final quotesProvider = StreamProvider.autoDispose<List<Quote>>((ref) {
   // Check authentication
   final user = ref.watch(currentUserProvider);
   if (user == null) {

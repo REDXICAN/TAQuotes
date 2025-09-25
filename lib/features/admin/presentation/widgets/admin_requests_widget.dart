@@ -5,7 +5,7 @@ import '../../../../core/services/app_logger.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
 // Provider for pending admin requests
-final pendingAdminRequestsProvider = StreamProvider<List<AdminRequest>>((ref) {
+final pendingAdminRequestsProvider = StreamProvider.autoDispose<List<AdminRequest>>((ref) {
   final dbService = ref.watch(databaseServiceProvider);
   return dbService.getPendingAdminRequests().map((requests) {
     return requests.map((req) => AdminRequest.fromJson(req)).toList();

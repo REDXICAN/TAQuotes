@@ -8,7 +8,7 @@ import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/services/app_logger.dart';
 
 // Provider for fetching user's detailed statistics
-final userDetailsProvider = StreamProvider.family<UserDetailedStats, String>((ref, userId) {
+final userDetailsProvider = StreamProvider.autoDispose.family<UserDetailedStats, String>((ref, userId) {
   final database = FirebaseDatabase.instance;
 
   return Stream.periodic(const Duration(seconds: 30), (_) => null)

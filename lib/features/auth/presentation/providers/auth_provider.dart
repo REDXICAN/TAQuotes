@@ -24,12 +24,12 @@ final databaseServiceProvider = Provider<RealtimeDatabaseService>((ref) {
 });
 
 // Project-related providers
-final allProjectsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+final allProjectsProvider = StreamProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
   final dbService = ref.watch(databaseServiceProvider);
   return dbService.getProjects();
 });
 
-final projectsByClientProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, clientId) {
+final projectsByClientProvider = StreamProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, clientId) {
   final dbService = ref.watch(databaseServiceProvider);
   return dbService.getProjects(clientId: clientId);
 });
@@ -69,7 +69,7 @@ final currentUserProfileProvider = FutureProvider<UserProfile?>((ref) async {
 });
 
 // Cart Item Count Provider
-final cartItemCountProvider = StreamProvider<int>((ref) {
+final cartItemCountProvider = StreamProvider.autoDispose<int>((ref) {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) return Stream.value(0);
 
@@ -132,7 +132,7 @@ final totalProductsProvider = StreamProvider.autoDispose<int>((ref) async* {
 });
 
 // Recent Quotes Provider
-final recentQuotesProvider = StreamProvider<List<Quote>>((ref) {
+final recentQuotesProvider = StreamProvider.autoDispose<List<Quote>>((ref) {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) return Stream.value([]);
 
@@ -146,7 +146,7 @@ final recentQuotesProvider = StreamProvider<List<Quote>>((ref) {
 });
 
 // Pending User Approvals Provider
-final pendingUserApprovalsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+final pendingUserApprovalsProvider = StreamProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) return Stream.value([]);
 

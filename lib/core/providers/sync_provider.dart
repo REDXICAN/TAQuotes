@@ -18,7 +18,7 @@ final syncServiceProvider = Provider<SyncService>((ref) {
 });
 
 /// Stream provider for sync progress updates
-final syncProgressProvider = StreamProvider<SyncProgress>((ref) {
+final syncProgressProvider = StreamProvider.autoDispose<SyncProgress>((ref) {
   final syncService = ref.watch(syncServiceProvider);
   return syncService.syncStatusStream;
 });

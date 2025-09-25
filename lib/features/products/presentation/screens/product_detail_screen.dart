@@ -8,15 +8,36 @@ import '../../../../core/models/models.dart';
 import '../widgets/product_detail_images.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/services/app_logger.dart';
 
-// Product detail provider
+// Product detail provider - StreamProvider.autoDispose.family for real-time updates
 final productDetailProvider =
-    FutureProvider.family<Product?, String>((ref, productId) async {
+    StreamProvider.autoDispose.family<Product?, String>((ref, productId) {
   final dbService = ref.watch(databaseServiceProvider);
-  final productData = await dbService.getProduct(productId);
 
-  if (productData == null) return null;
-  return Product.fromJson(productData);
+  // Create a stream that provides real-time product updates
+  // Helper function to fetch product
+  Future<Product?> fetchProduct() async {
+    try {
+      final productData = await dbService.getProduct(productId);
+      if (productData == null) return null;
+      return Product.fromJson(productData);
+    } catch (e) {
+      AppLogger.error('Error loading product details', error: e, category: LogCategory.business);
+      return null;
+    }
+  }
+
+  // Create stream with immediate fetch and periodic updates
+  return () async* {
+    // Initial fetch
+    yield await fetchProduct();
+
+    // Then update every 30 seconds
+    await for (final _ in Stream.periodic(const Duration(seconds: 30))) {
+      yield await fetchProduct();
+    }
+  }();
 });
 
 class ProductDetailScreen extends ConsumerStatefulWidget {

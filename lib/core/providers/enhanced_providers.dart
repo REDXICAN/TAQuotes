@@ -5,7 +5,7 @@ import '../services/app_logger.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 
 // Enhanced products provider with retry logic
-final enhancedProductsProvider = StreamProvider.family<List<Product>, String?>((ref, category) async* {
+final enhancedProductsProvider = StreamProvider.autoDispose.family<List<Product>, String?>((ref, category) async* {
   final database = FirebaseDatabase.instance;
   var retryCount = 0;
   const maxRetries = 3;
@@ -82,7 +82,7 @@ final enhancedProductsProvider = StreamProvider.family<List<Product>, String?>((
 });
 
 // Enhanced clients provider with retry logic
-final enhancedClientsProvider = StreamProvider<List<Client>>((ref) async* {
+final enhancedClientsProvider = StreamProvider.autoDispose<List<Client>>((ref) async* {
   // Wait for authentication
   final user = ref.watch(currentUserProvider);
   if (user == null) {
@@ -174,7 +174,7 @@ final firebaseReadyProvider = FutureProvider<bool>((ref) async {
 });
 
 // Wrapper providers that wait for Firebase to be ready
-final smartProductsProvider = StreamProvider.family<List<Product>, String?>((ref, category) async* {
+final smartProductsProvider = StreamProvider.autoDispose.family<List<Product>, String?>((ref, category) async* {
   // Wait for Firebase to be ready
   final firebaseReady = await ref.watch(firebaseReadyProvider.future);
   
@@ -186,7 +186,7 @@ final smartProductsProvider = StreamProvider.family<List<Product>, String?>((ref
   }
 });
 
-final smartClientsProvider = StreamProvider<List<Client>>((ref) async* {
+final smartClientsProvider = StreamProvider.autoDispose<List<Client>>((ref) async* {
   // Wait for Firebase to be ready
   final firebaseReady = await ref.watch(firebaseReadyProvider.future);
   

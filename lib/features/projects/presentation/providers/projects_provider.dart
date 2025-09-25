@@ -3,7 +3,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
 
 // Projects Stream Provider
-final projectsProvider = StreamProvider<List<Project>>((ref) {
+final projectsProvider = StreamProvider.autoDispose<List<Project>>((ref) {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) return Stream.value([]);
 
@@ -14,7 +14,7 @@ final projectsProvider = StreamProvider<List<Project>>((ref) {
 });
 
 // Single Project Provider with auto-refresh
-final projectByIdProvider = StreamProvider.family<Project?, String>((ref, projectId) {
+final projectByIdProvider = StreamProvider.autoDispose.family<Project?, String>((ref, projectId) {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) return Stream.value(null);
 
@@ -31,7 +31,7 @@ final projectByIdProvider = StreamProvider.family<Project?, String>((ref, projec
 });
 
 // Projects by Client Provider
-final projectsByClientProvider = StreamProvider.family<List<Project>, String>((ref, clientId) {
+final projectsByClientProvider = StreamProvider.autoDispose.family<List<Project>, String>((ref, clientId) {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) return Stream.value([]);
 

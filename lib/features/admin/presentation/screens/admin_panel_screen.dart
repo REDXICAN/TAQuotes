@@ -3,16 +3,113 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/models/models.dart';
+import '../../../../core/models/user_approval_request.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/responsive_helper.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart' hide pendingUserApprovalsProvider;
 import '../widgets/backup_status_widget.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/services/export_service.dart';
 import '../../../../core/utils/download_helper.dart';
 import '../../../../core/services/rbac_service.dart';
 import '../../../../core/services/app_logger.dart';
+import '../widgets/user_approvals_widget.dart';
+
+// Admin Dashboard Providers
+final adminDashboardProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) async* {
+  final dbService = ref.watch(databaseServiceProvider);
+
+  // Helper function to fetch all dashboard data
+  Future<Map<String, dynamic>> fetchDashboardData() async {
+    try {
+      // Fetch all required data in parallel
+      final results = await Future.wait([
+        dbService.getTotalProducts(),
+        dbService.getTotalClients(),
+        dbService.getTotalQuotes(),
+        dbService.getAllUsers(),
+      ]);
+
+      final totalProducts = results[0] as int;
+      final totalClients = results[1] as int;
+      final totalQuotes = results[2] as int;
+      final users = (results[3] as List<Map<String, dynamic>>).map((userData) => UserProfile.fromJson(userData)).toList();
+
+      // Calculate revenue and chart data from cached data
+      final quotesData = CacheManager.getQuotes();
+      final productsData = CacheManager.getProducts();
+
+      final quotes = quotesData.map((data) => Quote.fromMap(Map<String, dynamic>.from(data))).toList();
+      final products = productsData.map((data) => Product.fromMap(Map<String, dynamic>.from(data))).toList();
+
+      double totalRevenue = 0.0;
+      final categoryRevenue = <String, double>{};
+
+      for (final quote in quotes) {
+        if (quote.status == 'accepted') {
+          totalRevenue += quote.total;
+          for (final item in quote.items) {
+            final product = products.firstWhere(
+              (p) => p.id == item.productId,
+              orElse: () => Product(
+                id: '',
+                model: '',
+                displayName: '',
+                name: '',
+                description: '',
+                category: 'Other',
+                price: 0,
+                stock: 0,
+                createdAt: DateTime.now(),
+              ),
+            );
+            categoryRevenue[product.category] = (categoryRevenue[product.category] ?? 0) + item.total;
+          }
+        }
+      }
+
+      // Calculate monthly quotes
+      final monthlyQuotes = <String, int>{};
+      final now = DateTime.now();
+      for (int i = 5; i >= 0; i--) {
+        final month = DateTime(now.year, now.month - i);
+        final monthKey = DateFormat('MMM').format(month);
+        final count = quotes.where((q) => q.createdAt.year == month.year && q.createdAt.month == month.month).length;
+        monthlyQuotes[monthKey] = count;
+      }
+
+      final recentQuotes = quotes..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      return {
+        'totalProducts': totalProducts,
+        'totalClients': totalClients,
+        'totalQuotes': totalQuotes,
+        'totalRevenue': totalRevenue,
+        'users': users,
+        'recentQuotes': recentQuotes.take(10).toList(),
+        'categoryRevenue': categoryRevenue,
+        'monthlyQuotes': monthlyQuotes,
+      };
+    } catch (e) {
+      AppLogger.error('Error fetching dashboard data', error: e);
+      rethrow;
+    }
+  }
+
+  // Initial load
+  yield await fetchDashboardData();
+
+  // Auto-refresh every 30 seconds
+  await for (final _ in Stream.periodic(const Duration(seconds: 30))) {
+    try {
+      yield await fetchDashboardData();
+    } catch (e) {
+      AppLogger.error('Error in dashboard auto-refresh', error: e);
+      // Continue with previous data on error
+    }
+  }
+});
 
 class AdminPanelScreen extends ConsumerStatefulWidget {
   const AdminPanelScreen({super.key});
@@ -22,30 +119,13 @@ class AdminPanelScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
-
-  int _totalProducts = 0;
-  int _totalClients = 0;
-  int _totalQuotes = 0;
-  double _totalRevenue = 0.0;
-
-  List<Quote> _recentQuotes = [];
-  List<UserProfile> _users = [];
-  Map<String, double> _categoryRevenue = {};
-  Map<String, int> _monthlyQuotes = {};
-
-  bool _isLoading = true;
   String? _selectedView; // null = show menu, otherwise show selected view
   String? _selectedCategory; // For showing products when pie chart clicked
 
   @override
   void initState() {
     super.initState();
-    _initializeScreen();
-  }
-
-  Future<void> _initializeScreen() async {
-    await _checkAdminAccess();
-    await _loadDashboardData();
+    _checkAdminAccess();
   }
 
   Future<void> _checkAdminAccess() async {
@@ -91,133 +171,6 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
     AppLogger.info('Admin Panel access granted', data: {'user_email': user.email});
   }
 
-  Future<void> _loadDashboardData() async {
-    setState(() => _isLoading = true);
-
-    try {
-      // Load statistics
-      await Future.wait([
-        _loadStatistics(),
-        _loadRecentQuotes(),
-        _loadUsers(),
-        _loadChartData(),
-      ]);
-
-      setState(() => _isLoading = false);
-    } catch (e) {
-      setState(() => _isLoading = false);
-      _showError('Failed to load dashboard data: $e');
-    }
-  }
-
-  Future<void> _loadStatistics() async {
-    final products = CacheManager.getProducts();
-    final clients = CacheManager.getClients();
-    final quotes = CacheManager.getQuotes();
-
-    double revenue = 0.0;
-    for (final quote in quotes) {
-      if (quote.status == 'accepted') {
-        revenue += quote.total;
-      }
-    }
-
-    // Use only real Firebase data
-    setState(() {
-      _totalProducts = products.length;
-      _totalClients = clients.length;
-      _totalQuotes = quotes.length;
-      _totalRevenue = revenue;
-    });
-  }
-
-  Future<void> _loadRecentQuotes() async {
-    final quotesData = CacheManager.getQuotes();
-    final quotes = quotesData
-        .map((data) => Quote.fromMap(Map<String, dynamic>.from(data)))
-        .toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-    // Use only real quotes from Firebase
-    setState(() {
-      _recentQuotes = quotes.take(10).toList();
-    });
-  }
-
-  Future<void> _loadUsers() async {
-    try {
-      final dbService = ref.read(databaseServiceProvider);
-      final usersData = await dbService.getAllUsers();
-      final users = usersData.map((userData) => UserProfile.fromJson(userData)).toList();
-
-      setState(() {
-        _users = users;
-      });
-    } catch (e) {
-      _showError('Failed to load users: $e');
-    }
-  }
-
-  Future<void> _loadChartData() async {
-    final quotesData = CacheManager.getQuotes();
-    final productsData = CacheManager.getProducts();
-    
-    final quotes = quotesData
-        .map((data) => Quote.fromMap(Map<String, dynamic>.from(data)))
-        .toList();
-    final products = productsData
-        .map((data) => Product.fromMap(Map<String, dynamic>.from(data)))
-        .toList();
-
-    // Calculate category revenue
-    final categoryRev = <String, double>{};
-    for (final quote in quotes) {
-      if (quote.status == 'accepted') {
-        for (final item in quote.items) {
-          final product = products.firstWhere(
-            (p) => p.id == item.productId,
-            orElse: () => Product(
-              id: '',
-              model: '',
-              displayName: '',
-              name: '',
-              description: '',
-              category: 'Other',
-              price: 0,
-              stock: 0,
-              createdAt: DateTime.now(),
-            ),
-          );
-
-          categoryRev[product.category] =
-              (categoryRev[product.category] ?? 0) + item.total;
-        }
-      }
-    }
-
-    // Calculate monthly quotes
-    final monthlyQ = <String, int>{};
-    final now = DateTime.now();
-    for (int i = 5; i >= 0; i--) {
-      final month = DateTime(now.year, now.month - i);
-      final monthKey = DateFormat('MMM').format(month);
-
-      final count = quotes.where((q) {
-        return q.createdAt.year == month.year &&
-            q.createdAt.month == month.month;
-      }).length;
-
-      monthlyQ[monthKey] = count;
-    }
-
-    // Use only real data from Firebase
-    // If no data available, charts will show empty state
-
-    setState(() {
-      _categoryRevenue = categoryRev;
-      _monthlyQuotes = monthlyQ;
-    });
-  }
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -231,11 +184,11 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: AppBarWithClient(
         title: _selectedView != null ? _getViewTitle() : 'Admin Panel',
-        leading: _selectedView != null 
+        leading: _selectedView != null
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => setState(() => _selectedView = null),
@@ -245,14 +198,12 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadDashboardData,
+            onPressed: () => ref.invalidate(adminDashboardProvider),
             tooltip: 'Refresh',
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _buildBody(theme),
+      body: _buildBody(theme),
     );
   }
   
@@ -392,7 +343,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -429,69 +380,118 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
   // Removed stats overview - this should be in home screen
 
   Widget _buildDashboard() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Dashboard Overview',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+    return Consumer(
+      builder: (context, ref, child) {
+        final dashboardAsync = ref.watch(adminDashboardProvider);
+
+        return dashboardAsync.when(
+          data: (dashboardData) {
+            final totalProducts = dashboardData['totalProducts'] as int;
+            final totalClients = dashboardData['totalClients'] as int;
+            final totalQuotes = dashboardData['totalQuotes'] as int;
+            final totalRevenue = dashboardData['totalRevenue'] as double;
+            final recentQuotes = dashboardData['recentQuotes'] as List<Quote>;
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Dashboard Overview',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Statistics cards
+                  GridView.count(
+                    crossAxisCount: ResponsiveHelper.isMobile(context) ? 2 : 4,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 1.5,
+                    children: [
+                      _buildStatCard(
+                        'Total Products',
+                        totalProducts.toString(),
+                        Icons.inventory,
+                        Colors.blue,
+                      ),
+                      _buildStatCard(
+                        'Total Clients',
+                        totalClients.toString(),
+                        Icons.people,
+                        Colors.green,
+                      ),
+                      _buildStatCard(
+                        'Total Quotes',
+                        totalQuotes.toString(),
+                        Icons.receipt_long,
+                        Colors.orange,
+                      ),
+                      _buildStatCard(
+                        'Revenue',
+                        '\$${totalRevenue.toStringAsFixed(2)}',
+                        Icons.attach_money,
+                        Colors.purple,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Recent quotes
+                  const Text(
+                    'Recent Quotes',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildRecentQuotesTable(recentQuotes),
+                ],
+              ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: Colors.red.shade300,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Failed to load dashboard data',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  error.toString(),
+                  style: const TextStyle(color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => ref.invalidate(adminDashboardProvider),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 24),
-
-          // Statistics cards
-          GridView.count(
-            crossAxisCount: 4,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            childAspectRatio: 1.5,
-            children: [
-              _buildStatCard(
-                'Total Products',
-                _totalProducts.toString(),
-                Icons.inventory,
-                Colors.blue,
-              ),
-              _buildStatCard(
-                'Total Clients',
-                _totalClients.toString(),
-                Icons.people,
-                Colors.green,
-              ),
-              _buildStatCard(
-                'Total Quotes',
-                _totalQuotes.toString(),
-                Icons.receipt_long,
-                Colors.orange,
-              ),
-              _buildStatCard(
-                'Revenue',
-                '\$${_totalRevenue.toStringAsFixed(2)}',
-                Icons.attach_money,
-                Colors.purple,
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-
-          // Recent quotes
-          const Text(
-            'Recent Quotes',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildRecentQuotesTable(),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -578,7 +578,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
     );
   }
 
-  Widget _buildRecentQuotesTable() {
+  Widget _buildRecentQuotesTable(List<Quote> recentQuotes) {
     return Card(
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -592,12 +592,12 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
             DataColumn(label: Text('Date')),
             DataColumn(label: Text('Actions')),
           ],
-          rows: _recentQuotes.map((quote) {
+          rows: recentQuotes.map((quote) {
             return DataRow(cells: [
               DataCell(
                   Text('#${quote.quoteNumber ?? quote.id?.substring(0, 8) ?? 'N/A'}')),
               DataCell(Text(quote.clientName ?? 'Unknown')),
-              DataCell(Text(quote.createdBy ?? 'System')),
+              DataCell(Text(quote.createdBy)),
               DataCell(Text('\$${quote.total.toStringAsFixed(2)}')),
               DataCell(_buildStatusChip(quote.status)),
               DataCell(Text(DateFormat('MM/dd/yyyy').format(quote.createdAt))),
@@ -654,89 +654,12 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
         status.toUpperCase(),
         style: const TextStyle(fontSize: 10),
       ),
-      backgroundColor: color.withOpacity(0.2),
+      backgroundColor: color.withValues(alpha: 0.2),
       labelStyle: TextStyle(color: color),
       padding: EdgeInsets.zero,
     );
   }
 
-  Widget _buildUsersSection() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'User Management',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Card(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text('Name')),
-                  DataColumn(label: Text('Email')),
-                  DataColumn(label: Text('Role')),
-                  DataColumn(label: Text('Created')),
-                  DataColumn(label: Text('Last Login')),
-                  DataColumn(label: Text('Actions')),
-                ],
-                rows: _users.map((user) {
-                  return DataRow(cells: [
-                    DataCell(Text(user.displayName ?? 'N/A')),
-                    DataCell(Text(user.email)),
-                    DataCell(_buildRoleChip(user.role)),
-                    DataCell(
-                        Text(DateFormat('MM/dd/yyyy').format(user.createdAt))),
-                    DataCell(Text(user.lastLoginAt != null
-                        ? DateFormat('MM/dd/yyyy').format(user.lastLoginAt!)
-                        : 'Never')),
-                    DataCell(Row(
-                      children: [
-                        PopupMenuButton<String>(
-                          icon: const Icon(Icons.more_vert, size: 20),
-                          onSelected: (value) async {
-                            if (value == 'make_admin') {
-                              await _updateUserRole(user.uid, 'admin');
-                            } else if (value == 'make_user') {
-                              await _updateUserRole(user.uid, 'user');
-                            } else if (value == 'disable') {
-                              // Disable user
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            if (user.role != 'admin')
-                              const PopupMenuItem(
-                                value: 'make_admin',
-                                child: Text('Make Admin'),
-                              ),
-                            if (user.role == 'admin')
-                              const PopupMenuItem(
-                                value: 'make_user',
-                                child: Text('Remove Admin'),
-                              ),
-                            const PopupMenuItem(
-                              value: 'disable',
-                              child: Text('Disable User'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    )),
-                  ]);
-                }).toList(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildRoleChip(String role) {
     final color = role == 'admin' ? Colors.purple : Colors.blue;
@@ -746,298 +669,325 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
         role.toUpperCase(),
         style: const TextStyle(fontSize: 10),
       ),
-      backgroundColor: color.withOpacity(0.2),
+      backgroundColor: color.withValues(alpha: 0.2),
       labelStyle: TextStyle(color: color),
       padding: EdgeInsets.zero,
     );
   }
 
-  Future<void> _updateUserRole(String userId, String role) async {
-    try {
-      final dbService = ref.read(databaseServiceProvider);
-      await dbService.updateUserProfile(userId, {'role': role});
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User role updated')),
-        );
-      }
-      _loadUsers();
-    } catch (e) {
-      _showError('Failed to update user role: $e');
-    }
-  }
 
   Widget _buildAnalytics() {
-    final theme = Theme.of(context);
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Analytics',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 24),
-          
-          // KPI Cards
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: ResponsiveHelper.isMobile(context) ? 2 : 4,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.5,
-            children: [
-              _buildKPICard(
-                'Conversion Rate',
-                '${((_totalQuotes > 0 ? (_categoryRevenue.values.fold(0.0, (a, b) => a + b) / (_totalQuotes * 1000)) * 100 : 0).toStringAsFixed(1))}%',
-                Icons.trending_up,
-                Colors.green,
-                '+12.5% from last month',
-              ),
-              _buildKPICard(
-                'Avg Quote Value',
-                '\$${(_totalQuotes > 0 ? (_totalRevenue / _totalQuotes) : 0).toStringAsFixed(0)}',
-                Icons.attach_money,
-                Colors.blue,
-                '+8.3% from last month',
-              ),
-              _buildKPICard(
-                'Active Users',
-                _users.where((u) => u.lastLoginAt != null && DateTime.now().difference(u.lastLoginAt!).inDays < 7).length.toString(),
-                Icons.people,
-                Colors.orange,
-                'Last 7 days',
-              ),
-              _buildKPICard(
-                'Product Categories',
-                _categoryRevenue.keys.length.toString(),
-                Icons.category,
-                Colors.purple,
-                'Generating revenue',
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
+    return Consumer(
+      builder: (context, ref, child) {
+        final dashboardAsync = ref.watch(adminDashboardProvider);
 
-          // Revenue by category chart
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+        return dashboardAsync.when(
+          data: (dashboardData) {
+            final totalQuotes = dashboardData['totalQuotes'] as int;
+            final totalRevenue = dashboardData['totalRevenue'] as double;
+            final users = dashboardData['users'] as List<UserProfile>;
+            final categoryRevenue = dashboardData['categoryRevenue'] as Map<String, double>;
+            final monthlyQuotes = dashboardData['monthlyQuotes'] as Map<String, int>;
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Revenue by Category',
+                    'Analytics',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  if (_categoryRevenue.isNotEmpty)
-                    GestureDetector(
-                      onTapUp: (details) {
-                        // Simple click detection for pie chart sections
-                        // You could enhance this with actual pie section detection
-                        final categories = _categoryRevenue.keys.toList();
-                        if (categories.isNotEmpty) {
-                          setState(() {
-                            _selectedCategory = _selectedCategory == categories.first 
-                                ? null 
-                                : categories.first;
-                          });
-                        }
-                      },
-                      child: SizedBox(
-                        height: 200,
-                        child: PieChart(
-                          PieChartData(
-                            sections: _categoryRevenue.entries.map((entry) {
-                            final index = _categoryRevenue.keys
-                                .toList()
-                                .indexOf(entry.key);
-                            final colors = [
-                              Colors.blue,
-                              Colors.green,
-                              Colors.orange,
-                              Colors.purple,
-                              Colors.red,
-                            ];
+                  const SizedBox(height: 24),
 
-                            return PieChartSectionData(
-                              value: entry.value,
-                              title:
-                                  '${entry.key}\n\$${entry.value.toStringAsFixed(0)}',
-                              color: colors[index % colors.length],
-                              radius: 100,
-                              titleStyle: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                  // KPI Cards
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: ResponsiveHelper.isMobile(context) ? 2 : 4,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 1.5,
+                    children: [
+                      _buildKPICard(
+                        'Conversion Rate',
+                        '${((totalQuotes > 0 ? (categoryRevenue.values.fold(0.0, (a, b) => a + b) / (totalQuotes * 1000)) * 100 : 0).toStringAsFixed(1))}%',
+                        Icons.trending_up,
+                        Colors.green,
+                        '+12.5% from last month',
+                      ),
+                      _buildKPICard(
+                        'Avg Quote Value',
+                        '\$${(totalQuotes > 0 ? (totalRevenue / totalQuotes) : 0).toStringAsFixed(0)}',
+                        Icons.attach_money,
+                        Colors.blue,
+                        '+8.3% from last month',
+                      ),
+                      _buildKPICard(
+                        'Active Users',
+                        users.where((u) => u.lastLoginAt != null && DateTime.now().difference(u.lastLoginAt!).inDays < 7).length.toString(),
+                        Icons.people,
+                        Colors.orange,
+                        'Last 7 days',
+                      ),
+                      _buildKPICard(
+                        'Product Categories',
+                        categoryRevenue.keys.length.toString(),
+                        Icons.category,
+                        Colors.purple,
+                        'Generating revenue',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Revenue by category chart
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Revenue by Category',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          if (categoryRevenue.isNotEmpty)
+                            GestureDetector(
+                              onTapUp: (details) {
+                                final categories = categoryRevenue.keys.toList();
+                                if (categories.isNotEmpty) {
+                                  setState(() {
+                                    _selectedCategory = _selectedCategory == categories.first
+                                        ? null
+                                        : categories.first;
+                                  });
+                                }
+                              },
+                              child: SizedBox(
+                                height: 200,
+                                child: PieChart(
+                                  PieChartData(
+                                    sections: categoryRevenue.entries.map((entry) {
+                                      final index = categoryRevenue.keys.toList().indexOf(entry.key);
+                                      final colors = [
+                                        Colors.blue,
+                                        Colors.green,
+                                        Colors.orange,
+                                        Colors.purple,
+                                        Colors.red,
+                                      ];
+
+                                      return PieChartSectionData(
+                                        value: entry.value,
+                                        title: '${entry.key}\n\$${entry.value.toStringAsFixed(0)}',
+                                        color: colors[index % colors.length],
+                                        radius: 100,
+                                        titleStyle: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                        badgeWidget: null,
+                                        showTitle: true,
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
                               ),
-                              badgeWidget: null,
-                              showTitle: true,
-                            );
-                          }).toList(),
-                        ),
+                            )
+                          else
+                            const Center(
+                              child: Text('No revenue data available'),
+                            ),
+                        ],
                       ),
                     ),
-                  )
-                  else
-                    const Center(
-                      child: Text('No revenue data available'),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          
-          // Show product table when category is selected
-          if (_selectedCategory != null) ...[
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Products in $_selectedCategory',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => setState(() => _selectedCategory = null),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _buildCategoryProductsTable(),
-                  ],
-                ),
-              ),
-            ),
-          ],
-          
-          const SizedBox(height: 24),
-
-          // Monthly quotes chart
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Monthly Quotes',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
                   ),
-                  const SizedBox(height: 16),
-                  if (_monthlyQuotes.isNotEmpty)
-                    SizedBox(
-                      height: 200,
-                      child: BarChart(
-                        BarChartData(
-                          barGroups: _monthlyQuotes.entries.map((entry) {
-                            final index =
-                                _monthlyQuotes.keys.toList().indexOf(entry.key);
 
-                            return BarChartGroupData(
-                              x: index,
-                              barRods: [
-                                BarChartRodData(
-                                  toY: entry.value.toDouble(),
-                                  color: const Color(0xFF4169E1),
-                                  width: 30,
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                                  backDrawRodData: BackgroundBarChartRodData(
-                                    show: true,
-                                    toY: 100,
-                                    color: Colors.grey.shade200,
+                  // Show product table when category is selected
+                  if (_selectedCategory != null) ...[
+                    const SizedBox(height: 16),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Products in $_selectedCategory',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  rodStackItems: [
-                                    BarChartRodStackItem(
-                                      0,
-                                      entry.value.toDouble(),
-                                      const Color(0xFF4169E1),
-                                    ),
-                                  ],
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close),
+                                  onPressed: () => setState(() => _selectedCategory = null),
                                 ),
                               ],
-                            );
-                          }).toList(),
-                          titlesData: FlTitlesData(
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                getTitlesWidget: (value, meta) {
-                                  final keys = _monthlyQuotes.keys.toList();
-                                  if (value.toInt() < keys.length) {
-                                    return Text(keys[value.toInt()]);
-                                  }
-                                  return const Text('');
-                                },
-                              ),
                             ),
-                            leftTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                getTitlesWidget: (value, meta) {
-                                  return Text(value.toInt().toString());
-                                },
-                              ),
-                            ),
-                            topTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                getTitlesWidget: (value, meta) {
-                                  final keys = _monthlyQuotes.keys.toList();
-                                  if (value.toInt() < keys.length) {
-                                    final count = _monthlyQuotes[keys[value.toInt()]];
-                                    return Text(
-                                      count.toString(),
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    );
-                                  }
-                                  return const Text('');
-                                },
-                              ),
-                            ),
-                            rightTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                          ),
+                            const SizedBox(height: 16),
+                            _buildCategoryProductsTable(),
+                          ],
                         ),
                       ),
-                    )
-                  else
-                    const Center(
-                      child: Text('No quote data available'),
                     ),
+                  ],
+
+                  const SizedBox(height: 24),
+
+                  // Monthly quotes chart
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Monthly Quotes',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          if (monthlyQuotes.isNotEmpty)
+                            SizedBox(
+                              height: 200,
+                              child: BarChart(
+                                BarChartData(
+                                  barGroups: monthlyQuotes.entries.map((entry) {
+                                    final index = monthlyQuotes.keys.toList().indexOf(entry.key);
+
+                                    return BarChartGroupData(
+                                      x: index,
+                                      barRods: [
+                                        BarChartRodData(
+                                          toY: entry.value.toDouble(),
+                                          color: const Color(0xFF4169E1),
+                                          width: 30,
+                                          borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                          backDrawRodData: BackgroundBarChartRodData(
+                                            show: true,
+                                            toY: 100,
+                                            color: Colors.grey.shade200,
+                                          ),
+                                          rodStackItems: [
+                                            BarChartRodStackItem(
+                                              0,
+                                              entry.value.toDouble(),
+                                              const Color(0xFF4169E1),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    );
+                                  }).toList(),
+                                  titlesData: FlTitlesData(
+                                    bottomTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        getTitlesWidget: (value, meta) {
+                                          final keys = monthlyQuotes.keys.toList();
+                                          if (value.toInt() < keys.length) {
+                                            return Text(keys[value.toInt()]);
+                                          }
+                                          return const Text('');
+                                        },
+                                      ),
+                                    ),
+                                    leftTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        getTitlesWidget: (value, meta) {
+                                          return Text(value.toInt().toString());
+                                        },
+                                      ),
+                                    ),
+                                    topTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        getTitlesWidget: (value, meta) {
+                                          final keys = monthlyQuotes.keys.toList();
+                                          if (value.toInt() < keys.length) {
+                                            final count = monthlyQuotes[keys[value.toInt()]];
+                                            return Text(
+                                              count.toString(),
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            );
+                                          }
+                                          return const Text('');
+                                        },
+                                      ),
+                                    ),
+                                    rightTitles: const AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            )
+                          else
+                            const Center(
+                              child: Text('No quote data available'),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: Colors.red,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Failed to load analytics data',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  error.toString(),
+                  style: const TextStyle(color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () => ref.invalidate(adminDashboardProvider),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -1352,12 +1302,12 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                         ],
                         rows: pendingUsers.map((request) {
                           return DataRow(cells: [
-                            DataCell(Text(request['name'] ?? 'N/A')),
-                            DataCell(Text(request['email'] ?? 'N/A')),
-                            DataCell(_buildRoleChip(request['requestedRole'] ?? 'distributor')),
-                            DataCell(Text(request['company'] ?? 'N/A')),
-                            DataCell(Text(request['phone'] ?? 'N/A')),
-                            DataCell(Text(_formatDate(request['requestedAt']))),
+                            DataCell(Text(request.name)),
+                            DataCell(Text(request.email)),
+                            DataCell(_buildRoleChip(request.requestedRole)),
+                            DataCell(Text(request.company ?? 'N/A')),
+                            DataCell(Text(request.phone ?? 'N/A')),
+                            DataCell(Text(_formatDate(request.requestedAt.toIso8601String()))),
                             DataCell(
                               Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -1447,7 +1397,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
     }
   }
 
-  Future<void> _approveUser(Map<String, dynamic> request) async {
+  Future<void> _approveUser(UserApprovalRequest request) async {
     try {
       final user = ref.read(currentUserProvider);
       if (user == null) {
@@ -1457,14 +1407,14 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
 
       final dbService = ref.read(databaseServiceProvider);
       await dbService.approveUserRequest(
-        requestId: request['id'],
+        requestId: request.id,
         approvedBy: user.uid,
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('User ${request['name']} approved successfully'),
+            content: Text('User ${request.name} approved successfully'),
             backgroundColor: Colors.green,
           ),
         );
@@ -1474,14 +1424,14 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
     }
   }
 
-  Future<void> _rejectUser(Map<String, dynamic> request) async {
+  Future<void> _rejectUser(UserApprovalRequest request) async {
     try {
       // Show confirmation dialog
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Reject User'),
-          content: Text('Are you sure you want to reject ${request['name']}\'s registration request?'),
+          content: Text('Are you sure you want to reject ${request.name}\'s registration request?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -1506,7 +1456,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
 
       final dbService = ref.read(databaseServiceProvider);
       await dbService.rejectUserRequest(
-        requestId: request['id'],
+        requestId: request.id,
         rejectedBy: user.uid,
         reason: 'Registration request rejected by administrator',
       );
@@ -1514,7 +1464,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('User ${request['name']} rejected'),
+            content: Text('User ${request.name} rejected'),
             backgroundColor: Colors.orange,
           ),
         );

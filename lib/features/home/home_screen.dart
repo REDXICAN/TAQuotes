@@ -19,7 +19,7 @@ import '../../core/widgets/recent_searches_widget.dart';
 import '../admin/presentation/widgets/user_approvals_widget.dart';
 
 // Search history provider - stores last 10 searched products
-final searchHistoryProvider = StreamProvider<List<Product>>((ref) {
+final searchHistoryProvider = StreamProvider.autoDispose<List<Product>>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) {
     return Stream.value([]);
