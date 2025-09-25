@@ -106,8 +106,9 @@ class FirebaseEmailService {
               'error': errorData['error'] ?? 'Unknown error',
               'details': errorData['details'] ?? response.body,
             });
-        } catch (_) {
-          AppLogger.error('Firebase Function returned error', 
+        } catch (parseError) {
+          AppLogger.error('Failed to parse Firebase Function error response',
+            error: parseError,
             category: LogCategory.business,
             data: {
               'statusCode': response.statusCode,

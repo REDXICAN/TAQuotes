@@ -32,10 +32,8 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
   DateTime? _startDate;
   DateTime? _completionDate;
   String? _selectedClientId;
-  String? _selectedSalesRep;
   String _selectedProjectStatus = 'planning';
   List<String> _selectedProductLines = [];
-  String? _editingProjectId;
 
   final List<String> _statusOptions = ['planning', 'active', 'completed', 'on-hold'];
   final List<String> _productLineOptions = [
@@ -91,16 +89,14 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
 
   void _showProjectDialog({Project? project}) {
     setState(() {
-      _editingProjectId = project?.id;
       if (project != null) {
-        _nameController.text = project.projectName;
+        _nameController.text = project.name;
         _addressController.text = project.address;
-        _estimatedValueController.text = project.estimatedValue.toStringAsFixed(2);
+        _estimatedValueController.text = project.estimatedValue?.toStringAsFixed(2) ?? '0.00';
         _descriptionController.text = project.description ?? '';
         _startDate = project.startDate;
         _completionDate = project.completionDate;
         _selectedClientId = project.clientId;
-        _selectedSalesRep = project.salesRepId;
         _selectedProjectStatus = project.status;
         _selectedProductLines = List.from(project.productLines);
       } else {
@@ -123,10 +119,8 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
     _startDate = DateTime.now();
     _completionDate = null;
     _selectedClientId = null;
-    _selectedSalesRep = null;
     _selectedProjectStatus = 'planning';
     _selectedProductLines = [];
-    _editingProjectId = null;
   }
 
   Widget _buildProjectDialog(Project? project) {
@@ -158,7 +152,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                       final clientsAsync = ref.watch(clientsProvider);
                       return clientsAsync.when(
                         data: (clients) => DropdownButtonFormField<String>(
-                          value: _selectedClientId,
+                          initialValue: _selectedClientId,
                           decoration: const InputDecoration(
                             labelText: 'Select Client',
                             prefixIcon: Icon(Icons.person),
@@ -223,7 +217,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
 
                   // Status
                   DropdownButtonFormField<String>(
-                    value: _selectedProjectStatus,
+                    initialValue: _selectedProjectStatus,
                     decoration: const InputDecoration(
                       labelText: 'Project Status',
                       prefixIcon: Icon(Icons.flag),
@@ -368,7 +362,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
       if (projectId != null) {
         // Update existing project
         await dbService.updateProject(projectId, {
-          'projectName': _nameController.text,
+          'name': _nameController.text,
           'clientId': _selectedClientId,
           'productLines': _selectedProductLines,
           'address': _addressController.text,
@@ -392,11 +386,6 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
           clientId: _selectedClientId!,
           description: _descriptionController.text,
           status: _selectedProjectStatus,
-          estimatedValue: double.parse(_estimatedValueController.text),
-          startDate: _startDate!,
-          completionDate: _completionDate,
-          salesRepId: user.uid,
-          description: _descriptionController.text,
         );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -611,7 +600,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                   // Search filter
                   if (_searchQuery.isNotEmpty) {
                     final searchLower = _searchQuery.toLowerCase();
-                    if (!project.projectName.toLowerCase().contains(searchLower) &&
+                    if (!project.name.toLowerCase().contains(searchLower) &&
                         !project.address.toLowerCase().contains(searchLower) &&
                         !(project.description?.toLowerCase().contains(searchLower) ??
                             false) &&
@@ -654,16 +643,15 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                           ),
                         ),
                         title: Text(
-                          project.projectName,
+                          project.name,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('Client: ${project.clientName ?? project.clientId}'),
-                            Text('Value: ${PriceFormatter.formatPrice(project.estimatedValue)}'),
-                            Text(
-                                'Start: ${DateFormat('MMM dd, yyyy').format(project.startDate)}'),
+                            Text('Value: ${PriceFormatter.formatPrice(project.estimatedValue ?? 0.0)}'),
+                            Text('Start: ${project.startDate != null ? DateFormat('MMM dd, yyyy').format(project.startDate!) : 'Not set'}'),
                             Wrap(
                               spacing: 4,
                               children: project.productLines
@@ -690,7 +678,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _deleteProject(project.id!),
+                              onPressed: () => _deleteProject(project.id),
                             ),
                           ],
                         ),
@@ -719,7 +707,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
           children: [
             Text(_getStatusIcon(project.status)),
             const SizedBox(width: 8),
-            Expanded(child: Text(project.projectName)),
+            Expanded(child: Text(project.name)),
           ],
         ),
         content: SingleChildScrollView(
@@ -727,18 +715,18 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildDetailRow('Client', project.clientName ?? project.clientId),
+              _buildDetailRow('Client', project.clientName ?? project.clientId ?? ''),
               _buildDetailRow('Address', project.address),
               _buildDetailRow(
                   'Status', '${project.status[0].toUpperCase()}${project.status.substring(1)}'),
               _buildDetailRow('Estimated Value',
-                  PriceFormatter.formatPrice(project.estimatedValue)),
+                  PriceFormatter.formatPrice(project.estimatedValue ?? 0.0)),
               _buildDetailRow(
-                  'Start Date', DateFormat('MMM dd, yyyy').format(project.startDate)),
+                  'Start Date', project.startDate != null ? DateFormat('MMM dd, yyyy').format(project.startDate!) : 'Not set'),
               if (project.completionDate != null)
                 _buildDetailRow('Completion Date',
                     DateFormat('MMM dd, yyyy').format(project.completionDate!)),
-              _buildDetailRow('Sales Rep', project.salesRepName ?? project.salesRepId),
+              _buildDetailRow('Sales Rep', project.salesRepName ?? project.salesRepId ?? 'Not assigned'),
               const SizedBox(height: 8),
               const Text('Product Lines:',
                   style: TextStyle(fontWeight: FontWeight.bold)),

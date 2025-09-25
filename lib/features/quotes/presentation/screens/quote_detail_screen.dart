@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'dart:typed_data';
 import 'dart:async';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/widgets/simple_image_widget.dart';
+import '../../../../core/utils/safe_conversions.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/widgets/product_screenshots_popup.dart';
@@ -45,8 +45,8 @@ final quoteDetailProvider =
         productId: itemData['product_id'] ?? '',
         productName: productData?['name'] ?? 'Unknown Product',
         quantity: itemData['quantity'] ?? 1,
-        unitPrice: (itemData['unit_price'] ?? 0).toDouble(),
-        total: (itemData['total_price'] ?? 0).toDouble(),
+        unitPrice: SafeConversions.toPrice(itemData['unit_price']),
+        total: SafeConversions.toPrice(itemData['total_price']),
         product: productData != null ? Product.fromMap(productData) : null,
         addedAt: DateTime.now(),
       ));
@@ -943,7 +943,7 @@ class QuoteDetailScreen extends ConsumerWidget {
                     ),
                   ),
                 // Show note if exists
-                if (item.note != null && item.note!.isNotEmpty)
+                if (item.note.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Theme(
@@ -985,7 +985,7 @@ class QuoteDetailScreen extends ConsumerWidget {
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    item.note!,
+                                    item.note,
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: theme.textTheme.bodySmall?.color,

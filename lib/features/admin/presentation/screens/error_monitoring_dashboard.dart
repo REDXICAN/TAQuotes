@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'dart:typed_data';
+import 'dart:convert';
 import '../../../../core/services/error_monitoring_service.dart';
+import '../../../../core/utils/download_helper.dart';
 
 // Provider for error monitoring service
 final errorMonitoringProvider = Provider<ErrorMonitoringService>((ref) {
@@ -21,10 +24,27 @@ final unresolvedErrorsStreamProvider = StreamProvider.autoDispose<List<ErrorRepo
   return service.streamErrors(unresolvedOnly: true);
 });
 
-// Provider for error statistics
-final errorStatisticsProvider = FutureProvider.autoDispose<ErrorStatistics>((ref) async {
+// Provider for error statistics with auto-refresh
+final errorStatisticsProvider = StreamProvider.autoDispose<ErrorStatistics>((ref) {
   final service = ref.watch(errorMonitoringProvider);
-  return await service.getStatistics();
+  // Refresh statistics every 30 seconds
+  return Stream.periodic(const Duration(seconds: 30), (_) => null)
+      .asyncMap((_) async => await service.getStatistics())
+      .handleError((error) {
+        // Return empty statistics on error
+        return ErrorStatistics(
+          totalErrors: 0,
+          criticalErrors: 0,
+          highErrors: 0,
+          mediumErrors: 0,
+          lowErrors: 0,
+          unresolvedErrors: 0,
+          errorsByCategory: {},
+          errorsByScreen: {},
+          topErrorMessages: [],
+          errorRate: 0.0,
+        );
+      });
 });
 
 class ErrorMonitoringDashboard extends ConsumerStatefulWidget {
@@ -43,6 +63,8 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
   String _searchQuery = '';
   final _searchController = TextEditingController();
   bool _hasAccess = false;
+  bool _isErrorListExpanded = false;
+  String _errorSortBy = 'timestamp'; // 'timestamp', 'severity', 'category'
 
   @override
   void initState() {
@@ -85,6 +107,48 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  // Get category color for display
+  Color _getCategoryColor(ErrorCategory category) {
+    switch (category) {
+      case ErrorCategory.authentication:
+        return Colors.red;
+      case ErrorCategory.database:
+        return Colors.blue;
+      case ErrorCategory.network:
+        return Colors.orange;
+      case ErrorCategory.ui:
+        return Colors.green;
+      case ErrorCategory.business_logic:
+        return Colors.purple;
+      case ErrorCategory.performance:
+        return Colors.teal;
+      case ErrorCategory.security:
+        return Colors.red[900]!;
+      case ErrorCategory.unknown:
+      default:
+        return Colors.grey;
+    }
+  }
+
+  // Format timestamp for display
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inDays < 1) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    } else {
+      final dateFormat = DateFormat('MMM dd, HH:mm');
+      return dateFormat.format(timestamp);
+    }
   }
 
   Color _getSeverityColor(ErrorSeverity severity) {
@@ -424,12 +488,72 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
           ),
         ),
 
-        // Error List
-        Expanded(
-          child: errorsAsync.when(
-            data: (errors) {
-              // Apply filters
-              var filteredErrors = errors;
+        // Expandable Error List Section
+        Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: ExpansionTile(
+            initiallyExpanded: _isErrorListExpanded,
+            onExpansionChanged: (expanded) {
+              setState(() => _isErrorListExpanded = expanded);
+            },
+            leading: Icon(
+              _isErrorListExpanded ? Icons.expand_less : Icons.expand_more,
+              color: Theme.of(context).primaryColor,
+            ),
+            title: Row(
+              children: [
+                const Text(
+                  'All Errors',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${errorsAsync.value?.length ?? 0} total',
+                    style: TextStyle(
+                      color: Theme.of(context).primaryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            subtitle: Text(
+              _isErrorListExpanded ? 'Click to collapse' : 'Click to view all errors',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Sort dropdown
+                DropdownButton<String>(
+                  value: _errorSortBy,
+                  underline: const SizedBox(),
+                  items: const [
+                    DropdownMenuItem(value: 'timestamp', child: Text('Latest First')),
+                    DropdownMenuItem(value: 'severity', child: Text('By Severity')),
+                    DropdownMenuItem(value: 'category', child: Text('By Category')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _errorSortBy = value);
+                    }
+                  },
+                ),
+              ],
+            ),
+            children: [
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.5, // Half screen height
+                child: errorsAsync.when(
+                  data: (errors) {
+                    // Apply filters
+                    var filteredErrors = errors;
 
               if (_searchQuery.isNotEmpty) {
                 filteredErrors = filteredErrors.where((e) =>
@@ -446,24 +570,78 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
                 filteredErrors = filteredErrors.where((e) => e.category == _selectedCategory).toList();
               }
 
-              if (filteredErrors.isEmpty) {
-                return const Center(
-                  child: Text('No errors found'),
-                );
-              }
+                    // Apply sorting
+                    filteredErrors = _sortErrors(filteredErrors);
 
-              return ListView.builder(
-                itemCount: filteredErrors.length,
-                itemBuilder: (context, index) {
-                  final error = filteredErrors[index];
-                  return _buildErrorCard(error);
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, stack) => Center(
-              child: Text('Error loading errors: $error'),
-            ),
+                    if (filteredErrors.isEmpty) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
+                              SizedBox(height: 16),
+                              Text(
+                                'No errors found',
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Great! Your application is running smoothly.',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    return Column(
+                      children: [
+                        // Error count summary
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          color: Theme.of(context).primaryColor.withOpacity(0.05),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Showing ${filteredErrors.length} error(s)',
+                                style: const TextStyle(fontWeight: FontWeight.w500),
+                              ),
+                              TextButton.icon(
+                                onPressed: () {
+                                  // Export or clear functionality
+                                  _showErrorActions(context, filteredErrors);
+                                },
+                                icon: const Icon(Icons.more_vert),
+                                label: const Text('Actions'),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Scrollable error list
+                        Expanded(
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(8),
+                            itemCount: filteredErrors.length,
+                            itemBuilder: (context, index) {
+                              final error = filteredErrors[index];
+                              return _buildCompactErrorCard(error);
+                            },
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (error, stack) => Center(
+                    child: Text('Error loading errors: $error'),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -560,6 +738,498 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
           ],
         ),
       ),
+    );
+  }
+
+  List<ErrorReport> _sortErrors(List<ErrorReport> errors) {
+    switch (_errorSortBy) {
+      case 'severity':
+        errors.sort((a, b) {
+          // Sort by severity (critical first)
+          const severityOrder = {
+            ErrorSeverity.critical: 0,
+            ErrorSeverity.high: 1,
+            ErrorSeverity.medium: 2,
+            ErrorSeverity.low: 3,
+          };
+          return (severityOrder[a.severity] ?? 99).compareTo(severityOrder[b.severity] ?? 99);
+        });
+        break;
+      case 'category':
+        errors.sort((a, b) => a.category.toString().compareTo(b.category.toString()));
+        break;
+      case 'timestamp':
+      default:
+        errors.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        break;
+    }
+    return errors;
+  }
+
+  void _showErrorActions(BuildContext context, List<ErrorReport> errors) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error Actions'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.download),
+              title: const Text('Export as CSV'),
+              subtitle: const Text('Spreadsheet format'),
+              onTap: () {
+                Navigator.pop(context);
+                _exportErrorsToCSV();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.code),
+              title: const Text('Export as JSON'),
+              subtitle: const Text('Developer format'),
+              onTap: () {
+                Navigator.pop(context);
+                _exportErrorsToJSON();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.clear_all),
+              title: const Text('Clear Resolved'),
+              subtitle: const Text('Remove all resolved errors'),
+              onTap: () async {
+                Navigator.pop(context);
+                await ref.read(errorMonitoringProvider).clearResolvedErrors();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Resolved errors cleared')),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_forever, color: Colors.red),
+              title: const Text('Clear All Errors'),
+              subtitle: const Text('Remove all error logs'),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmClearAllErrors(context);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _exportErrorsToCSV() async {
+    try {
+      // Show loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+                SizedBox(width: 16),
+                Text('Preparing export...'),
+              ],
+            ),
+            duration: Duration(seconds: 30),
+          ),
+        );
+      }
+
+      // Get errors from the provider
+      final errorsAsync = ref.read(errorsStreamProvider);
+
+      List<ErrorReport> errors = [];
+      errorsAsync.when(
+        data: (data) => errors = data,
+        loading: () => errors = [],
+        error: (_, __) => errors = [],
+      );
+
+      if (errors.isEmpty) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No error reports to export'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Build CSV content
+      final dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
+      final StringBuffer csvBuffer = StringBuffer();
+
+      // Add headers
+      csvBuffer.writeln('ID,Timestamp,Severity,Category,Message,Screen,Action,User Email,Resolved,Resolved By,Resolved At,Stack Trace');
+
+      // Add data rows
+      for (final error in errors) {
+        final row = [
+          error.id,
+          dateFormat.format(error.timestamp),
+          error.severity.toString().split('.').last,
+          error.category.toString().split('.').last,
+          '"${error.message.replaceAll('"', '""')}"', // Escape quotes in message
+          error.screen ?? '',
+          error.action ?? '',
+          error.userEmail ?? '',
+          error.resolved ? 'Yes' : 'No',
+          error.resolvedBy ?? '',
+          error.resolvedAt != null ? dateFormat.format(error.resolvedAt!) : '',
+          error.stackTrace != null ? '"${error.stackTrace!.replaceAll('"', '""').replaceAll('\n', ' ')}"' : '',
+        ];
+        csvBuffer.writeln(row.join(','));
+      }
+
+      // Convert to bytes
+      final bytes = Uint8List.fromList(utf8.encode(csvBuffer.toString()));
+
+      // Generate filename with timestamp
+      final fileDate = DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now());
+      final filename = 'error_reports_$fileDate.csv';
+
+      // Download the file
+      await DownloadHelper.downloadFile(
+        bytes: bytes,
+        filename: filename,
+        mimeType: 'text/csv',
+      );
+
+      // Clear loading snackbar and show success
+      ScaffoldMessenger.of(context).clearSnackBars();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully exported ${errors.length} error reports'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to export error reports: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportErrorsToJSON() async {
+    try {
+      // Show loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+                SizedBox(width: 16),
+                Text('Preparing JSON export...'),
+              ],
+            ),
+            duration: Duration(seconds: 30),
+          ),
+        );
+      }
+
+      // Get errors from the provider
+      final errorsAsync = ref.read(errorsStreamProvider);
+
+      List<ErrorReport> errors = [];
+      errorsAsync.when(
+        data: (data) => errors = data,
+        loading: () => errors = [],
+        error: (_, __) => errors = [],
+      );
+
+      if (errors.isEmpty) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No error reports to export'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Build JSON content
+      final List<Map<String, dynamic>> jsonData = errors.map((error) {
+        return {
+          'id': error.id,
+          'timestamp': error.timestamp.toIso8601String(),
+          'severity': error.severity.toString().split('.').last,
+          'category': error.category.toString().split('.').last,
+          'message': error.message,
+          'stackTrace': error.stackTrace,
+          'screen': error.screen,
+          'action': error.action,
+          'userId': error.userId,
+          'userEmail': error.userEmail,
+          'context': error.context,
+          'resolved': error.resolved,
+          'resolvedBy': error.resolvedBy,
+          'resolvedAt': error.resolvedAt?.toIso8601String(),
+        };
+      }).toList();
+
+      // Create the final JSON structure with metadata
+      final exportData = {
+        'exportDate': DateTime.now().toIso8601String(),
+        'totalErrors': errors.length,
+        'unresolvedCount': errors.where((e) => !e.resolved).length,
+        'resolvedCount': errors.where((e) => e.resolved).length,
+        'errors': jsonData,
+      };
+
+      // Convert to pretty JSON
+      final jsonString = const JsonEncoder.withIndent('  ').convert(exportData);
+      final bytes = Uint8List.fromList(utf8.encode(jsonString));
+
+      // Generate filename with timestamp
+      final fileDate = DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now());
+      final filename = 'error_reports_$fileDate.json';
+
+      // Download the file
+      await DownloadHelper.downloadFile(
+        bytes: bytes,
+        filename: filename,
+        mimeType: 'application/json',
+      );
+
+      // Clear loading snackbar and show success
+      ScaffoldMessenger.of(context).clearSnackBars();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully exported ${errors.length} error reports as JSON'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to export error reports: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _confirmClearAllErrors(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear All Errors?'),
+        content: const Text('This will permanently delete all error logs. This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(context);
+              await ref.read(errorMonitoringProvider).clearAllErrors();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('All errors cleared')),
+                );
+              }
+            },
+            child: const Text('Clear All'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactErrorCard(ErrorReport error) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      elevation: 1,
+      child: ListTile(
+        dense: true,
+        leading: CircleAvatar(
+          radius: 18,
+          backgroundColor: _getSeverityColor(error.severity).withOpacity(0.2),
+          child: Icon(
+            _getSeverityIcon(error.severity),
+            color: _getSeverityColor(error.severity),
+            size: 20,
+          ),
+        ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                error.message,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: _getCategoryColor(error.category).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                error.category.toString().split('.').last,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: _getCategoryColor(error.category),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        subtitle: Text(
+          '${_formatTimestamp(error.timestamp)} • ${error.userId ?? 'System'}',
+          style: TextStyle(
+            fontSize: 11,
+            color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+          ),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!error.isResolved)
+              IconButton(
+                icon: const Icon(Icons.check_circle_outline, size: 18),
+                onPressed: () async {
+                  await ref.read(errorMonitoringProvider).markErrorAsResolved(error.id);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Error marked as resolved')),
+                    );
+                  }
+                },
+                tooltip: 'Mark as Resolved',
+              )
+            else
+              const Icon(Icons.check_circle, color: Colors.green, size: 18),
+            IconButton(
+              icon: const Icon(Icons.chevron_right, size: 18),
+              onPressed: () => _showErrorDetails(error),
+              tooltip: 'View Details',
+            ),
+          ],
+        ),
+        onTap: () => _showErrorDetails(error),
+      ),
+    );
+  }
+
+  void _showErrorDetails(ErrorReport error) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 800, maxHeight: 600),
+          child: Column(
+            children: [
+              AppBar(
+                title: const Text('Error Details'),
+                automaticallyImplyLeading: false,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: _buildFullErrorDetails(error),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFullErrorDetails(ErrorReport error) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildDetailRow('ID', error.id),
+        _buildDetailRow('Message', error.message),
+        _buildDetailRow('Severity', error.severity.toString().split('.').last),
+        _buildDetailRow('Category', error.category.toString().split('.').last),
+        _buildDetailRow('Timestamp', _formatTimestamp(error.timestamp)),
+        if (error.userId != null) _buildDetailRow('User ID', error.userId!),
+        if (error.stackTrace != null) ...[
+          const SizedBox(height: 16),
+          const Text('Stack Trace:', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: SelectableText(
+              error.stackTrace!,
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+            ),
+          ),
+        ],
+        if (error.metadata != null && error.metadata!.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          const Text('Metadata:', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          ...error.metadata!.entries.map((e) => _buildDetailRow(e.key, e.value.toString())),
+        ],
+      ],
     );
   }
 

@@ -221,7 +221,7 @@ class BackupService {
 
     } catch (e) {
       AppLogger.error('Failed to download partial backup', error: e);
-      throw e;
+      rethrow;
     }
   }
 

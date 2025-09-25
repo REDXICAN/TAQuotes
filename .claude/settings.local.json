@@ -188,7 +188,8 @@
       "WebFetch(domain:www.katom.com)",
       "WebFetch(domain:turboairinc.com)",
       "WebFetch(domain:www.centralrestaurant.com)",
-      "Read(//d//**)"
+      "Read(//d//**)",
+      "Bash(git diff:*)"
     ],
     "deny": [],
     "ask": [

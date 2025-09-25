@@ -28,6 +28,7 @@ enum LogCategory {
   general,
   system,
   audit,
+  data,
 }
 
 /// Secure App Logger with data sanitization

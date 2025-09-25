@@ -14,9 +14,9 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {
-    // Use debugPrint for development only
+    // Log Firebase initialization error
     if (kDebugMode) {
-      debugPrint('Firebase init error: $e');
+      AppLogger.error('Firebase initialization error', error: e, category: LogCategory.system);
     }
   }
 

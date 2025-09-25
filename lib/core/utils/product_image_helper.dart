@@ -1144,7 +1144,6 @@ class ProductImageHelper {
     return 'assets/thumbnails/$sku/$sku.jpg';
   }
   
-  // Missing methods that are being called from products_screen.dart
   static String getImagePathWithFallback(String sku) {
     // First try exact match in screenshots
     if (_productImages.containsKey(sku)) {

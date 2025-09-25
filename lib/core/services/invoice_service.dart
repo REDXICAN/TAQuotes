@@ -193,7 +193,7 @@ class InvoiceService {
   String? get userId => _auth.currentUser?.uid;
   String? get userEmail => _auth.currentUser?.email;
 
-  static int _invoiceCounter = 1;
+  static final int _invoiceCounter = 1;
 
   /// Create invoice from quote
   Future<InvoiceResult> createInvoiceFromQuote({

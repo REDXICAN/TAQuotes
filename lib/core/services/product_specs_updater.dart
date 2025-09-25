@@ -212,7 +212,7 @@ class ProductSpecsUpdater {
           .trim()
       ) ?? 0;
       final kg = (pounds * 0.453592).toStringAsFixed(1);
-      return '${kg} kg';
+      return '$kg kg';
     }
     return weight; // Return as-is if can't convert
   }

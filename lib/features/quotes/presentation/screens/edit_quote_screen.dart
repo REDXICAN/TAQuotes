@@ -280,7 +280,7 @@ class _EditQuoteScreenState extends ConsumerState<EditQuoteScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          if (item.note != null && item.note!.isNotEmpty)
+          if (item.note.isNotEmpty)
             TextButton(
               onPressed: () {
                 setState(() {
@@ -363,7 +363,7 @@ class _EditQuoteScreenState extends ConsumerState<EditQuoteScreen> {
                             
                             final clients = snapshot.data!;
                             return DropdownButtonFormField<String>(
-                              value: _selectedClientId.isEmpty ? null : _selectedClientId,
+                              initialValue: _selectedClientId.isEmpty ? null : _selectedClientId,
                               decoration: const InputDecoration(
                                 labelText: 'Select Client',
                                 border: OutlineInputBorder(),
@@ -498,7 +498,7 @@ class _EditQuoteScreenState extends ConsumerState<EditQuoteScreen> {
                                             ],
                                           ),
                                           // Show note if exists
-                                          if (item.note != null && item.note!.isNotEmpty) ...[
+                                          if (item.note.isNotEmpty) ...[
                                             const SizedBox(height: 4),
                                             Row(
                                               children: [
@@ -508,7 +508,7 @@ class _EditQuoteScreenState extends ConsumerState<EditQuoteScreen> {
                                                 const SizedBox(width: 4),
                                                 Expanded(
                                                   child: Text(
-                                                    item.note!,
+                                                    item.note,
                                                     style: TextStyle(
                                                       fontSize: 12,
                                                       color: theme.disabledColor,
@@ -630,7 +630,7 @@ class _EditQuoteScreenState extends ConsumerState<EditQuoteScreen> {
                                 TextButton.icon(
                                   icon: const Icon(Icons.note_add, size: 16),
                                   label: Text(
-                                    item.note != null && item.note!.isNotEmpty 
+                                    item.note.isNotEmpty 
                                       ? 'Edit Note' 
                                       : 'Add Note',
                                     style: const TextStyle(fontSize: 12),

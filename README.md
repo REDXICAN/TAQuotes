@@ -1,7 +1,7 @@
 # Turbo Air Quotes (TAQ) - Enterprise B2B Quote Management System
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-taquotes.web.app-blue)](https://taquotes.web.app)
-[![Version](https://img.shields.io/badge/Version-1.2.1-green)](https://github.com/REDXICAN/TAQuotes)
+[![Version](https://img.shields.io/badge/Version-1.0.0-green)](https://github.com/REDXICAN/TAQuotes)
 [![Security](https://img.shields.io/badge/Security-Enhanced-red)](##-security-features)
 [![Platform](https://img.shields.io/badge/Platform-Web%20|%20iOS%20|%20Android%20|%20Windows-orange)]()
 
@@ -367,7 +367,7 @@ firebase deploy --only hosting
 
 ## 🔄 Version History
 
-### Version 1.2.1 (Current - December 2024)
+### Version 1.0.0 (Current - January 2025)
 - Made Order Summary and Comments collapsible in cart
 - Enhanced quotes search to include all client fields and dates
 - Fixed thumbnails across all screens using SimpleImageWidget

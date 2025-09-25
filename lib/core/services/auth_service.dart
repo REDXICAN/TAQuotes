@@ -2,10 +2,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'app_logger.dart';
+import 'rate_limiter_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseDatabase _database = FirebaseDatabase.instance;
+  final RateLimiterService _rateLimiter = RateLimiterService();
 
   // Get current user
   User? get currentUser => _auth.currentUser;
@@ -37,9 +39,34 @@ class AuthService {
 
   // Sign in with email & password
   Future<AuthResult> signInWithEmail(String email, String password) async {
+    final cleanEmail = email.trim().toLowerCase();
+
+    // Check rate limiting before attempting login
+    final rateLimitResult = _rateLimiter.checkRateLimit(
+      identifier: cleanEmail,
+      type: RateLimitType.login,
+    );
+
+    if (!rateLimitResult.allowed) {
+      AppLogger.warning(
+        'Login rate limit exceeded for email: $cleanEmail',
+        category: LogCategory.security,
+        data: {
+          'email': cleanEmail,
+          'blockedFor': rateLimitResult.blockedFor?.inMinutes,
+          'remainingAttempts': rateLimitResult.remainingAttempts,
+        },
+      );
+
+      return AuthResult(
+        success: false,
+        error: rateLimitResult.message ?? 'Too many login attempts. Please try again later.',
+      );
+    }
+
     try {
       UserCredential result = await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
+        email: cleanEmail,
         password: password,
       );
 
@@ -56,6 +83,13 @@ class AuthService {
         }
       }
 
+      // Login successful - record success to reset rate limiting
+      _rateLimiter.recordSuccess(
+        identifier: cleanEmail,
+        type: RateLimitType.login,
+        resetCounter: true,
+      );
+
       AppLogger.info('User logged in successfully', category: LogCategory.auth);
       return AuthResult(
         success: true,
@@ -64,6 +98,7 @@ class AuthService {
     } catch (e) {
       AppLogger.error('Sign in failed', error: e, category: LogCategory.auth);
 
+      // Don't reset rate limit counter on failed login - this tracks failed attempts
       return AuthResult(
         success: false,
         error: _getReadableAuthError(e),
@@ -73,8 +108,33 @@ class AuthService {
 
   // Password reset (returns AuthResult)
   Future<AuthResult> resetPassword(String email) async {
+    final cleanEmail = email.trim().toLowerCase();
+
+    // Check rate limiting for password reset
+    final rateLimitResult = _rateLimiter.checkRateLimit(
+      identifier: cleanEmail,
+      type: RateLimitType.passwordReset,
+    );
+
+    if (!rateLimitResult.allowed) {
+      AppLogger.warning(
+        'Password reset rate limit exceeded for email: $cleanEmail',
+        category: LogCategory.security,
+        data: {
+          'email': cleanEmail,
+          'blockedFor': rateLimitResult.blockedFor?.inMinutes,
+          'remainingAttempts': rateLimitResult.remainingAttempts,
+        },
+      );
+
+      return AuthResult(
+        success: false,
+        error: rateLimitResult.message ?? 'Too many password reset attempts. Please try again later.',
+      );
+    }
+
     try {
-      await _auth.sendPasswordResetEmail(email: email.trim());
+      await _auth.sendPasswordResetEmail(email: cleanEmail);
 
       AppLogger.info('Password reset email sent', category: LogCategory.auth);
       return AuthResult(
@@ -102,17 +162,25 @@ class AuthService {
   // Helper method to get readable error messages
   String _getReadableAuthError(dynamic error) {
     if (error is FirebaseAuthException) {
+      // Log detailed error for debugging but show generic message to user
+      AppLogger.error('Authentication error: ${error.code}',
+        error: error,
+        category: LogCategory.auth,
+        data: {'errorCode': error.code, 'errorMessage': error.message}
+      );
+
       switch (error.code) {
         case 'user-not-found':
-          return 'No user found with this email';
         case 'wrong-password':
-          return 'Incorrect password';
+        case 'invalid-credential':
+          // Use generic message to prevent user enumeration attacks
+          return 'Invalid email or password. Please try again.';
         case 'email-already-in-use':
           return 'An account already exists with this email';
         case 'invalid-email':
-          return 'Invalid email address';
+          return 'Please enter a valid email address';
         case 'weak-password':
-          return 'Password is too weak';
+          return 'Password must be at least 6 characters long';
         case 'network-request-failed':
           return 'Network error. Please check your connection';
         case 'too-many-requests':
@@ -120,9 +188,20 @@ class AuthService {
         case 'user-disabled':
           return 'This account has been disabled';
         default:
-          return 'Authentication failed: ${error.message}';
+          // Don't expose internal error messages in production
+          AppLogger.error('Unhandled auth error: ${error.code}',
+            error: error,
+            category: LogCategory.auth
+          );
+          return 'Authentication failed. Please try again later.';
       }
     }
+
+    // Log the error for debugging but show generic message
+    AppLogger.error('Non-Firebase auth error',
+      error: error,
+      category: LogCategory.auth
+    );
     return 'Authentication failed. Please try again.';
   }
 

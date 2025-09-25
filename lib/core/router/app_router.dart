@@ -19,6 +19,7 @@ import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/admin/presentation/screens/admin_panel_screen.dart';
 import '../../features/admin/presentation/screens/performance_dashboard_screen.dart';
 import '../../features/admin/presentation/screens/user_info_dashboard_screen.dart';
+import '../../features/admin/presentation/screens/user_details_screen.dart';
 import '../../features/admin/presentation/screens/error_monitoring_dashboard.dart';
 import '../../features/stock/presentation/screens/stock_dashboard_screen.dart';
 import '../../features/spareparts/presentation/screens/spareparts_screen.dart';
@@ -173,6 +174,20 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'users',
                 builder: (context, state) => const UserInfoDashboardScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':userId',
+                    builder: (context, state) {
+                      final userId = state.pathParameters['userId']!;
+                      final extras = state.extra as Map<String, String>?;
+                      return UserDetailsScreen(
+                        userId: userId,
+                        userEmail: extras?['email'] ?? '',
+                        userName: extras?['name'] ?? '',
+                      );
+                    },
+                  ),
+                ],
               ),
               GoRoute(
                 path: 'errors',

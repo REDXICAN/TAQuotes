@@ -27,6 +27,8 @@
     },
 
     "projects": {
+      // Project management feature (v1.0.1) - Fixed model conflicts
+      ".read": "auth != null",
       "$uid": {
         ".read": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
         ".write": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
@@ -102,6 +104,24 @@
     "performance_metrics": {
       ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.email == 'andres@turboairmexico.com')",
       ".write": "auth != null && (auth.token.role == 'superadmin' || auth.token.email == 'andres@turboairmexico.com')"
+    },
+
+    "errors": {
+      // Error monitoring dashboard (v1.0.1) - Added resolution tracking
+      ".read": "auth != null && auth.token.email == 'andres@turboairmexico.com'",
+      ".write": "auth != null",
+      ".indexOn": ["resolved", "severity", "category", "timestamp"]
+    },
+
+    "backups": {
+      ".read": "auth != null && (auth.token.email == 'andres@turboairmexico.com' || auth.token.email == 'turboairquotes@gmail.com')",
+      ".write": "auth != null && (auth.token.email == 'andres@turboairmexico.com' || auth.token.email == 'turboairquotes@gmail.com')",
+      ".indexOn": ["timestamp", "type"]
+    },
+
+    "backup_metadata": {
+      ".read": "auth != null && (auth.token.email == 'andres@turboairmexico.com' || auth.token.email == 'turboairquotes@gmail.com')",
+      ".write": "auth != null && (auth.token.email == 'andres@turboairmexico.com' || auth.token.email == 'turboairquotes@gmail.com')"
     }
   }
 }

@@ -3,12 +3,15 @@ import 'package:firebase_database/firebase_database.dart' as rtdb;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../config/env_config.dart';
+import 'app_logger.dart';
+import 'rate_limiter_service.dart';
 
 /// Service that handles both Realtime Database (products) and Firestore (users)
 class HybridDatabaseService {
   final rtdb.FirebaseDatabase _realtimeDb = rtdb.FirebaseDatabase.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final RateLimiterService _rateLimiter = RateLimiterService();
 
   String? get userId => _auth.currentUser?.uid;
   bool get isSuperAdmin => _auth.currentUser?.email == EnvConfig.adminEmail;
@@ -117,7 +120,27 @@ class HybridDatabaseService {
 
   Future<String> addClient(Map<String, dynamic> client) async {
     if (userId == null) throw Exception('User not authenticated');
-    
+
+    // Check rate limiting for client creation
+    final rateLimitResult = _rateLimiter.checkRateLimit(
+      identifier: userId!,
+      type: RateLimitType.quoteCreation, // Reuse quote creation rate limit for clients
+    );
+
+    if (!rateLimitResult.allowed) {
+      AppLogger.warning(
+        'Client creation rate limit exceeded for user: $userId',
+        category: LogCategory.security,
+        data: {
+          'userId': userId,
+          'blockedFor': rateLimitResult.blockedFor?.inMinutes,
+          'remainingAttempts': rateLimitResult.remainingAttempts,
+        },
+      );
+
+      throw Exception(rateLimitResult.message ?? 'Too many client creation attempts. Please wait before creating another client.');
+    }
+
     final newClientRef = _realtimeDb.ref('clients/$userId').push();
     await newClientRef.set({
       ...client,
@@ -233,7 +256,27 @@ class HybridDatabaseService {
     required double totalAmount,
   }) async {
     if (userId == null) throw Exception('User not authenticated');
-    
+
+    // Check rate limiting for quote creation
+    final rateLimitResult = _rateLimiter.checkRateLimit(
+      identifier: userId!,
+      type: RateLimitType.quoteCreation,
+    );
+
+    if (!rateLimitResult.allowed) {
+      AppLogger.warning(
+        'Quote creation rate limit exceeded for user: $userId',
+        category: LogCategory.security,
+        data: {
+          'userId': userId,
+          'blockedFor': rateLimitResult.blockedFor?.inMinutes,
+          'remainingAttempts': rateLimitResult.remainingAttempts,
+        },
+      );
+
+      throw Exception(rateLimitResult.message ?? 'Too many quote creation attempts. Please wait before creating another quote.');
+    }
+
     final quoteNumber = 'Q${DateTime.now().millisecondsSinceEpoch}';
     final newQuoteRef = _realtimeDb.ref('quotes/$userId').push();
     

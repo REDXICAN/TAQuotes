@@ -4,10 +4,12 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'app_logger.dart';
+import 'rate_limiter_service.dart';
 
 class RealtimeDatabaseService {
   final FirebaseDatabase _db = FirebaseDatabase.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final RateLimiterService _rateLimiter = RateLimiterService();
   
   // OPTIMIZATION: Add caching for frequently accessed data
   static final Map<String, dynamic> _productCache = {};
@@ -228,6 +230,26 @@ class RealtimeDatabaseService {
   Future<String> addClient(Map<String, dynamic> client) async {
     if (userId == null) throw Exception('User not authenticated');
 
+    // Check rate limiting for client creation
+    final rateLimitResult = _rateLimiter.checkRateLimit(
+      identifier: userId!,
+      type: RateLimitType.quoteCreation, // Reuse quote creation rate limit for clients
+    );
+
+    if (!rateLimitResult.allowed) {
+      AppLogger.warning(
+        'Client creation rate limit exceeded for user: $userId',
+        category: LogCategory.security,
+        data: {
+          'userId': userId,
+          'blockedFor': rateLimitResult.blockedFor?.inMinutes,
+          'remainingAttempts': rateLimitResult.remainingAttempts,
+        },
+      );
+
+      throw Exception(rateLimitResult.message ?? 'Too many client creation attempts. Please wait before creating another client.');
+    }
+
     final newClientRef = _db.ref('clients/$userId').push();
     await newClientRef.set({
       ...client,
@@ -434,7 +456,27 @@ class RealtimeDatabaseService {
     String? projectName,
   }) async {
     if (userId == null) throw Exception('User not authenticated');
-    
+
+    // Check rate limiting for quote creation
+    final rateLimitResult = _rateLimiter.checkRateLimit(
+      identifier: userId!,
+      type: RateLimitType.quoteCreation,
+    );
+
+    if (!rateLimitResult.allowed) {
+      AppLogger.warning(
+        'Quote creation rate limit exceeded for user: $userId',
+        category: LogCategory.security,
+        data: {
+          'userId': userId,
+          'blockedFor': rateLimitResult.blockedFor?.inMinutes,
+          'remainingAttempts': rateLimitResult.remainingAttempts,
+        },
+      );
+
+      throw Exception(rateLimitResult.message ?? 'Too many quote creation attempts. Please wait before creating another quote.');
+    }
+
     // Validate inputs
     if (clientId.isEmpty) throw Exception('Client ID cannot be empty');
     if (items.isEmpty) throw Exception('Cannot create quote with no items');
