@@ -2,19 +2,39 @@
 // This file loads environment variables from .env file
 // NEVER hardcode sensitive values here
 
+import 'dart:math';
+import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../services/app_logger.dart';
 
 class EnvConfig {
+  // Cache for generated keys
+  static final Map<String, String> _generatedKeys = {};
+
+  // Secure random key generator
+  static String _generateSecureKey() {
+    final random = Random.secure();
+    final values = List<int>.generate(32, (i) => random.nextInt(256));
+    return base64UrlEncode(values);
+  }
+
   // Helper method to safely get env value
   static String _getEnv(String key, [String defaultValue = '']) {
     try {
       if (dotenv.isInitialized) {
         return dotenv.env[key] ?? defaultValue;
       }
-    } catch (_) {}
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'Failed to get environment variable: $key',
+        error: e,
+        stackTrace: stackTrace,
+        category: LogCategory.system,
+      );
+    }
     return defaultValue;
   }
-  
+
   // Helper method to safely get int env value
   static int _getEnvInt(String key, int defaultValue) {
     try {
@@ -24,17 +44,31 @@ class EnvConfig {
           return int.tryParse(value) ?? defaultValue;
         }
       }
-    } catch (_) {}
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'Failed to parse integer environment variable: $key',
+        error: e,
+        stackTrace: stackTrace,
+        category: LogCategory.system,
+      );
+    }
     return defaultValue;
   }
-  
+
   // Helper method to safely get bool env value
   static bool _getEnvBool(String key, [bool defaultValue = false]) {
     try {
       if (dotenv.isInitialized) {
         return dotenv.env[key] == 'true';
       }
-    } catch (_) {}
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'Failed to parse boolean environment variable: $key',
+        error: e,
+        stackTrace: stackTrace,
+        category: LogCategory.system,
+      );
+    }
     return defaultValue;
   }
   
@@ -76,14 +110,36 @@ class EnvConfig {
   static bool get smtpSecure => _getEnvBool('SMTP_SECURE', false);
   
   // Security Configuration
-  static String get csrfSecretKey => _getEnv('CSRF_SECRET_KEY', 
-      'FALLBACK_KEY_FOR_LOCAL_DEV_ONLY_' + DateTime.now().millisecondsSinceEpoch.toString());
+  static String get csrfSecretKey {
+    // First try to get from environment
+    final envKey = _getEnv('CSRF_SECRET_KEY', '');
+    if (envKey.isNotEmpty) {
+      return envKey;
+    }
+
+    // For development: Generate and cache a secure random key
+    // This ensures the same key is used throughout the app session
+    const cacheKey = 'csrf_secret_key';
+    if (!_generatedKeys.containsKey(cacheKey)) {
+      _generatedKeys[cacheKey] = _generateSecureKey();
+      AppLogger.debug(
+        'Generated secure CSRF key for development use',
+        category: LogCategory.security,
+      );
+    }
+    return _generatedKeys[cacheKey]!;
+  }
   
   // Check if environment is properly loaded
   static bool get isLoaded {
     try {
       return dotenv.isInitialized && dotenv.env.isNotEmpty;
-    } catch (_) {
+    } catch (e) {
+      AppLogger.debug(
+        'Environment not loaded yet',
+        error: e,
+        category: LogCategory.system,
+      );
       return false;
     }
   }

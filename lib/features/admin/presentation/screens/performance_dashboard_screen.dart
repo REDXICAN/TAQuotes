@@ -1,5 +1,6 @@
 // lib/features/admin/presentation/screens/performance_dashboard_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -10,6 +11,7 @@ import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/config/env_config.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/services/realtime_database_service.dart';
+import '../../../../core/services/app_logger.dart';
 
 // User performance metrics model
 class UserPerformanceMetrics {
@@ -60,23 +62,55 @@ class UserPerformanceMetrics {
   });
 }
 
-// Provider for aggregating user performance data
-final userPerformanceProvider = FutureProvider<List<UserPerformanceMetrics>>((ref) async {
+// Helper function to check if user is admin or superadmin
+bool _isAdminOrSuperAdmin(String? email) {
+  if (email == null) return false;
+  final userEmail = email.toLowerCase();
+  return userEmail == EnvConfig.adminEmail?.toLowerCase() ||
+         userEmail == 'admin@turboairinc.com' ||
+         userEmail == 'superadmin@turboairinc.com' ||
+         userEmail == 'andres@turboairmexico.com';
+}
+
+// Provider for aggregating user performance data with auto-refresh
+final userPerformanceProvider = StreamProvider.autoDispose<List<UserPerformanceMetrics>>((ref) async* {
   final database = FirebaseDatabase.instance;
   final currentUser = FirebaseAuth.instance.currentUser;
-  
-  // Check if user is admin
-  if (currentUser?.email != EnvConfig.adminEmail) {
-    return [];
+
+  // Check if user is admin (allow multiple admin emails)
+  final isAdminOrSuperAdmin = _isAdminOrSuperAdmin(currentUser?.email);
+
+  // Non-admin users should not see any performance data
+  if (!isAdminOrSuperAdmin) {
+    // In production, always return empty list for non-admin users
+    yield [];
+    return;
   }
-  
-  try {
-    // Get all users
-    final usersSnapshot = await database.ref('users').get();
-    if (!usersSnapshot.exists) return [];
-    
-    final users = Map<String, dynamic>.from(usersSnapshot.value as Map);
-    final List<UserPerformanceMetrics> metrics = [];
+
+  // Fetch data immediately, then every 30 seconds
+  while (true) {
+    try {
+      // Log without exposing email
+      AppLogger.debug('Fetching performance metrics for admin user', category: LogCategory.business);
+
+      // Get all users
+      final usersSnapshot = await database.ref('users').get();
+      if (!usersSnapshot.exists || usersSnapshot.value == null) {
+        AppLogger.info('No users found in database', category: LogCategory.database);
+        // Return mock data if no real users (only for admins in debug mode)
+        if (kDebugMode && isAdminOrSuperAdmin) {
+          AppLogger.debug('Using mock performance data for admin in debug mode', category: LogCategory.database);
+          yield _getMockPerformanceMetrics();
+        } else {
+          yield [];
+        }
+        await Future.delayed(const Duration(seconds: 30));
+        continue;
+      }
+
+      final users = Map<String, dynamic>.from(usersSnapshot.value as Map);
+      AppLogger.debug('Found ${users.length} users in database', category: LogCategory.database);
+      final List<UserPerformanceMetrics> metrics = [];
     
     final now = DateTime.now();
     final weekAgo = now.subtract(const Duration(days: 7));
@@ -233,13 +267,121 @@ final userPerformanceProvider = FutureProvider<List<UserPerformanceMetrics>>((re
     
     // Sort by total revenue (best performers first)
     metrics.sort((a, b) => b.totalRevenue.compareTo(a.totalRevenue));
-    
-    return metrics;
+
+    // Return mock data if no real metrics found (only for admins in debug mode)
+    if (metrics.isEmpty) {
+      if (kDebugMode && isAdminOrSuperAdmin) {
+        AppLogger.debug('Using mock performance data due to empty results (admin in debug mode)', category: LogCategory.database);
+        yield _getMockPerformanceMetrics();
+      } else {
+        yield [];
+      }
+      return;
+    }
+
+    AppLogger.debug('Returning ${metrics.length} performance metrics', category: LogCategory.business);
+    yield metrics;
   } catch (e) {
-    print('Error fetching performance metrics: $e');
-    return [];
+    AppLogger.error('Error fetching performance metrics', error: e, category: LogCategory.business);
+    // Return mock data on error only for admins in debug mode
+    if (kDebugMode && isAdminOrSuperAdmin) {
+      AppLogger.debug('Using mock performance data due to error (admin in debug mode)', category: LogCategory.database);
+      yield _getMockPerformanceMetrics();
+    } else {
+      yield [];
+    }
+  }
+
+    // Wait 30 seconds before next refresh
+    await Future.delayed(const Duration(seconds: 30));
   }
 });
+
+// Mock performance data generator - ONLY FOR ADMINS/SUPERADMINS IN DEBUG MODE
+// This function should never be called in production or for non-admin users
+// All calls are protected by kDebugMode && isAdminOrSuperAdmin checks
+List<UserPerformanceMetrics> _getMockPerformanceMetrics() {
+  assert(kDebugMode, 'Mock performance metrics should not be used in production');
+
+  // Additional safety: Log when mock data is being used
+  AppLogger.debug(
+    'WARNING: Using mock performance data - This should only happen for admins in debug mode',
+    category: LogCategory.security,
+  );
+
+  final now = DateTime.now();
+  return [
+    UserPerformanceMetrics(
+      userId: 'mock_perf_1',
+      email: 'john.smith@example.com',
+      displayName: 'John Smith',
+      totalQuotes: 45,
+      acceptedQuotes: 32,
+      pendingQuotes: 8,
+      rejectedQuotes: 5,
+      totalRevenue: 125450.00,
+      averageQuoteValue: 3920.31,
+      conversionRate: 71.1,
+      totalClients: 23,
+      newClientsThisMonth: 4,
+      lastActivity: now.subtract(const Duration(hours: 2)),
+      quotesThisWeek: 8,
+      quotesThisMonth: 12,
+      revenueThisMonth: 38750.00,
+      productsSold: {'TSR-49SD': 12, 'TBF-2SD': 8, 'PRO-26R': 7},
+      categoryRevenue: {'Refrigeration': 85000.00, 'Freezers': 40450.00},
+      recentQuotes: [],
+      averageResponseTime: 18.5,
+      totalProducts: 156,
+    ),
+    UserPerformanceMetrics(
+      userId: 'mock_perf_2',
+      email: 'maria.garcia@example.com',
+      displayName: 'Maria Garcia',
+      totalQuotes: 67,
+      acceptedQuotes: 48,
+      pendingQuotes: 12,
+      rejectedQuotes: 7,
+      totalRevenue: 89750.00,
+      averageQuoteValue: 1870.83,
+      conversionRate: 71.6,
+      totalClients: 31,
+      newClientsThisMonth: 6,
+      lastActivity: now.subtract(const Duration(hours: 5)),
+      quotesThisWeek: 6,
+      quotesThisMonth: 15,
+      revenueThisMonth: 28950.00,
+      productsSold: {'TGM-50F': 15, 'TSR-23SD': 11, 'M3F72': 9},
+      categoryRevenue: {'Display Cases': 55000.00, 'Prep Tables': 34750.00},
+      recentQuotes: [],
+      averageResponseTime: 22.3,
+      totalProducts: 198,
+    ),
+    UserPerformanceMetrics(
+      userId: 'mock_perf_3',
+      email: 'james.wilson@example.com',
+      displayName: 'James Wilson',
+      totalQuotes: 38,
+      acceptedQuotes: 25,
+      pendingQuotes: 9,
+      rejectedQuotes: 4,
+      totalRevenue: 67890.00,
+      averageQuoteValue: 2715.60,
+      conversionRate: 65.8,
+      totalClients: 18,
+      newClientsThisMonth: 2,
+      lastActivity: now.subtract(const Duration(days: 1)),
+      quotesThisWeek: 4,
+      quotesThisMonth: 9,
+      revenueThisMonth: 19780.00,
+      productsSold: {'TOM-40L': 10, 'TSR-72SD': 8, 'TBF-35SD': 7},
+      categoryRevenue: {'Refrigeration': 42000.00, 'Other': 25890.00},
+      recentQuotes: [],
+      averageResponseTime: 28.1,
+      totalProducts: 89,
+    ),
+  ];
+}
 
 class PerformanceDashboardScreen extends ConsumerStatefulWidget {
   const PerformanceDashboardScreen({super.key});
@@ -297,11 +439,13 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
           ),
         );
       });
-      print('Access denied for non-admin user: ${user.email}');
+      // Log without exposing email
+      AppLogger.warning('Access denied for non-admin user', category: LogCategory.security);
       return;
     }
 
-    print('Performance Dashboard access granted for admin: ${user.email}');
+    // Log without exposing email
+    AppLogger.info('Performance Dashboard access granted for admin user', category: LogCategory.security);
   }
   
   @override

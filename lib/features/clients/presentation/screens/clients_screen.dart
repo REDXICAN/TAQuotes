@@ -8,6 +8,9 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
+import '../../../../core/utils/input_validators.dart';
+import '../../../../core/utils/error_messages.dart';
+import '../../../../core/services/validation_service.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/services/export_service.dart';
@@ -361,9 +364,30 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                           prefixIcon: Icon(Icons.business),
                         ),
                         validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Company name is required';
+                          // Required field validation
+                          final requiredValidation = InputValidators.validateRequired(
+                            value,
+                            fieldName: 'Company name',
+                          );
+                          if (requiredValidation != null) return requiredValidation;
+
+                          // Security validation
+                          if (value != null) {
+                            if (ValidationService.containsXss(value) || ValidationService.containsSqlInjection(value)) {
+                              return 'Invalid characters in company name';
+                            }
+
+                            // Use ValidationService for comprehensive validation
+                            final validation = ValidationService.validateField(
+                              value: value,
+                              fieldType: FieldType.name,
+                              fieldName: 'Company name',
+                            );
+                            if (!validation.isValid) {
+                              return validation.error;
+                            }
                           }
+
                           return null;
                         },
                       ),
@@ -374,6 +398,20 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                           labelText: 'Contact Name',
                           prefixIcon: Icon(Icons.person),
                         ),
+                        validator: (value) {
+                          if (value != null && value.isNotEmpty) {
+                            // Validate name format
+                            if (!ValidationService.isValidName(value)) {
+                              return 'Please enter a valid name (letters, spaces, hyphens, and apostrophes only)';
+                            }
+
+                            // Security validation
+                            if (ValidationService.containsXss(value) || ValidationService.containsSqlInjection(value)) {
+                              return 'Invalid characters in contact name';
+                            }
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
@@ -385,9 +423,13 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                         keyboardType: TextInputType.emailAddress,
                         validator: (value) {
                           if (value != null && value.isNotEmpty) {
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                .hasMatch(value)) {
-                              return 'Enter a valid email';
+                            // Use comprehensive email validation
+                            final emailValidation = InputValidators.validateEmail(value);
+                            if (emailValidation != null) return emailValidation;
+
+                            // Security validation
+                            if (ValidationService.containsXss(value) || ValidationService.containsSqlInjection(value)) {
+                              return 'Invalid characters in email address';
                             }
                           }
                           return null;
@@ -399,12 +441,25 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                         decoration: const InputDecoration(
                           labelText: 'Phone',
                           prefixIcon: Icon(Icons.phone),
-                          hintText: 'Numbers only',
+                          hintText: '(123) 456-7890',
                         ),
                         keyboardType: TextInputType.phone,
                         inputFormatters: [
                           FilteringTextInputFormatter.allow(RegExp(r'[\d\s\-\+\(\)]')),
                         ],
+                        validator: (value) {
+                          if (value != null && value.isNotEmpty) {
+                            // Use comprehensive phone validation
+                            final phoneValidation = InputValidators.validatePhone(value);
+                            if (phoneValidation != null) return phoneValidation;
+
+                            // Security validation
+                            if (ValidationService.containsXss(value) || ValidationService.containsSqlInjection(value)) {
+                              return 'Invalid characters in phone number';
+                            }
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
@@ -413,6 +468,20 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                           labelText: 'Address',
                           prefixIcon: Icon(Icons.location_on),
                         ),
+                        validator: (value) {
+                          if (value != null && value.isNotEmpty) {
+                            // Validate address format
+                            if (!ValidationService.isValidAddress(value)) {
+                              return 'Please enter a valid address';
+                            }
+
+                            // Security validation
+                            if (ValidationService.containsXss(value) || ValidationService.containsSqlInjection(value)) {
+                              return 'Invalid characters in address';
+                            }
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -424,6 +493,20 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                               decoration: const InputDecoration(
                                 labelText: 'City',
                               ),
+                              validator: (value) {
+                                if (value != null && value.isNotEmpty) {
+                                  // Basic name format validation for city
+                                  if (!ValidationService.isValidName(value.replaceAll(' ', 'a'))) { // Allow spaces in cities
+                                    return 'Please enter a valid city name';
+                                  }
+
+                                  // Security validation
+                                  if (ValidationService.containsXss(value) || ValidationService.containsSqlInjection(value)) {
+                                    return 'Invalid characters in city name';
+                                  }
+                                }
+                                return null;
+                              },
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -433,6 +516,20 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                               decoration: const InputDecoration(
                                 labelText: 'State',
                               ),
+                              validator: (value) {
+                                if (value != null && value.isNotEmpty) {
+                                  // Basic name format validation for state
+                                  if (!ValidationService.isValidName(value.replaceAll(' ', 'a'))) { // Allow spaces in states
+                                    return 'Please enter a valid state name';
+                                  }
+
+                                  // Security validation
+                                  if (ValidationService.containsXss(value) || ValidationService.containsSqlInjection(value)) {
+                                    return 'Invalid characters in state name';
+                                  }
+                                }
+                                return null;
+                              },
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -443,6 +540,20 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                                 labelText: 'ZIP',
                               ),
                               keyboardType: TextInputType.number,
+                              validator: (value) {
+                                if (value != null && value.isNotEmpty) {
+                                  // Basic validation for ZIP code (alphanumeric)
+                                  if (!ValidationService.isAlphanumeric(value.replaceAll(' ', '').replaceAll('-', ''))) {
+                                    return 'Please enter a valid ZIP code';
+                                  }
+
+                                  // Security validation
+                                  if (ValidationService.containsXss(value) || ValidationService.containsSqlInjection(value)) {
+                                    return 'Invalid characters in ZIP code';
+                                  }
+                                }
+                                return null;
+                              },
                             ),
                           ),
                         ],
@@ -455,6 +566,20 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                           prefixIcon: Icon(Icons.note),
                         ),
                         maxLines: 3,
+                        validator: (value) {
+                          if (value != null && value.isNotEmpty) {
+                            // Security validation for notes
+                            if (ValidationService.containsXss(value) || ValidationService.containsSqlInjection(value)) {
+                              return 'Invalid characters in notes';
+                            }
+
+                            // Length validation
+                            if (value.length > 1000) {
+                              return 'Notes cannot exceed 1000 characters';
+                            }
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -1389,20 +1514,33 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
     try {
       final dbService = ref.read(databaseServiceProvider);
 
+      // Sanitize all input data before saving
       final clientData = {
-        'company': _companyController.text,
+        'company': ValidationService.sanitizeForDatabase(_companyController.text),
         'contact_name': _contactNameController.text.isEmpty
             ? null
-            : _contactNameController.text,
-        'email': _emailController.text.isEmpty ? null : _emailController.text,
-        'phone': _phoneController.text.isEmpty ? null : _phoneController.text,
-        'address':
-            _addressController.text.isEmpty ? null : _addressController.text,
-        'city': _cityController.text.isEmpty ? null : _cityController.text,
-        'state': _stateController.text.isEmpty ? null : _stateController.text,
-        'zip_code':
-            _zipCodeController.text.isEmpty ? null : _zipCodeController.text,
-        'notes': _notesController.text.isEmpty ? null : _notesController.text,
+            : ValidationService.sanitizeForDatabase(_contactNameController.text),
+        'email': _emailController.text.isEmpty
+            ? null
+            : ValidationService.sanitizeForDatabase(_emailController.text.toLowerCase()),
+        'phone': _phoneController.text.isEmpty
+            ? null
+            : ValidationService.sanitizeForDatabase(_phoneController.text),
+        'address': _addressController.text.isEmpty
+            ? null
+            : ValidationService.sanitizeForDatabase(_addressController.text),
+        'city': _cityController.text.isEmpty
+            ? null
+            : ValidationService.sanitizeForDatabase(_cityController.text),
+        'state': _stateController.text.isEmpty
+            ? null
+            : ValidationService.sanitizeForDatabase(_stateController.text),
+        'zip_code': _zipCodeController.text.isEmpty
+            ? null
+            : ValidationService.sanitizeForDatabase(_zipCodeController.text),
+        'notes': _notesController.text.isEmpty
+            ? null
+            : ValidationService.sanitizeForDatabase(_notesController.text),
       };
 
       if (_editingClientId != null) {
@@ -1424,20 +1562,22 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_editingClientId != null 
-                ? 'Client updated successfully' 
-                : 'Client added successfully'),
+            content: Text(_editingClientId != null
+                ? ErrorMessages.successUpdated
+                : ErrorMessages.successClientAdded),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
+        final errorMessage = _editingClientId != null
+            ? ErrorMessages.clientUpdateError
+            : ErrorMessages.clientCreateError;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_editingClientId != null 
-                ? 'Error updating client: $e'
-                : 'Error adding client: $e'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
@@ -1492,8 +1632,9 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Client deleted successfully'),
+          SnackBar(
+            content: Text(ErrorMessages.successDeleted),
+            backgroundColor: Colors.green,
           ),
         );
       }
@@ -1501,7 +1642,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error deleting client: $e'),
+            content: Text(ErrorMessages.clientDeleteError),
             backgroundColor: Colors.red,
           ),
         );

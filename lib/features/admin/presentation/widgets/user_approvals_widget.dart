@@ -6,12 +6,19 @@ import '../../../../core/models/user_approval_request.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
-// Provider for pending user approvals
-final pendingUserApprovalsProvider = StreamProvider<List<UserApprovalRequest>>((ref) {
+// Provider for pending user approvals with auto-refresh
+final pendingUserApprovalsProvider = StreamProvider.autoDispose<List<UserApprovalRequest>>((ref) {
   final dbService = ref.watch(databaseServiceProvider);
-  return dbService.getPendingUserApprovals().map((requests) {
-    return requests.map((req) => UserApprovalRequest.fromJson(req)).toList();
-  });
+
+  // Force initial data fetch
+  return dbService.getPendingUserApprovals()
+    .map((requests) {
+      return requests.map((req) => UserApprovalRequest.fromJson(req)).toList();
+    })
+    .handleError((error) {
+      AppLogger.error('Error loading pending approvals', error: error);
+      return [];
+    });
 });
 
 class UserApprovalsWidget extends ConsumerWidget {
@@ -98,7 +105,27 @@ class UserApprovalsWidget extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const SizedBox.shrink(),
+      loading: () => const Card(
+        elevation: 4,
+        margin: EdgeInsets.all(16),
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 12),
+                Text('Loading pending approvals...'),
+              ],
+            ),
+          ),
+        ),
+      ),
       error: (error, stack) {
         AppLogger.error('Error loading user approvals', error: error);
         return const SizedBox.shrink();

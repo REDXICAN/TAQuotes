@@ -1,5 +1,8 @@
 // lib/core/utils/product_image_helper_v2.dart
 
+/// NOTE: This is version 2 of ProductImageHelper - NOT IN USE
+/// The app currently uses the main ProductImageHelper (product_image_helper.dart)
+/// This version was kept for reference but is not actively used
 class ProductImageHelper {
   // Cache for checking if folders exist
   static final Map<String, bool> _folderExistsCache = {};

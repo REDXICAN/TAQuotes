@@ -22,7 +22,7 @@ class ImagePathMapper {
       
       _isInitialized = true;
     } catch (e) {
-      print('Error initializing ImagePathMapper: $e');
+      AppLogger.debug('Error initializing ImagePathMapper', error: e, category: LogCategory.system);
       // Fall back to known mappings
       _buildKnownMappings();
       _isInitialized = true;

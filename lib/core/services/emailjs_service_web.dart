@@ -58,8 +58,23 @@ class EmailJSService {
         templateParams['products_table'] = productsHtml;
       }
       
-      // Note: EmailJS doesn't support file attachments in free tier
-      // For attachments, you need EmailJS Pro or use a different service
+      // IMPORTANT: EmailJS doesn't support file attachments in free tier
+      // Using Firebase Functions instead for attachment support
+      if ((attachPdf && pdfBytes != null) || (attachExcel && excelBytes != null)) {
+        AppLogger.info('Attachments detected, using Firebase Functions instead of EmailJS',
+            category: LogCategory.email);
+        return await _sendViaFirebaseFunctions(
+          recipientEmail: recipientEmail,
+          recipientName: recipientName,
+          quoteNumber: quoteNumber,
+          totalAmount: totalAmount,
+          pdfBytes: pdfBytes,
+          excelBytes: excelBytes,
+          attachPdf: attachPdf,
+          attachExcel: attachExcel,
+          products: products,
+        );
+      }
       
       // Send email via EmailJS
       final response = await html.window.fetch(
@@ -133,5 +148,76 @@ class EmailJSService {
     buffer.writeln('</table>');
     
     return buffer.toString();
+  }
+
+  static Future<bool> _sendViaFirebaseFunctions({
+    required String recipientEmail,
+    required String recipientName,
+    required String quoteNumber,
+    required double totalAmount,
+    Uint8List? pdfBytes,
+    Uint8List? excelBytes,
+    bool attachPdf = true,
+    bool attachExcel = false,
+    List<Map<String, dynamic>>? products,
+  }) async {
+    try {
+      AppLogger.info('Sending email with attachments via Firebase Functions',
+          category: LogCategory.email);
+
+      // Firebase Functions endpoint
+      const String functionsUrl = 'https://us-central1-taquotes.cloudfunctions.net/sendQuoteEmail';
+
+      // Build request body
+      final requestBody = {
+        'recipientEmail': recipientEmail,
+        'recipientName': recipientName,
+        'quoteNumber': quoteNumber,
+        'totalAmount': totalAmount,
+        'attachPdf': attachPdf && pdfBytes != null,
+        'attachExcel': attachExcel && excelBytes != null,
+      };
+
+      // Add products if provided
+      if (products != null && products.isNotEmpty) {
+        requestBody['products'] = products;
+      }
+
+      // Add attachments as base64 strings
+      if (attachPdf && pdfBytes != null) {
+        requestBody['pdfBase64'] = base64Encode(pdfBytes);
+      }
+
+      if (attachExcel && excelBytes != null) {
+        requestBody['excelBase64'] = base64Encode(excelBytes);
+      }
+
+      // Send HTTP POST request
+      final response = await html.window.fetch(
+        functionsUrl,
+        {
+          'method': 'POST',
+          'headers': {
+            'Content-Type': 'application/json',
+          },
+          'body': json.encode(requestBody),
+        },
+      );
+
+      if (response.ok ?? false) {
+        AppLogger.info('Email sent successfully via Firebase Functions',
+            category: LogCategory.email);
+        return true;
+      } else {
+        final errorText = await response.text();
+        AppLogger.error('Firebase Functions error: $errorText',
+            category: LogCategory.email);
+        return false;
+      }
+    } catch (e) {
+      AppLogger.error('Failed to send email via Firebase Functions',
+          error: e, category: LogCategory.email);
+      return false;
+    }
   }
 }

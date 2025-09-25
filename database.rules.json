@@ -4,31 +4,29 @@
     ".write": false,
     
     "products": {
-      ".read": true,
+      ".read": "auth != null",
       ".write": "auth != null && (auth.token.email == 'andres@turboairmexico.com' || auth.token.email == 'turboairquotes@gmail.com')",
       ".indexOn": ["sku", "category", "subcategory"]
     },
-    
+
     "clients": {
-      ".read": "auth != null && auth.token.email == 'andres@turboairmexico.com'",
+      ".read": "auth != null",
       "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
         ".write": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')"
       }
     },
-    
+
     "quotes": {
-      ".read": "auth != null && auth.token.email == 'andres@turboairmexico.com'",
+      ".read": "auth != null",
       "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
         ".write": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
         ".indexOn": ["project_id", "client_id", "created_at"]
       }
     },
-    
+
     "projects": {
+      ".read": "auth != null",
       "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
         ".write": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
         ".indexOn": ["clientId", "status", "createdAt"]
       }
@@ -56,23 +54,21 @@
     },
     
     "user_profiles": {
-      ".read": "auth != null && auth.token.email == 'andres@turboairmexico.com'",
+      ".read": "auth != null",
       "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
         ".write": "auth != null && auth.uid == $uid"
       }
     },
-    
+
     "users": {
-      ".read": "auth != null && auth.token.email == 'andres@turboairmexico.com'",
+      ".read": "auth != null",
       "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
         ".write": "auth != null && auth.uid == $uid"
       }
     },
     
     "search_history": {
-      ".read": "auth != null && auth.token.email == 'andres@turboairmexico.com'",
+      ".read": "auth != null",
       ".write": "auth != null"
     },
     
@@ -91,6 +87,28 @@
       ".read": "auth != null && auth.token.email == 'andres@turboairmexico.com'",
       ".write": "auth != null",
       ".indexOn": ["status", "requestedAt"]
+    },
+
+    "warehouse_stock": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.token.email == 'andres@turboairmexico.com'",
+      ".indexOn": ["sku", "warehouse"]
+    },
+
+    "errors": {
+      ".read": "auth != null && auth.token.email == 'andres@turboairmexico.com'",
+      ".write": "auth != null"
+    },
+
+    "backups": {
+      ".read": "auth != null && (auth.token.email == 'andres@turboairmexico.com' || auth.token.email == 'turboairquotes@gmail.com')",
+      ".write": "auth != null && (auth.token.email == 'andres@turboairmexico.com' || auth.token.email == 'turboairquotes@gmail.com')",
+      ".indexOn": ["timestamp", "type"]
+    },
+
+    "backup_metadata": {
+      ".read": "auth != null && (auth.token.email == 'andres@turboairmexico.com' || auth.token.email == 'turboairquotes@gmail.com')",
+      ".write": "auth != null && (auth.token.email == 'andres@turboairmexico.com' || auth.token.email == 'turboairquotes@gmail.com')"
     }
   }
 }

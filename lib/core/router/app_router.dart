@@ -19,10 +19,11 @@ import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/admin/presentation/screens/admin_panel_screen.dart';
 import '../../features/admin/presentation/screens/performance_dashboard_screen.dart';
 import '../../features/admin/presentation/screens/user_info_dashboard_screen.dart';
+import '../../features/admin/presentation/screens/user_details_screen.dart';
 import '../../features/admin/presentation/screens/error_monitoring_dashboard.dart';
 import '../../features/stock/presentation/screens/stock_dashboard_screen.dart';
 import '../../features/spareparts/presentation/screens/spareparts_screen.dart';
-// import '../../features/projects/presentation/screens/projects_screen.dart';
+import '../../features/projects/presentation/screens/projects_screen.dart';
 
 // Router provider
 final routerProvider = Provider<GoRouter>((ref) {
@@ -156,10 +157,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
 
           // Projects
-          // GoRoute(
-          //   path: '/projects',
-          //   builder: (context, state) => const ProjectsScreen(),
-          // ),
+          GoRoute(
+            path: '/projects',
+            builder: (context, state) => const ProjectsScreen(),
+          ),
 
           // Admin
           GoRoute(
@@ -173,6 +174,20 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'users',
                 builder: (context, state) => const UserInfoDashboardScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':userId',
+                    builder: (context, state) {
+                      final userId = state.pathParameters['userId']!;
+                      final extras = state.extra as Map<String, String>?;
+                      return UserDetailsScreen(
+                        userId: userId,
+                        userEmail: extras?['email'] ?? '',
+                        userName: extras?['name'] ?? '',
+                      );
+                    },
+                  ),
+                ],
               ),
               GoRoute(
                 path: 'errors',

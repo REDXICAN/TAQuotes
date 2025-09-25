@@ -252,9 +252,16 @@ class RateLimiterService {
   }
 
   void _logRateLimitViolation(String identifier, RateLimitType type) {
-    // Log to your logging service
-    print('[SECURITY] Rate limit violation: $identifier for ${type.toString()}');
-    // In production, send this to your logging/monitoring service
+    // Log to security monitoring service
+    AppLogger.warning(
+      'Rate limit violation: $identifier for ${type.toString()}',
+      category: LogCategory.security,
+      data: {
+        'identifier': identifier,
+        'limitType': type.toString(),
+        'timestamp': DateTime.now().toIso8601String(),
+      },
+    );
   }
 
   Map<RateLimitType, int> _getBlockedCountByType() {

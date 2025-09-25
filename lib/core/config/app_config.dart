@@ -3,22 +3,24 @@ import 'package:flutter/foundation.dart';
 
 class AppConfig {
   // Firebase configuration is handled by firebase_options.dart (auto-generated)
-  //   // No need for manual URLs or keys like with Supabase  // REMOVED: Supabase reference
+  // No need for manual URLs or keys - everything is in firebase_options.dart
 
-  // Cloud Functions URLs (Firebase equivalent)
-  // These will be set up after deploying Firebase Functions
+  // Cloud Functions URLs - Not currently used
+  // The app implements these features client-side:
+  // - Email: Handled by email_service.dart using SMTP
+  // - Sync: Handled by offline_service.dart using Firebase Realtime Database
+  // - Admin: Handled through Firebase Auth
+  // These URLs are kept for potential future migration to server-side functions
   static const String cloudFunctionsRegion = 'us-central1';
   static const String projectId = 'taquotes';
-  
-  // Cloud Functions URLs
+
+  // Placeholder Cloud Functions URLs (not implemented/deployed)
   static String get emailFunctionUrl =>
       'https://$cloudFunctionsRegion-$projectId.cloudfunctions.net/sendQuoteEmail';
   static String get testEmailFunctionUrl =>
       'https://$cloudFunctionsRegion-$projectId.cloudfunctions.net/testEmail';
   static String get initSuperAdminFunctionUrl =>
       'https://$cloudFunctionsRegion-$projectId.cloudfunctions.net/initializeSuperAdmin';
-  
-  // Note: syncData function doesn't exist yet, keeping placeholder for future use
   static String get syncFunctionUrl =>
       'https://$cloudFunctionsRegion-$projectId.cloudfunctions.net/syncData';
 

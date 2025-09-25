@@ -48,7 +48,7 @@ class UpdateSpecsFromExcel {
         }
       }
       
-      print('Found headers: ${headers.keys.toList()}');
+      AppLogger.debug('Found headers: ${headers.keys.toList()}', category: LogCategory.data);
       
       // Map Excel headers to database fields
       final fieldMapping = {
@@ -169,7 +169,7 @@ class UpdateSpecsFromExcel {
                 for (var productId in products.keys) {
                   await _database.ref('products/$productId').update(updateData);
                   updatedCount++;
-                  print('Updated product: $productIdentifier');
+                  AppLogger.debug('Updated product: $productIdentifier', category: LogCategory.data);
                 }
               } else {
                 // Try to find by model
@@ -183,7 +183,7 @@ class UpdateSpecsFromExcel {
                   for (var productId in products.keys) {
                     await _database.ref('products/$productId').update(updateData);
                     updatedCount++;
-                    print('Updated product by model: $productIdentifier');
+                    AppLogger.debug('Updated product by model: $productIdentifier', category: LogCategory.data);
                   }
                 } else {
                   errors.add('Product not found in database: $productIdentifier');

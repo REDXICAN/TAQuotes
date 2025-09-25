@@ -13,8 +13,10 @@ import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/services/export_service.dart';
 import '../../../../core/services/email_service.dart';
 import '../../../../core/services/app_logger.dart';
+import '../../../../core/utils/safe_conversions.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/utils/error_messages.dart';
 import 'package:mailer/mailer.dart';
 import 'edit_quote_screen.dart';
 
@@ -67,8 +69,8 @@ final quotesProvider = StreamProvider<List<Quote>>((ref) {
                 productId: itemData['product_id'] ?? '',
                 productName: productData?['name'] ?? productData?['description'] ?? 'Unknown Product',
                 quantity: itemData['quantity'] ?? 1,
-                unitPrice: (itemData['unit_price'] ?? 0).toDouble(),
-                total: (itemData['total_price'] ?? 0).toDouble(),
+                unitPrice: SafeConversions.toPrice(itemData['unit_price']),
+                total: SafeConversions.toPrice(itemData['total_price']),
                 product: productData != null ? Product.fromMap(productData) : null,
                 addedAt: DateTime.now(),
               ));
@@ -497,7 +499,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                     const Icon(Icons.error_outline,
                         size: 64, color: Colors.red),
                     const SizedBox(height: 16),
-                    Text('Error loading quotes: $error'),
+                    Text(ErrorMessages.dbLoadError),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () => ref.invalidate(quotesProvider),
@@ -607,7 +609,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Error updating status: $e'),
+                                  content: Text(ErrorMessages.quoteUpdateError),
                                   backgroundColor: Colors.red,
                                 ),
                               );
@@ -1207,8 +1209,13 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
             final dbService = ref.read(databaseServiceProvider);
             await dbService.updateQuoteStatus(quote.id ?? '', 'sent');
             ref.invalidate(quotesProvider);
-          } catch (_) {
+          } catch (statusError) {
             // Continue even if status update fails
+            AppLogger.debug(
+              'Failed to update quote status after email, continuing anyway',
+              error: statusError,
+              category: LogCategory.business,
+            );
           }
         }
         
@@ -1216,7 +1223,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Quote emailed successfully to $email'),
+              content: Text(ErrorMessages.successEmailSent),
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 3),
             ),
@@ -1230,12 +1237,22 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
       if (mounted && isLoadingDialogShowing) {
         try {
           Navigator.of(context, rootNavigator: true).pop();
-        } catch (_) {
+        } catch (navError) {
           // Try alternative close method
+          AppLogger.debug(
+            'Failed to close dialog with root navigator, trying alternative',
+            error: navError,
+            category: LogCategory.ui,
+          );
           try {
             Navigator.of(context).pop();
-          } catch (_) {
+          } catch (altNavError) {
             // Ignore if already closed
+            AppLogger.debug(
+              'Dialog may already be closed',
+              error: altNavError,
+              category: LogCategory.ui,
+            );
           }
         }
       }
@@ -1297,7 +1314,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error duplicating quote: $e'),
+            content: Text(ErrorMessages.quoteCreateError),
             backgroundColor: Colors.red,
           ),
         );
@@ -1330,7 +1347,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Quote deleted successfully'),
+                      content: Text(ErrorMessages.successDeleted),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -1339,7 +1356,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Error deleting quote: $e'),
+                      content: Text(ErrorMessages.quoteDeleteError),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -1379,8 +1396,71 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         );
       }
 
-      // For now, show not implemented message
-      throw Exception('Excel export not yet implemented');
+      // Get quotes from the provider
+      final quotesAsync = ref.read(quotesProvider);
+
+      List<Quote> quotes = [];
+      quotesAsync.when(
+        data: (data) => quotes = data,
+        loading: () => quotes = [],
+        error: (_, __) => quotes = [],
+      );
+
+      if (quotes.isEmpty) {
+        if (mounted) Navigator.pop(context);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No quotes to export'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Convert quotes to the format expected by generateQuotesExcel
+      final List<Map<String, dynamic>> quotesData = quotes.map((quote) {
+        return {
+          'quote_number': quote.quoteNumber,
+          'client': quote.client?.toMap(),
+          'status': quote.status.toString().split('.').last,
+          'created_at': quote.createdAt.toIso8601String(),
+          'quote_items': quote.items.map((item) => item.toMap()).toList(),
+          'subtotal': quote.subtotal,
+          'tax': quote.tax,
+          'total': quote.total,
+          'comments': quote.comments,
+        };
+      }).toList();
+
+      // Generate Excel file
+      final Uint8List excelBytes = await ExportService.generateQuotesExcel(quotesData);
+
+      // Generate filename with timestamp
+      final dateFormat = DateFormat('yyyy-MM-dd_HHmm');
+      final timestamp = dateFormat.format(DateTime.now());
+      final filename = 'quotes_export_$timestamp.xlsx';
+
+      // Download the file
+      await DownloadHelper.downloadFile(
+        bytes: excelBytes,
+        filename: filename,
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+
+      // Hide loading indicator
+      if (mounted) Navigator.pop(context);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully exported ${quotes.length} quotes to Excel'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
       // Hide loading indicator if still showing
       if (mounted) Navigator.pop(context);
@@ -1388,7 +1468,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error exporting quotes: $e'),
+            content: Text(ErrorMessages.quoteExportError),
             backgroundColor: Colors.red,
           ),
         );
@@ -1521,8 +1601,13 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
           final dbService = ref.read(databaseServiceProvider);
           await dbService.updateQuoteStatus(quote.id ?? '', 'sent');
           ref.invalidate(quotesProvider);
-        } catch (_) {
+        } catch (statusError) {
           // Continue even if status update fails
+          AppLogger.debug(
+            'Failed to update quote status after export, continuing anyway',
+            error: statusError,
+            category: LogCategory.business,
+          );
         }
       }
 
@@ -1530,7 +1615,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Quote #${quote.quoteNumber} exported as ${format.toUpperCase()}'),
+            content: Text(ErrorMessages.successExported),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 3),
           ),
@@ -1541,12 +1626,22 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
       if (mounted && isLoadingDialogShowing) {
         try {
           Navigator.of(context, rootNavigator: true).pop();
-        } catch (_) {
+        } catch (navError) {
           // Try alternative close method
+          AppLogger.debug(
+            'Failed to close dialog with root navigator, trying alternative',
+            error: navError,
+            category: LogCategory.ui,
+          );
           try {
             Navigator.of(context).pop();
-          } catch (_) {
+          } catch (altNavError) {
             // Ignore if already closed
+            AppLogger.debug(
+              'Dialog may already be closed',
+              error: altNavError,
+              category: LogCategory.ui,
+            );
           }
         }
       }

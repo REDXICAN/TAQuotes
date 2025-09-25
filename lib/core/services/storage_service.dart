@@ -1,6 +1,7 @@
 // lib/core/services/storage_service.dart
 import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
+import 'package:flutter/painting.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/app_logger.dart';

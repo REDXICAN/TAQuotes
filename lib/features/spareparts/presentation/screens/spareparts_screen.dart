@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/utils/safe_conversions.dart';
 
 // Spare part model
 class SparePart {
@@ -28,7 +29,7 @@ class SparePart {
       name: map['name'] ?? '',
       stock: map['stock'] ?? 0,
       warehouse: map['warehouse'],
-      price: (map['price'] ?? 0).toDouble(),
+      price: SafeConversions.toPrice(map['price']),
     );
   }
 }

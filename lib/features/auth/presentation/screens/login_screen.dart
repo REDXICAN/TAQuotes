@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/utils/responsive_helper.dart';
+import '../../../../core/utils/input_validators.dart';
+import '../../../../core/services/validation_service.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -131,6 +133,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             onPressed: () async {
               final email = emailController.text.trim();
               if (email.isNotEmpty) {
+                // Validate email before sending reset
+                final emailValidation = InputValidators.validateEmail(email);
+                if (emailValidation != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(emailValidation),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                // Check for malicious content
+                if (ValidationService.containsXss(email)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Invalid email format'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
                 Navigator.pop(dialogContext);
 
                 final resetPassword = ref.read(resetPasswordProvider);
@@ -243,12 +268,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your email';
+                            // Use comprehensive email validation
+                            final emailValidation = InputValidators.validateEmail(value);
+                            if (emailValidation != null) {
+                              return emailValidation;
                             }
-                            if (!value.contains('@')) {
-                              return 'Please enter a valid email';
+
+                            // Additional security check for malicious content
+                            if (value != null && ValidationService.containsXss(value)) {
+                              return 'Invalid characters in email address';
                             }
+
                             return null;
                           },
                         ),
@@ -283,9 +313,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             if (value == null || value.isEmpty) {
                               return 'Please enter your password';
                             }
-                            if (_isSignUp && value.length < 6) {
-                              return 'Password must be at least 6 characters';
+
+                            // Enhanced password validation for signup
+                            if (_isSignUp) {
+                              final passwordValidation = ValidationService.validatePassword(value);
+                              if (!passwordValidation.isValid) {
+                                return passwordValidation.message;
+                              }
+                            } else {
+                              // Basic length check for login
+                              if (value.length < 6) {
+                                return 'Password must be at least 6 characters';
+                              }
                             }
+
+                            // Security check for malicious content
+                            if (ValidationService.containsXss(value) || ValidationService.containsSqlInjection(value)) {
+                              return 'Invalid characters in password';
+                            }
+
                             return null;
                           },
                         ),
@@ -342,9 +388,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                             validator: (value) {
-                              if (_isSignUp &&
-                                  (value == null || value.isEmpty)) {
-                                return 'Please enter your name';
+                              if (_isSignUp) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter your name';
+                                }
+
+                                // Validate name format and security
+                                if (!ValidationService.isValidName(value)) {
+                                  return 'Please enter a valid name (letters, spaces, hyphens, and apostrophes only)';
+                                }
+
+                                // Check for malicious content
+                                if (ValidationService.containsXss(value) || ValidationService.containsSqlInjection(value)) {
+                                  return 'Invalid characters in name';
+                                }
                               }
                               return null;
                             },

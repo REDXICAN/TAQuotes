@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/services/backup_service.dart';
+import '../../../../core/utils/download_helper.dart';
 
 // Provider for backup service
 final backupServiceProvider = Provider<BackupService>((ref) {
@@ -14,10 +15,13 @@ final backupEntriesProvider = StreamProvider<List<BackupEntry>>((ref) {
   return service.getBackupHistory(limit: 10);
 });
 
-// Future provider for backup statistics
-final backupStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+// Stream provider for backup statistics with auto-refresh
+final backupStatsProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) {
   final service = ref.watch(backupServiceProvider);
-  return await service.getBackupStats();
+  // Refresh backup stats every 30 seconds
+  return Stream.periodic(const Duration(seconds: 30), (_) => null)
+      .asyncMap((_) async => await service.getBackupStats())
+      .handleError((error) => <String, dynamic>{});
 });
 
 class BackupStatusWidget extends ConsumerStatefulWidget {
@@ -29,6 +33,60 @@ class BackupStatusWidget extends ConsumerStatefulWidget {
 
 class _BackupStatusWidgetState extends ConsumerState<BackupStatusWidget> {
   bool _isCreatingBackup = false;
+
+  Future<void> _downloadBackup(BackupEntry backup) async {
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+              SizedBox(width: 16),
+              Text('Downloading backup...'),
+            ],
+          ),
+          duration: Duration(seconds: 30),
+        ),
+      );
+
+      // Generate filename with timestamp
+      final dateFormat = DateFormat('yyyy-MM-dd_HHmm');
+      final timestamp = dateFormat.format(backup.createdAt);
+      final filename = 'backup_${backup.type.toString().split('.').last}_$timestamp.json';
+
+      // Download the file directly from the URL
+      await DownloadHelper.downloadFromUrl(
+        url: backup.downloadUrl!,
+        filename: filename,
+      );
+
+      // Clear the loading snackbar and show success
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Backup downloaded successfully: $filename'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to download backup: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   Future<void> _createManualBackup() async {
     setState(() {
@@ -403,13 +461,8 @@ class _BackupStatusWidgetState extends ConsumerState<BackupStatusWidget> {
                         trailing: backup.downloadUrl != null
                             ? IconButton(
                                 icon: const Icon(Icons.download),
-                                onPressed: () {
-                                  // TODO: Implement download functionality
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Download feature coming soon'),
-                                    ),
-                                  );
+                                onPressed: () async {
+                                  await _downloadBackup(backup);
                                 },
                                 tooltip: 'Download Backup',
                               )

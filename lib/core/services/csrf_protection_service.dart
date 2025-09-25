@@ -39,7 +39,7 @@ class CsrfProtectionService {
         await generateNewToken();
       }
     } catch (e) {
-      print('Error initializing CSRF protection: $e');
+      AppLogger.error('Error initializing CSRF protection', error: e, category: LogCategory.security);
       // Generate in-memory token as fallback
       _currentToken = _generateRandomToken();
       _tokenGeneratedAt = DateTime.now();

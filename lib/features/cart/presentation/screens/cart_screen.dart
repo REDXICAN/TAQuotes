@@ -16,8 +16,13 @@ import '../../../../core/services/email_service.dart';
 import '../../../../core/widgets/searchable_client_dropdown.dart';
 import 'package:mailer/mailer.dart';
 import '../../../../core/services/app_logger.dart';
+import '../../../../core/utils/input_validators.dart';
+import '../../../../core/services/validation_service.dart';
 import '../../../clients/presentation/screens/clients_screen.dart'; // Import for selectedClientProvider
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/utils/safe_conversions.dart';
+import '../../../../core/utils/error_messages.dart';
+import '../../../../core/utils/disabled_state_helper.dart';
 
 // Selected client provider for cart
 final selectedClientProvider = StateProvider<Client?>((ref) => null);
@@ -63,7 +68,7 @@ final cartProvider = StreamProvider.autoDispose<List<CartItem>>((ref) {
           if (sparePartSnapshot.exists && sparePartSnapshot.value != null) {
             final sparePartData = Map<String, dynamic>.from(sparePartSnapshot.value as Map);
             productName = item['name'] ?? sparePartData['name'] ?? '';
-            unitPrice = item['price']?.toDouble() ?? sparePartData['price']?.toDouble() ?? 0.0;
+            unitPrice = SafeConversions.toPrice(item['price'] ?? sparePartData['price']);
             // Create a minimal product object for spare parts
             product = Product(
               id: item['product_id'],
@@ -80,14 +85,14 @@ final cartProvider = StreamProvider.autoDispose<List<CartItem>>((ref) {
           } else {
             // Use data from cart item if spare part not found
             productName = item['name'] ?? 'Spare Part';
-            unitPrice = item['price']?.toDouble() ?? 0.0;
+            unitPrice = SafeConversions.toPrice(item['price']);
           }
         } else {
           // Handle regular products
           final productData = await dbService.getProduct(item['product_id']);
           product = productData != null ? Product.fromMap(productData) : null;
           productName = product?.description ?? item['product_name'] ?? '';
-          unitPrice = product?.price ?? item['unit_price']?.toDouble() ?? 0.0;
+          unitPrice = product?.price ?? SafeConversions.toPrice(item['unit_price']);
         }
         
         final quantity = item['quantity'] ?? 1;
@@ -106,8 +111,8 @@ final cartProvider = StreamProvider.autoDispose<List<CartItem>>((ref) {
               : item['created_at'] != null
                   ? DateTime.fromMillisecondsSinceEpoch(item['created_at'])
                   : DateTime.now(),
-          discount: (item['discount'] ?? 0).toDouble(),
-          note: item['note'],
+          discount: SafeConversions.toPercentage(item['discount']);
+          note: item['note'] ?? '',
           sequenceNumber: item['sequence_number'] ?? item['sequenceNumber'],
         ));
       }
@@ -345,12 +350,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           }
 
           final subtotal = _calculateSubtotal(items);
-          final discountValue = double.tryParse(_discountController.text) ?? 0;
+          final discountValue = _isDiscountPercentage
+          ? InputValidators.parsePercentage(_discountController.text, defaultValue: 0)
+          : InputValidators.parsePrice(_discountController.text, defaultValue: 0);
           final discountAmount = _isDiscountPercentage 
               ? subtotal * (discountValue / 100)
               : discountValue;
           final subtotalAfterDiscount = subtotal - discountAmount;
-          final taxRate = double.tryParse(_taxRateController.text) ?? 0;
+          final taxRate = InputValidators.parsePercentage(_taxRateController.text, defaultValue: 0);
           final taxAmount = subtotalAfterDiscount * (taxRate / 100);
           final total = subtotalAfterDiscount + taxAmount;
 
@@ -1738,8 +1745,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     if (client.id == null || client.id!.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error: Invalid client selected. Please select a valid client.'),
+          SnackBar(
+            content: Text(ErrorMessages.cartClientRequired),
             backgroundColor: Colors.red,
           ),
         );
@@ -1753,12 +1760,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       final dbService = ref.read(databaseServiceProvider);
       final user = ref.read(currentUserProvider);
       final subtotal = _calculateSubtotal(items);
-      final discountValue = double.tryParse(_discountController.text) ?? 0;
+      final discountValue = _isDiscountPercentage
+          ? InputValidators.parsePercentage(_discountController.text, defaultValue: 0)
+          : InputValidators.parsePrice(_discountController.text, defaultValue: 0);
       final discountAmount = _isDiscountPercentage 
           ? subtotal * (discountValue / 100)
           : discountValue;
       final subtotalAfterDiscount = subtotal - discountAmount;
-      final taxRate = double.tryParse(_taxRateController.text) ?? 0;
+      final taxRate = InputValidators.parsePercentage(_taxRateController.text, defaultValue: 0);
       final taxAmount = subtotalAfterDiscount * (taxRate / 100);
       final total = subtotalAfterDiscount + taxAmount;
 
@@ -1867,8 +1876,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Quote PDF downloaded successfully'),
+                        SnackBar(
+                          content: Text(ErrorMessages.successExported),
                           backgroundColor: Colors.green,
                         ),
                       );
@@ -1877,7 +1886,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Error downloading PDF: $e'),
+                          content: Text(ErrorMessages.fileDownloadError),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -1907,7 +1916,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error creating quote: $e'),
+            content: Text(ErrorMessages.quoteCreateError),
             backgroundColor: Colors.red,
           ),
         );
@@ -2031,8 +2040,13 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             icon: const Icon(Icons.add),
             label: const Text('Add Client'),
             onPressed: () async {
-              // Validate required fields
-              if (companyController.text.trim().isEmpty) {
+              // Enhanced validation with security checks
+              final company = companyController.text.trim();
+              final contactName = contactNameController.text.trim();
+              final email = emailController.text.trim();
+
+              // Validate company name
+              if (company.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Company name is required'),
@@ -2041,8 +2055,30 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                 );
                 return;
               }
-              
-              if (contactNameController.text.trim().isEmpty) {
+
+              // Security validation for company name
+              if (ValidationService.containsXss(company) || ValidationService.containsSqlInjection(company)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Invalid characters in company name'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              if (!ValidationService.isValidName(company)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Company name contains invalid characters'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              // Validate contact name
+              if (contactName.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Contact person name is required'),
@@ -2051,8 +2087,30 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                 );
                 return;
               }
-              
-              if (emailController.text.trim().isEmpty) {
+
+              // Security validation for contact name
+              if (ValidationService.containsXss(contactName) || ValidationService.containsSqlInjection(contactName)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Invalid characters in contact name'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              if (!ValidationService.isValidName(contactName)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Contact name contains invalid characters'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              // Validate email
+              if (email.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Email address is required'),
@@ -2061,14 +2119,25 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                 );
                 return;
               }
-              
-              // Basic email validation
-              final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-              if (!emailRegex.hasMatch(emailController.text.trim())) {
+
+              // Email format validation
+              final emailValidation = InputValidators.validateEmail(email);
+              if (emailValidation != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(emailValidation),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              // Security validation for email
+              if (ValidationService.containsXss(email) || ValidationService.containsSqlInjection(email)) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Please enter a valid email address'),
-                    backgroundColor: Colors.orange,
+                    content: Text('Invalid characters in email address'),
+                    backgroundColor: Colors.red,
                   ),
                 );
                 return;
@@ -2076,13 +2145,17 @@ class _CartScreenState extends ConsumerState<CartScreen> {
               
               try {
                 final dbService = ref.read(databaseServiceProvider);
-                final clientId = await dbService.addClient({
-                  'company': companyController.text.trim(),
-                  'contact_name': contactNameController.text.trim(),
-                  'name': contactNameController.text.trim(),
-                  'email': emailController.text.trim(),
+
+                // Sanitize inputs before saving to database
+                final sanitizedData = {
+                  'company': ValidationService.sanitizeForDatabase(company),
+                  'contact_name': ValidationService.sanitizeForDatabase(contactName),
+                  'name': ValidationService.sanitizeForDatabase(contactName),
+                  'email': ValidationService.sanitizeForDatabase(email.toLowerCase()),
                   'phone': '', // Can be added later
-                });
+                };
+
+                final clientId = await dbService.addClient(sanitizedData);
                 
                 // Refresh clients list
                 ref.invalidate(clientsStreamProvider);
@@ -2260,7 +2333,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                             final quoteSnapshot = await database.ref('quotes/${user.uid}/$quoteId').get();
                             if (quoteSnapshot.exists) {
                               final quoteData = Map<String, dynamic>.from(quoteSnapshot.value as Map);
-                              totalAmount = (quoteData['total_amount'] ?? quoteData['total'] ?? 0).toDouble();
+                              totalAmount = SafeConversions.toPrice(quoteData['total_amount'] ?? quoteData['total']);
                               
                               // Get products from quote items
                               if (quoteData['quote_items'] != null) {
@@ -2849,7 +2922,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                 final dbService = ref.read(databaseServiceProvider);
                 await dbService.updateCartItem(
                   item.id!,
-                  note: null,
+                  note: '', // Use empty string instead of null
                 );
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -2868,7 +2941,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
               final dbService = ref.read(databaseServiceProvider);
               await dbService.updateCartItem(
                 item.id!,
-                note: note.isEmpty ? null : note,
+                note: note, // Always pass the string (empty or not)
               );
               
               Navigator.pop(dialogContext);

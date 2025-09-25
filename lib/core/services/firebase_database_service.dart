@@ -2,10 +2,13 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
+import 'app_logger.dart';
+import 'rate_limiter_service.dart';
 
 class FirebaseDatabaseService {
   static final FirebaseDatabase _database = FirebaseDatabase.instance;
   static DatabaseReference get _ref => _database.ref();
+  static final RateLimiterService _rateLimiter = RateLimiterService();
 
   // Get current user ID
   static String? get userId => FirebaseAuth.instance.currentUser?.uid;
@@ -119,6 +122,28 @@ class FirebaseDatabaseService {
   }
 
   static Future<String> addClient(Map<String, dynamic> clientData) async {
+    if (userId == null) throw Exception('User not authenticated');
+
+    // Check rate limiting for client creation
+    final rateLimitResult = _rateLimiter.checkRateLimit(
+      identifier: userId!,
+      type: RateLimitType.quoteCreation, // Reuse quote creation rate limit for clients
+    );
+
+    if (!rateLimitResult.allowed) {
+      AppLogger.warning(
+        'Client creation rate limit exceeded for user: $userId',
+        category: LogCategory.security,
+        data: {
+          'userId': userId,
+          'blockedFor': rateLimitResult.blockedFor?.inMinutes,
+          'remainingAttempts': rateLimitResult.remainingAttempts,
+        },
+      );
+
+      throw Exception(rateLimitResult.message ?? 'Too many client creation attempts. Please wait before creating another client.');
+    }
+
     clientData['user_id'] = userId;
     clientData['created_at'] = ServerValue.timestamp;
     clientData['updated_at'] = ServerValue.timestamp;
@@ -344,6 +369,26 @@ class FirebaseDatabaseService {
     String? notes,
   }) async {
     if (userId == null) throw Exception('User not authenticated');
+
+    // Check rate limiting for quote creation
+    final rateLimitResult = _rateLimiter.checkRateLimit(
+      identifier: userId!,
+      type: RateLimitType.quoteCreation,
+    );
+
+    if (!rateLimitResult.allowed) {
+      AppLogger.warning(
+        'Quote creation rate limit exceeded for user: $userId',
+        category: LogCategory.security,
+        data: {
+          'userId': userId,
+          'blockedFor': rateLimitResult.blockedFor?.inMinutes,
+          'remainingAttempts': rateLimitResult.remainingAttempts,
+        },
+      );
+
+      throw Exception(rateLimitResult.message ?? 'Too many quote creation attempts. Please wait before creating another quote.');
+    }
 
     final quoteNumber = 'Q${DateTime.now().millisecondsSinceEpoch}';
 

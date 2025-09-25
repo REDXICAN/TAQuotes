@@ -181,7 +181,10 @@
       "Read(//c/Users/andre/Downloads/**)",
       "Bash(if [ -f firebase-admin-key.json ])",
       "Bash(then echo \"WARNING: firebase-admin-key.json exists - SHOULD BE GITIGNORED!\")",
-      "Bash(else echo \"✓ firebase-admin-key.json not found (good)\")"
+      "Bash(else echo \"✓ firebase-admin-key.json not found (good)\")",
+      "Bash(findstr:*)",
+      "Bash(xargs ls:*)",
+      "Bash(sort:*)"
     ],
     "deny": [],
     "ask": [

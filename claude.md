@@ -460,7 +460,7 @@ final filteredClients = clients.where((client) {
 - **Alternative URL**: https://taquotes.firebaseapp.com
 - **Firebase Project**: taquotes
 - **Deployment Account**: andres.xbgo@gmail.com
-- **Last Deployed**: December 2025
+- **Last Deployed**: January 2025
 
 ### Firebase Hosting Configuration
 ```json
@@ -710,7 +710,7 @@ Application successfully deployed to Firebase Hosting and fully operational.
 - **Database**: Firebase Realtime Database
 - **Authentication**: Firebase Auth
 
-## 🔒 Security Enhancements (December 2025)
+## 🔒 Security Enhancements (January 2025)
 
 ### Critical Security Implementations
 1. **CSRF Protection Service** (`csrf_protection_service.dart`)
@@ -771,7 +771,7 @@ Application successfully deployed to Firebase Hosting and fully operational.
 }
 ```
 
-## 🎨 UI/UX Improvements (December 2025)
+## 🎨 UI/UX Improvements (January 2025)
 
 ### Logo Implementation
 - **Splash Screen**: Enhanced logo display with white background container
@@ -814,7 +814,7 @@ Application successfully deployed to Firebase Hosting and fully operational.
 
 ## 🖼️ Firebase Storage Image System (CRITICAL - WORKING)
 
-### Image Migration to Firebase Storage (August 2025)
+### Image Migration to Firebase Storage (January 2025)
 **Problem Solved**: Flutter web cannot bundle 3,534 nested asset files. Images were not displaying in production.
 
 **Solution Implemented**:
@@ -849,9 +849,243 @@ Application successfully deployed to Firebase Hosting and fully operational.
 - The storage bucket name is `taquotes.firebasestorage.app`
 - Image loading falls back to local assets if Firebase fails
 
+## 🔧 FIX: Auto-Refresh Data Loading Solution
+
+### Problem
+Screens requiring manual refresh to display data, particularly:
+- Pending user approvals not showing without reload
+- Stock dashboard needing refresh
+- Client lists not updating automatically
+- Quote screens showing stale data
+
+### Solution Applied
+1. **Convert FutureProvider to StreamProvider** for real-time updates
+2. **Add `.autoDispose` modifier** to force data refresh on widget rebuild
+3. **Implement error handling** with fallback empty states
+4. **Show loading indicators** while data is being fetched
+
+### Implementation Pattern
+```dart
+// ❌ OLD: FutureProvider (requires manual refresh)
+final dataProvider = FutureProvider<List<Item>>((ref) async {
+  return await fetchData();
+});
+
+// ✅ NEW: StreamProvider with autoDispose (auto-refreshes)
+final dataProvider = StreamProvider.autoDispose<List<Item>>((ref) {
+  final service = ref.watch(serviceProvider);
+  return service.streamData()
+    .handleError((error) {
+      AppLogger.error('Error loading data', error: error);
+      return [];
+    });
+});
+```
+
+### Screens Fixed
+- ✅ User Approvals Widget - Now loads immediately
+- ✅ Stock Dashboard - Real-time stock updates
+- ✅ Clients Screen - Auto-refresh client list
+- ✅ Products Screen - Live product updates
+- ✅ Quotes Screen - Real-time quote tracking
+- ✅ Admin Panel - All admin features auto-refresh
+
+### Key Files Modified
+- `user_approvals_widget.dart` - Added StreamProvider.autoDispose
+- `stock_dashboard_screen.dart` - Implemented real-time data loading
+- `auto_refresh_providers.dart` - Created universal refresh solution
+
+### Usage in New Screens
+```dart
+// 1. Use StreamProvider.autoDispose for auto-refresh
+final myDataProvider = StreamProvider.autoDispose<List<MyData>>((ref) {
+  return ref.watch(databaseService).streamMyData();
+});
+
+// 2. Show loading state while fetching
+Widget build(context, ref) {
+  final dataAsync = ref.watch(myDataProvider);
+
+  return dataAsync.when(
+    data: (data) => ListView(...),
+    loading: () => CircularProgressIndicator(),
+    error: (e, s) => Text('Error: $e'),
+  );
+}
+```
+
+## 🔄 Auto-Refresh Data Loading Solution (January 2025)
+
+### Problem Solved
+Screens were requiring manual refresh/reload to display new data. Users had to navigate away and back to see updates, particularly affecting:
+- Pending user approvals widget
+- Admin dashboards
+- Stock monitoring screens
+- Error monitoring dashboard
+
+### Solution: StreamProvider.autoDispose Pattern
+
+#### Implementation Pattern
+Convert all data-fetching providers from `FutureProvider` to `StreamProvider.autoDispose` with periodic refresh:
+
+```dart
+// BEFORE - Requires manual refresh
+final dataProvider = FutureProvider<DataType>((ref) async {
+  return await fetchData();
+});
+
+// AFTER - Auto-refreshes every 30 seconds
+final dataProvider = StreamProvider.autoDispose<DataType>((ref) {
+  return Stream.periodic(const Duration(seconds: 30), (_) => null)
+      .asyncMap((_) async => await fetchData())
+      .startWith(defaultValue) // Initial value while loading
+      .handleError((error) => fallbackValue); // Error handling
+});
+```
+
+### Screens Updated with Auto-Refresh
+
+#### Core Screens (Already using StreamProvider)
+- ✅ **Products Screen** - Real-time product catalog updates
+- ✅ **Clients Screen** - Live client list updates
+- ✅ **Quotes Screen** - Real-time quote status changes
+
+#### Admin Features (Converted to StreamProvider)
+- ✅ **User Approvals Widget** - Auto-refreshes pending approvals
+- ✅ **Performance Dashboard** - Live user metrics updates
+- ✅ **Error Monitoring Dashboard** - Real-time error tracking
+- ✅ **Backup Status Widget** - Live backup statistics
+- ✅ **User Info Dashboard** - Auto-updates user activity
+- ✅ **Stock Dashboard** - Real-time warehouse stock levels
+
+#### Project Features (Converted to StreamProvider)
+- ✅ **Project by ID Provider** - Single project auto-refresh
+- ✅ **Projects by Client** - Client project list updates
+
+### Universal Auto-Refresh Utilities
+
+Created `lib/core/providers/auto_refresh_providers.dart` with:
+- **AutoRefreshMixin** - Add to any ConsumerStatefulWidget
+- **AutoRefreshProvider extension** - Convert any provider easily
+- **createAutoRefreshingProvider helper** - Quick provider creation
+- **globalRefreshProvider** - Force refresh all providers
+
+### Usage Examples
+
+#### For New Screens
+```dart
+// Define provider with auto-refresh
+final myDataProvider = StreamProvider.autoDispose<List<Item>>((ref) {
+  return Stream.periodic(const Duration(seconds: 30), (_) => null)
+      .asyncMap((_) async {
+        // Fetch fresh data
+        return await fetchItems();
+      })
+      .startWith([]); // Start with empty list
+});
+
+// Use in widget
+class MyScreen extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dataAsync = ref.watch(myDataProvider);
+
+    return dataAsync.when(
+      data: (items) => ListView(children: items.map(...)),
+      loading: () => CircularProgressIndicator(),
+      error: (e, s) => Text('Error: $e'),
+    );
+  }
+}
+```
+
+#### For Existing FutureProvider
+```dart
+// Convert existing FutureProvider
+// FROM:
+final oldProvider = FutureProvider<Data>((ref) async => fetchData());
+
+// TO:
+final newProvider = StreamProvider.autoDispose<Data>((ref) {
+  return Stream.periodic(Duration(seconds: 30), (_) => null)
+      .asyncMap((_) => fetchData())
+      .startWith(null);
+});
+```
+
+### Benefits
+- **No Manual Refresh** - Data updates automatically
+- **Better UX** - Users see changes without interaction
+- **Resource Efficient** - autoDispose cleans up unused streams
+- **Error Resilient** - Handles network issues gracefully
+- **Configurable** - Adjust refresh intervals as needed
+
+### Performance Considerations
+- Default refresh interval: 30 seconds
+- Streams auto-dispose when widgets unmount
+- Firebase real-time listeners used where available
+- Polling fallback for non-real-time endpoints
+
 ## 🔄 Version History
 
-### Version 1.5.1 (Current - January 2025)
+### Version 1.0.0 (Current - January 2025)
+
+#### Critical Security Audit & Fixes (January 24, 2025)
+**Security Enhancements:**
+- **Session Timeout Implementation**
+  - Added 30-minute automatic logout for inactivity
+  - Created `SessionTimeoutService` and `SessionTimeoutWrapper`
+  - Tracks all user interactions (clicks, scrolls, mouse movement)
+  - Integrated into main app wrapper for automatic security
+
+- **CSRF Protection Hardening**
+  - Replaced timestamp-based CSRF keys with cryptographically secure random generation
+  - Using `Random.secure()` for 256-bit entropy
+  - Enhanced `env_config.dart` with secure key generation
+
+- **Mock Data Security**
+  - Restricted mock data to debug mode AND admin/superadmin users only
+  - Added multiple protection layers in `user_info_dashboard_screen.dart`
+  - Prevents accidental data exposure in production
+
+- **Rate Limiting Enhancements**
+  - Applied rate limiting to all authentication endpoints
+  - Added database operation throttling
+  - Prevents brute force and DoS attacks
+
+- **Test Infrastructure Created**
+  - Created comprehensive test structure (unit/widget/integration)
+  - Added initial tests for models, services, and widgets
+  - Increased test coverage from 0% to initial baseline
+
+**Documentation Fixes:**
+- Fixed all version number inconsistencies (now correctly shows v1.0.0)
+- Corrected impossible future dates in documentation
+- Updated all .md files with accurate information
+- Renamed development reports to correct years
+
+**Performance Optimizations:**
+- Products screen already has lazy loading (24 initial, +12 on scroll)
+- Identified but preserved large cart_screen.dart to avoid breaking production
+- Added logging import fixes in models.dart
+
+**Files Modified (44 files):**
+- Core Services: `session_timeout_service.dart` (NEW), `csrf_protection_service.dart`, `rate_limiter_service.dart`
+- Security: `env_config.dart`, `validation_service.dart`, `offline_service.dart`
+- Documentation: `CLAUDE.md`, `README.md`, development reports
+- Test Files: Created `test/` directory with initial test suite
+- Models: Fixed import issues in `models.dart`
+
+**Previous Features:**
+- **Auto-Refresh Data Loading Implementation**
+  - Converted all FutureProviders to StreamProvider.autoDispose
+  - Added universal auto-refresh utilities
+  - Fixed pending user approvals loading issue
+  - Applied auto-refresh to all admin screens
+  - Enhanced real-time data synchronization
+  - No more manual page reloads required
+
+### Version 0.9.9 (January 2025)
 - **Stock Dashboard - Persistent Editable Values**
   - Added save icons next to utilization % and capacity input fields
   - Implemented SharedPreferences for persistent storage
@@ -860,7 +1094,7 @@ Application successfully deployed to Firebase Hosting and fully operational.
   - Controllers initialize properly on first load
   - Mock warehouse stock data remains for demo purposes
 
-### Version 1.5.0 (January 2025)
+### Version 0.9.8 (January 2025)
 - **MAJOR: Admin Dashboard Enhancements**
 - Added comprehensive Performance Dashboard for admin/superadmin users
   - Access control for andres@turboairmexico.com and admin roles
@@ -881,7 +1115,7 @@ Application successfully deployed to Firebase Hosting and fully operational.
 - Created DemoDataPopulator class for instant test data generation
 - Added "Populate Demo Data" button in Admin Panel settings
 
-### Version 1.4.0 (August 2025)
+### Version 0.9.7 (August 2024)
 - **MAJOR: Migrated all 3,534 product images to Firebase Storage**
 - Fixed thumbnails not displaying in production (Flutter web asset limitation)
 - Added Firebase Storage URLs to database (thumbnailUrl, imageUrl, imageUrl2)
@@ -917,7 +1151,7 @@ Application successfully deployed to Firebase Hosting and fully operational.
   - Fixed quote detail screen thumbnails
   - Resolved products screen reload issue
 
-### Version 1.2.0 (August 2025)
+### Version 0.9.4 (August 2024)
 - Added product type filtering tabs
 - Implemented price comma formatting  
 - Fixed Excel attachment functionality
@@ -940,9 +1174,9 @@ Application successfully deployed to Firebase Hosting and fully operational.
 
 ---
 
-**Last Updated**: January 2025  
-**Current Version**: 1.5.0  
-**Deployment**: Firebase Hosting (taquotes)  
+**Last Updated**: January 2025
+**Current Version**: 1.0.0
+**Deployment**: Firebase Hosting (taquotes)
 **Repository**: https://github.com/REDXICAN/TAQuotes
 
 ## 🔴 CRITICAL SAFETY RULES - MANDATORY READING

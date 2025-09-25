@@ -80,11 +80,11 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
           );
         }
       });
-      print('Access denied for non-admin user: ${user.email}');
+      AppLogger.warning('Access denied for non-admin user: ${user.email}', category: LogCategory.security);
       return;
     }
 
-    print('Admin access granted for user: ${user.email}');
+    AppLogger.info('Admin access granted for user: ${user.email}', category: LogCategory.security);
   }
 
   Future<void> _loadDashboardData() async {

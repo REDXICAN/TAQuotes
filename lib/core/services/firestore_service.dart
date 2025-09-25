@@ -1,10 +1,13 @@
 // lib/core/services/firestore_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'app_logger.dart';
+import 'rate_limiter_service.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final RateLimiterService _rateLimiter = RateLimiterService();
 
   // Get current user ID
   String? get userId => _auth.currentUser?.uid;
@@ -60,6 +63,28 @@ class FirestoreService {
   }
 
   Future<String> addClient(Map<String, dynamic> clientData) async {
+    if (userId == null) throw Exception('User not authenticated');
+
+    // Check rate limiting for client creation
+    final rateLimitResult = _rateLimiter.checkRateLimit(
+      identifier: userId!,
+      type: RateLimitType.quoteCreation, // Reuse quote creation rate limit for clients
+    );
+
+    if (!rateLimitResult.allowed) {
+      AppLogger.warning(
+        'Client creation rate limit exceeded for user: $userId',
+        category: LogCategory.security,
+        data: {
+          'userId': userId,
+          'blockedFor': rateLimitResult.blockedFor?.inMinutes,
+          'remainingAttempts': rateLimitResult.remainingAttempts,
+        },
+      );
+
+      throw Exception(rateLimitResult.message ?? 'Too many client creation attempts. Please wait before creating another client.');
+    }
+
     clientData['user_id'] = userId;
     clientData['created_at'] = FieldValue.serverTimestamp();
     clientData['updated_at'] = FieldValue.serverTimestamp();
@@ -235,6 +260,26 @@ class FirestoreService {
     required double totalAmount,
   }) async {
     if (userId == null) throw Exception('User not authenticated');
+
+    // Check rate limiting for quote creation
+    final rateLimitResult = _rateLimiter.checkRateLimit(
+      identifier: userId!,
+      type: RateLimitType.quoteCreation,
+    );
+
+    if (!rateLimitResult.allowed) {
+      AppLogger.warning(
+        'Quote creation rate limit exceeded for user: $userId',
+        category: LogCategory.security,
+        data: {
+          'userId': userId,
+          'blockedFor': rateLimitResult.blockedFor?.inMinutes,
+          'remainingAttempts': rateLimitResult.remainingAttempts,
+        },
+      );
+
+      throw Exception(rateLimitResult.message ?? 'Too many quote creation attempts. Please wait before creating another quote.');
+    }
 
     // Generate quote number
     final quoteNumber = 'Q${DateTime.now().millisecondsSinceEpoch}';

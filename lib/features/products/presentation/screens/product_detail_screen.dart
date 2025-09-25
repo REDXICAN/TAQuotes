@@ -1422,32 +1422,32 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   }
 
   Widget _buildSpecSection(Product product) {
-    // Debug: Print all product fields to console
-    print('=== PRODUCT DATA DEBUG ===');
-    print('SKU: ${product.sku}');
-    print('Model: ${product.model}');
-    print('Category: ${product.category}');
-    print('Subcategory: ${product.subcategory}');
-    print('ProductType: ${product.productType}');
-    print('Voltage: ${product.voltage}');
-    print('Amperage: ${product.amperage}');
-    print('Phase: ${product.phase}');
-    print('Frequency: ${product.frequency}');
-    print('Plug Type: ${product.plugType}');
-    print('Dimensions: ${product.dimensions}');
-    print('Dimensions Metric: ${product.dimensionsMetric}');
-    print('Weight: ${product.weight}');
-    print('Weight Metric: ${product.weightMetric}');
-    print('Temperature Range: ${product.temperatureRange}');
-    print('Temperature Range Metric: ${product.temperatureRangeMetric}');
-    print('Refrigerant: ${product.refrigerant}');
-    print('Compressor: ${product.compressor}');
-    print('Capacity: ${product.capacity}');
-    print('Doors: ${product.doors}');
-    print('Shelves: ${product.shelves}');
-    print('Features: ${product.features}');
-    print('Certifications: ${product.certifications}');
-    print('========================');
+    // Debug: Log all product fields
+    AppLogger.debug('Product data', category: LogCategory.ui, data: {
+      'SKU': product.sku,
+      'Model': product.model,
+      'Category': product.category,
+      'Subcategory': product.subcategory,
+      'ProductType': product.productType,
+      'Voltage': product.voltage,
+      'Amperage': product.amperage,
+      'Phase': product.phase,
+      'Frequency': product.frequency,
+      'PlugType': product.plugType,
+      'Dimensions': product.dimensions,
+      'DimensionsMetric': product.dimensionsMetric,
+      'Weight': product.weight,
+      'WeightMetric': product.weightMetric,
+      'TemperatureRange': product.temperatureRange,
+      'TemperatureRangeMetric': product.temperatureRangeMetric,
+      'Refrigerant': product.refrigerant,
+      'Compressor': product.compressor,
+      'Capacity': product.capacity,
+      'Doors': product.doors,
+      'Shelves': product.shelves,
+      'Features': product.features,
+      'Certifications': product.certifications,
+    });
     
     final specs = <String, String?>{
       'Category': product.category,

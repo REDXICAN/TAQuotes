@@ -1,5 +1,6 @@
 // lib/features/admin/presentation/screens/user_info_dashboard_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -8,19 +9,38 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/config/env_config.dart';
+import '../../../../core/utils/safe_conversions.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../core/services/app_logger.dart';
+import 'user_details_screen.dart';
 
-// Provider for fetching all users with their detailed information
-final allUsersProvider = FutureProvider<List<UserInfo>>((ref) async {
+// Helper function to check if user is admin or superadmin
+bool _isAdminOrSuperAdmin(String? email) {
+  if (email == null) return false;
+  final userEmail = email.toLowerCase();
+  return userEmail == EnvConfig.adminEmail?.toLowerCase() ||
+         userEmail == 'admin@turboairinc.com' ||
+         userEmail == 'superadmin@turboairinc.com' ||
+         userEmail == 'andres@turboairmexico.com';
+}
+
+// Provider for fetching all users with their detailed information with auto-refresh
+final allUsersProvider = StreamProvider.autoDispose<List<UserInfo>>((ref) {
   final database = FirebaseDatabase.instance;
   final currentUser = FirebaseAuth.instance.currentUser;
-  
-  // Check if user is admin
-  if (currentUser?.email != EnvConfig.adminEmail) {
-    // Return mock data for demonstration
-    return _getMockUsers();
+
+  // Check if user is admin or superadmin
+  final isAdminOrSuperAdmin = _isAdminOrSuperAdmin(currentUser?.email);
+
+  // Non-admin users should not see any user data
+  if (!isAdminOrSuperAdmin) {
+    // In production, always return empty list for non-admin users
+    return Stream.value(<UserInfo>[]);
   }
-  
+
+  // Create a stream that refreshes every 30 seconds
+  return Stream.periodic(const Duration(seconds: 30), (_) => null)
+      .asyncMap((_) async {
   try {
     // Get all users
     final usersSnapshot = await database.ref('users').get();
@@ -48,7 +68,7 @@ final allUsersProvider = FutureProvider<List<UserInfo>>((ref) async {
         for (final quoteEntry in quotesData.values) {
           final quote = Map<String, dynamic>.from(quoteEntry as Map);
           if (quote['status']?.toString().toLowerCase() == 'accepted') {
-            totalRevenue += (quote['total'] ?? 0).toDouble();
+            totalRevenue += SafeConversions.toPrice(quote['total']);
           }
         }
       }
@@ -81,21 +101,40 @@ final allUsersProvider = FutureProvider<List<UserInfo>>((ref) async {
     // Sort by last login
     userInfoList.sort((a, b) => b.lastLoginAt.compareTo(a.lastLoginAt));
     
-    // Return mock data if no real users found
+    // Return mock data if no real users found (only for admins in debug mode)
     if (userInfoList.isEmpty) {
-      return _getMockUsers();
+      // Only return mock data for admins/superadmins in debug mode
+      if (kDebugMode && isAdminOrSuperAdmin) {
+        AppLogger.debug('Using mock data for admin in debug mode', category: LogCategory.data);
+        return _getMockUsers();
+      }
+      return <UserInfo>[];
     }
-    
+
     return userInfoList;
   } catch (e) {
-    print('Error loading users: $e');
-    // Return mock data on error
-    return _getMockUsers();
+    AppLogger.error('Error loading users', error: e, category: LogCategory.data);
+    // Return mock data on error only for admins in debug mode
+    if (kDebugMode && isAdminOrSuperAdmin) {
+      AppLogger.debug('Using mock data due to error (admin in debug mode)', category: LogCategory.data);
+      return _getMockUsers();
+    }
+    return <UserInfo>[];
   }
+  });
 });
 
-// Mock data generator
+// Mock data generator - ONLY FOR ADMINS/SUPERADMINS IN DEBUG MODE
+// This function should never be called in production or for non-admin users
+// All calls are protected by kDebugMode && isAdminOrSuperAdmin checks
 List<UserInfo> _getMockUsers() {
+  assert(kDebugMode, 'Mock users should not be used in production');
+
+  // Additional safety: Log when mock data is being used
+  AppLogger.debug(
+    'WARNING: Using mock user data - This should only happen for admins in debug mode',
+    category: LogCategory.security,
+  );
   final now = DateTime.now();
   return [
     UserInfo(
@@ -540,7 +579,17 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
       elevation: 2,
       child: InkWell(
         onTap: () {
-          _showUserDetailsDialog(user, theme, currencyFormat, dateFormat);
+          // Navigate to full-screen user details
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => UserDetailsScreen(
+                userId: user.uid,
+                userEmail: user.email,
+                userName: user.displayName,
+              ),
+            ),
+          );
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
@@ -708,56 +757,6 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
       ),
     );
   }
-  
-  void _showUserDetailsDialog(
-    UserInfo user,
-    ThemeData theme,
-    NumberFormat currencyFormat,
-    DateFormat dateFormat,
-  ) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(user.displayName),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Email: ${user.email}'),
-              Text('Role: ${user.role}'),
-              Text('Phone: ${user.phoneNumber}'),
-              const SizedBox(height: 16),
-              Text('Total Revenue: ${currencyFormat.format(user.totalRevenue)}'),
-              Text('Total Quotes: ${user.quotesCount}'),
-              Text('Total Clients: ${user.clientsCount}'),
-              const SizedBox(height: 16),
-              if (user.latestQuotes != null && user.latestQuotes!.isNotEmpty) ...[
-                const Text('Latest 5 Quotes:', style: TextStyle(fontWeight: FontWeight.bold)),
-                ...user.latestQuotes!.take(5).map((q) => 
-                  Text('• ${q['number']} - ${q['client']} - \$${q['amount']}')
-                ),
-              ],
-              const SizedBox(height: 16),
-              if (user.topProducts != null && user.topProducts!.isNotEmpty) ...[
-                const Text('Top 5 Products:', style: TextStyle(fontWeight: FontWeight.bold)),
-                ...user.topProducts!.take(5).map((p) => 
-                  Text('• ${p['name']} - Sold ${p['count']} times')
-                ),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-  
   Widget _buildStatItem(
     IconData icon,
     String value,

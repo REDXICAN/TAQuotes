@@ -3,6 +3,7 @@
 // Prevents XSS, SQL injection, and other input-based attacks
 
 import 'dart:convert';
+import 'app_logger.dart';
 
 class ValidationService {
   // Email validation regex pattern
@@ -75,7 +76,14 @@ class ValidationService {
     for (final pattern in _sqlInjectionPatterns) {
       if (pattern.hasMatch(sanitized)) {
         // Log potential attack attempt
-        print('[SECURITY WARNING] Potential SQL injection attempt detected');
+        AppLogger.warning(
+          'Potential SQL injection attempt detected',
+          category: LogCategory.security,
+          data: {
+            'pattern': pattern.pattern,
+            'input': input.substring(0, input.length > 50 ? 50 : input.length),
+          },
+        );
         sanitized = sanitized.replaceAll(pattern, '');
       }
     }

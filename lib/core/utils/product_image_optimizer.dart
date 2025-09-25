@@ -1,6 +1,11 @@
 // lib/core/utils/product_image_optimizer.dart
 
+/// NOTE: This class is currently NOT IN USE
+/// The app currently uses ProductImageHelper instead (see product_image_helper.dart)
+/// This class was created as an optimization concept but not yet integrated
+///
 /// Optimized product image handler with thumbnail support
+/// TODO: Consider integrating this optimization approach into ProductImageHelper
 class ProductImageOptimizer {
   // With 835 products in the database but 1053 image folders available,
   // we use compressed thumbnails for lists and original screenshots for details

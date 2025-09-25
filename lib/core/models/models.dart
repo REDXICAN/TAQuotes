@@ -1,5 +1,8 @@
 // lib/core/models/models.dart
 
+import '../utils/safe_conversions.dart';
+import '../services/app_logger.dart';
+
 // Export UserRole enum
 export 'user_role.dart';
 export 'project.dart';
@@ -57,7 +60,7 @@ class UserProfile {
           return DateTime.fromMillisecondsSinceEpoch(value.toInt());
         }
       } catch (e) {
-        print('Error parsing date: $e');
+        AppLogger.debug('Error parsing date for UserProfile', error: e, category: LogCategory.data);
       }
       return null;
     }
@@ -478,7 +481,9 @@ class Product {
       if (value is String) {
         try {
           return DateTime.parse(value);
-        } catch (_) {
+        } catch (e) {
+          // Log parsing error and return current time as fallback
+          AppLogger.warning('Failed to parse date string "$value"', error: e, category: LogCategory.data);
           return DateTime.now();
         }
       }
@@ -688,13 +693,13 @@ class Quote {
       items: List<QuoteItem>.from(
         (map['items'] ?? []).map((x) => QuoteItem.fromMap(x)),
       ),
-      subtotal: (map['subtotal'] ?? 0).toDouble(),
-      discountAmount: (map['discountAmount'] ?? map['discount_amount'] ?? 0).toDouble(),
+      subtotal: SafeConversions.toPrice(map['subtotal']),
+      discountAmount: SafeConversions.toPrice(map['discountAmount'] ?? map['discount_amount']),
       discountType: map['discountType'] ?? map['discount_type'] ?? 'fixed',
-      discountValue: (map['discountValue'] ?? map['discount_value'] ?? 0).toDouble(),
-      tax: (map['tax'] ?? map['tax_amount'] ?? 0).toDouble(),
-      total: (map['total'] ?? map['total_amount'] ?? 0).toDouble(),
-      totalAmount: (map['totalAmount'] ?? map['total_amount'] ?? map['total'] ?? 0).toDouble(),
+      discountValue: SafeConversions.toDouble(map['discountValue'] ?? map['discount_value']),
+      tax: SafeConversions.toPrice(map['tax'] ?? map['tax_amount']),
+      total: SafeConversions.toPrice(map['total'] ?? map['total_amount']),
+      totalAmount: SafeConversions.toPrice(map['totalAmount'] ?? map['total_amount'] ?? map['total']),
       status: map['status'] ?? 'draft',
       notes: map['notes'],
       comments: map['comments'],
@@ -725,7 +730,7 @@ class QuoteItem {
   final double totalPrice;
   final DateTime addedAt;
   final double discount; // Individual discount percentage
-  final String? note; // Individual product note
+  final String note; // Individual product note (never null, empty string by default)
   final String? sequenceNumber; // Custom numbering
 
   QuoteItem({
@@ -738,7 +743,7 @@ class QuoteItem {
     double? totalPrice,
     required this.addedAt,
     this.discount = 0.0,
-    this.note,
+    this.note = '',
     this.sequenceNumber,
   }) : totalPrice = totalPrice ?? total;
 
@@ -753,7 +758,7 @@ class QuoteItem {
       'totalPrice': totalPrice,
       'addedAt': addedAt.toIso8601String(),
       'discount': discount,
-      'note': note,
+      'note': note.isEmpty ? null : note, // Store as null in DB if empty to save space
       'sequenceNumber': sequenceNumber,
     };
   }
@@ -764,13 +769,13 @@ class QuoteItem {
       productName: map['productName'] ?? map['product_name'] ?? '',
       product: map['product'] != null ? Product.fromMap(map['product']) : null,
       quantity: map['quantity'] ?? 1,
-      unitPrice: (map['unitPrice'] ?? map['unit_price'] ?? 0).toDouble(),
-      total: (map['total'] ?? map['total_price'] ?? 0).toDouble(),
-      totalPrice: (map['totalPrice'] ?? map['total_price'] ?? map['total'] ?? 0).toDouble(),
+      unitPrice: SafeConversions.toPrice(map['unitPrice'] ?? map['unit_price']),
+      total: SafeConversions.toPrice(map['total'] ?? map['total_price']),
+      totalPrice: SafeConversions.toPrice(map['totalPrice'] ?? map['total_price'] ?? map['total']),
       addedAt:
           DateTime.parse(map['addedAt'] ?? map['added_at'] ?? DateTime.now().toIso8601String()),
       discount: (map['discount'] ?? 0).toDouble(),
-      note: map['note'],
+      note: map['note'] ?? '',
       sequenceNumber: map['sequenceNumber'] ?? map['sequence_number'],
     );
   }
@@ -821,7 +826,7 @@ class CartItem {
   final double total;
   final DateTime addedAt;
   final double discount; // Individual discount percentage (0-100)
-  final String? note; // Individual product note
+  final String note; // Individual product note (never null, empty string by default)
   final String? sequenceNumber; // Custom numbering (001, 002, etc.)
 
   CartItem({
@@ -835,7 +840,7 @@ class CartItem {
     required this.total,
     required this.addedAt,
     this.discount = 0.0,
-    this.note,
+    this.note = '',
     this.sequenceNumber,
   });
 
@@ -851,7 +856,7 @@ class CartItem {
       'total': total,
       'addedAt': addedAt.toIso8601String(),
       'discount': discount,
-      'note': note,
+      'note': note.isEmpty ? null : note, // Store as null in DB if empty to save space
       'sequenceNumber': sequenceNumber,
     };
   }
@@ -865,11 +870,11 @@ class CartItem {
       product: map['product'] != null ? Product.fromMap(map['product']) : null,
       quantity: map['quantity'] ?? 1,
       unitPrice: (map['unitPrice'] ?? 0).toDouble(),
-      total: (map['total'] ?? 0).toDouble(),
+      total: SafeConversions.toPrice(map['total']),
       addedAt:
           DateTime.parse(map['addedAt'] ?? DateTime.now().toIso8601String()),
       discount: (map['discount'] ?? 0).toDouble(),
-      note: map['note'],
+      note: map['note'] ?? '',
       sequenceNumber: map['sequenceNumber'],
     );
   }

@@ -488,11 +488,18 @@ Future<void> _handleExcelUpload() async {
     } catch (e) {
       AppLogger.error('Excel upload error', error: e, category: LogCategory.excel);
       if (mounted && context.mounted) {
-        // Try to close any open dialogs
+        // Try to close any open dialogs safely
         try {
           Navigator.of(context).pop();
-        } catch (_) {}
-        
+        } catch (navError) {
+          // Log navigation error but continue to show the error message
+          AppLogger.debug(
+            'Could not close dialog, it may have already been closed',
+            error: navError,
+            category: LogCategory.ui,
+          );
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
@@ -1288,13 +1295,13 @@ Future<void> _handleExcelUpload() async {
         // Adjust aspect ratio based on screen size - taller cards for vertical
         double childAspectRatio;
         if (ResponsiveHelper.isVerticalDisplay(context)) {
-          childAspectRatio = 0.52;  // Taller cards to prevent overlap on vertical screens
+          childAspectRatio = 0.48;  // Even taller cards to prevent overlap on vertical screens
         } else if (ResponsiveHelper.isMobile(context)) {
-          childAspectRatio = 0.55;  // Shorter cards for phones
+          childAspectRatio = 0.50;  // Taller cards for phones to fit content
         } else if (ResponsiveHelper.isTablet(context)) {
-          childAspectRatio = 0.65;  // Shorter cards for tablets
+          childAspectRatio = 0.58;  // Taller cards for tablets to fit warehouse info
         } else {
-          childAspectRatio = 0.7;   // Shorter cards for desktop
+          childAspectRatio = 0.62;   // Taller cards for desktop to fit all content
         }
         
         // Increased spacing for vertical screens to prevent overlap
@@ -1322,9 +1329,9 @@ Future<void> _handleExcelUpload() async {
             mainAxisSpacing: spacing,
           ),
           itemCount: itemsToShow.length,
-          cacheExtent: 100, // Reduced cache to prevent loading too many images at once
+          cacheExtent: 200, // Optimized cache extent for smooth scrolling
           addAutomaticKeepAlives: false, // Don't keep items alive when scrolled away
-          addRepaintBoundaries: true, // Optimize repainting
+          addRepaintBoundaries: true, // Each item has its own repaint boundary for optimal repainting
           itemBuilder: (context, index) {
             final product = itemsToShow[index];
             return ProductCard(
@@ -1419,13 +1426,50 @@ Future<void> _handleExcelUpload() async {
   }
 }
 
-class ProductCard extends ConsumerWidget {
+// Optimized ProductCard with the following performance enhancements:
+// 1. Changed from ConsumerWidget to StatelessWidget to prevent unnecessary rebuilds
+// 2. Uses Consumer only for quantity selector to minimize rebuild scope
+// 3. Caches expensive calculations like stock totals
+// 4. Each card has its own repaint boundary (from GridView settings)
+class ProductCard extends StatelessWidget {
   final Product product;
 
   const ProductCard({
     super.key,
     required this.product,
   });
+
+  // Cache expensive calculations
+  static final Map<String, int> _stockCache = {};
+
+  static int _calculateTotalStock(Product product) {
+    final cacheKey = '${product.id}_${product.warehouseStock?.hashCode ?? 0}';
+
+    if (_stockCache.containsKey(cacheKey)) {
+      return _stockCache[cacheKey]!;
+    }
+
+    if (product.warehouseStock == null || product.warehouseStock!.isEmpty) {
+      return 0;
+    }
+
+    int total = 0;
+    for (var entry in product.warehouseStock!.entries) {
+      final available = entry.value.available;
+      final reserved = entry.value.reserved;
+      total += (available - reserved);
+    }
+
+    // Cache the result
+    _stockCache[cacheKey] = total;
+
+    // Limit cache size to prevent memory issues
+    if (_stockCache.length > 100) {
+      _stockCache.clear();
+    }
+
+    return total;
+  }
 
   Widget _buildQuantitySelector(Product product, WidgetRef ref, BuildContext context, ThemeData theme, dynamic dbService) {
     final quantities = ref.watch(productQuantitiesProvider);
@@ -1589,9 +1633,8 @@ class ProductCard extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dbService = ref.read(databaseServiceProvider);
     final isCompact = ResponsiveHelper.useCompactLayout(context);
     final isMobile = ResponsiveHelper.isMobile(context);
     final isVertical = ResponsiveHelper.isVerticalDisplay(context);
@@ -1607,22 +1650,8 @@ class ProductCard extends ConsumerWidget {
       return '\$$wholePart.${parts[1]}';
     }
 
-    // Calculate total stock across all warehouses
-    int calculateTotalStock() {
-      if (product.warehouseStock == null || product.warehouseStock!.isEmpty) {
-        return 0;
-      }
-      
-      int total = 0;
-      for (var entry in product.warehouseStock!.entries) {
-        final available = entry.value.available;
-        final reserved = entry.value.reserved;
-        total += (available - reserved);
-      }
-      return total;
-    }
-
-    final totalStock = calculateTotalStock();
+    // Calculate total stock across all warehouses (cached for performance)
+    final totalStock = _calculateTotalStock(product);
     
     // Determine stock status
     Color stockColor;
@@ -1655,6 +1684,7 @@ class ProductCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.max,
           children: [
             // Product Image
             AspectRatio(
@@ -1679,9 +1709,10 @@ class ProductCard extends ConsumerWidget {
               ),
             ),
             // Product Info - Extended area for vertical screens
-            Padding(
-              padding: EdgeInsets.all(isVertical ? 12 : (isMobile ? 10 : 8)),
-              child: Column(
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.all(isVertical ? 12 : (isMobile ? 10 : 8)),
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1729,7 +1760,7 @@ class ProductCard extends ConsumerWidget {
                       fontSize: isMobile ? 14 : 12,
                       height: 1.2,
                     ),
-                    maxLines: isMobile ? 2 : 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
@@ -1839,7 +1870,7 @@ class ProductCard extends ConsumerWidget {
                         }).toList();
                       }(),
                     ),
-                  const SizedBox(height: 8),
+                  const Spacer(),
                   // Price and Quantity Selector
                   if (isMobile || isVertical)
                     // Mobile/Vertical layout - stacked for better visibility
@@ -1855,9 +1886,15 @@ class ProductCard extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: _buildQuantitySelector(product, ref, context, theme, dbService),
+                        // Use Consumer to minimize rebuilds - only this widget rebuilds on quantity change
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final dbService = ref.read(databaseServiceProvider);
+                            return SizedBox(
+                              width: double.infinity,
+                              child: _buildQuantitySelector(product, ref, context, theme, dbService),
+                            );
+                          },
                         ),
                       ],
                     )
@@ -1884,10 +1921,17 @@ class ProductCard extends ConsumerWidget {
                         SizedBox(
                           width: ResponsiveHelper.getSpacing(context, small: 4),
                         ),
-                        _buildQuantitySelector(product, ref, context, theme, dbService),
+                        // Use Consumer to minimize rebuilds - only this widget rebuilds on quantity change
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final dbService = ref.read(databaseServiceProvider);
+                            return _buildQuantitySelector(product, ref, context, theme, dbService);
+                          },
+                        ),
                       ],
                     ),
                 ],
+                ),
               ),
             ),
           ],

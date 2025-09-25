@@ -1,5 +1,8 @@
 // lib/core/utils/product_image_helper_v3.dart
 
+/// NOTE: This is version 3 of ProductImageHelper - NOT IN USE
+/// The app currently uses the main ProductImageHelper (product_image_helper.dart)
+/// This version was created for testing but not integrated
 class ProductImageHelperV3 {
   // Cache for directory listings
   static Map<String, List<String>>? _directoryCache;

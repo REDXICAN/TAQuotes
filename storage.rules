@@ -1,7 +1,21 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow public read access to all files
+    // Backups - user specific with admin override
+    match /backups/{userId}/{fileName} {
+      allow read: if request.auth != null &&
+        (request.auth.uid == userId ||
+         request.auth.token.email == 'andres@turboairmexico.com' ||
+         request.auth.token.email == 'turboairquotes@gmail.com');
+      allow write: if request.auth != null &&
+        (request.auth.uid == userId ||
+         request.auth.token.email == 'andres@turboairmexico.com' ||
+         request.auth.token.email == 'turboairquotes@gmail.com');
+      allow delete: if request.auth != null &&
+        (request.auth.token.email == 'andres@turboairmexico.com');
+    }
+
+    // Allow public read access to all other files
     match /{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.token.email == 'andres@turboairmexico.com';

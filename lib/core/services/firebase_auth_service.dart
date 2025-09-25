@@ -1,10 +1,13 @@
 // lib/core/services/firebase_auth_service.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'app_logger.dart';
+import 'rate_limiter_service.dart';
 
 class FirebaseAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseDatabase _database = FirebaseDatabase.instance;
+  final RateLimiterService _rateLimiter = RateLimiterService();
 
   // Get auth state changes
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -17,13 +20,47 @@ class FirebaseAuthService {
     required String email,
     required String password,
   }) async {
+    final cleanEmail = email.trim().toLowerCase();
+
+    // Check rate limiting before attempting login
+    final rateLimitResult = _rateLimiter.checkRateLimit(
+      identifier: cleanEmail,
+      type: RateLimitType.login,
+    );
+
+    if (!rateLimitResult.allowed) {
+      AppLogger.warning(
+        'Login rate limit exceeded for email: $cleanEmail',
+        category: LogCategory.security,
+        data: {
+          'email': cleanEmail,
+          'blockedFor': rateLimitResult.blockedFor?.inMinutes,
+          'remainingAttempts': rateLimitResult.remainingAttempts,
+        },
+      );
+
+      throw FirebaseAuthException(
+        code: 'too-many-requests',
+        message: rateLimitResult.message ?? 'Too many login attempts. Please try again later.',
+      );
+    }
+
     try {
       final credential = await _auth.signInWithEmailAndPassword(
-        email: email,
+        email: cleanEmail,
         password: password,
       );
+
+      // Login successful - record success to reset rate limiting
+      _rateLimiter.recordSuccess(
+        identifier: cleanEmail,
+        type: RateLimitType.login,
+        resetCounter: true,
+      );
+
       return credential.user;
     } catch (e) {
+      // Don't reset rate limit counter on failed login - this tracks failed attempts
       rethrow;
     }
   }
@@ -34,9 +71,34 @@ class FirebaseAuthService {
     required String password,
     required String name,
   }) async {
+    final cleanEmail = email.trim().toLowerCase();
+
+    // Check rate limiting for registration
+    final rateLimitResult = _rateLimiter.checkRateLimit(
+      identifier: cleanEmail,
+      type: RateLimitType.registration,
+    );
+
+    if (!rateLimitResult.allowed) {
+      AppLogger.warning(
+        'Registration rate limit exceeded for email: $cleanEmail',
+        category: LogCategory.security,
+        data: {
+          'email': cleanEmail,
+          'blockedFor': rateLimitResult.blockedFor?.inMinutes,
+          'remainingAttempts': rateLimitResult.remainingAttempts,
+        },
+      );
+
+      throw FirebaseAuthException(
+        code: 'too-many-requests',
+        message: rateLimitResult.message ?? 'Too many registration attempts. Please try again later.',
+      );
+    }
+
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
-        email: email,
+        email: cleanEmail,
         password: password,
       );
 
@@ -47,7 +109,7 @@ class FirebaseAuthService {
         // Create user profile in Realtime Database
         await _createUserProfile(
           uid: credential.user!.uid,
-          email: email,
+          email: cleanEmail,
           name: name,
         );
       }
@@ -100,7 +162,32 @@ class FirebaseAuthService {
 
   // Send password reset email
   Future<void> sendPasswordResetEmail(String email) async {
-    await _auth.sendPasswordResetEmail(email: email);
+    final cleanEmail = email.trim().toLowerCase();
+
+    // Check rate limiting for password reset
+    final rateLimitResult = _rateLimiter.checkRateLimit(
+      identifier: cleanEmail,
+      type: RateLimitType.passwordReset,
+    );
+
+    if (!rateLimitResult.allowed) {
+      AppLogger.warning(
+        'Password reset rate limit exceeded for email: $cleanEmail',
+        category: LogCategory.security,
+        data: {
+          'email': cleanEmail,
+          'blockedFor': rateLimitResult.blockedFor?.inMinutes,
+          'remainingAttempts': rateLimitResult.remainingAttempts,
+        },
+      );
+
+      throw FirebaseAuthException(
+        code: 'too-many-requests',
+        message: rateLimitResult.message ?? 'Too many password reset attempts. Please try again later.',
+      );
+    }
+
+    await _auth.sendPasswordResetEmail(email: cleanEmail);
   }
 
   // Reauthenticate user

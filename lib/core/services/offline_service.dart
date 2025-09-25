@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/models.dart';
+import 'app_logger.dart';
 
 enum SyncStatus { idle, syncing, success, error }
 
@@ -210,24 +213,123 @@ class OfflineService {
     if (!_isOnline || _pendingOperations.isEmpty) return;
 
     _syncStatus = SyncStatus.syncing;
+    final database = FirebaseDatabase.instance;
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      _syncStatus = SyncStatus.error;
+      return;
+    }
 
     for (var operation in List.from(_pendingOperations)) {
       try {
-        // Here you would sync with Firebase/Supabase
-        // For now, just remove from queue
-        _pendingOperations.remove(operation);
-        await _pendingOperationsBox.delete(operation.id);
+        // Sync operation with Firebase based on operation type
+        bool success = false;
+
+        switch (operation.collection) {
+          case 'clients':
+            success = await _syncClientOperation(database, user.uid, operation);
+            break;
+          case 'quotes':
+            success = await _syncQuoteOperation(database, user.uid, operation);
+            break;
+          case 'cart_items':
+            success = await _syncCartOperation(database, user.uid, operation);
+            break;
+          case 'products':
+            // Products are typically read-only for most users
+            // Only sync if user is admin
+            if (user.email == 'andres@turboairmexico.com' ||
+                user.email == 'admin@turboairinc.com') {
+              success = await _syncProductOperation(database, operation);
+            } else {
+              success = true; // Skip for non-admin users
+            }
+            break;
+          default:
+            // Unknown collection, log and skip
+            AppLogger.warning('Unknown collection for sync: ${operation.collection}', category: LogCategory.sync);
+            success = true; // Mark as success to remove from queue
+        }
+
+        if (success) {
+          _pendingOperations.remove(operation);
+          await _pendingOperationsBox.delete(operation.id);
+        } else {
+          throw Exception('Sync failed for operation ${operation.id}');
+        }
       } catch (e) {
         operation.retryCount++;
         if (operation.retryCount > 3) {
+          // Max retries reached, remove from queue
+          AppLogger.error('Max retries reached for operation ${operation.id}', error: e, category: LogCategory.sync);
           _pendingOperations.remove(operation);
           await _pendingOperationsBox.delete(operation.id);
+        } else {
+          // Update retry count in storage
+          await _pendingOperationsBox.put(operation.id, operation.toMap());
         }
       }
     }
 
-    _syncStatus = SyncStatus.success;
+    _syncStatus = _pendingOperations.isEmpty ? SyncStatus.success : SyncStatus.error;
     _queueController.add(_pendingOperations);
+  }
+
+  Future<bool> _syncClientOperation(FirebaseDatabase database, String userId, PendingOperation operation) async {
+    final ref = database.ref('clients/$userId/${operation.data['id'] ?? database.ref().push().key}');
+
+    switch (operation.operation) {
+      case OperationType.create:
+      case OperationType.update:
+        await ref.set(operation.data);
+        return true;
+      case OperationType.delete:
+        await ref.remove();
+        return true;
+    }
+  }
+
+  Future<bool> _syncQuoteOperation(FirebaseDatabase database, String userId, PendingOperation operation) async {
+    final ref = database.ref('quotes/$userId/${operation.data['id'] ?? database.ref().push().key}');
+
+    switch (operation.operation) {
+      case OperationType.create:
+      case OperationType.update:
+        await ref.set(operation.data);
+        return true;
+      case OperationType.delete:
+        await ref.remove();
+        return true;
+    }
+  }
+
+  Future<bool> _syncCartOperation(FirebaseDatabase database, String userId, PendingOperation operation) async {
+    final ref = database.ref('cart_items/$userId/${operation.data['id'] ?? database.ref().push().key}');
+
+    switch (operation.operation) {
+      case OperationType.create:
+      case OperationType.update:
+        await ref.set(operation.data);
+        return true;
+      case OperationType.delete:
+        await ref.remove();
+        return true;
+    }
+  }
+
+  Future<bool> _syncProductOperation(FirebaseDatabase database, PendingOperation operation) async {
+    final ref = database.ref('products/${operation.data['id'] ?? database.ref().push().key}');
+
+    switch (operation.operation) {
+      case OperationType.create:
+      case OperationType.update:
+        await ref.set(operation.data);
+        return true;
+      case OperationType.delete:
+        await ref.remove();
+        return true;
+    }
   }
 
   Future<void> syncWithFirebase() async {
@@ -304,6 +406,113 @@ class OfflineService {
     await _cartBox.clear();
     _pendingOperations.clear();
     _queueController.add(_pendingOperations);
+  }
+
+  // Helper methods for queuing operations when offline
+  Future<void> queueOperation({
+    required String collection,
+    required OperationType operation,
+    required Map<String, dynamic> data,
+    String? id,
+  }) async {
+    final operationId = id ?? DateTime.now().millisecondsSinceEpoch.toString();
+    final pendingOp = PendingOperation(
+      id: operationId,
+      collection: collection,
+      operation: operation,
+      data: data,
+      timestamp: DateTime.now(),
+    );
+
+    _pendingOperations.add(pendingOp);
+    await _pendingOperationsBox.put(operationId, pendingOp.toMap());
+    _queueController.add(_pendingOperations);
+
+    // Try to sync immediately if online
+    if (_isOnline) {
+      _syncPendingChanges();
+    }
+  }
+
+  // Static helper methods for external access
+  static Future<void> queueClientOperation({
+    required OperationType operation,
+    required Map<String, dynamic> data,
+    String? id,
+  }) async {
+    if (kIsWeb || _instance == null) return;
+    await _instance!.queueOperation(
+      collection: 'clients',
+      operation: operation,
+      data: data,
+      id: id,
+    );
+  }
+
+  static Future<void> queueQuoteOperation({
+    required OperationType operation,
+    required Map<String, dynamic> data,
+    String? id,
+  }) async {
+    if (kIsWeb || _instance == null) return;
+    await _instance!.queueOperation(
+      collection: 'quotes',
+      operation: operation,
+      data: data,
+      id: id,
+    );
+  }
+
+  static Future<void> queueCartOperation({
+    required OperationType operation,
+    required Map<String, dynamic> data,
+    String? id,
+  }) async {
+    if (kIsWeb || _instance == null) return;
+    await _instance!.queueOperation(
+      collection: 'cart_items',
+      operation: operation,
+      data: data,
+      id: id,
+    );
+  }
+
+  static Future<void> queueProductOperation({
+    required OperationType operation,
+    required Map<String, dynamic> data,
+    String? id,
+  }) async {
+    if (kIsWeb || _instance == null) return;
+    await _instance!.queueOperation(
+      collection: 'products',
+      operation: operation,
+      data: data,
+      id: id,
+    );
+  }
+
+  // Method to manually trigger sync
+  static Future<void> manualSync() async {
+    if (kIsWeb || _instance == null) return;
+    await _instance!._syncPendingChanges();
+  }
+
+  // Method to clear specific pending operation
+  Future<void> removePendingOperation(String operationId) async {
+    _pendingOperations.removeWhere((op) => op.id == operationId);
+    await _pendingOperationsBox.delete(operationId);
+    _queueController.add(_pendingOperations);
+  }
+
+  // Method to get pending operations by collection
+  List<PendingOperation> getPendingOperationsByCollection(String collection) {
+    return _pendingOperations.where((op) => op.collection == collection).toList();
+  }
+
+  // Static method to get pending operations by collection
+  static List<PendingOperation> staticGetPendingOperationsByCollection(String collection) {
+    if (kIsWeb || _instance == null) return [];
+    return _instance!.getPendingOperationsByCollection(collection);
   }
 
   Future<void> dispose() async {
