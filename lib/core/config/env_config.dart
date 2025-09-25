@@ -102,6 +102,7 @@ class EnvConfig {
     'carlos@turboairinc.com',
     'admin@turboairinc.com',
     'superadmin@turboairinc.com',
+    'admin@turboairmexico.com',  // Added as requested
   ];
 
   // Check if email is a superadmin
