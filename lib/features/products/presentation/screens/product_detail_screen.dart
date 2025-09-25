@@ -1421,6 +1421,15 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     );
   }
 
+  String _cleanEncodingIssues(String text) {
+    // Fix common UTF-8 encoding issues with degree symbols
+    return text
+        .replaceAll('Â°F', '°F')  // Fix Fahrenheit
+        .replaceAll('Â°C', '°C')  // Fix Celsius
+        .replaceAll('Â°', '°')    // Fix any other degree symbols
+        .replaceAll('Â', '');      // Remove any remaining Â characters
+  }
+
   Widget _buildSpecSection(Product product) {
     // Debug: Log all product fields
     AppLogger.debug('Product data', category: LogCategory.ui, data: {
@@ -1498,11 +1507,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
               ),
               Expanded(
                 child: Text(
-                  spec.value!,
+                  _cleanEncodingIssues(spec.value!),
                   style: const TextStyle(fontWeight: FontWeight.w500),
                   maxLines: spec.key == 'Features' || spec.key == 'Certifications' ? null : 2,
-                  overflow: spec.key == 'Features' || spec.key == 'Certifications' 
-                    ? TextOverflow.visible 
+                  overflow: spec.key == 'Features' || spec.key == 'Certifications'
+                    ? TextOverflow.visible
                     : TextOverflow.ellipsis,
                 ),
               ),

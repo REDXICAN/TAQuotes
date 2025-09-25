@@ -8,7 +8,6 @@ import 'app.dart';
 import 'core/services/product_cache_service.dart';
 import 'core/services/realtime_database_service.dart';
 import 'core/services/error_monitoring_service.dart';
-import 'core/services/backup_service.dart';
 import 'dart:async';
 
 void main() async {
@@ -41,9 +40,6 @@ void main() async {
 
   // Initialize error monitoring
   await ErrorMonitoringService().initialize();
-
-  // Initialize backup service with automated backups
-  await BackupService().initialize();
 
   // Run app with error boundary
   runZonedGuarded(() {

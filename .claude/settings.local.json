@@ -182,9 +182,12 @@
       "Bash(if [ -f firebase-admin-key.json ])",
       "Bash(then echo \"WARNING: firebase-admin-key.json exists - SHOULD BE GITIGNORED!\")",
       "Bash(else echo \"✓ firebase-admin-key.json not found (good)\")",
-      "Bash(findstr:*)",
-      "Bash(xargs ls:*)",
-      "Bash(sort:*)"
+      "Bash(firebase:*)",
+      "WebFetch(domain:www.webstaurantstore.com)",
+      "WebFetch(domain:www.restaurantsupply.com)",
+      "WebFetch(domain:www.katom.com)",
+      "WebFetch(domain:turboairinc.com)",
+      "WebFetch(domain:www.centralrestaurant.com)"
     ],
     "deny": [],
     "ask": [

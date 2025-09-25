@@ -21,16 +21,11 @@ import '../../../cart/presentation/screens/cart_screen.dart'; // For cartClientP
 
 // Clients provider using StreamProvider for real-time updates
 final clientsProvider = StreamProvider<List<Client>>((ref) {
-  // Watch auth state directly for better reactivity
-  final authState = ref.watch(authStateProvider);
+  // Use currentUserProvider instead of authStateProvider to avoid loading states
+  final user = ref.watch(currentUserProvider);
 
-  // Handle loading state
-  if (authState.isLoading) {
-    return const Stream.empty();
-  }
-
-  final user = authState.valueOrNull;
   if (user == null) {
+    // Not logged in
     return Stream.value([]);
   }
 
@@ -58,9 +53,12 @@ final clientsProvider = StreamProvider<List<Client>>((ref) {
       // Sort by company name
       clients.sort((a, b) => a.company.compareTo(b.company));
       return clients;
+    }).handleError((error) {
+      AppLogger.error('Error in clients stream', error: error);
+      return <Client>[];
     });
   } catch (e) {
-    AppLogger.error('Error streaming clients', error: e);
+    AppLogger.error('Error setting up clients stream', error: e);
     return Stream.value([]);
   }
 });
@@ -155,7 +153,7 @@ class ClientsScreen extends ConsumerStatefulWidget {
   ConsumerState<ClientsScreen> createState() => _ClientsScreenState();
 }
 
-class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTickerProviderStateMixin {
+class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   bool _showAddForm = false;
   String? _editingClientId;
   String _searchQuery = '';
@@ -173,14 +171,14 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
   final _notesController = TextEditingController();
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
 
-    // Force refresh the clients provider on screen load
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.invalidate(clientsProvider);
-    });
+    // No need to invalidate on init - let the provider handle its own lifecycle
   }
 
   @override
@@ -201,6 +199,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final clientsAsync = ref.watch(clientsProvider);
     final selectedClient = ref.watch(selectedClientProvider);
     final theme = Theme.of(context);
@@ -611,8 +610,8 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
           // Clients List
           Expanded(
             child: clientsAsync.when(
-              skipLoadingOnReload: false,
-              skipLoadingOnRefresh: false,
+              skipLoadingOnReload: true,
+              skipLoadingOnRefresh: true,
               data: (clients) {
                 if (clients.isEmpty) {
                   return Center(

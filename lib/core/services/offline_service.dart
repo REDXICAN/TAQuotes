@@ -398,6 +398,13 @@ class OfflineService {
     };
   }
 
+  // Remove a pending operation by ID
+  Future<void> removePendingOperation(String operationId) async {
+    _pendingOperations.removeWhere((op) => op.id == operationId);
+    await _pendingOperationsBox.delete(operationId);
+    _queueController.add(_pendingOperations);
+  }
+
   Future<void> clearAll() async {
     await _cacheBox.clear();
     await _productsBox.clear();
