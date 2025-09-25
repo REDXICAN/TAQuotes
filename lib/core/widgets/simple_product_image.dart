@@ -63,7 +63,7 @@ class SimpleProductImage extends StatelessWidget {
   String _getThumbnailPath(String cleanSku) {
     // Check for special suffixes first
     if (cleanSku.contains('-L')) {
-      return 'assets/thumbnails/${cleanSku}/${cleanSku}.jpg';
+      return 'assets/thumbnails/$cleanSku/$cleanSku.jpg';
     }
     // Standard thumbnail path
     return 'assets/thumbnails/$cleanSku/$cleanSku.jpg';
@@ -75,7 +75,7 @@ class SimpleProductImage extends StatelessWidget {
       'assets/thumbnails/${cleanSku}_Left/${cleanSku}_Left.jpg',
       'assets/thumbnails/${cleanSku}_Right/${cleanSku}_Right.jpg',
       'assets/thumbnails/${cleanSku}_empty/${cleanSku}_empty.jpg',
-      'assets/thumbnails/${cleanSku}-L/${cleanSku}-L.jpg',
+      'assets/thumbnails/$cleanSku-L/$cleanSku-L.jpg',
       // Try screenshot as last resort
       'assets/screenshots/$cleanSku/$cleanSku P.1.png',
     ];
@@ -91,13 +91,13 @@ class SimpleProductImage extends StatelessWidget {
       'assets/screenshots/$cleanSku/P.$screenshotPage.png',
       // Try with (-L) suffix
       'assets/screenshots/$cleanSku(-L)/$cleanSku(-L) P.$screenshotPage.png',
-      'assets/screenshots/${cleanSku}-L/${cleanSku}-L P.$screenshotPage.png',
+      'assets/screenshots/$cleanSku-L/$cleanSku-L P.$screenshotPage.png',
       // Try with parentheses variations
       'assets/screenshots/$originalSku/$originalSku P.$screenshotPage.png',
       // Fall back to P.1 if specific page not found
       'assets/screenshots/$cleanSku/$cleanSku P.1.png',
       'assets/screenshots/$cleanSku(-L)/$cleanSku(-L) P.1.png',
-      'assets/screenshots/${cleanSku}-L/${cleanSku}-L P.1.png',
+      'assets/screenshots/$cleanSku-L/$cleanSku-L P.1.png',
       'assets/screenshots/$originalSku/$originalSku P.1.png',
       'assets/screenshots/$cleanSku/P.1.png',
     ];

@@ -10,7 +10,6 @@ import '../../../../core/models/models.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/config/env_config.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../../core/services/realtime_database_service.dart';
 import '../../../../core/services/app_logger.dart';
 
 // User performance metrics model
@@ -66,7 +65,7 @@ class UserPerformanceMetrics {
 bool _isAdminOrSuperAdmin(String? email) {
   if (email == null) return false;
   final userEmail = email.toLowerCase();
-  return userEmail == EnvConfig.adminEmail?.toLowerCase() ||
+  return userEmail == EnvConfig.adminEmail.toLowerCase() ||
          userEmail == 'admin@turboairinc.com' ||
          userEmail == 'superadmin@turboairinc.com' ||
          userEmail == 'andres@turboairmexico.com';
@@ -780,7 +779,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
                     },
                   ),
                 );
-              }).toList(),
+              }),
             ],
           ),
         ),
@@ -1345,7 +1344,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ],
     );
@@ -1379,7 +1378,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
               item,
               style: theme.textTheme.bodySmall,
             ),
-          )).toList(),
+          )),
         ],
       ),
     );
@@ -1787,7 +1786,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
               ],
             ),
           );
-        }).toList(),
+        }),
         const Spacer(),
         Divider(color: theme.dividerColor),
         const SizedBox(height: 8),

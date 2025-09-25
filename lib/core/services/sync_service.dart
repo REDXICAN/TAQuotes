@@ -244,7 +244,7 @@ class SyncService {
       }
     } catch (e) {
       AppLogger.error('Failed to sync products', error: e);
-      throw e;
+      rethrow;
     }
   }
 
@@ -267,7 +267,7 @@ class SyncService {
       // Get local clients (if offline mode)
       final localClients = <String, Client>{};
       if (!kIsWeb) {
-        final clients = await _offlineService.getClients();
+        final clients = _offlineService.getClients();
         for (final client in clients) {
           if (client.id != null) {
             localClients[client.id!] = client;
@@ -311,7 +311,7 @@ class SyncService {
       AppLogger.info('Synced clients for user $userId');
     } catch (e) {
       AppLogger.error('Failed to sync clients', error: e);
-      throw e;
+      rethrow;
     }
   }
 
@@ -334,7 +334,7 @@ class SyncService {
       // Get local quotes (if offline mode)
       final localQuotes = <String, Quote>{};
       if (!kIsWeb) {
-        final quotes = await _offlineService.getQuotes();
+        final quotes = _offlineService.getQuotes();
         for (final quote in quotes) {
           if (quote.id != null) {
             localQuotes[quote.id!] = quote;
@@ -378,7 +378,7 @@ class SyncService {
       AppLogger.info('Synced quotes for user $userId');
     } catch (e) {
       AppLogger.error('Failed to sync quotes', error: e);
-      throw e;
+      rethrow;
     }
   }
 
@@ -402,7 +402,7 @@ class SyncService {
 
       // Upload local cart if newer
       if (!kIsWeb) {
-        final localCart = await _offlineService.getCart();
+        final localCart = _offlineService.getCart();
         if (localCart.isNotEmpty) {
           await FirebaseDatabase.instance
               .ref('carts/$userId')

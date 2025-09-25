@@ -8,6 +8,7 @@ import '../../../../core/models/models.dart';
 import '../widgets/product_detail_images.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/services/app_logger.dart';
 
 // Product detail provider
 final productDetailProvider =
@@ -38,7 +39,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   bool _showNoteField = false;
   String? _cartItemId;
   final _noteController = TextEditingController();
-  Map<String, String> _preservedComments = {}; // Store preserved comments in memory
+  final Map<String, String> _preservedComments = {}; // Store preserved comments in memory
 
   @override
   void initState() {
@@ -508,7 +509,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                     ],
                                   ),
                                 );
-                              }).toList(),
+                              }),
                               const SizedBox(height: 8),
                               Text(
                                 'Stock levels are updated in real-time',
@@ -1122,7 +1123,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                         ],
                                       ),
                                     );
-                                  }).toList(),
+                                  }),
                                   const SizedBox(height: 8),
                                   Text(
                                     'Stock levels are updated in real-time',

@@ -811,7 +811,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                                     );
                                   }
                                 },
-                                activeColor: Colors.green,
+                                activeThumbColor: Colors.green,
                                 activeTrackColor: Colors.green.withOpacity(0.5),
                               ),
                           ],
@@ -1358,7 +1358,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                                                                           ),
                                                                         ),
                                                                       );
-                                                                    }).toList(),
+                                                                    }),
                                                                   ],
                                                                 );
                                                               },

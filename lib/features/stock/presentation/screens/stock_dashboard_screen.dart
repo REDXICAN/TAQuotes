@@ -4,9 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/models/models.dart';
-import '../../../../core/services/realtime_database_service.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../products/presentation/screens/products_screen.dart';
 import '../../../../core/theme/apple_colors.dart';
@@ -643,7 +641,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                             Row(
                               children: [
                                 const Icon(Icons.warning_amber_rounded, 
-                                  color: const Color(0xFFFF00FF),
+                                  color: Color(0xFFFF00FF),
                                   size: 28,
                                 ),
                                 const SizedBox(width: 12),
@@ -1173,7 +1171,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
     final sortedCategories = stats.categoryStock.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     
-    return Container(
+    return SizedBox(
       height: 200,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -1612,7 +1610,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                               overflow: TextOverflow.ellipsis,
                             ),
                             subtitle: Text(
-                              'SKU: ${product.sku ?? 'N/A'} • \$${product.price?.toStringAsFixed(2) ?? 'N/A'}',
+                              'SKU: ${product.sku ?? 'N/A'} • \$${product.price.toStringAsFixed(2) ?? 'N/A'}',
                               style: theme.textTheme.bodySmall,
                             ),
                             trailing: Text(
@@ -1996,7 +1994,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                     color: const Color(0xFF78909C).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.warning, color: const Color(0xFF78909C), size: 20),
+                  child: const Icon(Icons.warning, color: Color(0xFF78909C), size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -2097,7 +2095,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
               });
             },
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -2233,7 +2231,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                 ),
               ),
             );
-          }).toList(),
+          }),
         ],
       ],
     );
@@ -2258,9 +2256,9 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
             columns: [
               DataColumn(label: Text('Category', style: Theme.of(context).textTheme.titleMedium)),
               ...WarehouseInfo.warehouses.entries.map((e) => 
-                DataColumn(label: Text(e.value['flag']! + '\n' + e.value['name']!, 
+                DataColumn(label: Text('${e.value['flag']!}\n${e.value['name']!}', 
                   style: Theme.of(context).textTheme.titleMedium)),
-              ).toList(),
+              ),
               DataColumn(label: Text('Total', style: Theme.of(context).textTheme.titleMedium), numeric: true),
             ],
             rows: _buildCategoryComparisonRows(stats, format),
@@ -2272,9 +2270,9 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
   
   List<DataRow> _buildCategoryComparisonRows(StockStatistics stats, NumberFormat format) {
     final categories = <String>{};
-    stats.categoryByWarehouse.values.forEach((warehouseCategories) {
+    for (var warehouseCategories in stats.categoryByWarehouse.values) {
       categories.addAll(warehouseCategories.keys);
-    });
+    }
     
     return categories.map((category) {
       final cells = <DataCell>[

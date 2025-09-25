@@ -1006,9 +1006,7 @@ class ExportService {
         
         // Created Date
         sheet.cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: row))
-          ..value = client.createdAt != null 
-              ? TextCellValue(_dateFormat.format(client.createdAt))
-              : TextCellValue('')
+          ..value = TextCellValue(_dateFormat.format(client.createdAt))
           ..cellStyle = cellStyle;
       }
       

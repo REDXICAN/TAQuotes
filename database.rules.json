@@ -25,6 +25,7 @@
     },
 
     "projects": {
+      // Project management feature (v1.0.1) - Fixed model conflicts
       ".read": "auth != null",
       "$uid": {
         ".write": "auth != null && (auth.uid == $uid || auth.token.email == 'andres@turboairmexico.com')",
@@ -96,8 +97,10 @@
     },
 
     "errors": {
+      // Error monitoring dashboard (v1.0.1) - Added resolution tracking
       ".read": "auth != null && auth.token.email == 'andres@turboairmexico.com'",
-      ".write": "auth != null"
+      ".write": "auth != null",
+      ".indexOn": ["resolved", "severity", "category", "timestamp"]
     },
 
     "backups": {

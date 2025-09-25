@@ -6,7 +6,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'app_logger.dart';
 import '../utils/download_helper.dart';
-import '../models/models.dart';
 
 /// Service for handling database backups
 class BackupService {
@@ -221,7 +220,7 @@ class BackupService {
 
     } catch (e) {
       AppLogger.error('Failed to download partial backup', error: e);
-      throw e;
+      rethrow;
     }
   }
 

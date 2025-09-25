@@ -41,9 +41,9 @@ class ProductImageWidget extends StatelessWidget {
         'assets/thumbnails/${cleanSku}_Right/${cleanSku}_Right.jpg',
         'assets/thumbnails/${cleanSku}_empty/${cleanSku}_empty.jpg',
         // With -L suffix
-        'assets/thumbnails/${cleanSku}-L/${cleanSku}-L.jpg',
+        'assets/thumbnails/$cleanSku-L/$cleanSku-L.jpg',
         // Just the folder without suffix might exist
-        'assets/thumbnails/${cleanSku}/${cleanSku}.jpg',
+        'assets/thumbnails/$cleanSku/$cleanSku.jpg',
         // Try with parentheses
         'assets/thumbnails/$cleanSku(-L)/$cleanSku(-L).jpg',
         // Try removing any suffix from the SKU itself
@@ -56,7 +56,7 @@ class ProductImageWidget extends StatelessWidget {
                   'assets/screenshots/$cleanSku/$cleanSku P.1.png';
       fallbackPaths = [
         'assets/screenshots/$cleanSku(-L)/$cleanSku(-L) P.1.png',
-        'assets/screenshots/${cleanSku}-L/${cleanSku}-L P.1.png',
+        'assets/screenshots/$cleanSku-L/$cleanSku-L P.1.png',
         'assets/screenshots/$cleanSku/P.1.png',
       ];
     }

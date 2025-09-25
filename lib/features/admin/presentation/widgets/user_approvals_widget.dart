@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/services/realtime_database_service.dart';
 import '../../../../core/services/email_service.dart';
 import '../../../../core/models/user_approval_request.dart';
 import '../../../../core/services/app_logger.dart';
@@ -418,7 +417,7 @@ class _RejectionDialogState extends State<_RejectionDialog> {
           const Text('Select a reason for rejection:'),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: _selectedReason,
+            initialValue: _selectedReason,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),

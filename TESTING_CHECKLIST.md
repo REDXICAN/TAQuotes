@@ -194,10 +194,31 @@
 - [ ] **Mock data** only in debug + admin mode
 - [ ] **Audit logs** capture security events
 
+### 🆕 Error Monitoring Dashboard (v1.0.1)
+- [ ] **Error tracking** displays all errors
+- [ ] **Mark as resolved** functionality works
+- [ ] **Clear resolved errors** button works
+- [ ] **Clear all errors** button works
+- [ ] **Error categories** display with colors
+- [ ] **Timestamp formatting** shows relative time
+- [ ] **Metadata** displays for errors
+
+### 🏗️ Projects Management (v1.0.1)
+- [ ] **Create project** with all fields
+- [ ] **Edit project** updates correctly
+- [ ] **Delete project** with confirmation
+- [ ] **Project filters** by status and client
+- [ ] **Product lines** selection works
+- [ ] **Date pickers** for start/completion dates
+- [ ] **Estimated value** accepts numbers only
+
 ## 🐛 Known Issues to Test
 
-### Critical Issues
-- [ ] None currently known
+### Critical Issues (Fixed in v1.0.1)
+- [x] ~~Project model conflicts~~ - FIXED
+- [x] ~~Error monitoring missing methods~~ - FIXED
+- [x] ~~Cart discount null safety~~ - FIXED
+- [x] ~~Admin panel deprecated APIs~~ - FIXED
 
 ### Minor Issues
 - [ ] Email attachments limited to 25MB
@@ -293,4 +314,4 @@ Found a bug? Report it:
 
 ---
 Last Updated: January 24, 2025
-Version: 1.0.0
+Version: 1.0.1

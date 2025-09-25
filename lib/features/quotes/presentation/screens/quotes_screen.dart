@@ -259,7 +259,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                         final projects = snapshot.data!;
                         
                         return DropdownButtonFormField<String>(
-                          value: _filterProjectId,
+                          initialValue: _filterProjectId,
                           decoration: InputDecoration(
                             labelText: 'Filter by Project',
                             prefixIcon: const Icon(Icons.folder),
@@ -290,7 +290,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                                 value: project['id'],
                                 child: Text(project['name'] ?? 'Unnamed Project'),
                               );
-                            }).toList(),
+                            }),
                           ],
                           onChanged: (value) {
                             setState(() {

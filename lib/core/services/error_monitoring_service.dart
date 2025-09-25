@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:intl/intl.dart';
 import 'app_logger.dart';
 
 enum ErrorSeverity {
@@ -39,6 +38,10 @@ class ErrorReport {
   final bool resolved;
   final String? resolvedBy;
   final DateTime? resolvedAt;
+  final Map<String, dynamic>? metadata;
+
+  // Convenience getter for resolved status
+  bool get isResolved => resolved;
 
   ErrorReport({
     required this.id,
@@ -55,6 +58,7 @@ class ErrorReport {
     this.resolved = false,
     this.resolvedBy,
     this.resolvedAt,
+    this.metadata,
   });
 
   Map<String, dynamic> toMap() {
@@ -75,6 +79,7 @@ class ErrorReport {
       'resolvedBy': resolvedBy,
       'resolvedAt': resolvedAt?.millisecondsSinceEpoch,
       'resolvedAtIso': resolvedAt?.toIso8601String(),
+      'metadata': metadata,
     };
   }
 
@@ -105,6 +110,9 @@ class ErrorReport {
       resolvedBy: map['resolvedBy'],
       resolvedAt: map['resolvedAt'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['resolvedAt'])
+          : null,
+      metadata: map['metadata'] != null
+          ? Map<String, dynamic>.from(map['metadata'])
           : null,
     );
   }
@@ -502,6 +510,55 @@ class ErrorMonitoringService {
 
     } catch (e) {
       AppLogger.error('Failed to mark error as resolved', error: e, category: LogCategory.system);
+      rethrow;
+    }
+  }
+
+  // Alternative method name for compatibility
+  Future<void> markErrorAsResolved(String errorId) async {
+    return await markErrorResolved(errorId);
+  }
+
+  // Clear all resolved errors
+  Future<void> clearResolvedErrors() async {
+    try {
+      final snapshot = await _db.ref('errors').get();
+
+      if (!snapshot.exists) return;
+
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final idsToDelete = <String>[];
+
+      for (final entry in data.entries) {
+        final error = ErrorReport.fromMap(Map<String, dynamic>.from(entry.value));
+        if (error.resolved) {
+          idsToDelete.add(entry.key);
+        }
+      }
+
+      // Delete resolved errors
+      for (final id in idsToDelete) {
+        await _db.ref('errors/$id').remove();
+      }
+
+      AppLogger.info('Cleared ${idsToDelete.length} resolved errors', category: LogCategory.system);
+
+    } catch (e) {
+      AppLogger.error('Failed to clear resolved errors', error: e, category: LogCategory.system);
+      rethrow;
+    }
+  }
+
+  // Clear all errors
+  Future<void> clearAllErrors() async {
+    try {
+      await _db.ref('errors').remove();
+      _recentErrors.clear();
+
+      AppLogger.info('All errors cleared', category: LogCategory.system);
+
+    } catch (e) {
+      AppLogger.error('Failed to clear all errors', error: e, category: LogCategory.system);
       rethrow;
     }
   }

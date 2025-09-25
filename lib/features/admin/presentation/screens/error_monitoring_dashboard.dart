@@ -34,10 +34,15 @@ final errorStatisticsProvider = StreamProvider.autoDispose<ErrorStatistics>((ref
         // Return empty statistics on error
         return ErrorStatistics(
           totalErrors: 0,
+          criticalErrors: 0,
+          highErrors: 0,
+          mediumErrors: 0,
+          lowErrors: 0,
           unresolvedErrors: 0,
           errorsByCategory: {},
-          errorsBySeverity: {},
-          recentErrors: [],
+          errorsByScreen: {},
+          topErrorMessages: [],
+          errorRate: 0.0,
         );
       });
 });
@@ -102,6 +107,48 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  // Get category color for display
+  Color _getCategoryColor(ErrorCategory category) {
+    switch (category) {
+      case ErrorCategory.authentication:
+        return Colors.red;
+      case ErrorCategory.database:
+        return Colors.blue;
+      case ErrorCategory.network:
+        return Colors.orange;
+      case ErrorCategory.ui:
+        return Colors.green;
+      case ErrorCategory.business_logic:
+        return Colors.purple;
+      case ErrorCategory.performance:
+        return Colors.teal;
+      case ErrorCategory.security:
+        return Colors.red[900]!;
+      case ErrorCategory.unknown:
+      default:
+        return Colors.grey;
+    }
+  }
+
+  // Format timestamp for display
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inDays < 1) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    } else {
+      final dateFormat = DateFormat('MMM dd, HH:mm');
+      return dateFormat.format(timestamp);
+    }
   }
 
   Color _getSeverityColor(ErrorSeverity severity) {

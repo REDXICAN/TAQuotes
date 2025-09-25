@@ -1,21 +1,17 @@
 // lib/features/products/presentation/screens/products_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/models/models.dart';
-import '../../../../core/utils/product_image_helper.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/widgets/simple_image_widget.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/services/excel_upload_service.dart';
 import '../../../../core/services/app_logger.dart';
-import '../../../../core/services/product_cache_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../widgets/excel_preview_dialog.dart';
-import '../../widgets/zoomable_image_viewer.dart';
 
 // Products provider using StreamProvider for real-time updates without heavy caching
 final productsProvider =
@@ -184,8 +180,8 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
   bool _isUploading = false;
   int _visibleItemCount = 24; // Show 24 items initially on web
   TabController? _tabController;
-  List<String> _productTypes = ['All'];
-  String _selectedProductType = 'All';
+  final List<String> _productTypes = ['All'];
+  final String _selectedProductType = 'All';
   String? _selectedWarehouse; // Warehouse filter state
   
   @override
@@ -1857,7 +1853,7 @@ class ProductCard extends StatelessWidget {
                                     color: badgeColor,
                                   ),
                                 Text(
-                                  '${warehouse}: $availableStock',
+                                  '$warehouse: $availableStock',
                                   style: TextStyle(
                                     fontSize: isMexicanWarehouse ? 10 : 9,
                                     color: badgeColor,

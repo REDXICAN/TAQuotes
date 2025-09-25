@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:hive/hive.dart';
 import '../config/env_config.dart';
+import 'app_logger.dart';
 
 class CsrfProtectionService {
   static final CsrfProtectionService _instance = CsrfProtectionService._internal();

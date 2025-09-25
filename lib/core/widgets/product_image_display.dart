@@ -104,7 +104,7 @@ class _ProductImageDisplayState extends State<ProductImageDisplay> {
       'assets/thumbnails/${cleanSku}_Right/${cleanSku}_Right.jpg',
       'assets/thumbnails/${cleanSku}_empty/${cleanSku}_empty.jpg',
       // Try with -L suffix (common pattern)
-      'assets/thumbnails/${cleanSku}-L/${cleanSku}-L.jpg',
+      'assets/thumbnails/$cleanSku-L/$cleanSku-L.jpg',
       // Fallback to screenshot P.1 if no thumbnail
       'assets/screenshots/$originalSku/$originalSku P.1.png',
       'assets/screenshots/$cleanSku/$cleanSku P.1.png',

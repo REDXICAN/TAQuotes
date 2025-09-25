@@ -47,16 +47,18 @@ static String get email => _getEnv('EMAIL', 'real@email.com'); // NEVER!
 
 Enterprise B2B equipment catalog and quote management system with offline-first architecture, real-time synchronization, and complete email integration with PDF attachments. Serves 500+ sales representatives and processes 1000+ quotes monthly.
 
-### Production Status: ✅ DEPLOYED
+### Production Status: ✅ DEPLOYED (v1.0.1)
 - **Live URL**: https://taquotes.web.app
 - **Firebase Console**: https://console.firebase.google.com/project/taquotes/overview
+- **Last Deployment**: January 24, 2025
 - All critical features implemented and tested
-- Security audit passed
+- Security audit passed and fixes deployed
 - Email with PDF attachments functional
 - Client CRUD operations complete
 - Quote management fully operational
 - Firebase Hosting deployment successful
 - **835 products loaded in database**
+- **Latest: Merge conflicts resolved, error monitoring fixed, projects unified**
 
 ## 🚨 CRITICAL: PRESERVE ALL EXISTING FUNCTIONALITY
 
@@ -1028,7 +1030,41 @@ final newProvider = StreamProvider.autoDispose<Data>((ref) {
 
 ## 🔄 Version History
 
-### Version 1.0.0 (Current - January 2025)
+### Version 1.0.1 (Current - January 2025)
+
+#### Merge Conflict Resolution & Deployment (January 24, 2025)
+**Major Fixes After Git Merge:**
+- **Error Monitoring Dashboard Fixed**
+  - Added missing methods: `clearResolvedErrors()`, `clearAllErrors()`, `markErrorAsResolved()`
+  - Added missing properties to ErrorReport: `isResolved`, `metadata`
+  - Added helper methods: `_getCategoryColor()`, `_formatTimestamp()`
+  - Full error tracking and resolution functionality now working
+
+- **Project Model Conflicts Resolved**
+  - Unified to use single Project model from `core/models/project.dart`
+  - Fixed property naming: `projectName` → `name` throughout
+  - Fixed `createProject()` method signature mismatches
+  - Fixed DateTime nullable issues with proper null safety
+  - Removed duplicate domain model that was causing conflicts
+
+- **Cart Screen Null Safety Fixed**
+  - Fixed discount calculation null safety issues (lines 1795-1797)
+  - Proper null coalescing for `discountValue` and `discountAmount`
+  - Maintained calculation logic while ensuring type safety
+
+- **Admin Panel Improvements**
+  - Updated deprecated `withOpacity()` to `withValues(alpha:)`
+  - Removed 91 lines of unused code
+  - Fixed null-aware expressions for non-nullable types
+  - All Firebase imports properly resolved
+
+**Deployment:**
+- Successfully built Flutter web (60 seconds, with 99% font optimization)
+- Deployed to Firebase Hosting: https://taquotes.web.app
+- 47 files uploaded to production
+- All security fixes and warehouse features preserved
+
+### Version 1.0.0 (January 2025)
 
 #### Critical Security Audit & Fixes (January 24, 2025)
 **Security Enhancements:**

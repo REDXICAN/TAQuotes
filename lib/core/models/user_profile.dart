@@ -109,7 +109,7 @@ class UserProfile {
       phone: phone ?? this.phone,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      isAdminField: isAdminField ?? this._isAdminField,
+      isAdminField: isAdminField ?? _isAdminField,
     );
   }
 }

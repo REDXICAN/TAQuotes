@@ -35,7 +35,7 @@ class EmailJSService {
       // Add PDF attachment if requested and available
       if (attachPdf && pdfBytes != null) {
         attachments.add(
-          Attachment(
+          StreamAttachment(
             Stream.value(pdfBytes),
             'application/pdf',
             fileName: 'Quote_$quoteNumber.pdf',
@@ -46,7 +46,7 @@ class EmailJSService {
       // Add Excel attachment if requested and available
       if (attachExcel && excelBytes != null) {
         attachments.add(
-          Attachment(
+          StreamAttachment(
             Stream.value(excelBytes),
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             fileName: 'Quote_$quoteNumber.xlsx',
@@ -152,7 +152,7 @@ class EmailJSService {
               <td>$sku</td>
               <td>$name</td>
               <td>$quantity</td>
-              <td>\$${(unitPrice as num).toStringAsFixed(2)}</td>
+              <td>\$${(unitPrice).toStringAsFixed(2)}</td>
               <td>\$${total.toStringAsFixed(2)}</td>
             </tr>
         ''');

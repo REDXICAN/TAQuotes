@@ -504,12 +504,6 @@ class OfflineService {
     await _instance!._syncPendingChanges();
   }
 
-  // Method to clear specific pending operation
-  Future<void> removePendingOperation(String operationId) async {
-    _pendingOperations.removeWhere((op) => op.id == operationId);
-    await _pendingOperationsBox.delete(operationId);
-    _queueController.add(_pendingOperations);
-  }
 
   // Method to get pending operations by collection
   List<PendingOperation> getPendingOperationsByCollection(String collection) {

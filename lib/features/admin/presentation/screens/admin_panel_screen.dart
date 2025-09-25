@@ -9,9 +9,9 @@ import '../../../../core/utils/responsive_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../widgets/backup_status_widget.dart';
 import 'package:intl/intl.dart';
-import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/services/export_service.dart';
 import '../../../../core/utils/download_helper.dart';
+import '../../../../core/services/app_logger.dart';
 
 class AdminPanelScreen extends ConsumerStatefulWidget {
   const AdminPanelScreen({super.key});
@@ -390,7 +390,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -593,9 +593,9 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
           rows: _recentQuotes.map((quote) {
             return DataRow(cells: [
               DataCell(
-                  Text('#${quote.quoteNumber ?? quote.id?.substring(0, 8) ?? 'N/A'}')),
+                  Text('#${quote.quoteNumber ?? (quote.id != null ? quote.id!.substring(0, 8) : 'N/A')}')),
               DataCell(Text(quote.clientName ?? 'Unknown')),
-              DataCell(Text(quote.createdBy ?? 'System')),
+              DataCell(Text(quote.createdBy.isEmpty ? 'System' : quote.createdBy)),
               DataCell(Text('\$${quote.total.toStringAsFixed(2)}')),
               DataCell(_buildStatusChip(quote.status)),
               DataCell(Text(DateFormat('MM/dd/yyyy').format(quote.createdAt))),
@@ -652,89 +652,12 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
         status.toUpperCase(),
         style: const TextStyle(fontSize: 10),
       ),
-      backgroundColor: color.withOpacity(0.2),
+      backgroundColor: color.withValues(alpha: 0.2),
       labelStyle: TextStyle(color: color),
       padding: EdgeInsets.zero,
     );
   }
 
-  Widget _buildUsersSection() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'User Management',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Card(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text('Name')),
-                  DataColumn(label: Text('Email')),
-                  DataColumn(label: Text('Role')),
-                  DataColumn(label: Text('Created')),
-                  DataColumn(label: Text('Last Login')),
-                  DataColumn(label: Text('Actions')),
-                ],
-                rows: _users.map((user) {
-                  return DataRow(cells: [
-                    DataCell(Text(user.displayName ?? 'N/A')),
-                    DataCell(Text(user.email)),
-                    DataCell(_buildRoleChip(user.role)),
-                    DataCell(
-                        Text(DateFormat('MM/dd/yyyy').format(user.createdAt))),
-                    DataCell(Text(user.lastLoginAt != null
-                        ? DateFormat('MM/dd/yyyy').format(user.lastLoginAt!)
-                        : 'Never')),
-                    DataCell(Row(
-                      children: [
-                        PopupMenuButton<String>(
-                          icon: const Icon(Icons.more_vert, size: 20),
-                          onSelected: (value) async {
-                            if (value == 'make_admin') {
-                              await _updateUserRole(user.uid, 'admin');
-                            } else if (value == 'make_user') {
-                              await _updateUserRole(user.uid, 'user');
-                            } else if (value == 'disable') {
-                              // Disable user
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            if (user.role != 'admin')
-                              const PopupMenuItem(
-                                value: 'make_admin',
-                                child: Text('Make Admin'),
-                              ),
-                            if (user.role == 'admin')
-                              const PopupMenuItem(
-                                value: 'make_user',
-                                child: Text('Remove Admin'),
-                              ),
-                            const PopupMenuItem(
-                              value: 'disable',
-                              child: Text('Disable User'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    )),
-                  ]);
-                }).toList(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildRoleChip(String role) {
     final color = role == 'admin' ? Colors.purple : Colors.blue;
@@ -744,30 +667,14 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
         role.toUpperCase(),
         style: const TextStyle(fontSize: 10),
       ),
-      backgroundColor: color.withOpacity(0.2),
+      backgroundColor: color.withValues(alpha: 0.2),
       labelStyle: TextStyle(color: color),
       padding: EdgeInsets.zero,
     );
   }
 
-  Future<void> _updateUserRole(String userId, String role) async {
-    try {
-      final dbService = ref.read(databaseServiceProvider);
-      await dbService.updateUserProfile(userId, {'role': role});
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User role updated')),
-        );
-      }
-      _loadUsers();
-    } catch (e) {
-      _showError('Failed to update user role: $e');
-    }
-  }
 
   Widget _buildAnalytics() {
-    final theme = Theme.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(

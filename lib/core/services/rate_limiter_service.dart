@@ -2,6 +2,7 @@
 // Rate limiting service to prevent brute force attacks and API abuse
 
 import 'dart:async';
+import 'app_logger.dart';
 
 class RateLimiterService {
   static final RateLimiterService _instance = RateLimiterService._internal();

@@ -44,7 +44,7 @@ class ProductImageWidgetV2 extends StatelessWidget {
       // Some have _empty suffix
       'assets/thumbnails/${cleanSku}_empty/${cleanSku}_empty.jpg',
       // Try with -L suffix
-      'assets/thumbnails/${cleanSku}-L/${cleanSku}-L.jpg',
+      'assets/thumbnails/$cleanSku-L/$cleanSku-L.jpg',
       // Fallback to screenshot if no thumbnail
       'assets/screenshots/$cleanSku/$cleanSku P.1.png',
     ];
@@ -57,7 +57,7 @@ class ProductImageWidgetV2 extends StatelessWidget {
     final pathsToTry = [
       'assets/screenshots/$cleanSku/$cleanSku P.1.png',
       'assets/screenshots/$cleanSku/P.1.png',
-      'assets/screenshots/${cleanSku}-L/${cleanSku}-L P.1.png',
+      'assets/screenshots/$cleanSku-L/$cleanSku-L P.1.png',
       'assets/screenshots/$cleanSku(-L)/$cleanSku(-L) P.1.png',
     ];
     

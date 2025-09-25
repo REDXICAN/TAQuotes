@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../../core/models/models.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/config/env_config.dart';
 import '../../../../core/utils/safe_conversions.dart';
@@ -18,7 +17,7 @@ import 'user_details_screen.dart';
 bool _isAdminOrSuperAdmin(String? email) {
   if (email == null) return false;
   final userEmail = email.toLowerCase();
-  return userEmail == EnvConfig.adminEmail?.toLowerCase() ||
+  return userEmail == EnvConfig.adminEmail.toLowerCase() ||
          userEmail == 'admin@turboairinc.com' ||
          userEmail == 'superadmin@turboairinc.com' ||
          userEmail == 'andres@turboairmexico.com';
@@ -1433,7 +1432,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -1654,8 +1653,9 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
           final count = entry.value.value;
           
           Color barColor;
-          if (index == 0) barColor = Colors.green;
-          else if (index == 1) barColor = Colors.blue;
+          if (index == 0) {
+            barColor = Colors.green;
+          } else if (index == 1) barColor = Colors.blue;
           else if (index == 2) barColor = Colors.orange;
           else barColor = Colors.red;
           

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Mixin to add auto-refresh capability to any ConsumerStatefulWidget
@@ -53,17 +54,22 @@ mixin AutoRefreshMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
 }
 
 /// Extension to convert FutureProvider to auto-refreshing StreamProvider
-extension AutoRefreshProvider on AutoDisposeProviderRef {
+extension AutoRefreshProvider on Ref {
   /// Creates a stream that refreshes at specified interval
   Stream<T> autoRefreshStream<T>(
     Future<T> Function() fetcher, {
     Duration interval = const Duration(seconds: 30),
     bool immediate = true,
   }) {
-    return Stream.periodic(interval, (_) => null)
-        .asyncMap((_) => fetcher())
-        .startWith(immediate ? null : null)
-        .asyncMap((value) async => value ?? await fetcher());
+    final periodicStream = Stream.periodic(interval, (_) => null)
+        .asyncMap((_) => fetcher());
+
+    if (immediate) {
+      // Emit initial value immediately, then continue with periodic updates
+      return Stream.fromFuture(fetcher()).followedBy(periodicStream);
+    } else {
+      return periodicStream;
+    }
   }
 }
 

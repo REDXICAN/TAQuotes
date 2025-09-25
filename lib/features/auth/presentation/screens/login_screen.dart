@@ -410,7 +410,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                           // Role selection dropdown
                           DropdownButtonFormField<String>(
-                            value: _selectedRole,
+                            initialValue: _selectedRole,
                             style: TextStyle(
                               color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87,
                               fontSize: 16,

@@ -218,7 +218,7 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                   SizedBox(
                     width: 200,
                     child: DropdownButtonFormField<String>(
-                      value: _selectedWarehouse,
+                      initialValue: _selectedWarehouse,
                       decoration: InputDecoration(
                         labelText: 'Warehouse',
                         border: OutlineInputBorder(
@@ -236,7 +236,7 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                                   value: warehouse,
                                   child: Text(warehouse),
                                 ))
-                            .toList(),
+                            ,
                       ],
                       onChanged: (value) {
                         setState(() {

@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/services/realtime_database_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../domain/models/project_model.dart';
+import '../../../../core/models/models.dart';
 
 // Projects Stream Provider
 final projectsProvider = StreamProvider<List<Project>>((ref) {
@@ -28,7 +27,7 @@ final projectByIdProvider = StreamProvider.family<Project?, String>((ref, projec
           return Project.fromJson(projectData);
         }
         return null;
-      })
+      });
 });
 
 // Projects by Client Provider

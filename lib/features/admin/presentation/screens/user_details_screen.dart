@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/services/app_logger.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 
 // Provider for fetching user's detailed statistics
 final userDetailsProvider = StreamProvider.family<UserDetailedStats, String>((ref, userId) {
@@ -557,7 +556,7 @@ class UserDetailsScreen extends ConsumerWidget {
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -728,7 +727,7 @@ class UserDetailsScreen extends ConsumerWidget {
                   style: theme.textTheme.bodySmall,
                 ),
               );
-            }).toList(),
+            }),
             if (stats.clients.length > 5)
               Padding(
                 padding: const EdgeInsets.only(top: 8),

@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:typed_data';
 import 'dart:async';
 import '../../../../core/utils/download_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -18,11 +17,10 @@ import 'package:mailer/mailer.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/utils/input_validators.dart';
 import '../../../../core/services/validation_service.dart';
-import '../../../clients/presentation/screens/clients_screen.dart'; // Import for selectedClientProvider
+// Import for selectedClientProvider
 import '../../../../core/utils/price_formatter.dart';
 import '../../../../core/utils/safe_conversions.dart';
 import '../../../../core/utils/error_messages.dart';
-import '../../../../core/utils/disabled_state_helper.dart';
 
 // Selected client provider for cart
 final selectedClientProvider = StateProvider<Client?>((ref) => null);
@@ -111,7 +109,7 @@ final cartProvider = StreamProvider.autoDispose<List<CartItem>>((ref) {
               : item['created_at'] != null
                   ? DateTime.fromMillisecondsSinceEpoch(item['created_at'])
                   : DateTime.now(),
-          discount: SafeConversions.toPercentage(item['discount']);
+          discount: SafeConversions.toPercentage(item['discount']),
           note: item['note'] ?? '',
           sequenceNumber: item['sequence_number'] ?? item['sequenceNumber'],
         ));
@@ -356,8 +354,8 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
           final subtotal = _calculateSubtotal(items);
           final discountValue = _isDiscountPercentage
           ? InputValidators.parsePercentage(_discountController.text, defaultValue: 0)
-          : InputValidators.parsePrice(_discountController.text, defaultValue: 0);
-          final discountAmount = _isDiscountPercentage 
+          : InputValidators.parsePrice(_discountController.text, defaultValue: 0) ?? 0;
+          final discountAmount = _isDiscountPercentage
               ? subtotal * (discountValue / 100)
               : discountValue;
           final subtotalAfterDiscount = subtotal - discountAmount;
@@ -792,7 +790,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                     ),
                                   ),
                                   // Show note if exists
-                                  if (item.note != null && item.note!.isNotEmpty)
+                                  if (item.note.isNotEmpty)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 4),
                                       child: Row(
@@ -803,7 +801,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                           const SizedBox(width: 4),
                                           Expanded(
                                             child: Text(
-                                              item.note!,
+                                              item.note,
                                               style: TextStyle(
                                                 fontSize: ResponsiveHelper.getValue(
                                                   context,
@@ -853,7 +851,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                         // Note button
                                         TextButton.icon(
                                           icon: const Icon(Icons.note_add, size: 16),
-                                          label: Text(item.note != null && item.note!.isNotEmpty ? 'Edit Note' : 'Add Note'),
+                                          label: Text(item.note.isNotEmpty ? 'Edit Note' : 'Add Note'),
                                           style: TextButton.styleFrom(
                                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                             textStyle: const TextStyle(fontSize: 12),
@@ -1064,7 +1062,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                               final basePrice = (item.product?.price ?? 0) * item.quantity;
                               final itemDiscount = item.discount > 0 ? basePrice * (item.discount / 100) : 0;
                               final itemTotal = basePrice - itemDiscount;
-                              final hasNote = item.note != null && item.note!.isNotEmpty;
+                              final hasNote = item.note.isNotEmpty;
                               
                               return Column(
                                 children: [
@@ -1146,7 +1144,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                                               const SizedBox(width: 4),
                                                               Expanded(
                                                                 child: Text(
-                                                                  item.note!,
+                                                                  item.note,
                                                                   style: TextStyle(
                                                                     fontSize: 10,
                                                                     color: theme.textTheme.bodySmall?.color,
@@ -1201,7 +1199,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                     ),
                                 ],
                               );
-                            }).toList(),
+                            }),
                             const Divider(height: 12),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1210,7 +1208,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                 Text(_formatPrice(subtotal), style: theme.textTheme.bodyMedium),
                               ],
                             ),
-                            if (discountAmount > 0) ...[
+                            if ((discountAmount ?? 0) > 0) ...[
                               const SizedBox(height: 4),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1222,7 +1220,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                     style: theme.textTheme.bodyMedium?.copyWith(color: Colors.green),
                                   ),
                                   Text(
-                                    '-${_formatPrice(discountAmount)}',
+                                    '-${_formatPrice(discountAmount ?? 0)}',
                                     style: theme.textTheme.bodyMedium?.copyWith(color: Colors.green),
                                   ),
                                 ],
@@ -1345,7 +1343,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                   }
                                   
                                   return DropdownButtonFormField<String>(
-                                    value: _selectedProjectId,
+                                    initialValue: _selectedProjectId,
                                     decoration: const InputDecoration(
                                       labelText: 'Select Project',
                                       border: OutlineInputBorder(),
@@ -1792,8 +1790,8 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
       final subtotal = _calculateSubtotal(items);
       final discountValue = _isDiscountPercentage
           ? InputValidators.parsePercentage(_discountController.text, defaultValue: 0)
-          : InputValidators.parsePrice(_discountController.text, defaultValue: 0);
-      final discountAmount = _isDiscountPercentage 
+          : InputValidators.parsePrice(_discountController.text, defaultValue: 0) ?? 0;
+      final discountAmount = _isDiscountPercentage
           ? subtotal * (discountValue / 100)
           : discountValue;
       final subtotalAfterDiscount = subtotal - discountAmount;
@@ -2945,7 +2943,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
-          if (item.note != null && item.note!.isNotEmpty)
+          if (item.note.isNotEmpty)
             TextButton(
               onPressed: () async {
                 // Remove note

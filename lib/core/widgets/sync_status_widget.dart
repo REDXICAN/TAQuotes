@@ -12,10 +12,10 @@ class SyncStatusWidget extends ConsumerWidget {
   final bool compact;
 
   const SyncStatusWidget({
-    Key? key,
+    super.key,
     this.showDetails = true,
     this.compact = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

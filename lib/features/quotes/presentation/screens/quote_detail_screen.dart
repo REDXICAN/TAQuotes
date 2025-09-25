@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'dart:typed_data';
 import 'dart:async';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/models/models.dart';
@@ -925,7 +924,7 @@ class QuoteDetailScreen extends ConsumerWidget {
                     ),
                   ),
                 // Show note if exists
-                if (item.note != null && item.note!.isNotEmpty)
+                if (item.note.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Theme(
@@ -967,7 +966,7 @@ class QuoteDetailScreen extends ConsumerWidget {
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    item.note!,
+                                    item.note,
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: theme.textTheme.bodySmall?.color,
