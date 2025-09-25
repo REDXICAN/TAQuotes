@@ -187,7 +187,8 @@
       "WebFetch(domain:www.restaurantsupply.com)",
       "WebFetch(domain:www.katom.com)",
       "WebFetch(domain:turboairinc.com)",
-      "WebFetch(domain:www.centralrestaurant.com)"
+      "WebFetch(domain:www.centralrestaurant.com)",
+      "Read(//d//**)"
     ],
     "deny": [],
     "ask": [

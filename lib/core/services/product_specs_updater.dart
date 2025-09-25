@@ -1,5 +1,4 @@
 import 'package:firebase_database/firebase_database.dart';
-import '../models/models.dart';
 
 class ProductSpecsUpdater {
   static final _database = FirebaseDatabase.instance;

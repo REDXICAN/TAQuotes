@@ -1219,4 +1219,188 @@ class ExportService {
       return Uint8List.fromList(errorBytes ?? []);
     }
   }
+
+  // Export all quotes to Excel
+  static Future<Uint8List> exportAllQuotesToExcel() async {
+    AppLogger.info('Starting bulk Excel export for all quotes', category: LogCategory.business);
+    final stopwatch = AppLogger.startTimer();
+
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final excel = Excel.createExcel();
+      excel.delete('Sheet1');
+
+      // Create main sheet
+      final sheet = excel['Quotes'];
+
+      // Add headers
+      final headers = [
+        'Quote Number',
+        'Date',
+        'Status',
+        'Client Company',
+        'Contact Name',
+        'Email',
+        'Phone',
+        'Total Items',
+        'Subtotal',
+        'Tax',
+        'Total',
+        'Comments'
+      ];
+
+      for (int i = 0; i < headers.length; i++) {
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+          .value = TextCellValue(headers[i]);
+      }
+
+      // Style headers
+      for (int i = 0; i < headers.length; i++) {
+        final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+        cell.cellStyle = CellStyle(
+          backgroundColorHex: ExcelColor.blue400,
+          fontColorHex: ExcelColor.white,
+          bold: true,
+        );
+      }
+
+      // Fetch quotes based on user role
+      Map<String, dynamic> quotesData = {};
+      final userEmail = currentUser.email;
+
+      if (userEmail == 'andres@turboairmexico.com') {
+        // Admin can export all quotes
+        final allQuotesSnapshot = await _database.ref('quotes').get();
+        if (allQuotesSnapshot.exists) {
+          final allUsersQuotes = Map<String, dynamic>.from(allQuotesSnapshot.value as Map);
+          for (var userQuotes in allUsersQuotes.values) {
+            if (userQuotes is Map) {
+              quotesData.addAll(Map<String, dynamic>.from(userQuotes));
+            }
+          }
+        }
+      } else {
+        // Regular users export only their quotes
+        final userQuotesSnapshot = await _database.ref('quotes/${currentUser.uid}').get();
+        if (userQuotesSnapshot.exists) {
+          quotesData = Map<String, dynamic>.from(userQuotesSnapshot.value as Map);
+        }
+      }
+
+      // Process each quote
+      int rowIndex = 1;
+      for (var entry in quotesData.entries) {
+        final quoteId = entry.key;
+        final quoteData = Map<String, dynamic>.from(entry.value);
+
+        // Fetch client data if available
+        String clientCompany = 'N/A';
+        String contactName = 'N/A';
+        String email = 'N/A';
+        String phone = 'N/A';
+
+        if (quoteData['client_id'] != null) {
+          // Try to fetch client from the quote owner's clients
+          final userId = quoteData['user_id'] ?? currentUser.uid;
+          final clientSnapshot = await _database.ref('clients/$userId/${quoteData['client_id']}').get();
+          if (clientSnapshot.exists) {
+            final clientData = Map<String, dynamic>.from(clientSnapshot.value as Map);
+            clientCompany = clientData['company'] ?? 'N/A';
+            contactName = clientData['contact_name'] ?? 'N/A';
+            email = clientData['email'] ?? 'N/A';
+            phone = clientData['phone'] ?? 'N/A';
+          }
+        }
+
+        // Calculate totals
+        int totalItems = 0;
+        double subtotal = 0;
+
+        if (quoteData['quote_items'] != null) {
+          if (quoteData['quote_items'] is List) {
+            totalItems = (quoteData['quote_items'] as List).length;
+            for (var item in quoteData['quote_items']) {
+              if (item != null) {
+                final quantity = (item['quantity'] ?? 0).toDouble();
+                final price = (item['price'] ?? 0).toDouble();
+                subtotal += quantity * price;
+              }
+            }
+          } else if (quoteData['quote_items'] is Map) {
+            final itemsMap = Map<String, dynamic>.from(quoteData['quote_items']);
+            totalItems = itemsMap.length;
+            for (var item in itemsMap.values) {
+              if (item != null) {
+                final quantity = (item['quantity'] ?? 0).toDouble();
+                final price = (item['price'] ?? 0).toDouble();
+                subtotal += quantity * price;
+              }
+            }
+          }
+        }
+
+        final tax = subtotal * 0.0825; // 8.25% tax
+        final total = subtotal + tax;
+
+        // Add data row
+        final rowData = [
+          quoteData['quote_number'] ?? quoteId,
+          _dateFormat.format(DateTime.parse(quoteData['created_at'] ?? DateTime.now().toIso8601String())),
+          quoteData['status'] ?? 'draft',
+          clientCompany,
+          contactName,
+          email,
+          phone,
+          totalItems.toString(),
+          _currencyFormat.format(subtotal),
+          _currencyFormat.format(tax),
+          _currencyFormat.format(total),
+          quoteData['comments'] ?? ''
+        ];
+
+        for (int i = 0; i < rowData.length; i++) {
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: rowIndex))
+            .value = TextCellValue(rowData[i]);
+        }
+
+        rowIndex++;
+      }
+
+      // Auto-size columns
+      for (int i = 0; i < headers.length; i++) {
+        sheet.setColumnWidth(i, 15);
+      }
+
+      final bytes = excel.save();
+      if (bytes == null) {
+        throw Exception('Failed to generate Excel file');
+      }
+
+      AppLogger.stopTimer(stopwatch, 'Bulk quotes Excel export completed', category: LogCategory.performance);
+      return Uint8List.fromList(bytes);
+
+    } catch (e, stackTrace) {
+      AppLogger.error('Error generating bulk quotes Excel',
+        error: e,
+        stackTrace: stackTrace,
+        category: LogCategory.business
+      );
+
+      // Return error Excel
+      final errorExcel = Excel.createExcel();
+      errorExcel.delete('Sheet1');
+      final errorSheet = errorExcel['Error'];
+      errorSheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
+        .value = TextCellValue('Error generating quotes export');
+      errorSheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 1))
+        .value = TextCellValue(e.toString());
+
+      final errorBytes = errorExcel.save();
+      return Uint8List.fromList(errorBytes ?? []);
+    }
+  }
 }

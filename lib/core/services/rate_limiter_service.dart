@@ -2,6 +2,7 @@
 // Rate limiting service to prevent brute force attacks and API abuse
 
 import 'dart:async';
+import 'app_logger.dart';
 
 class RateLimiterService {
   static final RateLimiterService _instance = RateLimiterService._internal();
@@ -253,7 +254,7 @@ class RateLimiterService {
 
   void _logRateLimitViolation(String identifier, RateLimitType type) {
     // Log to your logging service
-    print('[SECURITY] Rate limit violation: $identifier for ${type.toString()}');
+    AppLogger.warning('[SECURITY] Rate limit violation', metadata: {'identifier': identifier, 'request_type': type.toString()});
     // In production, send this to your logging/monitoring service
   }
 

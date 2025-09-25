@@ -77,7 +77,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _isOnline = true;
   int _syncQueueCount = 0;
-  late final OfflineService _offlineService;
+  // Note: OfflineService is not supported on web platform
 
   // Statistics
   int _totalClients = 0;
@@ -89,7 +89,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _offlineService = OfflineService();
+    // Initialize offline service only on non-web platforms
+    // Web platform doesn't support offline functionality
     _initializeApp();
   }
 
@@ -135,7 +136,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _listenToSyncStatus() {
     OfflineService.staticQueueStream.listen((operations) async {
-      final count = await _offlineService.getSyncQueueCount();
+      final count = await OfflineService.staticGetSyncQueueCount();
       if (mounted) {
         setState(() {
           _syncQueueCount = count;

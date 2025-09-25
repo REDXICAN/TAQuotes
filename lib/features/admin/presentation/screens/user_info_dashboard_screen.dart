@@ -2,57 +2,105 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../../core/models/models.dart';
 import '../../../../core/utils/responsive_helper.dart';
-import '../../../../core/config/env_config.dart';
+import '../../../../core/utils/price_formatter.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../core/services/rbac_service.dart';
+import '../../../../core/services/app_logger.dart';
 
 // Provider for fetching all users with their detailed information
 final allUsersProvider = FutureProvider<List<UserInfo>>((ref) async {
   final database = FirebaseDatabase.instance;
   final currentUser = FirebaseAuth.instance.currentUser;
-  
-  // Check if user is admin
-  if (currentUser?.email != EnvConfig.adminEmail) {
-    // Return mock data for demonstration
-    return _getMockUsers();
+
+  // Check if user has permission to access user info dashboard
+  if (currentUser == null) {
+    throw Exception('User not authenticated');
   }
-  
+
+  final hasPermission = await RBACService.hasPermission('access_user_info_dashboard');
+  if (!hasPermission) {
+    throw Exception('Access denied: SuperAdmin privileges required');
+  }
+
   try {
     // Get all users
     final usersSnapshot = await database.ref('users').get();
     if (!usersSnapshot.exists) {
-      // Return mock data if no real users
-      return _getMockUsers();
+      return [];
     }
-    
+
     final users = Map<String, dynamic>.from(usersSnapshot.value as Map);
     final List<UserInfo> userInfoList = [];
-    
+
     for (final entry in users.entries) {
       final userId = entry.key;
       final userData = Map<String, dynamic>.from(entry.value);
-      
-      // Get user's quotes count
+
+      // Get user's quotes count and calculate detailed metrics
       final quotesSnapshot = await database.ref('quotes/$userId').get();
       int quotesCount = 0;
       double totalRevenue = 0;
+      List<Map<String, dynamic>> latestQuotes = [];
+      Map<String, int> topProducts = {};
+
       if (quotesSnapshot.exists) {
         final quotesData = Map<String, dynamic>.from(quotesSnapshot.value as Map);
         quotesCount = quotesData.length;
-        
-        // Calculate total revenue from accepted quotes
-        for (final quoteEntry in quotesData.values) {
-          final quote = Map<String, dynamic>.from(quoteEntry as Map);
-          if (quote['status']?.toString().toLowerCase() == 'accepted') {
-            totalRevenue += (quote['total'] ?? 0).toDouble();
+
+        // Process each quote for detailed metrics
+        final quotesWithDates = <Map<String, dynamic>>[];
+
+        for (final quoteEntry in quotesData.entries) {
+          final quote = Map<String, dynamic>.from(quoteEntry.value);
+          final createdAt = DateTime.tryParse(quote['created_at'] ?? '') ?? DateTime.now();
+
+          quotesWithDates.add({
+            ...quote,
+            'id': quoteEntry.key,
+            'parsed_date': createdAt,
+          });
+
+          // Calculate revenue from accepted quotes
+          if (quote['status']?.toString().toLowerCase() == 'accepted' ||
+              quote['status']?.toString().toLowerCase() == 'closed' ||
+              quote['status']?.toString().toLowerCase() == 'sold') {
+            totalRevenue += PriceFormatter.safeToDouble(quote['total']);
+          }
+        }
+
+        // Sort quotes by date and get latest 5
+        quotesWithDates.sort((a, b) => b['parsed_date'].compareTo(a['parsed_date']));
+        latestQuotes = quotesWithDates.take(5).map((q) => {
+          'number': q['quote_number'] ?? 'Q-${q['id']?.substring(0, 8) ?? 'Unknown'}',
+          'client': q['client_name'] ?? 'Unknown Client',
+          'amount': (q['total'] ?? 0).toStringAsFixed(2),
+        }).toList();
+
+        // Calculate top products from quote items
+        for (final quote in quotesWithDates) {
+          final items = quote['items'] as List<dynamic>? ?? [];
+          for (final item in items) {
+            if (item is Map<String, dynamic>) {
+              final productName = item['sku'] ?? item['product_name'] ?? 'Unknown Product';
+              final quantity = (item['quantity'] ?? 0) as int;
+              topProducts[productName] = (topProducts[productName] ?? 0) + quantity;
+            }
           }
         }
       }
-      
+
+      // Convert top products to list format
+      final topProductsList = topProducts.entries
+          .toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+      final formattedTopProducts = topProductsList.take(5).map((entry) => {
+        'name': entry.key,
+        'count': entry.value,
+      }).toList();
+
       // Get user's clients count
       final clientsSnapshot = await database.ref('clients/$userId').get();
       int clientsCount = 0;
@@ -60,191 +108,35 @@ final allUsersProvider = FutureProvider<List<UserInfo>>((ref) async {
         final clientsData = Map<String, dynamic>.from(clientsSnapshot.value as Map);
         clientsCount = clientsData.length;
       }
-      
+
       userInfoList.add(UserInfo(
         uid: userId,
         email: userData['email'] ?? '',
-        displayName: userData['displayName'] ?? 'Unknown',
-        role: userData['role'] ?? 'sales',
-        createdAt: DateTime.tryParse(userData['createdAt'] ?? '') ?? DateTime.now(),
-        lastLoginAt: DateTime.tryParse(userData['lastLoginAt'] ?? '') ?? DateTime.now(),
-        isAdmin: userData['isAdmin'] ?? false,
+        displayName: userData['displayName'] ?? userData['name'] ?? 'Unknown',
+        role: userData['role'] ?? 'distributor',
+        createdAt: DateTime.tryParse(userData['createdAt'] ?? userData['created_at'] ?? '') ?? DateTime.now(),
+        lastLoginAt: DateTime.tryParse(userData['lastLoginAt'] ?? userData['last_login_at'] ?? '') ?? DateTime.now(),
+        isAdmin: (userData['role'] ?? '').toLowerCase() == 'admin' || (userData['role'] ?? '').toLowerCase() == 'superadmin',
         quotesCount: quotesCount,
         clientsCount: clientsCount,
         totalRevenue: totalRevenue,
-        phoneNumber: userData['phoneNumber'] ?? '',
-        photoUrl: userData['photoUrl'] ?? '',
-        isActive: userData['isActive'] ?? true,
+        phoneNumber: userData['phoneNumber'] ?? userData['phone'] ?? '',
+        photoUrl: userData['photoUrl'] ?? userData['photo_url'] ?? '',
+        isActive: userData['isActive'] ?? userData['status'] != 'inactive',
+        latestQuotes: latestQuotes,
+        topProducts: formattedTopProducts,
       ));
     }
-    
-    // Sort by last login
-    userInfoList.sort((a, b) => b.lastLoginAt.compareTo(a.lastLoginAt));
-    
-    // Return mock data if no real users found
-    if (userInfoList.isEmpty) {
-      return _getMockUsers();
-    }
-    
+
+    // Sort by total revenue (best performers first)
+    userInfoList.sort((a, b) => b.totalRevenue.compareTo(a.totalRevenue));
+
     return userInfoList;
   } catch (e) {
-    print('Error loading users: $e');
-    // Return mock data on error
-    return _getMockUsers();
+    AppLogger.error('Error loading users', error: e);
+    rethrow;
   }
 });
-
-// Mock data generator
-List<UserInfo> _getMockUsers() {
-  final now = DateTime.now();
-  return [
-    UserInfo(
-      uid: 'mock_1',
-      email: 'john.smith@example.com',
-      displayName: 'John Smith',
-      role: 'admin',
-      createdAt: now.subtract(const Duration(days: 180)),
-      lastLoginAt: now.subtract(const Duration(hours: 2)),
-      isAdmin: true,
-      quotesCount: 45,
-      clientsCount: 23,
-      totalRevenue: 125450.00,
-      phoneNumber: '555-0101',
-      photoUrl: '',
-      isActive: true,
-      latestQuotes: [
-        {'number': 'Q-2025-1045', 'client': 'ABC Restaurant', 'amount': '8750.00'},
-        {'number': 'Q-2025-1044', 'client': 'XYZ Hotel', 'amount': '12340.00'},
-        {'number': 'Q-2025-1043', 'client': 'Quick Cafe', 'amount': '5600.00'},
-        {'number': 'Q-2025-1042', 'client': 'Prime Diner', 'amount': '9800.00'},
-        {'number': 'Q-2025-1041', 'client': 'Metro Bar', 'amount': '4200.00'},
-      ],
-      topProducts: [
-        {'name': 'TSR-49SD', 'count': 12},
-        {'name': 'TBF-2SD', 'count': 8},
-        {'name': 'PRO-26R', 'count': 7},
-        {'name': 'M3R48', 'count': 6},
-        {'name': 'TGF-23F', 'count': 5},
-      ],
-    ),
-    UserInfo(
-      uid: 'mock_2',
-      email: 'maria.garcia@example.com',
-      displayName: 'Maria Garcia',
-      role: 'sales',
-      createdAt: now.subtract(const Duration(days: 120)),
-      lastLoginAt: now.subtract(const Duration(hours: 5)),
-      isAdmin: false,
-      quotesCount: 67,
-      clientsCount: 31,
-      totalRevenue: 89750.00,
-      phoneNumber: '555-0102',
-      photoUrl: '',
-      isActive: true,
-      latestQuotes: [
-        {'number': 'Q-2025-1040', 'client': 'City Grill', 'amount': '6750.00'},
-        {'number': 'Q-2025-1039', 'client': 'Ocean View', 'amount': '9850.00'},
-        {'number': 'Q-2025-1038', 'client': 'Garden Bistro', 'amount': '4300.00'},
-        {'number': 'Q-2025-1037', 'client': 'Mountain Lodge', 'amount': '11200.00'},
-        {'number': 'Q-2025-1036', 'client': 'Urban Kitchen', 'amount': '7650.00'},
-      ],
-      topProducts: [
-        {'name': 'TGM-50F', 'count': 15},
-        {'name': 'TSR-23SD', 'count': 11},
-        {'name': 'M3F72', 'count': 9},
-        {'name': 'PRO-50R', 'count': 8},
-        {'name': 'TBB-24', 'count': 7},
-      ],
-    ),
-    UserInfo(
-      uid: 'mock_3',
-      email: 'james.wilson@example.com',
-      displayName: 'James Wilson',
-      role: 'sales',
-      createdAt: now.subtract(const Duration(days: 90)),
-      lastLoginAt: now.subtract(const Duration(days: 1)),
-      isAdmin: false,
-      quotesCount: 38,
-      clientsCount: 18,
-      totalRevenue: 67890.00,
-      phoneNumber: '555-0103',
-      photoUrl: '',
-      isActive: true,
-      latestQuotes: [
-        {'number': 'Q-2025-1035', 'client': 'Downtown Deli', 'amount': '3450.00'},
-        {'number': 'Q-2025-1034', 'client': 'Riverside Cafe', 'amount': '5670.00'},
-        {'number': 'Q-2025-1033', 'client': 'Plaza Restaurant', 'amount': '8900.00'},
-        {'number': 'Q-2025-1032', 'client': 'Corner Bakery', 'amount': '2340.00'},
-        {'number': 'Q-2025-1031', 'client': 'Main Street Bar', 'amount': '6780.00'},
-      ],
-      topProducts: [
-        {'name': 'TOM-40L', 'count': 10},
-        {'name': 'TSR-72SD', 'count': 8},
-        {'name': 'TBF-35SD', 'count': 7},
-        {'name': 'M3R24', 'count': 6},
-        {'name': 'PRO-15F', 'count': 5},
-      ],
-    ),
-    UserInfo(
-      uid: 'mock_4',
-      email: 'sarah.johnson@example.com',
-      displayName: 'Sarah Johnson',
-      role: 'distributor',
-      createdAt: now.subtract(const Duration(days: 60)),
-      lastLoginAt: now.subtract(const Duration(days: 3)),
-      isAdmin: false,
-      quotesCount: 12,
-      clientsCount: 8,
-      totalRevenue: 34560.00,
-      phoneNumber: '555-0104',
-      photoUrl: '',
-      isActive: true,
-      latestQuotes: [
-        {'number': 'Q-2025-1030', 'client': 'Sunset Grill', 'amount': '4560.00'},
-        {'number': 'Q-2025-1029', 'client': 'Harbor View', 'amount': '3890.00'},
-        {'number': 'Q-2025-1028', 'client': 'Forest Lodge', 'amount': '2340.00'},
-        {'number': 'Q-2025-1027', 'client': 'Lake House', 'amount': '5670.00'},
-        {'number': 'Q-2025-1026', 'client': 'Valley Inn', 'amount': '3120.00'},
-      ],
-      topProducts: [
-        {'name': 'TGF-23F', 'count': 6},
-        {'name': 'TSS-48', 'count': 5},
-        {'name': 'M3F48', 'count': 4},
-        {'name': 'TBR-72SD', 'count': 4},
-        {'name': 'PRO-26F', 'count': 3},
-      ],
-    ),
-    UserInfo(
-      uid: 'mock_5',
-      email: 'mike.davis@example.com',
-      displayName: 'Mike Davis',
-      role: 'distributor',
-      createdAt: now.subtract(const Duration(days: 30)),
-      lastLoginAt: now.subtract(const Duration(days: 7)),
-      isAdmin: false,
-      quotesCount: 5,
-      clientsCount: 3,
-      totalRevenue: 12340.00,
-      phoneNumber: '555-0105',
-      photoUrl: '',
-      isActive: false,
-      latestQuotes: [
-        {'number': 'Q-2025-1025', 'client': 'Beach Cafe', 'amount': '2100.00'},
-        {'number': 'Q-2025-1024', 'client': 'Hill Restaurant', 'amount': '3450.00'},
-        {'number': 'Q-2025-1023', 'client': 'Park Diner', 'amount': '1890.00'},
-        {'number': 'Q-2025-1022', 'client': 'River Grill', 'amount': '2780.00'},
-        {'number': 'Q-2025-1021', 'client': 'Town Tavern', 'amount': '2120.00'},
-      ],
-      topProducts: [
-        {'name': 'TSR-35SD', 'count': 3},
-        {'name': 'TGM-77F', 'count': 2},
-        {'name': 'M3R72', 'count': 2},
-        {'name': 'PRO-12F', 'count': 2},
-        {'name': 'TBF-24SD', 'count': 1},
-      ],
-    ),
-  ];
-}
 
 // User Info model
 class UserInfo {
@@ -263,7 +155,7 @@ class UserInfo {
   final bool isActive;
   final List<Map<String, dynamic>>? latestQuotes;
   final List<Map<String, dynamic>>? topProducts;
-  
+
   UserInfo({
     required this.uid,
     required this.email,
@@ -303,8 +195,8 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
     _checkAdminAccess();
   }
 
-  void _checkAdminAccess() {
-    // Check if user is admin (hardcoded for security)
+  Future<void> _checkAdminAccess() async {
+    // Check if user is authenticated
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -319,26 +211,26 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
       return;
     }
 
-    final userEmail = user.email?.toLowerCase();
-    final isAdmin = userEmail == 'andres@turboairmexico.com' ||
-                    userEmail == 'admin@turboairinc.com' ||
-                    userEmail == 'superadmin@turboairinc.com';
+    // Check if user has permission to access user info dashboard
+    final hasPermission = await RBACService.hasPermission('access_user_info_dashboard');
 
-    if (!isAdmin) {
-      // Not admin - BLOCK ACCESS
+    if (!hasPermission) {
+      // No permission - BLOCK ACCESS
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Access Denied: Admin privileges required for User Dashboard.'),
+            content: Text('Access Denied: SuperAdmin privileges required for User Dashboard.'),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 3),
           ),
         );
       });
+      AppLogger.warning('Access denied to User Info Dashboard', data: {'user_email': user.email});
       return;
     }
 
+    AppLogger.info('User Info Dashboard access granted', data: {'user_email': user.email});
     setState(() {
       _hasAccess = true;
     });
@@ -353,7 +245,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
     final dateFormat = DateFormat('MMM dd, yyyy');
     final timeFormat = DateFormat('hh:mm a');
     final isMobile = ResponsiveHelper.isMobile(context);
-    
+
     // Show loading while checking access
     if (!_hasAccess) {
       return const Scaffold(
@@ -375,7 +267,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
         ),
       );
     }
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('User Information Dashboard'),
@@ -395,10 +287,25 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
         data: (users) {
           if (users.isEmpty) {
             return const Center(
-              child: Text('No users found'),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No Users Found',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'No user data available in the database.',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
             );
           }
-          
+
           // Filter and sort users
           var filteredUsers = users.where((user) {
             // Filter by search query
@@ -410,15 +317,15 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
                 return false;
               }
             }
-            
+
             // Filter by role
             if (_selectedRole != 'all' && user.role != _selectedRole) {
               return false;
             }
-            
+
             return true;
           }).toList();
-          
+
           // Sort users
           switch (_sortBy) {
             case 'name':
@@ -438,7 +345,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
               filteredUsers.sort((a, b) => b.lastLoginAt.compareTo(a.lastLoginAt));
               break;
           }
-          
+
           // Tile-based layout instead of tabs
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -477,14 +384,14 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // User tiles grid
                 Text(
                   'Users (${filteredUsers.length})',
                   style: theme.textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 16),
-                
+
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -523,19 +430,19 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
       ),
     );
   }
-  
+
   Widget _buildUserTile(
     UserInfo user,
     ThemeData theme,
     NumberFormat currencyFormat,
     DateFormat dateFormat,
   ) {
-    final roleColor = user.role == 'admin' 
-        ? Colors.purple 
-        : user.role == 'sales' 
-            ? Colors.blue 
+    final roleColor = user.role == 'admin'
+        ? Colors.purple
+        : user.role == 'sales'
+            ? Colors.blue
             : Colors.green;
-    
+
     return Card(
       elevation: 2,
       child: InkWell(
@@ -622,7 +529,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
                 ],
               ),
               const SizedBox(height: 12),
-              
+
               // Latest Quotes Section
               if (user.latestQuotes != null && user.latestQuotes!.isNotEmpty) ...[
                 const Divider(),
@@ -651,7 +558,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
                   ),
                 )),
               ],
-              
+
               // Top Products Section
               if (user.topProducts != null && user.topProducts!.isNotEmpty) ...[
                 const Divider(),
@@ -680,7 +587,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
                   ),
                 )),
               ],
-              
+
               const Spacer(),
               const Divider(),
               Row(
@@ -708,7 +615,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
       ),
     );
   }
-  
+
   void _showUserDetailsDialog(
     UserInfo user,
     ThemeData theme,
@@ -726,7 +633,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
             children: [
               Text('Email: ${user.email}'),
               Text('Role: ${user.role}'),
-              Text('Phone: ${user.phoneNumber}'),
+              Text('Phone: ${user.phoneNumber.isEmpty ? "Not provided" : user.phoneNumber}'),
               const SizedBox(height: 16),
               Text('Total Revenue: ${currencyFormat.format(user.totalRevenue)}'),
               Text('Total Quotes: ${user.quotesCount}'),
@@ -734,14 +641,14 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
               const SizedBox(height: 16),
               if (user.latestQuotes != null && user.latestQuotes!.isNotEmpty) ...[
                 const Text('Latest 5 Quotes:', style: TextStyle(fontWeight: FontWeight.bold)),
-                ...user.latestQuotes!.take(5).map((q) => 
+                ...user.latestQuotes!.take(5).map((q) =>
                   Text('• ${q['number']} - ${q['client']} - \$${q['amount']}')
                 ),
               ],
               const SizedBox(height: 16),
               if (user.topProducts != null && user.topProducts!.isNotEmpty) ...[
                 const Text('Top 5 Products:', style: TextStyle(fontWeight: FontWeight.bold)),
-                ...user.topProducts!.take(5).map((p) => 
+                ...user.topProducts!.take(5).map((p) =>
                   Text('• ${p['name']} - Sold ${p['count']} times')
                 ),
               ],
@@ -757,7 +664,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
       ),
     );
   }
-  
+
   Widget _buildStatItem(
     IconData icon,
     String value,
@@ -781,904 +688,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
       ],
     );
   }
-  
-  Widget _buildOverviewTab(
-    List<UserInfo> allUsers,
-    List<UserInfo> filteredUsers,
-    ThemeData theme,
-    NumberFormat numberFormat,
-    NumberFormat currencyFormat,
-    bool isMobile,
-  ) {
-    // Calculate statistics
-    final totalUsers = allUsers.length;
-    final activeUsers = allUsers.where((u) => u.isActive).length;
-    final adminUsers = allUsers.where((u) => u.isAdmin).length;
-    final totalRevenue = allUsers.fold(0.0, (sum, u) => sum + u.totalRevenue);
-    final totalQuotes = allUsers.fold(0, (sum, u) => sum + u.quotesCount);
-    final totalClients = allUsers.fold(0, (sum, u) => sum + u.clientsCount);
-    
-    // Get users by role
-    final roleDistribution = <String, int>{};
-    for (final user in allUsers) {
-      roleDistribution[user.role] = (roleDistribution[user.role] ?? 0) + 1;
-    }
-    
-    // Get recently active users
-    final now = DateTime.now();
-    final recentlyActive = allUsers.where((u) {
-      return now.difference(u.lastLoginAt).inDays <= 7;
-    }).toList();
-    
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Search and Filter Bar
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.dividerColor),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search users...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                DropdownButton<String>(
-                  value: _selectedRole,
-                  items: const [
-                    DropdownMenuItem(value: 'all', child: Text('All Roles')),
-                    DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                    DropdownMenuItem(value: 'sales', child: Text('Sales')),
-                    DropdownMenuItem(value: 'distributor', child: Text('Distributor')),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedRole = value!;
-                    });
-                  },
-                ),
-                const SizedBox(width: 16),
-                DropdownButton<String>(
-                  value: _sortBy,
-                  items: const [
-                    DropdownMenuItem(value: 'lastLogin', child: Text('Last Login')),
-                    DropdownMenuItem(value: 'name', child: Text('Name')),
-                    DropdownMenuItem(value: 'revenue', child: Text('Revenue')),
-                    DropdownMenuItem(value: 'quotes', child: Text('Quotes')),
-                    DropdownMenuItem(value: 'clients', child: Text('Clients')),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _sortBy = value!;
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          
-          // Statistics Cards
-          Text(
-            'User Statistics',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          GridView.count(
-            crossAxisCount: isMobile ? 2 : 4,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            childAspectRatio: isMobile ? 1.5 : 1.8,
-            children: [
-              _buildStatCard(
-                title: 'Total Users',
-                value: numberFormat.format(totalUsers),
-                icon: Icons.people,
-                color: Colors.blue,
-                theme: theme,
-              ),
-              _buildStatCard(
-                title: 'Active Users',
-                value: numberFormat.format(activeUsers),
-                icon: Icons.verified_user,
-                color: Colors.green,
-                theme: theme,
-              ),
-              _buildStatCard(
-                title: 'Admin Users',
-                value: numberFormat.format(adminUsers),
-                icon: Icons.admin_panel_settings,
-                color: Colors.purple,
-                theme: theme,
-              ),
-              _buildStatCard(
-                title: 'Total Revenue',
-                value: currencyFormat.format(totalRevenue),
-                icon: Icons.attach_money,
-                color: Colors.orange,
-                theme: theme,
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          
-          // Role Distribution
-          Text(
-            'Users by Role',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            height: 300,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              border: Border.all(color: theme.dividerColor),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: _buildRolePieChart(roleDistribution, theme),
-          ),
-          const SizedBox(height: 24),
-          
-          // Recently Active Users
-          Text(
-            'Recently Active Users (Last 7 Days)',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: theme.dividerColor),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              children: recentlyActive.take(10).map((user) {
-                final hoursSinceLogin = DateTime.now().difference(user.lastLoginAt).inHours;
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: theme.primaryColor.withOpacity(0.1),
-                    child: Text(
-                      user.displayName.substring(0, 1).toUpperCase(),
-                      style: TextStyle(
-                        color: theme.primaryColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  title: Text(user.displayName),
-                  subtitle: Text(user.email),
-                  trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: hoursSinceLogin < 24 ? Colors.green.withOpacity(0.1) : theme.primaryColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      hoursSinceLogin < 1 ? 'Just now' :
-                      hoursSinceLogin < 24 ? '$hoursSinceLogin hours ago' :
-                      '${hoursSinceLogin ~/ 24} days ago',
-                      style: TextStyle(
-                        color: hoursSinceLogin < 24 ? Colors.green : theme.primaryColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildUserListTab(
-    List<UserInfo> users,
-    ThemeData theme,
-    DateFormat dateFormat,
-    DateFormat timeFormat,
-    NumberFormat currencyFormat,
-    bool isMobile,
-  ) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: users.map((user) {
-          return Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.dividerColor),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: ExpansionTile(
-              leading: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: _getRoleColor(user.role).withOpacity(0.1),
-                    child: Text(
-                      user.displayName.substring(0, 1).toUpperCase(),
-                      style: TextStyle(
-                        color: _getRoleColor(user.role),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-                  ),
-                  if (user.isActive)
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              title: Row(
-                children: [
-                  Text(
-                    user.displayName,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  if (user.isAdmin)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.purple.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'Admin',
-                        style: TextStyle(
-                          color: Colors.purple,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(user.email),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.access_time, size: 14, color: theme.disabledColor),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Last login: ${dateFormat.format(user.lastLoginAt)} at ${timeFormat.format(user.lastLoginAt)}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.disabledColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildUserMetric(
-                            label: 'Quotes',
-                            value: user.quotesCount.toString(),
-                            icon: Icons.receipt_long,
-                            color: Colors.blue,
-                            theme: theme,
-                          ),
-                          _buildUserMetric(
-                            label: 'Clients',
-                            value: user.clientsCount.toString(),
-                            icon: Icons.people_outline,
-                            color: Colors.orange,
-                            theme: theme,
-                          ),
-                          _buildUserMetric(
-                            label: 'Revenue',
-                            value: currencyFormat.format(user.totalRevenue),
-                            icon: Icons.attach_money,
-                            color: Colors.green,
-                            theme: theme,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Divider(color: theme.dividerColor),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildInfoRow('Role', user.role.toUpperCase(), theme),
-                                const SizedBox(height: 8),
-                                _buildInfoRow('User ID', user.uid, theme),
-                                const SizedBox(height: 8),
-                                _buildInfoRow('Created', dateFormat.format(user.createdAt), theme),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildInfoRow('Phone', user.phoneNumber.isEmpty ? 'Not provided' : user.phoneNumber, theme),
-                                const SizedBox(height: 8),
-                                _buildInfoRow('Status', user.isActive ? 'Active' : 'Inactive', theme),
-                                const SizedBox(height: 8),
-                                _buildInfoRow('Average Quote', 
-                                  user.quotesCount > 0 
-                                    ? currencyFormat.format(user.totalRevenue / user.quotesCount)
-                                    : 'N/A', 
-                                  theme
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-  
-  Widget _buildAnalyticsTab(
-    List<UserInfo> users,
-    ThemeData theme,
-    NumberFormat currencyFormat,
-    bool isMobile,
-  ) {
-    // Prepare data for charts
-    final topPerformers = [...users]..sort((a, b) => b.totalRevenue.compareTo(a.totalRevenue));
-    final topByQuotes = [...users]..sort((a, b) => b.quotesCount.compareTo(a.quotesCount));
-    final topByClients = [...users]..sort((a, b) => b.clientsCount.compareTo(a.clientsCount));
-    
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top Revenue Performers
-          Text(
-            'Top Revenue Performers',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            height: 300,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              border: Border.all(color: theme.dividerColor),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: _buildRevenueBarChart(topPerformers.take(10).toList(), theme),
-          ),
-          const SizedBox(height: 24),
-          
-          // Activity Distribution
-          Text(
-            'User Activity Distribution',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            height: 300,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              border: Border.all(color: theme.dividerColor),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: _buildActivityChart(users, theme),
-          ),
-          const SizedBox(height: 24),
-          
-          // Top Performers Lists
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _buildTopPerformersList(
-                  title: 'Top by Quotes',
-                  users: topByQuotes.take(5).toList(),
-                  metric: 'quotes',
-                  theme: theme,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildTopPerformersList(
-                  title: 'Top by Clients',
-                  users: topByClients.take(5).toList(),
-                  metric: 'clients',
-                  theme: theme,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildStatCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-    required ThemeData theme,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.dividerColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.disabledColor,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildUserMetric({
-    required String label,
-    required String value,
-    required IconData icon,
-    required Color color,
-    required ThemeData theme,
-  }) {
-    return Column(
-      children: [
-        Icon(icon, color: color, size: 24),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.disabledColor,
-          ),
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildInfoRow(String label, String value, ThemeData theme) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 80,
-          child: Text(
-            '$label:',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.disabledColor,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildTopPerformersList({
-    required String title,
-    required List<UserInfo> users,
-    required String metric,
-    required ThemeData theme,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        border: Border.all(color: theme.dividerColor),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...users.asMap().entries.map((entry) {
-            final index = entry.key;
-            final user = entry.value;
-            final value = metric == 'quotes' ? user.quotesCount : user.clientsCount;
-            
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: theme.primaryColor.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${index + 1}',
-                        style: TextStyle(
-                          color: theme.primaryColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      user.displayName,
-                      style: theme.textTheme.bodyMedium,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Text(
-                    value.toString(),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: theme.primaryColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-        ],
-      ),
-    );
-  }
-  
-  // Chart building methods
-  Widget _buildRolePieChart(Map<String, int> roleDistribution, ThemeData theme) {
-    final colors = [
-      Colors.blue,
-      Colors.green,
-      Colors.orange,
-      Colors.purple,
-      Colors.red,
-    ];
-    
-    final total = roleDistribution.values.fold(0, (sum, count) => sum + count);
-    
-    return PieChart(
-      PieChartData(
-        borderData: FlBorderData(show: false),
-        sectionsSpace: 2,
-        centerSpaceRadius: 60,
-        sections: roleDistribution.entries.toList().asMap().entries.map((entry) {
-          final index = entry.key;
-          final role = entry.value;
-          final percentage = (role.value / total * 100);
-          
-          return PieChartSectionData(
-            color: colors[index % colors.length],
-            value: role.value.toDouble(),
-            title: '${role.key}\n${percentage.toStringAsFixed(1)}%',
-            radius: 100,
-            titleStyle: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-  
-  Widget _buildRevenueBarChart(List<UserInfo> users, ThemeData theme) {
-    return BarChart(
-      BarChartData(
-        alignment: BarChartAlignment.spaceAround,
-        maxY: users.first.totalRevenue * 1.2,
-        barTouchData: BarTouchData(
-          enabled: true,
-          touchTooltipData: BarTouchTooltipData(
-            getTooltipItem: (group, groupIndex, rod, rodIndex) {
-              final user = users[group.x.toInt()];
-              return BarTooltipItem(
-                '${user.displayName}\n\$${NumberFormat('#,###').format(rod.toY.toInt())}',
-                const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              );
-            },
-          ),
-        ),
-        titlesData: FlTitlesData(
-          show: true,
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (value, meta) {
-                if (value.toInt() >= 0 && value.toInt() < users.length) {
-                  final name = users[value.toInt()].displayName;
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: RotatedBox(
-                      quarterTurns: 1,
-                      child: Text(
-                        name.length > 10 ? '${name.substring(0, 10)}...' : name,
-                        style: const TextStyle(fontSize: 10),
-                      ),
-                    ),
-                  );
-                }
-                return const Text('');
-              },
-              reservedSize: 60,
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 60,
-              interval: users.first.totalRevenue / 5,
-              getTitlesWidget: (value, meta) {
-                return Text(
-                  '\$${(value / 1000).toStringAsFixed(0)}K',
-                  style: const TextStyle(fontSize: 10),
-                );
-              },
-            ),
-          ),
-        ),
-        borderData: FlBorderData(
-          show: true,
-          border: Border.all(color: theme.dividerColor.withOpacity(0.5)),
-        ),
-        barGroups: users.asMap().entries.map((entry) {
-          final index = entry.key;
-          final user = entry.value;
-          
-          return BarChartGroupData(
-            x: index,
-            barRods: [
-              BarChartRodData(
-                toY: user.totalRevenue,
-                gradient: LinearGradient(
-                  colors: [
-                    theme.primaryColor,
-                    theme.primaryColor.withOpacity(0.7),
-                  ],
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                ),
-                width: 20,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(6),
-                  topRight: Radius.circular(6),
-                ),
-              ),
-            ],
-          );
-        }).toList(),
-      ),
-    );
-  }
-  
-  Widget _buildActivityChart(List<UserInfo> users, ThemeData theme) {
-    // Group users by last login time
-    final now = DateTime.now();
-    final activityData = {
-      'Today': users.where((u) => now.difference(u.lastLoginAt).inDays == 0).length,
-      '1-7 days': users.where((u) {
-        final days = now.difference(u.lastLoginAt).inDays;
-        return days > 0 && days <= 7;
-      }).length,
-      '8-30 days': users.where((u) {
-        final days = now.difference(u.lastLoginAt).inDays;
-        return days > 7 && days <= 30;
-      }).length,
-      '30+ days': users.where((u) => now.difference(u.lastLoginAt).inDays > 30).length,
-    };
-    
-    return BarChart(
-      BarChartData(
-        alignment: BarChartAlignment.spaceAround,
-        maxY: activityData.values.reduce((a, b) => a > b ? a : b).toDouble() * 1.2,
-        barTouchData: BarTouchData(
-          enabled: true,
-          touchTooltipData: BarTouchTooltipData(
-            getTooltipItem: (group, groupIndex, rod, rodIndex) {
-              final label = activityData.keys.elementAt(group.x.toInt());
-              return BarTooltipItem(
-                '$label\n${rod.toY.toInt()} users',
-                const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              );
-            },
-          ),
-        ),
-        titlesData: FlTitlesData(
-          show: true,
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (value, meta) {
-                final labels = activityData.keys.toList();
-                if (value.toInt() >= 0 && value.toInt() < labels.length) {
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      labels[value.toInt()],
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  );
-                }
-                return const Text('');
-              },
-              reservedSize: 30,
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 30,
-              interval: 5,
-              getTitlesWidget: (value, meta) {
-                return Text(
-                  value.toInt().toString(),
-                  style: const TextStyle(fontSize: 10),
-                );
-              },
-            ),
-          ),
-        ),
-        borderData: FlBorderData(
-          show: true,
-          border: Border.all(color: theme.dividerColor.withOpacity(0.5)),
-        ),
-        barGroups: activityData.entries.toList().asMap().entries.map((entry) {
-          final index = entry.key;
-          final count = entry.value.value;
-          
-          Color barColor;
-          if (index == 0) barColor = Colors.green;
-          else if (index == 1) barColor = Colors.blue;
-          else if (index == 2) barColor = Colors.orange;
-          else barColor = Colors.red;
-          
-          return BarChartGroupData(
-            x: index,
-            barRods: [
-              BarChartRodData(
-                toY: count.toDouble(),
-                color: barColor,
-                width: 30,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(6),
-                  topRight: Radius.circular(6),
-                ),
-              ),
-            ],
-          );
-        }).toList(),
-      ),
-    );
-  }
-  
+
   Color _getRoleColor(String role) {
     switch (role.toLowerCase()) {
       case 'admin':

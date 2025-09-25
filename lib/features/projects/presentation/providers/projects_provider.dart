@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/services/realtime_database_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/models/project_model.dart';
 

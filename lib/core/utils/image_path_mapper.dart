@@ -1,5 +1,6 @@
 // lib/core/utils/image_path_mapper.dart
 import 'package:flutter/services.dart';
+import '../services/app_logger.dart';
 
 class ImagePathMapper {
   static final Map<String, List<String>> _skuToImagePaths = {};
@@ -22,7 +23,7 @@ class ImagePathMapper {
       
       _isInitialized = true;
     } catch (e) {
-      print('Error initializing ImagePathMapper: $e');
+      AppLogger.error('Error initializing ImagePathMapper', error: e);
       // Fall back to known mappings
       _buildKnownMappings();
       _isInitialized = true;

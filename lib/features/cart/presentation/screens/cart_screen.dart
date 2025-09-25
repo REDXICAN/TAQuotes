@@ -16,7 +16,6 @@ import '../../../../core/services/email_service.dart';
 import '../../../../core/widgets/searchable_client_dropdown.dart';
 import 'package:mailer/mailer.dart';
 import '../../../../core/services/app_logger.dart';
-import '../../../clients/presentation/screens/clients_screen.dart'; // Import for selectedClientProvider
 import '../../../../core/utils/price_formatter.dart';
 
 // Selected client provider for cart

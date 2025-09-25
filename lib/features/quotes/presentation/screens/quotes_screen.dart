@@ -1396,12 +1396,188 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
     }
   }
 
-  // Export all quotes to PDF (simplified version)
+  // Export all quotes to PDF with progress tracking
   Future<void> _exportQuotesToPDF() async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('PDF export of all quotes not implemented yet. Use individual quote export.'),
-        backgroundColor: Colors.orange,
+    final quotesAsync = ref.read(quotesProvider);
+
+    await quotesAsync.when(
+      data: (quotes) async {
+        if (quotes.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No quotes to export'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return;
+        }
+
+        // Show confirmation dialog
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Export All Quotes'),
+            content: Text('Export ${quotes.length} quotes to PDF files?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Export'),
+              ),
+            ],
+          ),
+        );
+
+        if (confirmed != true) return;
+
+        // Show progress dialog
+        bool isProgressDialogShowing = true;
+        int completed = 0;
+        int failed = 0;
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => PopScope(
+            canPop: false,
+            child: StatefulBuilder(
+              builder: (context, setState) => AlertDialog(
+                title: const Text('Exporting Quotes'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text('Progress: $completed/${quotes.length}'),
+                    if (failed > 0)
+                      Text(
+                        'Failed: $failed',
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+
+        try {
+          // Export each quote individually
+          for (int i = 0; i < quotes.length; i++) {
+            final quote = quotes[i];
+            try {
+              final pdfBytes = await ExportService.generateQuotePDF(quote.id ?? '');
+              final fileName = 'Quote_${quote.quoteNumber ?? 'Unknown'}_${i + 1}.pdf';
+
+              // Download each PDF
+              await DownloadHelper.downloadFile(
+                bytes: pdfBytes,
+                filename: fileName,
+                mimeType: 'application/pdf',
+              );
+
+              completed++;
+            } catch (e) {
+              failed++;
+              AppLogger.error('Failed to export quote ${quote.quoteNumber}',
+                error: e, category: LogCategory.business);
+            }
+
+            // Update progress dialog
+            if (isProgressDialogShowing && context.mounted) {
+              // Force dialog rebuild to show progress
+              Navigator.of(context, rootNavigator: true).pop();
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (dialogContext) => PopScope(
+                  canPop: false,
+                  child: AlertDialog(
+                    title: const Text('Exporting Quotes'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text('Progress: $completed/${quotes.length}'),
+                        if (failed > 0)
+                          Text(
+                            'Failed: $failed',
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            // Add small delay to prevent overwhelming the system
+            await Future.delayed(const Duration(milliseconds: 500));
+          }
+
+          // Close progress dialog
+          if (isProgressDialogShowing && context.mounted) {
+            Navigator.of(context, rootNavigator: true).pop();
+            isProgressDialogShowing = false;
+          }
+
+          // Show completion message
+          if (context.mounted) {
+            String message;
+            Color backgroundColor;
+
+            if (failed == 0) {
+              message = 'All $completed quotes exported successfully!';
+              backgroundColor = Colors.green;
+            } else if (completed > 0) {
+              message = '$completed quotes exported, $failed failed';
+              backgroundColor = Colors.orange;
+            } else {
+              message = 'All $failed quotes failed to export';
+              backgroundColor = Colors.red;
+            }
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(message),
+                backgroundColor: backgroundColor,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+
+        } catch (e) {
+          // Close progress dialog if still showing
+          if (isProgressDialogShowing && context.mounted) {
+            Navigator.of(context, rootNavigator: true).pop();
+          }
+
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Bulk export failed: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          AppLogger.error('Bulk PDF export failed', error: e, category: LogCategory.business);
+        }
+      },
+      loading: () => ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Loading quotes...'),
+          backgroundColor: Colors.blue,
+        ),
+      ),
+      error: (error, _) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading quotes: $error'),
+          backgroundColor: Colors.red,
+        ),
       ),
     );
   }

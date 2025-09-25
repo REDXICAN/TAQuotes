@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:intl/intl.dart';
 import 'app_logger.dart';
 
 enum ErrorSeverity {

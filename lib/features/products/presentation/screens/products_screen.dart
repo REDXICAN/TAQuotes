@@ -1,21 +1,22 @@
 // lib/features/products/presentation/screens/products_screen.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/models/models.dart';
-import '../../../../core/utils/product_image_helper.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/widgets/simple_image_widget.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/services/excel_upload_service.dart';
 import '../../../../core/services/app_logger.dart';
-import '../../../../core/services/product_cache_service.dart';
+import '../../../../core/services/rbac_service.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../widgets/excel_preview_dialog.dart';
-import '../../widgets/zoomable_image_viewer.dart';
+import '../../widgets/import_progress_dialog.dart';
 
 // Products provider using StreamProvider for real-time updates without heavy caching
 final productsProvider =
@@ -313,8 +314,31 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
 
 Future<void> _handleExcelUpload() async {
     try {
+      // Double-check permissions
+      final canImport = await RBACService.hasPermission('import_products');
+      if (!canImport) {
+        AppLogger.warning('Unauthorized Excel import attempt', data: {
+          'user': FirebaseAuth.instance.currentUser?.email,
+          'permission': 'import_products',
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Access Denied: Admin or SuperAdmin privileges required for Excel import'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      AppLogger.info('Excel import initiated', data: {
+        'user': FirebaseAuth.instance.currentUser?.email,
+      });
+
       setState(() => _isUploading = true);
-      
+
       // Pick Excel file with better error handling
       FilePickerResult? result;
       try {
@@ -370,95 +394,49 @@ Future<void> _handleExcelUpload() async {
               barrierDismissible: false,
               builder: (context) => ExcelPreviewDialog(
                 previewData: previewResult,
-                onConfirm: (products, clearExisting) async {
-                  // Show upload progress
-                  showDialog(
+                onConfirm: (products, clearExisting, duplicateHandling) async {
+                  // Create progress stream controller
+                  final progressController = StreamController<ImportProgress>();
+
+                  // Show enhanced progress dialog
+                  final progressDialogFuture = showDialog<ImportProgress?>(
                     context: context,
                     barrierDismissible: false,
-                    builder: (context) => AlertDialog(
-                      content: Row(
-                        children: [
-                          const CircularProgressIndicator(),
-                          const SizedBox(width: 20),
-                          Text('Uploading ${products.length} products...'),
-                        ],
-                      ),
+                    builder: (context) => ImportProgressDialog(
+                      totalProducts: products.length,
+                      progressStream: progressController.stream,
+                      onCancel: () {
+                        // Cancel the import if needed
+                        progressController.close();
+                      },
                     ),
                   );
-                  
-                  // Save products
-                  final saveResult = await ExcelUploadService.saveProducts(
+
+                  // Start the enhanced import process
+                  final saveResult = await ExcelUploadService.saveProductsWithProgress(
                     products,
                     clearExisting: clearExisting,
+                    duplicateHandling: duplicateHandling,
+                    progressController: progressController,
                   );
-                  
+
+                  // Close progress controller
+                  progressController.close();
+
+                  // Wait for progress dialog to complete
+                  final finalProgress = await progressDialogFuture;
+
                   if (mounted && context.mounted) {
-                    Navigator.of(context).pop(); // Close progress dialog
-                    
                     // Refresh products list
                     ref.invalidate(productsProvider);
-                    
-                    // Show result dialog
+
+                    // Show enhanced result dialog
                     showDialog(
                       context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text(
-                          saveResult['success'] == true 
-                              ? 'Upload Successful' 
-                              : 'Upload Failed',
-                          style: TextStyle(
-                            color: saveResult['success'] == true 
-                                ? Colors.green 
-                                : Colors.red,
-                          ),
-                        ),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(saveResult['message'] ?? ''),
-                            if (saveResult['success'] == true) ...[
-                              const SizedBox(height: 8),
-                              Text('Total Products: ${saveResult['totalProducts']}'),
-                              Text('Successfully Saved: ${saveResult['successCount']}'),
-                              if (saveResult['errorCount'] > 0) ...[
-                                Text(
-                                  'Errors: ${saveResult['errorCount']}',
-                                  style: const TextStyle(color: Colors.red),
-                                ),
-                                const SizedBox(height: 8),
-                                if (saveResult['errors'] != null && 
-                                    (saveResult['errors'] as List).isNotEmpty)
-                                  Container(
-                                    height: 100,
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.grey),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: ListView.builder(
-                                      itemCount: (saveResult['errors'] as List).length,
-                                      itemBuilder: (context, index) => Padding(
-                                        padding: const EdgeInsets.all(4),
-                                        child: Text(
-                                          saveResult['errors'][index],
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.red,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ],
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('OK'),
-                          ),
-                        ],
+                      builder: (context) => _buildEnhancedResultDialog(
+                        context,
+                        saveResult,
+                        duplicateHandling,
                       ),
                     );
                   }
@@ -488,10 +466,19 @@ Future<void> _handleExcelUpload() async {
     } catch (e) {
       AppLogger.error('Excel upload error', error: e, category: LogCategory.excel);
       if (mounted && context.mounted) {
-        // Try to close any open dialogs
+        // Try to close any open dialogs safely
         try {
-          Navigator.of(context).pop();
-        } catch (_) {}
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+        } catch (popError) {
+          // Log navigation error but don't fail the error handling
+          AppLogger.warning(
+            'Could not close dialog during error handling',
+            error: popError,
+            category: LogCategory.ui,
+          );
+        }
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -518,9 +505,39 @@ Future<void> _handleExcelUpload() async {
     final isSuperAdmin = ExcelUploadService.isSuperAdmin;
 
     return Scaffold(
-      appBar: const AppBarWithClient(
+      appBar: AppBarWithClient(
         title: 'Products',
         elevation: 0,
+        actions: [
+          // Excel Import Button - Only for Admin and SuperAdmin
+          FutureBuilder<bool>(
+            future: RBACService.hasPermission('import_products'),
+            builder: (context, snapshot) {
+              final canImport = snapshot.data ?? false;
+              if (!canImport) return const SizedBox.shrink();
+
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: IconButton(
+                  icon: Stack(
+                    children: [
+                      const Icon(Icons.upload_file, color: Colors.white),
+                      if (_isUploading)
+                        const Positioned.fill(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                    ],
+                  ),
+                  tooltip: 'Import Excel Products',
+                  onPressed: _isUploading ? null : _handleExcelUpload,
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -1347,76 +1364,6 @@ Future<void> _handleExcelUpload() async {
   }
   
   // Compact quantity selector for list view
-  Widget _buildCompactQuantitySelector(Product product, WidgetRef ref, BuildContext context, ThemeData theme, dynamic dbService) {
-    final quantities = ref.watch(productQuantitiesProvider);
-    final quantity = quantities[product.id] ?? 0;
-    final quantityNotifier = ref.read(productQuantitiesProvider.notifier);
-
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.dividerColor, width: 0.5),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Minus button
-          InkWell(
-            onTap: () async {
-              if (quantity > 0) {
-                quantityNotifier.decrement(product.id ?? '');
-                try {
-                  await dbService.addToCart(product.id ?? '', quantity - 1);
-                } catch (e) {
-                  // Handle error silently
-                }
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Icon(
-                Icons.remove,
-                size: 14,
-                color: quantity > 0 ? theme.primaryColor : theme.disabledColor,
-              ),
-            ),
-          ),
-          // Quantity display
-          Container(
-            width: 30,
-            alignment: Alignment.center,
-            child: Text(
-              quantity.toString(),
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-            ),
-          ),
-          // Plus button
-          InkWell(
-            onTap: () async {
-              quantityNotifier.increment(product.id ?? '');
-              final newQuantity = quantity + 1;
-              
-              try {
-                await dbService.addToCart(product.id ?? '', newQuantity);
-              } catch (e) {
-                // Handle error silently
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Icon(
-                Icons.add,
-                size: 14,
-                color: theme.primaryColor,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class ProductCard extends ConsumerWidget {
@@ -1894,5 +1841,220 @@ class ProductCard extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  // Enhanced result dialog for import operations
+  Widget _buildEnhancedResultDialog(
+    BuildContext context,
+    Map<String, dynamic> result,
+    String duplicateHandling,
+  ) {
+    final theme = Theme.of(context);
+    final success = result['success'] == true;
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(
+            success ? Icons.check_circle : Icons.error,
+            color: success ? Colors.green : Colors.red,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            success ? 'Import Completed' : 'Import Failed',
+            style: TextStyle(
+              color: success ? Colors.green : Colors.red,
+            ),
+          ),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Main message
+            Text(
+              result['message'] ?? 'Unknown result',
+              style: theme.textTheme.bodyMedium,
+            ),
+
+            if (success) ...[
+              const SizedBox(height: 16),
+
+              // Statistics section
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Import Statistics',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildStatRow('Total Products:', result['totalProducts']),
+                    _buildStatRow('Successfully Imported:', result['successCount']),
+                    if (result['updatedCount'] > 0)
+                      _buildStatRow('Updated Products:', result['updatedCount']),
+                    if (result['skippedCount'] > 0)
+                      _buildStatRow('Skipped Duplicates:', result['skippedCount']),
+                    if (result['errorCount'] > 0)
+                      _buildStatRow('Errors:', result['errorCount'], isError: true),
+                  ],
+                ),
+              ),
+
+              // Duplicate handling info
+              if (duplicateHandling != 'update') ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Duplicate Handling: ${_getDuplicateHandlingDescription(duplicateHandling)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+
+            // Error details
+            if (result['errors'] != null && (result['errors'] as List).isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Error Details:',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                height: 150,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  borderRadius: BorderRadius.circular(4),
+                  color: Colors.red.withOpacity(0.05),
+                ),
+                child: ListView.builder(
+                  itemCount: (result['errors'] as List).length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Text(
+                        result['errors'][index],
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.red[700],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+
+            // Rollback info
+            if (result['rollbackPerformed'] == true) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.restore, size: 16, color: Colors.orange),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Rollback was performed due to import failure. Previous data has been restored.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        if (!success && result['rollbackPerformed'] != true)
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Could add rollback functionality here if needed
+            },
+            child: const Text('Retry'),
+          ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatRow(String label, dynamic value, {bool isError = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(fontSize: 12),
+          ),
+          Text(
+            value.toString(),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isError ? Colors.red : Colors.green[700],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getDuplicateHandlingDescription(String handling) {
+    switch (handling) {
+      case 'update':
+        return 'Updated existing products';
+      case 'skip':
+        return 'Skipped duplicate products';
+      case 'error':
+        return 'Errored on duplicates';
+      default:
+        return handling;
+    }
   }
 }

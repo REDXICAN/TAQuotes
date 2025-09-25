@@ -52,12 +52,22 @@ class _OfflineStatusWidgetState extends State<OfflineStatusWidget>
           stream: OfflineService.staticConnectionStream,
           initialData: OfflineService.staticIsOnline,
           builder: (context, connectionSnapshot) {
+            // Handle service unavailability gracefully
+            if (connectionSnapshot.hasError || !OfflineService.isInitialized) {
+              return const SizedBox.shrink(); // Hide if service unavailable
+            }
+
             final isOnline = connectionSnapshot.data ?? true;
 
             return StreamBuilder<List<PendingOperation>>(
               stream: OfflineService.staticQueueStream,
               initialData: OfflineService.staticPendingOperations,
               builder: (context, queueSnapshot) {
+                // Handle queue stream errors
+                if (queueSnapshot.hasError) {
+                  return const SizedBox.shrink();
+                }
+
                 final pendingOps = queueSnapshot.data ?? [];
 
                 // Only show if offline or has pending operations
@@ -276,7 +286,17 @@ class _OfflineStatusWidgetState extends State<OfflineStatusWidget>
                 Expanded(
                   child: TextButton.icon(
                     onPressed: () async {
-                      await OfflineService.syncPendingChanges();
+                      try {
+                        await OfflineService.syncPendingChanges();
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Sync failed - service unavailable'),
+                            ),
+                          );
+                        }
+                      }
                     },
                     icon: const Icon(Icons.sync, size: 16),
                     label: const Text('Force Sync'),
@@ -292,9 +312,18 @@ class _OfflineStatusWidgetState extends State<OfflineStatusWidget>
               Expanded(
                 child: TextButton.icon(
                   onPressed: () async {
-                    final cacheInfo = await OfflineService.getCacheInfo();
-                    if (context.mounted) {
-                      _showCacheInfo(cacheInfo);
+                    try {
+                      final cacheInfo = await OfflineService.getCacheInfo();
+                      if (context.mounted) {
+                        _showCacheInfo(cacheInfo);
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        _showCacheInfo({
+                          'error': 'Service unavailable',
+                          'status': 'Error'
+                        });
+                      }
                     }
                   },
                   icon: const Icon(Icons.info_outline, size: 16),
@@ -396,6 +425,36 @@ class ConnectionBadge extends StatelessWidget {
       stream: OfflineService.staticConnectionStream,
       initialData: OfflineService.staticIsOnline,
       builder: (context, snapshot) {
+        // Handle service unavailability gracefully
+        if (snapshot.hasError || !OfflineService.isInitialized) {
+          if (!showWhenOnline) {
+            return const SizedBox.shrink();
+          }
+          // Show a simple "Service N/A" badge
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.grey,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, size: 14, color: Colors.white),
+                SizedBox(width: 4),
+                Text(
+                  'Service N/A',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
         final isOnline = snapshot.data ?? true;
 
         if (isOnline && !showWhenOnline) {
@@ -405,6 +464,11 @@ class ConnectionBadge extends StatelessWidget {
         return StreamBuilder<List<PendingOperation>>(
           stream: OfflineService.staticQueueStream,
           builder: (context, queueSnapshot) {
+            // Handle queue stream errors
+            if (queueSnapshot.hasError) {
+              return const SizedBox.shrink();
+            }
+
             final pendingCount = queueSnapshot.data?.length ?? 0;
 
             return Container(

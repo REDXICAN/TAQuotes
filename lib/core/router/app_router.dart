@@ -22,7 +22,7 @@ import '../../features/admin/presentation/screens/user_info_dashboard_screen.dar
 import '../../features/admin/presentation/screens/error_monitoring_dashboard.dart';
 import '../../features/stock/presentation/screens/stock_dashboard_screen.dart';
 import '../../features/spareparts/presentation/screens/spareparts_screen.dart';
-// import '../../features/projects/presentation/screens/projects_screen.dart';
+import '../../features/projects/presentation/screens/projects_screen.dart';
 
 // Router provider
 final routerProvider = Provider<GoRouter>((ref) {
@@ -156,10 +156,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
 
           // Projects
-          // GoRoute(
-          //   path: '/projects',
-          //   builder: (context, state) => const ProjectsScreen(),
-          // ),
+          GoRoute(
+            path: '/projects',
+            builder: (context, state) => const ProjectsScreen(),
+          ),
 
           // Admin
           GoRoute(

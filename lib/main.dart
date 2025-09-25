@@ -8,6 +8,9 @@ import 'app.dart';
 import 'core/services/product_cache_service.dart';
 import 'core/services/realtime_database_service.dart';
 import 'core/services/error_monitoring_service.dart';
+import 'core/services/offline_service.dart';
+import 'core/services/rbac_service.dart';
+import 'core/services/app_logger.dart';
 import 'dart:async';
 
 void main() async {
@@ -28,6 +31,15 @@ void main() async {
   // Initialize Hive for offline caching
   await Hive.initFlutter();
 
+  // Initialize OfflineService for non-web platforms
+  try {
+    await OfflineService.staticInitialize();
+    AppLogger.info('OfflineService initialized successfully');
+  } catch (e) {
+    AppLogger.error('OfflineService initialization failed', error: e);
+    // App continues without offline functionality
+  }
+
   // Enable Firebase offline persistence
   final dbService = RealtimeDatabaseService();
   await dbService.enableOfflinePersistence();
@@ -40,6 +52,9 @@ void main() async {
 
   // Initialize error monitoring
   await ErrorMonitoringService().initialize();
+
+  // Initialize RBAC and ensure SuperAdmin role is set
+  await RBACService.ensureSuperAdminRole();
 
   // Run app with error boundary
   runZonedGuarded(() {

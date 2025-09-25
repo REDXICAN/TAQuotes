@@ -18,7 +18,7 @@ class SyncService {
   SyncService._internal();
 
   final RealtimeDatabaseService _dbService = RealtimeDatabaseService();
-  late OfflineService _offlineService;
+  OfflineService? _offlineService;
 
   final _syncStatusController = StreamController<SyncProgress>.broadcast();
   Stream<SyncProgress> get syncStatusStream => _syncStatusController.stream;
@@ -36,21 +36,36 @@ class SyncService {
     AppLogger.info('Initializing SyncService');
 
     if (!kIsWeb) {
-      _offlineService = OfflineService();
+      try {
+        _offlineService = OfflineService();
+        await _offlineService!.initialize();
 
-      // Listen to connectivity changes
-      Connectivity().onConnectivityChanged.listen((result) {
-        if (result != ConnectivityResult.none) {
-          // Automatically sync when connection is restored
-          syncAll();
-        }
-      });
+        // Listen to connectivity changes
+        Connectivity().onConnectivityChanged.listen((result) {
+          if (result != ConnectivityResult.none) {
+            // Automatically sync when connection is restored
+            syncAll();
+          }
+        });
 
-      // Set up periodic sync
-      _startPeriodicSync();
+        // Set up periodic sync
+        _startPeriodicSync();
+
+        AppLogger.info('SyncService initialized with offline support');
+      } catch (e) {
+        AppLogger.warning('Failed to initialize OfflineService, continuing without offline support: $e');
+        _offlineService = null;
+
+        // Still listen to connectivity changes for online-only sync
+        Connectivity().onConnectivityChanged.listen((result) {
+          if (result != ConnectivityResult.none) {
+            syncAll();
+          }
+        });
+
+        AppLogger.info('SyncService initialized in online-only mode');
+      }
     }
-
-    AppLogger.info('SyncService initialized');
   }
 
   /// Start periodic synchronization
@@ -176,33 +191,40 @@ class SyncService {
 
   /// Sync pending operations from offline queue
   Future<void> _syncPendingOperations() async {
-    if (kIsWeb) return;
+    if (kIsWeb || _offlineService == null) {
+      AppLogger.info('Skipping pending operations sync - offline service not available');
+      return;
+    }
 
-    final pendingOps = _offlineService.pendingOperations;
-    AppLogger.info('Syncing ${pendingOps.length} pending operations');
+    try {
+      final pendingOps = _offlineService!.pendingOperations;
+      AppLogger.info('Syncing ${pendingOps.length} pending operations');
 
-    for (final op in pendingOps) {
-      try {
-        await _executePendingOperation(op);
-        await _offlineService.removePendingOperation(op.id);
-      } catch (e) {
-        AppLogger.error('Failed to sync operation ${op.id}', error: e);
+      for (final op in pendingOps) {
+        try {
+          await _executePendingOperation(op);
+          await _offlineService!.removePendingOperation(op.id);
+        } catch (e) {
+          AppLogger.error('Failed to sync operation ${op.id}', error: e);
 
-        // Increment retry count
-        op.retryCount++;
+          // Increment retry count
+          op.retryCount++;
 
-        // Remove if too many retries
-        if (op.retryCount > 3) {
-          await _offlineService.removePendingOperation(op.id);
-          _conflicts.add(SyncConflict(
-            type: ConflictType.operationFailed,
-            collection: op.collection,
-            itemId: op.id,
-            message: 'Operation failed after 3 retries',
-            localData: op.data,
-          ));
+          // Remove if too many retries
+          if (op.retryCount > 3) {
+            await _offlineService!.removePendingOperation(op.id);
+            _conflicts.add(SyncConflict(
+              type: ConflictType.operationFailed,
+              collection: op.collection,
+              itemId: op.id,
+              message: 'Operation failed after 3 retries',
+              localData: op.data,
+            ));
+          }
         }
       }
+    } catch (e) {
+      AppLogger.error('Failed to access offline service for pending operations', error: e);
     }
   }
 
@@ -228,19 +250,26 @@ class SyncService {
     try {
       final snapshot = await FirebaseDatabase.instance.ref('products').get();
 
-      if (snapshot.exists && !kIsWeb) {
+      if (snapshot.exists) {
         final products = Map<String, dynamic>.from(snapshot.value as Map);
 
-        // Save to local storage
-        for (final entry in products.entries) {
-          final productData = Map<String, dynamic>.from(entry.value);
-          productData['id'] = entry.key;
+        // Save to local storage if offline service is available
+        if (!kIsWeb && _offlineService != null) {
+          try {
+            for (final entry in products.entries) {
+              final productData = Map<String, dynamic>.from(entry.value);
+              productData['id'] = entry.key;
 
-          final product = Product.fromMap(productData);
-          await _offlineService.saveProduct(product);
+              final product = Product.fromMap(productData);
+              await _offlineService!.saveProduct(product);
+            }
+            AppLogger.info('Synced ${products.length} products to offline storage');
+          } catch (e) {
+            AppLogger.warning('Failed to save products to offline storage: $e');
+          }
+        } else {
+          AppLogger.info('Downloaded ${products.length} products (offline storage not available)');
         }
-
-        AppLogger.info('Synced ${products.length} products');
       }
     } catch (e) {
       AppLogger.error('Failed to sync products', error: e);
@@ -264,14 +293,18 @@ class SyncService {
         });
       }
 
-      // Get local clients (if offline mode)
+      // Get local clients (if offline mode available)
       final localClients = <String, Client>{};
-      if (!kIsWeb) {
-        final clients = await _offlineService.getClients();
-        for (final client in clients) {
-          if (client.id != null) {
-            localClients[client.id!] = client;
+      if (!kIsWeb && _offlineService != null) {
+        try {
+          final clients = _offlineService!.getClients();
+          for (final client in clients) {
+            if (client.id != null) {
+              localClients[client.id!] = client;
+            }
           }
+        } catch (e) {
+          AppLogger.warning('Failed to get local clients: $e');
         }
       }
 
@@ -289,13 +322,21 @@ class SyncService {
             await FirebaseDatabase.instance
                 .ref('clients/$userId/${entry.key}')
                 .set(localClient.toMap());
-          } else if (!kIsWeb) {
+          } else if (!kIsWeb && _offlineService != null) {
             // Remote is newer - download
-            await _offlineService.saveClient(remoteClient);
+            try {
+              await _offlineService!.saveClient(remoteClient);
+            } catch (e) {
+              AppLogger.warning('Failed to save remote client locally: $e');
+            }
           }
-        } else if (!kIsWeb) {
+        } else if (!kIsWeb && _offlineService != null) {
           // New remote client - download
-          await _offlineService.saveClient(remoteClient);
+          try {
+            await _offlineService!.saveClient(remoteClient);
+          } catch (e) {
+            AppLogger.warning('Failed to save new remote client locally: $e');
+          }
         }
       }
 
@@ -331,14 +372,18 @@ class SyncService {
         });
       }
 
-      // Get local quotes (if offline mode)
+      // Get local quotes (if offline mode available)
       final localQuotes = <String, Quote>{};
-      if (!kIsWeb) {
-        final quotes = await _offlineService.getQuotes();
-        for (final quote in quotes) {
-          if (quote.id != null) {
-            localQuotes[quote.id!] = quote;
+      if (!kIsWeb && _offlineService != null) {
+        try {
+          final quotes = _offlineService!.getQuotes();
+          for (final quote in quotes) {
+            if (quote.id != null) {
+              localQuotes[quote.id!] = quote;
+            }
           }
+        } catch (e) {
+          AppLogger.warning('Failed to get local quotes: $e');
         }
       }
 
@@ -356,13 +401,21 @@ class SyncService {
             await FirebaseDatabase.instance
                 .ref('quotes/$userId/${entry.key}')
                 .set(localQuote.toMap());
-          } else if (!kIsWeb) {
+          } else if (!kIsWeb && _offlineService != null) {
             // Remote is newer - download
-            await _offlineService.saveQuote(remoteQuote);
+            try {
+              await _offlineService!.saveQuote(remoteQuote);
+            } catch (e) {
+              AppLogger.warning('Failed to save remote quote locally: $e');
+            }
           }
-        } else if (!kIsWeb) {
+        } else if (!kIsWeb && _offlineService != null) {
           // New remote quote - download
-          await _offlineService.saveQuote(remoteQuote);
+          try {
+            await _offlineService!.saveQuote(remoteQuote);
+          } catch (e) {
+            AppLogger.warning('Failed to save new remote quote locally: $e');
+          }
         }
       }
 
@@ -390,26 +443,34 @@ class SyncService {
           .ref('carts/$userId')
           .get();
 
-      if (remoteSnapshot.exists && !kIsWeb) {
-        final remoteCart = Map<String, dynamic>.from(remoteSnapshot.value as Map);
-        final items = (remoteCart['items'] as List?)
-            ?.map((item) => CartItem.fromMap(Map<String, dynamic>.from(item)))
-            .toList() ?? [];
+      if (remoteSnapshot.exists && !kIsWeb && _offlineService != null) {
+        try {
+          final remoteCart = Map<String, dynamic>.from(remoteSnapshot.value as Map);
+          final items = (remoteCart['items'] as List?)
+              ?.map((item) => CartItem.fromMap(Map<String, dynamic>.from(item)))
+              .toList() ?? [];
 
-        await _offlineService.saveCart(items);
-        AppLogger.info('Synced ${items.length} cart items');
+          await _offlineService!.saveCart(items);
+          AppLogger.info('Synced ${items.length} cart items');
+        } catch (e) {
+          AppLogger.warning('Failed to save remote cart locally: $e');
+        }
       }
 
       // Upload local cart if newer
-      if (!kIsWeb) {
-        final localCart = await _offlineService.getCart();
-        if (localCart.isNotEmpty) {
-          await FirebaseDatabase.instance
-              .ref('carts/$userId')
-              .set({
-                'items': localCart.map((item) => item.toMap()).toList(),
-                'updatedAt': DateTime.now().toIso8601String(),
-              });
+      if (!kIsWeb && _offlineService != null) {
+        try {
+          final localCart = _offlineService!.getCart();
+          if (localCart.isNotEmpty) {
+            await FirebaseDatabase.instance
+                .ref('carts/$userId')
+                .set({
+                  'items': localCart.map((item) => item.toMap()).toList(),
+                  'updatedAt': DateTime.now().toIso8601String(),
+                });
+          }
+        } catch (e) {
+          AppLogger.warning('Failed to upload local cart: $e');
         }
       }
     } catch (e) {
@@ -449,8 +510,13 @@ class SyncService {
     _conflicts.clear();
     _lastSyncTime = null;
 
-    if (!kIsWeb) {
-      await _offlineService.clearAll();
+    if (!kIsWeb && _offlineService != null) {
+      try {
+        await _offlineService!.clearAll();
+        AppLogger.info('Cleared all offline data');
+      } catch (e) {
+        AppLogger.warning('Failed to clear offline data: $e');
+      }
     }
 
     AppLogger.info('Cleared all sync data');

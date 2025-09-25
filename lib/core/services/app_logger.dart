@@ -32,4 +32,9 @@ class AppLogger {
     stopwatch.stop();
     info('$message (${stopwatch.elapsedMilliseconds}ms)', category: LogCategory.performance);
   }
+
+  static void stopTimer(Stopwatch stopwatch, String message, {LogCategory? category}) {
+    stopwatch.stop();
+    info('$message (${stopwatch.elapsedMilliseconds}ms)', category: category ?? LogCategory.performance);
+  }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/services/realtime_database_service.dart';
 import '../../../../core/services/email_service.dart';
 import '../../../../core/models/user_approval_request.dart';
 import '../../../../core/services/app_logger.dart';

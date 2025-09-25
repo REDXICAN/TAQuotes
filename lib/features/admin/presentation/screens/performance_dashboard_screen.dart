@@ -7,9 +7,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/utils/responsive_helper.dart';
-import '../../../../core/config/env_config.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
-import '../../../../core/services/realtime_database_service.dart';
+import '../../../../core/services/rbac_service.dart';
+import '../../../../core/services/app_logger.dart';
 
 // User performance metrics model
 class UserPerformanceMetrics {
@@ -64,9 +64,14 @@ class UserPerformanceMetrics {
 final userPerformanceProvider = FutureProvider<List<UserPerformanceMetrics>>((ref) async {
   final database = FirebaseDatabase.instance;
   final currentUser = FirebaseAuth.instance.currentUser;
-  
-  // Check if user is admin
-  if (currentUser?.email != EnvConfig.adminEmail) {
+
+  // Check if user has permission to access performance dashboard
+  if (currentUser == null) {
+    return [];
+  }
+
+  final hasPermission = await RBACService.hasPermission('access_performance_dashboard');
+  if (!hasPermission) {
     return [];
   }
   
@@ -236,7 +241,7 @@ final userPerformanceProvider = FutureProvider<List<UserPerformanceMetrics>>((re
     
     return metrics;
   } catch (e) {
-    print('Error fetching performance metrics: $e');
+    AppLogger.error('Error fetching performance metrics', error: e);
     return [];
   }
 });
@@ -262,8 +267,8 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
     _checkAccess();
   }
   
-  void _checkAccess() {
-    // Check if user is authenticated and has admin access
+  Future<void> _checkAccess() async {
+    // Check if user is authenticated
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       // Not authenticated
@@ -279,29 +284,26 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
       return;
     }
 
-    // Check if user is admin (hardcoded for security)
-    final userEmail = user.email?.toLowerCase();
-    final isAdmin = userEmail == 'andres@turboairmexico.com' ||
-                    userEmail == 'admin@turboairinc.com' ||
-                    userEmail == 'superadmin@turboairinc.com';
+    // Check if user has permission to access performance dashboard
+    final hasPermission = await RBACService.hasPermission('access_performance_dashboard');
 
-    if (!isAdmin) {
-      // Not admin - BLOCK ACCESS
+    if (!hasPermission) {
+      // No permission - BLOCK ACCESS
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Access Denied: Admin privileges required for Performance Dashboard.'),
+            content: Text('Access Denied: SuperAdmin privileges required for Performance Dashboard.'),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 3),
           ),
         );
       });
-      print('Access denied for non-admin user: ${user.email}');
+      AppLogger.warning('Access denied to Performance Dashboard', data: {'user_email': user.email});
       return;
     }
 
-    print('Performance Dashboard access granted for admin: ${user.email}');
+    AppLogger.info('Performance Dashboard access granted', data: {'user_email': user.email});
   }
   
   @override

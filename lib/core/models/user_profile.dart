@@ -1,4 +1,6 @@
-// Add this to lib/core/models/models.dart or create lib/core/models/user_profile.dart
+// lib/core/models/user_profile.dart
+
+import 'user_role.dart';
 
 class UserProfile {
   final String id;
@@ -71,25 +73,16 @@ class UserProfile {
     };
   }
 
-  bool get isSuperAdmin => role == 'superadmin';
-  bool get isAdmin => role == 'admin' || role == 'superadmin' || _isAdminField;
-  bool get isSales => role == 'sales';
-  bool get isDistributor => role == 'distributor';
+  /// Get UserRole enum from string role
+  UserRole get userRole => UserRole.fromString(role);
 
-  String get displayRole {
-    switch (role) {
-      case 'superadmin':
-        return 'Super Admin';
-      case 'admin':
-        return 'Admin';
-      case 'sales':
-        return 'Sales';
-      case 'distributor':
-        return 'Distributor';
-      default:
-        return role.toUpperCase();
-    }
-  }
+  // Backward compatibility methods
+  bool get isSuperAdmin => userRole.isSuperAdmin;
+  bool get isAdmin => userRole.isAdminOrAbove || _isAdminField;
+  bool get isSales => userRole == UserRole.sales || userRole.isAdminOrAbove;
+  bool get isDistributor => userRole == UserRole.distributor;
+
+  String get displayRole => userRole.displayName;
 
   UserProfile copyWith({
     String? id,

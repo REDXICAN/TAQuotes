@@ -3,6 +3,7 @@
 // NEVER hardcode sensitive values here
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../services/app_logger.dart';
 
 class EnvConfig {
   // Helper method to safely get env value
@@ -11,7 +12,14 @@ class EnvConfig {
       if (dotenv.isInitialized) {
         return dotenv.env[key] ?? defaultValue;
       }
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Error accessing environment variable: $key',
+        error: error,
+        stackTrace: stackTrace,
+        category: LogCategory.general,
+      );
+    }
     return defaultValue;
   }
   
@@ -21,10 +29,24 @@ class EnvConfig {
       if (dotenv.isInitialized) {
         final value = dotenv.env[key];
         if (value != null) {
-          return int.tryParse(value) ?? defaultValue;
+          final parsed = int.tryParse(value);
+          if (parsed == null) {
+            AppLogger.warning(
+              'Environment variable $key has invalid integer value: $value, using default: $defaultValue',
+              category: LogCategory.general,
+            );
+          }
+          return parsed ?? defaultValue;
         }
       }
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Error parsing integer environment variable: $key',
+        error: error,
+        stackTrace: stackTrace,
+        category: LogCategory.general,
+      );
+    }
     return defaultValue;
   }
   
@@ -32,9 +54,29 @@ class EnvConfig {
   static bool _getEnvBool(String key, [bool defaultValue = false]) {
     try {
       if (dotenv.isInitialized) {
-        return dotenv.env[key] == 'true';
+        final value = dotenv.env[key];
+        if (value != null && value.isNotEmpty) {
+          if (value.toLowerCase() == 'true' || value == '1') {
+            return true;
+          } else if (value.toLowerCase() == 'false' || value == '0') {
+            return false;
+          } else {
+            AppLogger.warning(
+              'Environment variable $key has invalid boolean value: $value, using default: $defaultValue',
+              category: LogCategory.general,
+            );
+          }
+        }
+        return defaultValue;
       }
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Error parsing boolean environment variable: $key',
+        error: error,
+        stackTrace: stackTrace,
+        category: LogCategory.general,
+      );
+    }
     return defaultValue;
   }
   
@@ -83,7 +125,13 @@ class EnvConfig {
   static bool get isLoaded {
     try {
       return dotenv.isInitialized && dotenv.env.isNotEmpty;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Error checking if environment is loaded',
+        error: error,
+        stackTrace: stackTrace,
+        category: LogCategory.general,
+      );
       return false;
     }
   }

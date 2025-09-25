@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'dart:typed_data';
+import 'app_logger.dart';
 
 class UpdateSpecsFromExcel {
   static final _database = FirebaseDatabase.instance;
@@ -48,7 +48,7 @@ class UpdateSpecsFromExcel {
         }
       }
       
-      print('Found headers: ${headers.keys.toList()}');
+      AppLogger.debug('Found headers', metadata: {'headers': headers.keys.toList()});
       
       // Map Excel headers to database fields
       final fieldMapping = {
@@ -169,7 +169,7 @@ class UpdateSpecsFromExcel {
                 for (var productId in products.keys) {
                   await _database.ref('products/$productId').update(updateData);
                   updatedCount++;
-                  print('Updated product: $productIdentifier');
+                  AppLogger.info('Updated product', metadata: {'identifier': productIdentifier});
                 }
               } else {
                 // Try to find by model
@@ -183,7 +183,7 @@ class UpdateSpecsFromExcel {
                   for (var productId in products.keys) {
                     await _database.ref('products/$productId').update(updateData);
                     updatedCount++;
-                    print('Updated product by model: $productIdentifier');
+                    AppLogger.info('Updated product by model', metadata: {'identifier': productIdentifier});
                   }
                 } else {
                   errors.add('Product not found in database: $productIdentifier');

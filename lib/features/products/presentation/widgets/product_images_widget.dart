@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../core/widgets/simple_image_widget.dart';
-import '../../../../core/widgets/product_image_display.dart';
 
 class ProductImagesWidget extends StatefulWidget {
   final String sku;
@@ -96,10 +95,11 @@ class _ProductImagesWidgetState extends State<ProductImagesWidget> {
                       child: Container(
                         color: Colors.white,
                         child: Center(
-                          child: ProductImageDisplay(
+                          child: SimpleImageWidget(
                             sku: widget.sku,
                             imageType: ImageType.screenshot,
                             screenshotPage: index + 1,
+                            useThumbnail: false,
                             fit: BoxFit.contain,
                             width: double.infinity,
                             height: carouselHeight,
@@ -318,10 +318,11 @@ class _ZoomableImageViewerState extends State<ZoomableImageViewer> {
                   minScale: 0.5,
                   maxScale: 4,
                   child: Center(
-                    child: ProductImageDisplay(
+                    child: SimpleImageWidget(
                       sku: widget.sku,
                       imageType: ImageType.screenshot,
                       screenshotPage: index + 1,
+                      useThumbnail: false,
                       fit: BoxFit.contain,
                     ),
                   ),

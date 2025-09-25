@@ -63,7 +63,7 @@ class SyncStatusWidget extends ConsumerWidget {
 
             if (showDetails) ...[
               const SizedBox(height: 16),
-              _buildSyncDetails(theme, lastSyncTime, conflicts),
+              _buildSyncDetails(context, theme, lastSyncTime, conflicts),
             ],
           ],
         ),
@@ -191,6 +191,7 @@ class SyncStatusWidget extends ConsumerWidget {
   }
 
   Widget _buildSyncDetails(
+    BuildContext context,
     ThemeData theme,
     DateTime? lastSyncTime,
     List<SyncConflict> conflicts,
@@ -219,6 +220,34 @@ class SyncStatusWidget extends ConsumerWidget {
         FutureBuilder<int>(
           future: OfflineService.staticGetSyncQueueCount(),
           builder: (context, snapshot) {
+            // Handle errors gracefully
+            if (snapshot.hasError || !OfflineService.isInitialized) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Offline Service:',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.grey,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'N/A',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+
             final queueCount = snapshot.data ?? 0;
             return Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

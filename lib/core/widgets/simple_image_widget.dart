@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 
-class SimpleImageWidget extends StatelessWidget {
+enum ImageType {
+  thumbnail,
+  screenshot,
+}
+
+class SimpleImageWidget extends StatefulWidget {
   final String sku;
   final bool useThumbnail;
   final double? width;
   final double? height;
   final BoxFit fit;
   final String? imageUrl;  // Firebase Storage URL support
-  
+  final ImageType? imageType;
+  final int screenshotPage;
+
   const SimpleImageWidget({
     super.key,
     required this.sku,
@@ -16,27 +23,59 @@ class SimpleImageWidget extends StatelessWidget {
     this.height,
     this.fit = BoxFit.contain,
     this.imageUrl,
+    this.imageType,
+    this.screenshotPage = 1,
   });
-  
+
+  @override
+  State<SimpleImageWidget> createState() => _SimpleImageWidgetState();
+}
+
+class _SimpleImageWidgetState extends State<SimpleImageWidget> {
+  bool _disposed = false;
+
+  // Advanced caching system from ProductImageDisplay
+  static final Map<String, bool> _imageExistsCache = {};
+  static const int _maxCacheSize = 500;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  // Cache management to prevent memory leaks
+  void _manageCacheSize() {
+    if (_imageExistsCache.length > _maxCacheSize) {
+      final keysToRemove = _imageExistsCache.keys.take(_maxCacheSize ~/ 2).toList();
+      for (final key in keysToRemove) {
+        _imageExistsCache.remove(key);
+      }
+    }
+  }
   @override
   Widget build(BuildContext context) {
+    if (_disposed) {
+      return _buildPlaceholder();
+    }
+
     // Check if we have a valid Firebase Storage URL
-    final hasValidFirebaseUrl = imageUrl != null && 
-                                imageUrl!.isNotEmpty && 
-                                (imageUrl!.startsWith('https://') || imageUrl!.startsWith('gs://'));
+    final hasValidFirebaseUrl = widget.imageUrl != null &&
+                                widget.imageUrl!.isNotEmpty &&
+                                (widget.imageUrl!.startsWith('https://') || widget.imageUrl!.startsWith('gs://'));
     
     // If we have a valid Firebase Storage URL, use it first
     if (hasValidFirebaseUrl) {
       return Image.network(
-        imageUrl!,
-        width: width,
-        height: height,
-        fit: fit,
+        widget.imageUrl!,
+        width: widget.width,
+        height: widget.height,
+        fit: widget.fit,
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
           return Container(
-            width: width,
-            height: height,
+            width: widget.width,
+            height: widget.height,
             color: Colors.grey[100],
             child: Center(
               child: CircularProgressIndicator(
@@ -55,81 +94,113 @@ class SimpleImageWidget extends StatelessWidget {
         },
       );
     }
-    
-    if (sku.isEmpty) {
+
+    if (widget.sku.isEmpty) {
       return _buildPlaceholder();
     }
     
     // Use local asset images as fallback
     return _buildAssetImage();
   }
+
+  bool get _shouldUseThumbnail {
+    if (widget.imageType != null) {
+      return widget.imageType == ImageType.thumbnail;
+    }
+    return widget.useThumbnail;
+  }
   
   Widget _buildAssetImage() {
-    // Clean SKU - just uppercase and trim
-    final cleanSku = sku.toUpperCase().trim();
-    
+    // Keep original SKU for paths that might have parentheses
+    final originalSku = widget.sku.trim().toUpperCase();
+    // Clean SKU without parentheses for standard paths
+    final cleanSku = originalSku.replaceAll(RegExp(r'\([^)]*\)'), '').trim();
+
     // Build list of paths to try
     final List<String> pathsToTry = [];
-    
-    if (useThumbnail) {
-      // Try exact match first
+
+    if (_shouldUseThumbnail) {
+      // Try exact match first with both original and clean SKU
+      pathsToTry.add('assets/thumbnails/$originalSku/$originalSku.jpg');
       pathsToTry.add('assets/thumbnails/$cleanSku/$cleanSku.jpg');
-      
+
       // Try with common suffixes
       pathsToTry.add('assets/thumbnails/${cleanSku}_Left/${cleanSku}_Left.jpg');
       pathsToTry.add('assets/thumbnails/${cleanSku}_Right/${cleanSku}_Right.jpg');
       pathsToTry.add('assets/thumbnails/${cleanSku}_empty/${cleanSku}_empty.jpg');
-      
+      pathsToTry.add('assets/thumbnails/$cleanSku-L/$cleanSku-L.jpg');
+
       // Try without -N or -N6 suffix
       final skuWithoutN = cleanSku.replaceAll(RegExp(r'-N\d?$'), '');
       if (skuWithoutN != cleanSku) {
         pathsToTry.add('assets/thumbnails/$skuWithoutN/$skuWithoutN.jpg');
         pathsToTry.add('assets/thumbnails/${skuWithoutN}_Left/${skuWithoutN}_Left.jpg');
       }
-      
-      // Fallback to screenshot
+
+      // Fallback to screenshot P.1
+      pathsToTry.add('assets/screenshots/$originalSku/$originalSku P.1.png');
       pathsToTry.add('assets/screenshots/$cleanSku/$cleanSku P.1.png');
-    } else {
-      // Screenshots
-      pathsToTry.add('assets/screenshots/$cleanSku/$cleanSku P.1.png');
+      pathsToTry.add('assets/screenshots/$originalSku/P.1.png');
       pathsToTry.add('assets/screenshots/$cleanSku/P.1.png');
+    } else {
+      // Screenshots with page support
+      final page = widget.screenshotPage;
+      // Try with original SKU (might have parentheses)
+      pathsToTry.add('assets/screenshots/$originalSku/$originalSku P.$page.png');
+      pathsToTry.add('assets/screenshots/$cleanSku/$cleanSku P.$page.png');
+      pathsToTry.add('assets/screenshots/$originalSku/P.$page.png');
+      pathsToTry.add('assets/screenshots/$cleanSku/P.$page.png');
+
+      // If specific page not found, try P.1 as fallback
+      if (page != 1) {
+        pathsToTry.add('assets/screenshots/$originalSku/$originalSku P.1.png');
+        pathsToTry.add('assets/screenshots/$cleanSku/$cleanSku P.1.png');
+        pathsToTry.add('assets/screenshots/$originalSku/P.1.png');
+        pathsToTry.add('assets/screenshots/$cleanSku/P.1.png');
+      }
     }
-    
+
     return _ImageWithFallback(
       paths: pathsToTry,
-      width: width,
-      height: height,
-      fit: fit,
+      width: widget.width,
+      height: widget.height,
+      fit: widget.fit,
       placeholder: _buildPlaceholder(),
+      cacheManager: _manageCacheSize,
+      imageExistsCache: _imageExistsCache,
     );
   }
   
   Widget _buildPlaceholder() {
     return Container(
-      width: width,
-      height: height,
+      width: widget.width,
+      height: widget.height,
       decoration: BoxDecoration(
         color: Colors.grey[100],
-        border: Border.all(color: Colors.grey[300]!, width: 0.5),
+        border: Border.all(color: Colors.grey[300]!, width: 1),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.image_outlined,
-            size: 24,
+            Icons.image_not_supported_outlined,
+            size: (widget.width ?? 100) * 0.3,
             color: Colors.grey[400],
           ),
-          const SizedBox(height: 4),
-          Text(
-            sku,
-            style: TextStyle(
-              fontSize: 9,
-              color: Colors.grey[500],
+          if (widget.width != null && widget.width! > 100) ...[
+            const SizedBox(height: 8),
+            Text(
+              widget.sku.isNotEmpty ? widget.sku : 'No Image',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          ],
         ],
       ),
     );
@@ -142,13 +213,17 @@ class _ImageWithFallback extends StatefulWidget {
   final double? height;
   final BoxFit fit;
   final Widget placeholder;
-  
+  final VoidCallback cacheManager;
+  final Map<String, bool> imageExistsCache;
+
   const _ImageWithFallback({
     required this.paths,
     required this.placeholder,
     this.width,
     this.height,
     required this.fit,
+    required this.cacheManager,
+    required this.imageExistsCache,
   });
   
   @override
@@ -158,40 +233,79 @@ class _ImageWithFallback extends StatefulWidget {
 class _ImageWithFallbackState extends State<_ImageWithFallback> {
   int _currentIndex = 0;
   bool _allFailed = false;
-  
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_allFailed || _currentIndex >= widget.paths.length) {
+    if (_allFailed || _currentIndex >= widget.paths.length || _disposed) {
       return widget.placeholder;
     }
-    
+
+    return _buildImageAtIndex(_currentIndex);
+  }
+
+  Widget _buildImageAtIndex(int index) {
+    if (index >= widget.paths.length || _disposed) {
+      return widget.placeholder;
+    }
+
+    final imagePath = widget.paths[index];
+
+    // Check cache first to avoid repeated attempts
+    if (widget.imageExistsCache.containsKey(imagePath)) {
+      if (widget.imageExistsCache[imagePath] == false) {
+        // Known to not exist, try next
+        return _buildImageAtIndex(index + 1);
+      }
+    }
+
     return Image.asset(
-      widget.paths[_currentIndex],
+      imagePath,
       width: widget.width,
       height: widget.height,
       fit: widget.fit,
+      cacheWidth: widget.width?.toInt(),
+      cacheHeight: widget.height?.toInt(),
+      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+        if (frame != null) {
+          // Cache positive result
+          widget.imageExistsCache[imagePath] = true;
+          widget.cacheManager();
+        }
+        return child;
+      },
       errorBuilder: (context, error, stackTrace) {
-        // Try next image
-        if (_currentIndex < widget.paths.length - 1) {
+        // Cache negative result to avoid repeated attempts
+        widget.imageExistsCache[imagePath] = false;
+        widget.cacheManager();
+
+        // Try next path
+        if (index < widget.paths.length - 1) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
+            if (mounted && !_disposed) {
               setState(() {
-                _currentIndex++;
+                _currentIndex = index + 1;
               });
             }
           });
+          return widget.placeholder;
         } else {
           // All paths failed
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
+            if (mounted && !_disposed) {
               setState(() {
                 _allFailed = true;
               });
             }
           });
+          return widget.placeholder;
         }
-        // Return placeholder while we try next
-        return widget.placeholder;
       },
     );
   }

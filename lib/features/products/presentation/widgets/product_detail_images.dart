@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:open_file/open_file.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
-import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../../core/widgets/simple_image_widget.dart';
 import '../../../../core/services/pdf_service.dart';
 import '../../../../core/services/app_logger.dart';
 

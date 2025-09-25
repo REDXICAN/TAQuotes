@@ -14,7 +14,7 @@ class ProductImageOptimizer {
     // These are 600x600 max, JPEG compressed at 85% quality
     return 'assets/thumbnails/$cleanSku/$cleanSku.jpg';
     
-    // ProductImageHelperV3 will fallback to screenshots if thumbnail doesn't exist
+    // The image widget will fallback to screenshots if thumbnail doesn't exist
   }
   
   /// Get full-size image path for product details
@@ -23,7 +23,7 @@ class ProductImageOptimizer {
     final cleanSku = sku.trim().toUpperCase();
     
     // Return the specific image number
-    // The ProductImageHelperV3 will handle fallbacks if the image doesn't exist
+    // The image widget will handle fallbacks if the image doesn't exist
     return 'assets/screenshots/$cleanSku/$cleanSku P.$imageNumber.png';
   }
   

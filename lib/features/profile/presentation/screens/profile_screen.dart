@@ -26,13 +26,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _checkOfflineData() async {
-    final hasData = await OfflineService.staticHasOfflineData();
-    final queueCount = await OfflineService.staticGetSyncQueueCount();
+    try {
+      // Check if offline service is available before using it
+      if (!OfflineService.isInitialized || OfflineService.initializationFailed) {
+        setState(() {
+          _offlineDataAvailable = false;
+          _syncQueueCount = 0;
+        });
+        return;
+      }
 
-    setState(() {
-      _offlineDataAvailable = hasData;
-      _syncQueueCount = queueCount;
-    });
+      final hasData = await OfflineService.staticHasOfflineData();
+      final queueCount = await OfflineService.staticGetSyncQueueCount();
+
+      setState(() {
+        _offlineDataAvailable = hasData;
+        _syncQueueCount = queueCount;
+      });
+    } catch (e) {
+      // Handle errors gracefully
+      setState(() {
+        _offlineDataAvailable = false;
+        _syncQueueCount = 0;
+      });
+    }
   }
 
   @override
@@ -708,12 +725,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         actions: [
           if (_syncQueueCount > 0)
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(context);
-                OfflineService.syncPendingChanges();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Syncing data...')),
-                );
+                try {
+                  if (OfflineService.isInitialized && !OfflineService.initializationFailed) {
+                    await OfflineService.syncPendingChanges();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Syncing data...')),
+                      );
+                    }
+                  } else {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Offline service not available')),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Sync failed - service unavailable')),
+                    );
+                  }
+                }
               },
               child: const Text('Sync Now'),
             ),

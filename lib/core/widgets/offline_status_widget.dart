@@ -51,6 +51,11 @@ class _OfflineStatusWidgetState extends State<OfflineStatusWidget>
           stream: OfflineService.staticConnectionStream,
           initialData: OfflineService.staticIsOnline,
           builder: (context, snapshot) {
+            // Handle service unavailability gracefully
+            if (snapshot.hasError || !OfflineService.isInitialized) {
+              return const SizedBox.shrink(); // Hide banner if service unavailable
+            }
+
             final isOnline = snapshot.data ?? true;
             final pendingCount = OfflineService.staticPendingOperations.length;
 

@@ -170,7 +170,7 @@ class ExistingService {
 - Limited admin features
 
 ### 🔄 **Offline Functionality**
-- ✅ **100% Offline Capable** - Full functionality without internet
+- ✅ **Offline Support** - Mobile/Desktop offline functionality (Web requires internet)
 - ✅ **Automatic Sync** - Updates when connection restored
 - ✅ **Conflict Resolution** - Smart handling of simultaneous edits
 - ✅ **Queue Management** - Actions saved and processed when online
@@ -357,7 +357,7 @@ firebase deploy --only hosting
 - **Client Management**: Case-insensitive partial search, full CRUD operations
 - **Products Screen**: Real-time updates, lazy loading (24 initial, +12 on scroll)
 - **Email System**: PDF attachments, Excel attachments, custom messages
-- **Offline Mode**: 100% functionality with automatic sync when reconnected
+- **Offline Mode**: Mobile/Desktop support with automatic sync when reconnected (Web requires internet connection)
 
 ### UI/UX Improvements
 - **Collapsible Sections**: Order Summary and Comments in cart start collapsed

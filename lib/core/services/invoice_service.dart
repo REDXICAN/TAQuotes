@@ -6,6 +6,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:excel/excel.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mailer/mailer.dart' show Attachment, StreamAttachment;
 import 'email_service.dart';
 import 'app_logger.dart';
 
@@ -401,7 +402,7 @@ class InvoiceService {
       for (int col = 0; col < 5; col++) {
         sheet.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: currentRow)).cellStyle = CellStyle(
           bold: true,
-          backgroundColorHex: ExcelColor.gray25,
+          backgroundColorHex: ExcelColor.fromHexString('#F5F5F5'),
         );
       }
 
@@ -444,7 +445,7 @@ class InvoiceService {
       currentRow += 2;
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow)).value = TextCellValue('Payment Terms: ${_getPaymentTermsDescription(invoice.paymentTerms)}');
 
-      return excel.encode()!;
+      return Uint8List.fromList(excel.encode()!);
 
     } catch (e) {
       AppLogger.error('Error generating invoice Excel', error: e, category: LogCategory.business);
@@ -488,24 +489,45 @@ class InvoiceService {
       final emailSubject = subject ?? 'Invoice ${invoice.invoiceNumber} from Turbo Air Mexico';
       final emailBody = body ?? _generateEmailBody(invoice);
 
-      // Send email
-      final emailResult = await _emailService.sendInvoiceEmail(
+      // Prepare attachments
+      final attachments = <Attachment>[];
+      if (pdfBytes != null) {
+        attachments.add(StreamAttachment(
+          Stream.value(pdfBytes),
+          'application/pdf',
+          fileName: 'Invoice_${invoice.invoiceNumber}.pdf',
+        ));
+      }
+      if (excelBytes != null) {
+        attachments.add(StreamAttachment(
+          Stream.value(excelBytes),
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          fileName: 'Invoice_${invoice.invoiceNumber}.xlsx',
+        ));
+      }
+
+      // Send email using sendQuoteEmail method
+      final emailResult = await _emailService.sendQuoteEmail(
         recipientEmail: recipientEmail,
-        subject: emailSubject,
-        body: emailBody,
-        invoiceNumber: invoice.invoiceNumber,
-        pdfBytes: pdfBytes,
-        excelBytes: excelBytes,
+        recipientName: invoice.clientInfo['company'] ?? 'Customer',
+        quoteNumber: invoice.invoiceNumber,
+        htmlContent: emailBody,
+        userInfo: const {
+          'name': 'Invoice System',
+          'email': 'system@turboairmexico.com',
+          'title': 'Automated Invoice',
+        },
+        attachments: attachments,
       );
 
-      if (emailResult.success) {
+      if (emailResult) {
         // Update invoice status and sent date
         await updateInvoiceStatus(invoiceId, InvoiceStatus.sent);
 
         AppLogger.info('Invoice email sent successfully: ${invoice.invoiceNumber}', category: LogCategory.business);
         return true;
       } else {
-        AppLogger.error('Failed to send invoice email: ${emailResult.error}', category: LogCategory.business);
+        AppLogger.error('Failed to send invoice email', category: LogCategory.business);
         return false;
       }
 

@@ -9,9 +9,10 @@ import '../../../../core/utils/responsive_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../widgets/backup_status_widget.dart';
 import 'package:intl/intl.dart';
-import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/services/export_service.dart';
 import '../../../../core/utils/download_helper.dart';
+import '../../../../core/services/rbac_service.dart';
+import '../../../../core/services/app_logger.dart';
 
 class AdminPanelScreen extends ConsumerStatefulWidget {
   const AdminPanelScreen({super.key});
@@ -39,11 +40,15 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
   @override
   void initState() {
     super.initState();
-    _checkAdminAccess();
-    _loadDashboardData();
+    _initializeScreen();
   }
 
-  void _checkAdminAccess() {
+  Future<void> _initializeScreen() async {
+    await _checkAdminAccess();
+    await _loadDashboardData();
+  }
+
+  Future<void> _checkAdminAccess() async {
     // Check if user is authenticated
     final user = ref.read(authStateProvider).valueOrNull;
     if (user == null) {
@@ -62,13 +67,10 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
       return;
     }
 
-    // Check if user is admin (andres@turboairmexico.com or has admin role)
-    final userEmail = user.email?.toLowerCase();
-    final isAdmin = userEmail == 'andres@turboairmexico.com' ||
-                    userEmail == 'admin@turboairinc.com' ||
-                    userEmail == 'superadmin@turboairinc.com';
+    // Check if user has admin access using RBAC
+    final hasAdminAccess = await RBACService.hasPermission('access_admin');
 
-    if (!isAdmin) {
+    if (!hasAdminAccess) {
       // Not admin - BLOCK ACCESS
       Future.microtask(() {
         if (mounted) {
@@ -82,11 +84,11 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
           );
         }
       });
-      print('Access denied for non-admin user: ${user.email}');
+      AppLogger.warning('Access denied to Admin Panel', data: {'user_email': user.email, 'reason': 'insufficient_privileges'});
       return;
     }
 
-    print('Admin access granted for user: ${user.email}');
+    AppLogger.info('Admin Panel access granted', data: {'user_email': user.email});
   }
 
   Future<void> _loadDashboardData() async {

@@ -3,17 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import '../../../../core/services/firebase_auth_service.dart';
+import '../../../../core/services/auth_service.dart';
 import '../../../../core/services/realtime_database_service.dart';
 import '../../../../core/services/hybrid_database_service.dart';
 import '../../../../core/services/email_service.dart';
 import '../../../../core/services/product_cache_service.dart';
 import '../../../../core/services/app_logger.dart';
+import '../../../../core/services/rbac_service.dart';
 import '../../../../core/models/models.dart';
+import '../../../../core/models/user_role.dart';
 
 // Auth Service Provider
-final authServiceProvider = Provider<FirebaseAuthService>((ref) {
-  return FirebaseAuthService();
+final authServiceProvider = Provider<AuthService>((ref) {
+  return AuthService();
 });
 
 // Realtime Database Service Provider
@@ -545,4 +547,41 @@ final changePasswordProvider = Provider((ref) {
       return 'An unexpected error occurred';
     }
   };
+});
+
+// RBAC Providers
+
+// Current User Role Provider
+final currentUserRoleProvider = FutureProvider<UserRole>((ref) async {
+  final user = ref.watch(authStateProvider).valueOrNull;
+  if (user == null) {
+    return UserRole.distributor;
+  }
+
+  return await RBACService.getUserRole(user.uid);
+});
+
+// Permission Check Provider
+final permissionProvider = FutureProvider.family<bool, String>((ref, permission) async {
+  return await RBACService.hasPermission(permission);
+});
+
+// SuperAdmin Check Provider
+final isSuperAdminProvider = FutureProvider<bool>((ref) async {
+  return await RBACService.isSuperAdmin();
+});
+
+// Admin or Above Check Provider
+final isAdminOrAboveProvider = FutureProvider<bool>((ref) async {
+  return await RBACService.isAdminOrAbove();
+});
+
+// RBAC Helper Methods Provider
+final rbacProvider = Provider<RBACService>((ref) {
+  return RBACService();
+});
+
+// Initialize SuperAdmin role on app start
+final initializeSuperAdminProvider = FutureProvider<void>((ref) async {
+  await RBACService.ensureSuperAdminRole();
 });

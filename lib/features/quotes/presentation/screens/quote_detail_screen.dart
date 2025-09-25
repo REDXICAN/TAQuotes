@@ -16,6 +16,10 @@ import '../../../../core/services/email_service.dart';
 import '../../../../core/services/export_service.dart';
 import '../../../../core/services/app_logger.dart';
 import 'package:mailer/mailer.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:html' as html;
+import '../../../../core/services/realtime_database_service.dart';
+import '../../../../core/utils/download_helper.dart';
 
 // Quote detail provider
 final quoteDetailProvider =
@@ -149,6 +153,26 @@ class QuoteDetailScreen extends ConsumerWidget {
                   ],
                 ),
               ),
+              const PopupMenuItem<String>(
+                value: 'share',
+                child: Row(
+                  children: [
+                    Icon(Icons.share),
+                    SizedBox(width: 8),
+                    Text('Share'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'print',
+                child: Row(
+                  children: [
+                    Icon(Icons.print),
+                    SizedBox(width: 8),
+                    Text('Print'),
+                  ],
+                ),
+              ),
               const PopupMenuDivider(),
               const PopupMenuItem(
                 value: 'duplicate',
@@ -171,12 +195,7 @@ class QuoteDetailScreen extends ConsumerWidget {
                 ),
               ),
             ],
-            onSelected: (value) {
-              // Handle menu actions
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('$value action coming soon')),
-              );
-            },
+            onSelected: (value) => _handleMenuAction(context, ref, quote, value),
           ),
         ],
       ),
@@ -1021,6 +1040,435 @@ class QuoteDetailScreen extends ConsumerWidget {
       ),
       ),
     );
+  }
+
+  Future<void> _handleMenuAction(BuildContext context, WidgetRef ref, Quote? quote, String action) async {
+    if (quote == null) return;
+
+    try {
+      switch (action) {
+        case 'email':
+          await _sendQuoteEmail(context, ref, quote);
+          break;
+        case 'pdf':
+          await _exportQuotePDF(context, ref, quote);
+          break;
+        case 'excel':
+          await _exportQuoteExcel(context, ref, quote);
+          break;
+        case 'share':
+          await _shareQuote(context, ref, quote);
+          break;
+        case 'print':
+          await _printQuote(context, ref, quote);
+          break;
+        case 'duplicate':
+          await _duplicateQuote(context, ref, quote);
+          break;
+        case 'delete':
+          await _deleteQuote(context, ref, quote);
+          break;
+        default:
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Unknown action: $action')),
+          );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportQuotePDF(BuildContext context, WidgetRef ref, Quote quote) async {
+    bool isLoadingDialogShowing = true;
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => PopScope(
+        canPop: false,
+        child: const AlertDialog(
+          content: SizedBox(
+            height: 100,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Generating PDF...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final pdfBytes = await ExportService.generateQuotePDF(quote.id ?? '');
+
+      // Close loading dialog
+      if (isLoadingDialogShowing && context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        isLoadingDialogShowing = false;
+      }
+
+      // Download the PDF
+      final fileName = 'Quote_${quote.quoteNumber ?? 'Unknown'}.pdf';
+      await DownloadHelper.downloadFile(
+        bytes: pdfBytes,
+        filename: fileName,
+        mimeType: 'application/pdf',
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PDF exported: $fileName'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still showing
+      if (isLoadingDialogShowing && context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to export PDF: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      AppLogger.error('Failed to export quote PDF', error: e, category: LogCategory.business);
+    }
+  }
+
+  Future<void> _exportQuoteExcel(BuildContext context, WidgetRef ref, Quote quote) async {
+    bool isLoadingDialogShowing = true;
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => PopScope(
+        canPop: false,
+        child: const AlertDialog(
+          content: SizedBox(
+            height: 100,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Generating Excel...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final excelBytes = await ExportService.generateQuoteExcel(quote.id ?? '');
+
+      // Close loading dialog
+      if (isLoadingDialogShowing && context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        isLoadingDialogShowing = false;
+      }
+
+      // Download the Excel file
+      final fileName = 'Quote_${quote.quoteNumber ?? 'Unknown'}.xlsx';
+      await DownloadHelper.downloadFile(
+        bytes: excelBytes,
+        filename: fileName,
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Excel exported: $fileName'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still showing
+      if (isLoadingDialogShowing && context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to export Excel: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      AppLogger.error('Failed to export quote Excel', error: e, category: LogCategory.business);
+    }
+  }
+
+  Future<void> _shareQuote(BuildContext context, WidgetRef ref, Quote quote) async {
+    try {
+      final dateFormat = DateFormat('MMMM dd, yyyy');
+      final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
+
+      String shareText = 'Quote #${quote.quoteNumber}\n';
+      shareText += 'Date: ${dateFormat.format(quote.createdAt)}\n\n';
+
+      if (quote.client != null) {
+        shareText += 'Client: ${quote.client!.company}\n';
+        if (quote.client!.contactName.isNotEmpty) {
+          shareText += 'Contact: ${quote.client!.contactName}\n';
+        }
+      }
+
+      shareText += '\nItems (${quote.items.length}):\n';
+      for (var item in quote.items) {
+        shareText += '• ${item.productName} x${item.quantity} = ${currencyFormat.format(item.total)}\n';
+      }
+
+      shareText += '\nSubtotal: ${currencyFormat.format(quote.subtotal)}\n';
+      if (quote.discountAmount > 0) {
+        shareText += 'Discount: -${currencyFormat.format(quote.discountAmount)}\n';
+      }
+      shareText += 'Tax: ${currencyFormat.format(quote.tax)}\n';
+      shareText += 'Total: ${currencyFormat.format(quote.totalAmount)}';
+
+      // Generate PDF for sharing
+      final pdfBytes = await ExportService.generateQuotePDF(quote.id ?? '');
+      final fileName = 'Quote_${quote.quoteNumber ?? 'Unknown'}.pdf';
+
+      // Share with files
+      await Share.shareXFiles(
+        [XFile.fromData(pdfBytes, name: fileName, mimeType: 'application/pdf')],
+        text: shareText,
+        subject: 'Quote #${quote.quoteNumber}',
+      );
+
+    } catch (e) {
+      // Fallback to text-only sharing if PDF generation fails
+      final dateFormat = DateFormat('MMMM dd, yyyy');
+      final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
+
+      String shareText = 'Quote #${quote.quoteNumber}\n';
+      shareText += 'Date: ${dateFormat.format(quote.createdAt)}\n';
+      shareText += 'Total: ${currencyFormat.format(quote.totalAmount)}';
+
+      await Share.share(
+        shareText,
+        subject: 'Quote #${quote.quoteNumber}',
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Shared quote (text only - PDF generation failed)'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _printQuote(BuildContext context, WidgetRef ref, Quote quote) async {
+    try {
+      // Generate PDF for printing
+      final pdfBytes = await ExportService.generateQuotePDF(quote.id ?? '');
+
+      // Create blob and object URL for printing
+      final blob = html.Blob([pdfBytes]);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+
+      // Open in new window for printing
+      html.window.open(url, '_blank');
+
+      // Clean up the object URL after a delay
+      Future.delayed(const Duration(seconds: 1), () {
+        html.Url.revokeObjectUrl(url);
+      });
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Opening quote for printing...'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to print quote: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      AppLogger.error('Failed to print quote', error: e, category: LogCategory.business);
+    }
+  }
+
+  Future<void> _duplicateQuote(BuildContext context, WidgetRef ref, Quote quote) async {
+    bool isLoadingDialogShowing = true;
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => PopScope(
+        canPop: false,
+        child: const AlertDialog(
+          content: SizedBox(
+            height: 100,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Duplicating quote...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final dbService = ref.read(databaseServiceProvider);
+
+      // Prepare quote items for duplication
+      final List<Map<String, dynamic>> duplicateItems = quote.items.map((item) => {
+        'product_id': item.productId,
+        'product_name': item.productName,
+        'quantity': item.quantity,
+        'unit_price': item.unitPrice,
+        'total_price': item.total,
+        'discount': item.discount,
+        'note': item.note,
+        'sequence_number': item.sequenceNumber,
+      }).toList();
+
+      // Create the duplicate quote
+      final newQuoteId = await dbService.createQuote(
+        clientId: quote.clientId ?? '',
+        items: duplicateItems,
+        subtotal: quote.subtotal,
+        taxRate: quote.taxRate,
+        taxAmount: quote.tax,
+        totalAmount: quote.totalAmount,
+        discountAmount: quote.discountAmount,
+        discountType: quote.discountType,
+        discountValue: quote.discountValue,
+        comments: 'Duplicated from Quote #${quote.quoteNumber}',
+      );
+
+      // Close loading dialog
+      if (isLoadingDialogShowing && context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        isLoadingDialogShowing = false;
+      }
+
+      // Navigate to the new quote
+      if (context.mounted) {
+        context.go('/quote-detail/$newQuoteId');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Quote duplicated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still showing
+      if (isLoadingDialogShowing && context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to duplicate quote: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      AppLogger.error('Failed to duplicate quote', error: e, category: LogCategory.business);
+    }
+  }
+
+  Future<void> _deleteQuote(BuildContext context, WidgetRef ref, Quote quote) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Quote'),
+        content: Text('Are you sure you want to delete Quote #${quote.quoteNumber}? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final dbService = ref.read(databaseServiceProvider);
+        await dbService.deleteQuote(quote.id ?? '');
+
+        if (context.mounted) {
+          // Navigate back to quotes list
+          context.go('/quotes');
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Quote deleted successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete quote: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        AppLogger.error('Failed to delete quote', error: e, category: LogCategory.business);
+      }
+    }
   }
 
   Widget _buildTotalRow(String label, String value, {bool isTotal = false, bool isDiscount = false}) {

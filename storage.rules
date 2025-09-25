@@ -4,37 +4,88 @@ service firebase.storage {
     // Allow public read access to all files
     match /{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.email == 'andres@turboairmexico.com';
+      allow write: if request.auth != null && (
+        request.auth.token.role == 'superadmin' ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.email == 'andres@turboairmexico.com'
+      );
     }
-    
+
     // Specific rules for PDFs - public read with CORS support
     match /pdfs/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.email == 'andres@turboairmexico.com';
+      allow write: if request.auth != null && (
+        request.auth.token.role == 'superadmin' ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.email == 'andres@turboairmexico.com'
+      );
     }
-    
+
     // Specific rules for spec sheets - public read
     match /spec-sheets/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.email == 'andres@turboairmexico.com';
+      allow write: if request.auth != null && (
+        request.auth.token.role == 'superadmin' ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.email == 'andres@turboairmexico.com'
+      );
     }
-    
+
     // Specific rules for thumbnails - public read
     match /thumbnails/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.email == 'andres@turboairmexico.com';
+      allow write: if request.auth != null && (
+        request.auth.token.role == 'superadmin' ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.email == 'andres@turboairmexico.com'
+      );
     }
-    
+
     // Specific rules for screenshots - public read
     match /screenshots/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.email == 'andres@turboairmexico.com';
+      allow write: if request.auth != null && (
+        request.auth.token.role == 'superadmin' ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.email == 'andres@turboairmexico.com'
+      );
     }
-    
+
     // Product images should be publicly readable
     match /products/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.email == 'andres@turboairmexico.com';
+      allow write: if request.auth != null && (
+        request.auth.token.role == 'superadmin' ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.email == 'andres@turboairmexico.com'
+      );
+    }
+
+    // User-specific uploads (profile pictures, etc.)
+    match /users/{userId}/{allPaths=**} {
+      allow read: if request.auth != null && (
+        request.auth.uid == userId ||
+        request.auth.token.role == 'superadmin' ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.email == 'andres@turboairmexico.com'
+      );
+      allow write: if request.auth != null && (
+        request.auth.uid == userId ||
+        request.auth.token.role == 'superadmin' ||
+        request.auth.token.email == 'andres@turboairmexico.com'
+      );
+    }
+
+    // Backups - SuperAdmin only
+    match /backups/{allPaths=**} {
+      allow read: if request.auth != null && (
+        request.auth.token.role == 'superadmin' ||
+        request.auth.token.email == 'andres@turboairmexico.com'
+      );
+      allow write: if request.auth != null && (
+        request.auth.token.role == 'superadmin' ||
+        request.auth.token.email == 'andres@turboairmexico.com'
+      );
     }
   }
 }

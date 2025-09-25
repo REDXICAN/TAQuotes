@@ -39,4 +39,42 @@ class PriceFormatter {
   static String formatForInput(dynamic value) {
     return formatNumber(value);
   }
+
+  /// Safely convert any value to double with fallback
+  static double safeToDouble(dynamic value, [double fallback = 0.0]) {
+    if (value == null) return fallback;
+
+    try {
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) {
+        final parsed = double.tryParse(value);
+        return parsed ?? fallback;
+      }
+      // Try converting to string first, then parse
+      final parsed = double.tryParse(value.toString());
+      return parsed ?? fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  /// Safely convert any value to int with fallback
+  static int safeToInt(dynamic value, [int fallback = 0]) {
+    if (value == null) return fallback;
+
+    try {
+      if (value is int) return value;
+      if (value is double) return value.round();
+      if (value is String) {
+        final parsed = int.tryParse(value);
+        return parsed ?? fallback;
+      }
+      // Try converting to string first, then parse
+      final parsed = int.tryParse(value.toString());
+      return parsed ?? fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
 }

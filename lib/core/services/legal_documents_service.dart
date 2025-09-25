@@ -1,6 +1,5 @@
 // lib/core/services/legal_documents_service.dart
 import 'dart:async';
-import 'dart:convert';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'app_logger.dart';

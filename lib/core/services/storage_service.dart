@@ -231,4 +231,261 @@ class StorageService {
       return false;
     }
   }
+
+  // Upload PDF to Firebase Storage
+  static Future<String?> uploadPDF({
+    required Uint8List pdfBytes,
+    required String fileName,
+    String? folderPath,
+  }) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('User must be authenticated to upload PDF');
+      }
+
+      AppLogger.info(
+        'Starting PDF upload',
+        category: LogCategory.database,
+        data: {
+          'fileName': fileName,
+          'fileSize': pdfBytes.length,
+          'folderPath': folderPath,
+        },
+      );
+
+      // Validate file size (max 10MB for PDFs)
+      if (pdfBytes.length > 10 * 1024 * 1024) {
+        throw Exception('PDF file size exceeds 10MB limit');
+      }
+
+      // Ensure file has .pdf extension
+      final pdfFileName = fileName.endsWith('.pdf') ? fileName : '$fileName.pdf';
+
+      // Create storage reference
+      // Structure: pdfs/{folderPath}/{userId}/{fileName} or pdfs/{userId}/{fileName}
+      Reference storageRef;
+      if (folderPath != null && folderPath.isNotEmpty) {
+        storageRef = _storage.ref()
+            .child('pdfs')
+            .child(folderPath)
+            .child(user.uid)
+            .child(pdfFileName);
+      } else {
+        storageRef = _storage.ref()
+            .child('pdfs')
+            .child(user.uid)
+            .child(pdfFileName);
+      }
+
+      // Upload PDF with metadata
+      final uploadTask = await storageRef.putData(
+        pdfBytes,
+        SettableMetadata(
+          contentType: 'application/pdf',
+          customMetadata: {
+            'uploadedBy': user.uid,
+            'uploadedAt': DateTime.now().toIso8601String(),
+            'originalFileName': fileName,
+          },
+        ),
+      );
+
+      // Get download URL
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+      AppLogger.info(
+        'PDF uploaded successfully',
+        category: LogCategory.database,
+        data: {
+          'downloadUrl': downloadUrl,
+          'fileName': pdfFileName,
+          'size': pdfBytes.length,
+        },
+      );
+
+      return downloadUrl;
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'Failed to upload PDF',
+        error: e,
+        stackTrace: stackTrace,
+        category: LogCategory.database,
+      );
+      return null;
+    }
+  }
+
+  // Upload quote PDF to Firebase Storage
+  static Future<String?> uploadQuotePDF({
+    required Uint8List pdfBytes,
+    required String quoteNumber,
+    String? clientId,
+  }) async {
+    try {
+      // Generate filename with timestamp
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'quote_${quoteNumber}_$timestamp.pdf';
+
+      // Upload to quotes folder
+      return await uploadPDF(
+        pdfBytes: pdfBytes,
+        fileName: fileName,
+        folderPath: 'quotes',
+      );
+    } catch (e) {
+      AppLogger.error(
+        'Failed to upload quote PDF',
+        error: e,
+        category: LogCategory.database,
+      );
+      return null;
+    }
+  }
+
+  // Upload Excel file to Firebase Storage
+  static Future<String?> uploadExcel({
+    required Uint8List excelBytes,
+    required String fileName,
+    String? folderPath,
+  }) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('User must be authenticated to upload Excel');
+      }
+
+      AppLogger.info(
+        'Starting Excel upload',
+        category: LogCategory.database,
+        data: {
+          'fileName': fileName,
+          'fileSize': excelBytes.length,
+          'folderPath': folderPath,
+        },
+      );
+
+      // Validate file size (max 25MB for Excel)
+      if (excelBytes.length > 25 * 1024 * 1024) {
+        throw Exception('Excel file size exceeds 25MB limit');
+      }
+
+      // Ensure file has .xlsx extension
+      final excelFileName = fileName.endsWith('.xlsx') ? fileName : '$fileName.xlsx';
+
+      // Create storage reference
+      Reference storageRef;
+      if (folderPath != null && folderPath.isNotEmpty) {
+        storageRef = _storage.ref()
+            .child('excel')
+            .child(folderPath)
+            .child(user.uid)
+            .child(excelFileName);
+      } else {
+        storageRef = _storage.ref()
+            .child('excel')
+            .child(user.uid)
+            .child(excelFileName);
+      }
+
+      // Upload Excel with metadata
+      final uploadTask = await storageRef.putData(
+        excelBytes,
+        SettableMetadata(
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          customMetadata: {
+            'uploadedBy': user.uid,
+            'uploadedAt': DateTime.now().toIso8601String(),
+            'originalFileName': fileName,
+          },
+        ),
+      );
+
+      // Get download URL
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+      AppLogger.info(
+        'Excel uploaded successfully',
+        category: LogCategory.database,
+        data: {
+          'downloadUrl': downloadUrl,
+          'fileName': excelFileName,
+          'size': excelBytes.length,
+        },
+      );
+
+      return downloadUrl;
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'Failed to upload Excel',
+        error: e,
+        stackTrace: stackTrace,
+        category: LogCategory.database,
+      );
+      return null;
+    }
+  }
+
+  // Delete file from Firebase Storage
+  static Future<bool> deleteFile(String fileUrl) async {
+    try {
+      final ref = _storage.refFromURL(fileUrl);
+      await ref.delete();
+
+      AppLogger.info(
+        'File deleted successfully',
+        category: LogCategory.database,
+        data: {'fileUrl': fileUrl},
+      );
+
+      return true;
+    } catch (e) {
+      AppLogger.error(
+        'Failed to delete file',
+        error: e,
+        category: LogCategory.database,
+      );
+      return false;
+    }
+  }
+
+  // Get list of user's PDFs
+  static Future<List<Map<String, dynamic>>> getUserPDFs() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        return [];
+      }
+
+      final listResult = await _storage.ref()
+          .child('pdfs')
+          .child(user.uid)
+          .listAll();
+
+      final pdfs = <Map<String, dynamic>>[];
+
+      for (var item in listResult.items) {
+        final metadata = await item.getMetadata();
+        final url = await item.getDownloadURL();
+
+        pdfs.add({
+          'name': item.name,
+          'url': url,
+          'size': metadata.size,
+          'created': metadata.timeCreated,
+          'contentType': metadata.contentType,
+          'customMetadata': metadata.customMetadata,
+        });
+      }
+
+      return pdfs;
+    } catch (e) {
+      AppLogger.error(
+        'Failed to get user PDFs',
+        error: e,
+        category: LogCategory.database,
+      );
+      return [];
+    }
+  }
 }

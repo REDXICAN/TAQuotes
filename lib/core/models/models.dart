@@ -1,4 +1,5 @@
 // lib/core/models/models.dart
+import '../services/app_logger.dart';
 
 // Export UserRole enum
 export 'user_role.dart';
@@ -57,7 +58,7 @@ class UserProfile {
           return DateTime.fromMillisecondsSinceEpoch(value.toInt());
         }
       } catch (e) {
-        print('Error parsing date: $e');
+        AppLogger.error('Error parsing date', error: e, data: {'value': value});
       }
       return null;
     }

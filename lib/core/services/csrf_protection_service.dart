@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:hive/hive.dart';
 import '../config/env_config.dart';
+import 'app_logger.dart';
 
 class CsrfProtectionService {
   static final CsrfProtectionService _instance = CsrfProtectionService._internal();
@@ -39,7 +40,7 @@ class CsrfProtectionService {
         await generateNewToken();
       }
     } catch (e) {
-      print('Error initializing CSRF protection: $e');
+      AppLogger.error('Error initializing CSRF protection', error: e);
       // Generate in-memory token as fallback
       _currentToken = _generateRandomToken();
       _tokenGeneratedAt = DateTime.now();

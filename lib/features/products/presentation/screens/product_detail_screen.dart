@@ -224,11 +224,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           // Top Seller toggle for superadmins only
                           Consumer(
                             builder: (context, ref, _) {
-                              final authState = ref.watch(authStateProvider);
-                              final isSuperAdmin = authState.value?.email == 'andres@turboairmexico.com';
-                              
-                              if (isSuperAdmin) {
-                                return IconButton(
+                              final isSuperAdminAsync = ref.watch(isSuperAdminProvider);
+
+                              return isSuperAdminAsync.when(
+                                data: (isSuperAdmin) => isSuperAdmin ? IconButton(
                                   icon: Icon(
                                     product.isTopSeller ? Icons.star : Icons.star_border,
                                     color: product.isTopSeller ? Colors.amber : Colors.grey,
@@ -268,9 +267,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                       }
                                     }
                                   },
-                                );
-                              }
-                              return const SizedBox.shrink();
+                                ) : const SizedBox.shrink(),
+                                loading: () => const SizedBox.shrink(),
+                                error: (_, __) => const SizedBox.shrink(),
+                              );
                             },
                           ),
                         ],
@@ -837,11 +837,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                               // Top Seller toggle for superadmins only
                               Consumer(
                                 builder: (context, ref, _) {
-                                  final authState = ref.watch(authStateProvider);
-                                  final isSuperAdmin = authState.value?.email == 'andres@turboairmexico.com';
-                                  
-                                  if (isSuperAdmin) {
-                                    return IconButton(
+                                  final isSuperAdminAsync = ref.watch(isSuperAdminProvider);
+
+                                  return isSuperAdminAsync.when(
+                                    data: (isSuperAdmin) => isSuperAdmin ? IconButton(
                                       icon: Icon(
                                         product.isTopSeller ? Icons.star : Icons.star_border,
                                         color: product.isTopSeller ? Colors.amber : Colors.grey,
@@ -881,9 +880,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                           }
                                         }
                                       },
-                                    );
-                                  }
-                                  return const SizedBox.shrink();
+                                    ) : const SizedBox.shrink(),
+                                    loading: () => const SizedBox.shrink(),
+                                    error: (_, __) => const SizedBox.shrink(),
+                                  );
                                 },
                               ),
                             ],
@@ -1431,32 +1431,6 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   }
 
   Widget _buildSpecSection(Product product) {
-    // Debug: Print all product fields to console
-    print('=== PRODUCT DATA DEBUG ===');
-    print('SKU: ${product.sku}');
-    print('Model: ${product.model}');
-    print('Category: ${product.category}');
-    print('Subcategory: ${product.subcategory}');
-    print('ProductType: ${product.productType}');
-    print('Voltage: ${product.voltage}');
-    print('Amperage: ${product.amperage}');
-    print('Phase: ${product.phase}');
-    print('Frequency: ${product.frequency}');
-    print('Plug Type: ${product.plugType}');
-    print('Dimensions: ${product.dimensions}');
-    print('Dimensions Metric: ${product.dimensionsMetric}');
-    print('Weight: ${product.weight}');
-    print('Weight Metric: ${product.weightMetric}');
-    print('Temperature Range: ${product.temperatureRange}');
-    print('Temperature Range Metric: ${product.temperatureRangeMetric}');
-    print('Refrigerant: ${product.refrigerant}');
-    print('Compressor: ${product.compressor}');
-    print('Capacity: ${product.capacity}');
-    print('Doors: ${product.doors}');
-    print('Shelves: ${product.shelves}');
-    print('Features: ${product.features}');
-    print('Certifications: ${product.certifications}');
-    print('========================');
     
     final specs = <String, String?>{
       'Category': product.category,

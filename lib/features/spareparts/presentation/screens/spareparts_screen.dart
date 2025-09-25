@@ -28,7 +28,7 @@ class SparePart {
       name: map['name'] ?? '',
       stock: map['stock'] ?? 0,
       warehouse: map['warehouse'],
-      price: (map['price'] ?? 0).toDouble(),
+      price: PriceFormatter.safeToDouble(map['price']),
     );
   }
 }

@@ -5,8 +5,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'app_logger.dart';
+import 'rbac_service.dart';
 import '../utils/download_helper.dart';
-import '../models/models.dart';
 
 /// Service for handling database backups
 class BackupService {
@@ -35,7 +35,7 @@ class BackupService {
       }
 
       // Check if user is admin
-      final isAdmin = user.email == 'andres@turboairmexico.com';
+      final canManageBackups = await RBACService.hasPermission('manage_backups');
 
       final Map<String, dynamic> backupData = {
         'metadata': {
@@ -43,7 +43,7 @@ class BackupService {
           'created_at': DateTime.now().toIso8601String(),
           'created_by': user.email,
           'app_version': '1.5.3',
-          'is_complete': isAdmin,
+          'is_complete': canManageBackups,
           'sections': [],
         },
         'data': {},
@@ -74,7 +74,7 @@ class BackupService {
       // Fetch user-specific data
       if (includeClients) {
         AppLogger.info('Fetching clients for backup');
-        if (isAdmin) {
+        if (canManageBackups) {
           // Admin gets all clients
           final clientsSnapshot = await _db.ref('clients').get();
           if (clientsSnapshot.exists) {
@@ -96,7 +96,7 @@ class BackupService {
 
       if (includeQuotes) {
         AppLogger.info('Fetching quotes for backup');
-        if (isAdmin) {
+        if (canManageBackups) {
           // Admin gets all quotes
           final quotesSnapshot = await _db.ref('quotes').get();
           if (quotesSnapshot.exists) {
@@ -117,7 +117,7 @@ class BackupService {
       }
 
       // Admin-only sections
-      if (isAdmin) {
+      if (canManageBackups) {
         if (includeUsers) {
           AppLogger.info('Fetching users for backup');
           final usersSnapshot = await _db.ref('users').get();
@@ -247,14 +247,14 @@ class BackupService {
       final data = backupData['data'] as Map<String, dynamic>;
 
       // Check if user is admin
-      final isAdmin = user.email == 'andres@turboairmexico.com';
+      final canManageBackups = await RBACService.hasPermission('manage_backups');
 
       int itemsRestored = 0;
       final List<String> restoredSections = [];
       final List<String> errors = [];
 
       // Restore products (admin only)
-      if (data.containsKey('products') && isAdmin) {
+      if (data.containsKey('products') && canManageBackups) {
         try {
           await _db.ref('products').set(data['products']);
           restoredSections.add('products');
@@ -265,7 +265,7 @@ class BackupService {
       }
 
       // Restore spare parts (admin only)
-      if (data.containsKey('spare_parts') && isAdmin) {
+      if (data.containsKey('spare_parts') && canManageBackups) {
         try {
           await _db.ref('spare_parts').set(data['spare_parts']);
           restoredSections.add('spare_parts');
@@ -278,7 +278,7 @@ class BackupService {
       // Restore clients
       if (data.containsKey('clients')) {
         try {
-          if (isAdmin) {
+          if (canManageBackups) {
             // Admin can restore all clients
             await _db.ref('clients').set(data['clients']);
             itemsRestored += _countNestedItems(data['clients'] as Map);
@@ -299,7 +299,7 @@ class BackupService {
       // Restore quotes
       if (data.containsKey('quotes')) {
         try {
-          if (isAdmin) {
+          if (canManageBackups) {
             // Admin can restore all quotes
             await _db.ref('quotes').set(data['quotes']);
             itemsRestored += _countNestedItems(data['quotes'] as Map);
@@ -318,7 +318,7 @@ class BackupService {
       }
 
       // Restore users and profiles (admin only)
-      if (data.containsKey('users') && isAdmin) {
+      if (data.containsKey('users') && canManageBackups) {
         try {
           await _db.ref('users').set(data['users']);
           restoredSections.add('users');
@@ -328,7 +328,7 @@ class BackupService {
         }
       }
 
-      if (data.containsKey('user_profiles') && isAdmin) {
+      if (data.containsKey('user_profiles') && canManageBackups) {
         try {
           await _db.ref('user_profiles').set(data['user_profiles']);
           restoredSections.add('user_profiles');
@@ -339,7 +339,7 @@ class BackupService {
       }
 
       // Restore warehouse data (admin only)
-      if (data.containsKey('warehouse_stock') && isAdmin) {
+      if (data.containsKey('warehouse_stock') && canManageBackups) {
         try {
           await _db.ref('warehouse_stock').set(data['warehouse_stock']);
           restoredSections.add('warehouse_stock');
@@ -399,24 +399,25 @@ class BackupService {
   }
 
   /// Get backup history from Firebase
-  Stream<List<BackupEntry>> getBackupHistory({int? limit}) {
+  Stream<List<BackupEntry>> getBackupHistory({int? limit}) async* {
     final user = _auth.currentUser;
     if (user == null) {
-      return Stream.value([]);
+      yield [];
+      return;
     }
 
-    final isAdmin = user.email == 'andres@turboairmexico.com';
-    final ref = isAdmin
+    final canManageBackups = await RBACService.hasPermission('manage_backups');
+    final ref = canManageBackups
         ? _db.ref('backup_history')
         : _db.ref('backup_history').orderByChild('userId').equalTo(user.uid);
 
-    return ref
+    await for (final event in ref
         .orderByChild('createdAt')
         .limitToLast(limit ?? 50)
-        .onValue
-        .map((event) {
+        .onValue) {
       if (event.snapshot.value == null) {
-        return [];
+        yield [];
+        continue;
       }
 
       final data = Map<String, dynamic>.from(event.snapshot.value as Map);
@@ -433,8 +434,8 @@ class BackupService {
 
       // Sort by createdAt descending
       entries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return entries;
-    });
+      yield entries;
+    }
   }
 
   /// Save backup info to Firebase
@@ -517,9 +518,9 @@ class BackupService {
         };
       }
 
-      final isAdmin = user.email == 'andres@turboairmexico.com';
+      final canManageBackups = await RBACService.hasPermission('manage_backups');
 
-      final snapshot = await (isAdmin
+      final snapshot = await (canManageBackups
           ? _db.ref('backup_history').get()
           : _db.ref('backup_history').orderByChild('userId').equalTo(user.uid).get());
 

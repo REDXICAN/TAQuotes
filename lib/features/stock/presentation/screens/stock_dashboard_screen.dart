@@ -4,9 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/models/models.dart';
-import '../../../../core/services/realtime_database_service.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../products/presentation/screens/products_screen.dart';
 import '../../../../core/theme/apple_colors.dart';
@@ -95,29 +93,34 @@ class StockStatistics {
           // Calculate value for this warehouse based on actual product price and stock
           final stockValue = stock.available * product.price;
 
-          // Update warehouse stats
-          warehouseStats[code]!.totalAvailable += stock.available;
-          warehouseStats[code]!.totalReserved += stock.reserved;
-          warehouseStats[code]!.totalValue += stockValue;
-          if (stock.available > 0) warehouseStats[code]!.productCount++;
-          if (stock.isLowStock) {
-            warehouseStats[code]!.lowStockCount++;
-            criticalStockByWarehouse[code]!.add(product);
+          // Only process warehouses that we know about
+          if (warehouseStats.containsKey(code) && criticalStockByWarehouse.containsKey(code)) {
+            // Update warehouse stats
+            warehouseStats[code]!.totalAvailable += stock.available;
+            warehouseStats[code]!.totalReserved += stock.reserved;
+            warehouseStats[code]!.totalValue += stockValue;
+            if (stock.available > 0) warehouseStats[code]!.productCount++;
+            if (stock.isLowStock) {
+              warehouseStats[code]!.lowStockCount++;
+              criticalStockByWarehouse[code]!.add(product);
+            }
+
+            // Track category breakdown per warehouse
+            final category = product.category;
+            warehouseStats[code]!.categoryBreakdown[category] =
+                (warehouseStats[code]!.categoryBreakdown[category] ?? 0) + stock.actualAvailable;
+
+            // Track products per category per warehouse
+            if (!warehouseStats[code]!.categoryProducts.containsKey(category)) {
+              warehouseStats[code]!.categoryProducts[category] = [];
+            }
+            warehouseStats[code]!.categoryProducts[category]!.add(product);
+
+            if (categoryByWarehouse.containsKey(code)) {
+              categoryByWarehouse[code]![category] =
+                  (categoryByWarehouse[code]![category] ?? 0) + stock.actualAvailable;
+            }
           }
-
-          // Track category breakdown per warehouse
-          final category = product.category;
-          warehouseStats[code]!.categoryBreakdown[category] =
-              (warehouseStats[code]!.categoryBreakdown[category] ?? 0) + stock.actualAvailable;
-
-          // Track products per category per warehouse
-          if (!warehouseStats[code]!.categoryProducts.containsKey(category)) {
-            warehouseStats[code]!.categoryProducts[category] = [];
-          }
-          warehouseStats[code]!.categoryProducts[category]!.add(product);
-
-          categoryByWarehouse[code]![category] =
-              (categoryByWarehouse[code]![category] ?? 0) + stock.actualAvailable;
 
           totalAvailable += stock.available;
           totalReserved += stock.reserved;
@@ -201,14 +204,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
   String? selectedCategory;
   late TabController _tabController;
   final Map<String, double> _warehouseUtilization = {};
-  final Map<String, int> _warehouseCapacity = {
-    'KR': 10000,
-    'VN': 8000,
-    'CN': 12000,
-    'TX': 15000,
-    'CUN': 5000,
-    'CDMX': 7000,
-  };
+  final Map<String, int> _warehouseCapacity = {}; // Will be calculated from real data
   final Map<String, TextEditingController> _utilizationControllers = {};
   final Map<String, TextEditingController> _capacityControllers = {};
   bool _isLoading = false;
@@ -222,15 +218,17 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
   }
   
   void _initializeControllers() {
-    // Initialize all controllers immediately with default values
-    for (final warehouse in _warehouseCapacity.keys) {
-      // Initialize with default utilization
-      _warehouseUtilization[warehouse] = 65.0; // Default utilization
+    // Initialize controllers for all real warehouses from Firebase data
+    for (final warehouse in WarehouseInfo.warehouses.keys) {
+      // Initialize with 0 utilization until real data loads
+      _warehouseUtilization[warehouse] = 0.0;
       _utilizationControllers[warehouse] = TextEditingController(
-        text: '65.0'
+        text: '0.0'
       );
+      // Set initial capacity based on actual stock data
+      _warehouseCapacity[warehouse] = 0;
       _capacityControllers[warehouse] = TextEditingController(
-        text: _warehouseCapacity[warehouse].toString()
+        text: '0'
       );
     }
   }
@@ -247,7 +245,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
       // Update with saved values if they exist
       if (mounted) {
         setState(() {
-          for (final warehouse in _warehouseCapacity.keys) {
+          for (final warehouse in WarehouseInfo.warehouses.keys) {
             final utilizationKey = 'warehouse_utilization_$warehouse';
             final capacityKey = 'warehouse_capacity_$warehouse';
 
@@ -328,7 +326,32 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
       ),
     );
   }
-  
+
+  // Calculate warehouse capacities based on real stock data
+  void _updateCapacitiesFromStockData(StockStatistics stats) {
+    for (final entry in stats.warehouseStats.entries) {
+      final warehouse = entry.key;
+      final warehouseStats = entry.value;
+
+      // Calculate estimated capacity as total available + reserved + some buffer (50%)
+      // This gives a realistic capacity estimate based on current stock levels
+      final currentTotal = warehouseStats.totalAvailable + warehouseStats.totalReserved;
+      final estimatedCapacity = (currentTotal * 1.5).round(); // 50% buffer for realistic capacity
+
+      if (estimatedCapacity > 0) {
+        _warehouseCapacity[warehouse] = estimatedCapacity;
+        _capacityControllers[warehouse]?.text = estimatedCapacity.toString();
+
+        // Calculate utilization rate based on actual stock vs estimated capacity
+        final utilizationRate = estimatedCapacity > 0
+          ? ((currentTotal / estimatedCapacity) * 100).clamp(0.0, 100.0)
+          : 0.0;
+        _warehouseUtilization[warehouse] = utilizationRate;
+        _utilizationControllers[warehouse]?.text = utilizationRate.toStringAsFixed(1);
+      }
+    }
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -430,23 +453,11 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
       ),
       body: stockStatsAsync.when(
         data: (stats) {
-          // Update utilization controllers with actual stats if not manually set
+          // Update warehouse capacities and utilization with real Firebase data
           if (!_isLoading) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
-                for (final entry in stats.warehouseStats.entries) {
-                  final warehouse = entry.key;
-                  final warehouseStats = entry.value;
-                  final totalStock = warehouseStats.totalAvailable + warehouseStats.totalReserved;
-                  final calculatedUtilization = (totalStock / _warehouseCapacity[warehouse]!) * 100;
-
-                  // Only update if not manually set and controller exists
-                  if (_utilizationControllers[warehouse] != null &&
-                      !_warehouseUtilization.containsKey(warehouse)) {
-                    _utilizationControllers[warehouse]!.text = calculatedUtilization.toStringAsFixed(1);
-                    _warehouseUtilization[warehouse] = calculatedUtilization;
-                  }
-                }
+                _updateCapacitiesFromStockData(stats);
               }
             });
           }
@@ -1212,7 +1223,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
                 ),
                 const SizedBox(height: 8),
                 LinearProgressIndicator(
-                  value: category.value / sortedCategories.first.value,
+                  value: sortedCategories.isNotEmpty ? (category.value / sortedCategories.first.value) : 0.0,
                   backgroundColor: theme.primaryColor.withOpacity(0.2),
                   valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
                 ),
@@ -1770,545 +1781,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
     );
   }
   
-  Widget _buildWarehouseGrid(StockStatistics stats, ThemeData theme, NumberFormat format, bool isMobile) {
-    return GridView.builder(
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: isMobile ? 1 : 3,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        childAspectRatio: isMobile ? 3 : 2,
-      ),
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: stats.warehouseStats.length,
-      itemBuilder: (context, index) {
-        final entry = stats.warehouseStats.entries.elementAt(index);
-        final code = entry.key;
-        final warehouseStats = entry.value;
-        
-        return _buildWarehouseCard(code, warehouseStats, theme, format);
-      },
-    );
-  }
   
-  Widget _buildWarehouseCard(String code, WarehouseStats stats, ThemeData theme, NumberFormat format) {
-    final info = WarehouseInfo.warehouses[code]!;
-    final utilizationColor = stats.utilizationRate > 80 ? Theme.of(context).primaryColor :
-                            stats.utilizationRate > 60 ? Theme.of(context).primaryColor :
-                            Theme.of(context).primaryColor;
-    
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-      decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: selectedWarehouse == code ? Theme.of(context).primaryColor : Theme.of(context).primaryColor,
-          width: selectedWarehouse == code ? 1.5 : 0.5,
-        ),
-        boxShadow: [
-          if (selectedWarehouse == code)
-            BoxShadow(
-              color: Theme.of(context).primaryColor.withOpacity(0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          onTap: () {
-            setState(() {
-              selectedWarehouse = selectedWarehouse == code ? null : code;
-            });
-          },
-          borderRadius: BorderRadius.circular(12),
-          splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
-          highlightColor: Theme.of(context).primaryColor.withOpacity(0.05),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    info['flag']!,
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          info['name']!,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).primaryColor,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                        Text(
-                          info['location']!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w400,
-                            color: Theme.of(context).primaryColor,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Available',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w400,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ),
-                      Text(
-                        format.format(stats.actualAvailable),
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: Theme.of(context).primaryColor,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Reserved',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w400,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ),
-                      Text(
-                        format.format(stats.totalReserved),
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: Theme.of(context).primaryColor,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Container(
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
-                  child: LinearProgressIndicator(
-                    value: stats.utilizationRate / 100,
-                    backgroundColor: Colors.transparent,
-                    valueColor: AlwaysStoppedAnimation<Color>(utilizationColor),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '${stats.utilizationRate.toStringAsFixed(1)}% utilized',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).primaryColor,
-                    ),
-                  ),
-                  if (stats.lowStockCount > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        '${stats.lowStockCount} low',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        ),
-      ),
-    );
-  }
-  
-  Widget _buildLowStockList(List<Product> products, ThemeData theme) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.dividerColor),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: products.map((product) {
-          return Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: theme.dividerColor),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF78909C).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.warning, color: const Color(0xFF78909C), size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.sku ?? product.model,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        product.name,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.disabledColor,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${product.totalAvailableStock} units',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: const Color(0xFFFFFF00),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'Min: 50',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.disabledColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-  
-  Widget _buildWarehouseSelector(StockStatistics stats, ThemeData theme) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        ChoiceChip(
-          label: const Text('All Warehouses'),
-          selected: selectedWarehouse == null,
-          onSelected: (_) {
-            setState(() {
-              selectedWarehouse = null;
-            });
-          },
-        ),
-        ...WarehouseInfo.warehouses.entries.map((entry) {
-          final code = entry.key;
-          final info = entry.value;
-          final warehouseStats = stats.warehouseStats[code];
-          
-          return ChoiceChip(
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(info['flag']!),
-                const SizedBox(width: 4),
-                Text(info['name']!),
-                const SizedBox(width: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: theme.primaryColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '${warehouseStats?.productCount ?? 0}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: const Color(0xFF37474F),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            selected: selectedWarehouse == code,
-            onSelected: (_) {
-              setState(() {
-                selectedWarehouse = code;
-              });
-            },
-          );
-        }).toList(),
-      ],
-    );
-  }
-  
-  Widget _buildWarehouseDetails(String warehouseCode, StockStatistics stats, ThemeData theme, NumberFormat format) {
-    final warehouseStats = stats.warehouseStats[warehouseCode];
-    final info = WarehouseInfo.warehouses[warehouseCode]!;
-    final categoryBreakdown = stats.categoryByWarehouse[warehouseCode] ?? {};
-    final criticalItems = stats.criticalStockByWarehouse[warehouseCode] ?? [];
-    
-    if (warehouseStats == null) {
-      return const Center(child: Text('No data available for this warehouse'));
-    }
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Warehouse header
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Text(info['flag']!, style: const TextStyle(fontSize: 48)),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      info['name']!,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      info['location']!,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.disabledColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-        
-        // Key metrics
-        Row(
-          children: [
-            Expanded(
-              child: _buildMetricCard(
-                'Total Products',
-                format.format(warehouseStats.productCount),
-                Icons.inventory_2,
-                const Color(0xFF546E7A),
-                theme,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildMetricCard(
-                'Available',
-                format.format(warehouseStats.actualAvailable),
-                Icons.check_circle,
-                const Color(0xFF607D8B),
-                theme,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildMetricCard(
-                'Reserved',
-                format.format(warehouseStats.totalReserved),
-                Icons.lock,
-                const Color(0xFF78909C),
-                theme,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        
-        // Equipment by category
-        Text(
-          'Equipment by Category',
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-        _buildCategoryBreakdown(categoryBreakdown, theme, format),
-        const SizedBox(height: 24),
-        
-        // Critical stock items
-        if (criticalItems.isNotEmpty) ...[
-          Text(
-            'Critical Stock Items',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFFFF00FF),
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...criticalItems.map((product) {
-            final stock = product.warehouseStock?[warehouseCode];
-            return Card(
-              child: ListTile(
-                leading: const Icon(Icons.warning, color: Colors.red),
-                title: Text(product.sku ?? product.model),
-                subtitle: Text(product.name),
-                trailing: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${stock?.actualAvailable ?? 0} units',
-                      style: TextStyle(
-                        color: const Color(0xFFFF00FF),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      'Min: ${stock?.minStock ?? 10}',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        ],
-      ],
-    );
-  }
-  
-  Widget _buildAllWarehousesComparison(StockStatistics stats, ThemeData theme, NumberFormat format) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Warehouse Comparison',
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-        
-        // Category breakdown table
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            columns: [
-              DataColumn(label: Text('Category', style: Theme.of(context).textTheme.titleMedium)),
-              ...WarehouseInfo.warehouses.entries.map((e) => 
-                DataColumn(label: Text(e.value['flag']! + '\n' + e.value['name']!, 
-                  style: Theme.of(context).textTheme.titleMedium)),
-              ).toList(),
-              DataColumn(label: Text('Total', style: Theme.of(context).textTheme.titleMedium), numeric: true),
-            ],
-            rows: _buildCategoryComparisonRows(stats, format),
-          ),
-        ),
-      ],
-    );
-  }
-  
-  List<DataRow> _buildCategoryComparisonRows(StockStatistics stats, NumberFormat format) {
-    final categories = <String>{};
-    stats.categoryByWarehouse.values.forEach((warehouseCategories) {
-      categories.addAll(warehouseCategories.keys);
-    });
-    
-    return categories.map((category) {
-      final cells = <DataCell>[
-        DataCell(Text(category, style: Theme.of(context).textTheme.bodyMedium)),
-      ];
-      
-      int total = 0;
-      for (final code in WarehouseInfo.warehouses.keys) {
-        final amount = stats.categoryByWarehouse[code]?[category] ?? 0;
-        total += amount;
-        cells.add(DataCell(
-          Text(
-            format.format(amount),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: amount == 0 ? Theme.of(context).textTheme.bodySmall?.color : 
-                     amount < 50 ? (Theme.of(context).brightness == Brightness.dark ? const Color(0xFFFF9500) : const Color(0xFF78909C)) : 
-                     (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF34C759) : const Color(0xFF607D8B)),
-            ),
-          ),
-        ));
-      }
-      
-      cells.add(DataCell(
-        Text(
-          format.format(total),
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ));
-      
-      return DataRow(cells: cells);
-    }).toList();
-  }
   
   Widget _buildMetricCard(String title, String value, IconData icon, Color color, ThemeData theme) {
     return Container(
@@ -2356,7 +1829,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
       ),
       child: Column(
         children: sortedCategories.map((entry) {
-          final maxValue = sortedCategories.first.value;
+          final maxValue = sortedCategories.isNotEmpty ? sortedCategories.first.value : 0;
           final percentage = maxValue > 0 ? (entry.value / maxValue) : 0.0;
           
           return Container(
@@ -2412,61 +1885,6 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
     );
   }
   
-  Widget _buildCategoryDistributionOld2(Map<String, int> categoryStock, ThemeData theme, NumberFormat format) {
-    final sortedCategories = categoryStock.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.dividerColor),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: sortedCategories.map((entry) {
-          final maxValue = sortedCategories.first.value;
-          final percentage = (entry.value / maxValue);
-          
-          return Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: theme.dividerColor),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      entry.key,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      format.format(entry.value),
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: const Color(0xFF37474F),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: percentage,
-                  backgroundColor: theme.dividerColor,
-                  valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
   
   // Chart building methods
   Widget _buildCategoryBarChart(StockStatistics stats, ThemeData theme) {
@@ -2482,7 +1900,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
     return BarChart(
       BarChartData(
         alignment: BarChartAlignment.spaceAround,
-        maxY: topCategories.first.value.toDouble() * 1.2,
+        maxY: topCategories.isNotEmpty ? (topCategories.first.value.toDouble() * 1.2) : 10.0,
         barTouchData: BarTouchData(
           enabled: true,
           touchTooltipData: BarTouchTooltipData(
@@ -2529,7 +1947,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 40,
-              interval: topCategories.first.value / 5,
+              interval: topCategories.isNotEmpty ? (topCategories.first.value / 5) : 1,
               getTitlesWidget: (value, meta) {
                 return Text(
                   NumberFormat.compact().format(value),
@@ -2675,133 +2093,6 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> wit
     );
   }
   
-  Widget _buildStockTrendChart(StockStatistics stats, ThemeData theme) {
-    // Historical trend data - would come from Firebase analytics in production
-    final trendData = [
-      FlSpot(0, stats.totalAvailable.toDouble()),
-      FlSpot(1, stats.totalAvailable.toDouble()),
-      FlSpot(2, stats.totalAvailable.toDouble()),
-      FlSpot(3, stats.totalAvailable.toDouble()),
-      FlSpot(4, stats.totalAvailable.toDouble()),
-      FlSpot(5, stats.totalAvailable.toDouble()),
-    ];
-
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    
-    return Container(
-      height: 250,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        border: Border.all(color: theme.dividerColor),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Stock Level Trend',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: true,
-                  horizontalInterval: stats.totalAvailable / 5,
-                  getDrawingHorizontalLine: (value) {
-                    return FlLine(
-                      color: theme.dividerColor.withOpacity(0.3),
-                      strokeWidth: 1,
-                    );
-                  },
-                  getDrawingVerticalLine: (value) {
-                    return FlLine(
-                      color: theme.dividerColor.withOpacity(0.3),
-                      strokeWidth: 1,
-                    );
-                  },
-                ),
-                titlesData: FlTitlesData(
-                  show: true,
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30,
-                      interval: 1,
-                      getTitlesWidget: (value, meta) {
-                        if (value.toInt() >= 0 && value.toInt() < months.length) {
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              months[value.toInt()],
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          );
-                        }
-                        return const Text('');
-                      },
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: stats.totalAvailable / 5,
-                      reservedSize: 50,
-                      getTitlesWidget: (value, meta) {
-                        return Text(
-                          NumberFormat.compact().format(value),
-                          style: const TextStyle(fontSize: 10),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                borderData: FlBorderData(
-                  show: true,
-                  border: Border.all(color: theme.dividerColor.withOpacity(0.5)),
-                ),
-                minX: 0,
-                maxX: 5,
-                minY: 0,
-                maxY: stats.totalAvailable * 1.1,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: trendData,
-                    isCurved: true,
-                    color: const Color(0xFF00FF00),
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(
-                      show: true,
-                      getDotPainter: (spot, percent, barData, index) {
-                        return FlDotCirclePainter(
-                          radius: 4,
-                          color: const Color(0xFF37474F),
-                          strokeWidth: 1,
-                          strokeColor: Colors.white,
-                        );
-                      },
-                    ),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: const Color(0xFF607D8B).withOpacity(0.1),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
   
   // New improved category section with better readability
   Widget _buildImprovedCategorySection(

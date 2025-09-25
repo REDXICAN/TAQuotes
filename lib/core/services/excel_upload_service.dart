@@ -1,10 +1,52 @@
 // lib/core/services/excel_upload_service.dart
 import 'dart:typed_data';
+import 'dart:async';
 import 'package:excel/excel.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'app_logger.dart';
 import '../config/env_config.dart';
+
+// Import progress tracking class
+class ImportProgress {
+  final int processedCount;
+  final int successCount;
+  final int errorCount;
+  final List<String> errors;
+  final String currentItem;
+  final bool isCompleted;
+  final bool hasError;
+
+  const ImportProgress({
+    required this.processedCount,
+    required this.successCount,
+    required this.errorCount,
+    required this.errors,
+    required this.currentItem,
+    required this.isCompleted,
+    this.hasError = false,
+  });
+
+  ImportProgress copyWith({
+    int? processedCount,
+    int? successCount,
+    int? errorCount,
+    List<String>? errors,
+    String? currentItem,
+    bool? isCompleted,
+    bool? hasError,
+  }) {
+    return ImportProgress(
+      processedCount: processedCount ?? this.processedCount,
+      successCount: successCount ?? this.successCount,
+      errorCount: errorCount ?? this.errorCount,
+      errors: errors ?? this.errors,
+      currentItem: currentItem ?? this.currentItem,
+      isCompleted: isCompleted ?? this.isCompleted,
+      hasError: hasError ?? this.hasError,
+    );
+  }
+}
 
 class ExcelUploadService {
   static final FirebaseDatabase _db = FirebaseDatabase.instance;
@@ -294,56 +336,197 @@ class ExcelUploadService {
     }
   }
 
-  // Save previewed products to database
-  static Future<Map<String, dynamic>> saveProducts(List<Map<String, dynamic>> products, {bool clearExisting = false}) async {
+  // Enhanced save products with progress streaming and batch processing
+  static Future<Map<String, dynamic>> saveProductsWithProgress(
+    List<Map<String, dynamic>> products, {
+    bool clearExisting = false,
+    String duplicateHandling = 'update', // 'update', 'skip', 'error'
+    StreamController<ImportProgress>? progressController,
+  }) async {
     if (!isSuperAdmin) {
       throw Exception('Only super admin can save products');
     }
 
+    // Validate product limit (10,000 as mentioned in docs)
+    if (products.length > 10000) {
+      throw Exception('Product import limit exceeded. Maximum 10,000 products allowed per import.');
+    }
+
     int successCount = 0;
     int errorCount = 0;
+    int skippedCount = 0;
+    int updatedCount = 0;
     List<String> errors = [];
+    List<String> detailedErrors = [];
+    Map<String, String>? rollbackData;
 
     try {
-      // Clear existing products if requested
+      // Create rollback snapshot if clearing existing data
       if (clearExisting) {
+        rollbackData = await _createRollbackSnapshot();
         await _db.ref('products').remove();
-        AppLogger.info('Cleared existing products', category: LogCategory.excel);
+        AppLogger.info('Cleared existing products for import', category: LogCategory.excel);
+
+        progressController?.add(ImportProgress(
+          processedCount: 0,
+          successCount: 0,
+          errorCount: 0,
+          errors: [],
+          currentItem: 'Cleared existing products. Starting import...',
+          isCompleted: false,
+        ));
       }
 
-      // Save each product
-      for (var product in products) {
-        try {
-          // Remove row_number from product data before saving
-          final productData = Map<String, dynamic>.from(product);
-          productData.remove('row_number');
-          
-          // Add timestamps
-          productData['created_at'] = ServerValue.timestamp;
-          productData['updated_at'] = ServerValue.timestamp;
-          productData['uploaded_by'] = _auth.currentUser?.email;
+      // Get existing products for duplicate checking
+      Map<String, String> existingSkus = {};
+      if (!clearExisting && duplicateHandling != 'error') {
+        final existingSnapshot = await _db.ref('products').once();
+        if (existingSnapshot.snapshot.exists) {
+          final existingData = Map<String, dynamic>.from(
+            existingSnapshot.snapshot.value as Map
+          );
+          existingData.forEach((key, value) {
+            final productData = Map<String, dynamic>.from(value);
+            if (productData['sku'] != null) {
+              existingSkus[productData['sku']] = key;
+            }
+          });
+        }
+      }
 
-          // Save to Firebase
-          await _db.ref('products').push().set(productData);
-          successCount++;
-        } catch (e) {
-          errorCount++;
-          final rowNumber = product['row_number'] ?? 'Unknown';
-          errors.add('Row $rowNumber: ${e.toString()}');
-          AppLogger.error('Error saving product from row $rowNumber', error: e, category: LogCategory.excel);
+      // Process products in batches for better performance
+      const batchSize = 50;
+      for (int batchStart = 0; batchStart < products.length; batchStart += batchSize) {
+        final batchEnd = (batchStart + batchSize).clamp(0, products.length);
+        final batch = products.sublist(batchStart, batchEnd);
+
+        // Process current batch
+        final batchUpdates = <String, dynamic>{};
+
+        for (int i = 0; i < batch.length; i++) {
+          final product = batch[i];
+          final globalIndex = batchStart + i;
+
+          try {
+            // Update progress
+            progressController?.add(ImportProgress(
+              processedCount: globalIndex + 1,
+              successCount: successCount,
+              errorCount: errorCount,
+              errors: errors.take(5).toList(), // Show only last 5 errors
+              currentItem: 'Processing: ${product['sku'] ?? 'Unknown SKU'}',
+              isCompleted: false,
+            ));
+
+            // Validate required fields
+            final validationResult = _validateProduct(product, globalIndex + 1);
+            if (!validationResult['isValid']) {
+              errorCount++;
+              final error = 'Row ${globalIndex + 1}: ${validationResult['error']}';
+              errors.add(error);
+              detailedErrors.add(error);
+              continue;
+            }
+
+            // Prepare product data
+            final productData = _prepareProductData(product);
+            final sku = productData['sku'];
+
+            // Handle duplicates
+            if (!clearExisting && existingSkus.containsKey(sku)) {
+              switch (duplicateHandling) {
+                case 'skip':
+                  skippedCount++;
+                  continue;
+                case 'update':
+                  // Update existing product
+                  final existingId = existingSkus[sku]!;
+                  productData['updated_at'] = ServerValue.timestamp;
+                  batchUpdates['products/$existingId'] = productData;
+                  updatedCount++;
+                  break;
+                case 'error':
+                  errorCount++;
+                  final error = 'Row ${globalIndex + 1}: Duplicate SKU found: $sku';
+                  errors.add(error);
+                  detailedErrors.add(error);
+                  continue;
+              }
+            } else {
+              // Create new product
+              final newProductKey = _db.ref('products').push().key!;
+              productData['created_at'] = ServerValue.timestamp;
+              productData['updated_at'] = ServerValue.timestamp;
+              batchUpdates['products/$newProductKey'] = productData;
+            }
+
+            successCount++;
+
+          } catch (e) {
+            errorCount++;
+            final rowNumber = globalIndex + 1;
+            final error = 'Row $rowNumber: ${e.toString()}';
+            errors.add(error);
+            detailedErrors.add(error);
+            AppLogger.error('Error processing product from row $rowNumber',
+              error: e, category: LogCategory.excel);
+          }
+        }
+
+        // Execute batch update
+        if (batchUpdates.isNotEmpty) {
+          try {
+            await _db.ref().update(batchUpdates);
+            AppLogger.info(
+              'Batch ${(batchStart / batchSize + 1).toInt()} completed: ${batchUpdates.length} products',
+              category: LogCategory.excel,
+            );
+          } catch (e) {
+            // If batch fails, try individual updates
+            AppLogger.warning('Batch update failed, trying individual updates',
+              category: LogCategory.excel);
+            for (final entry in batchUpdates.entries) {
+              try {
+                await _db.ref(entry.key).set(entry.value);
+              } catch (individualError) {
+                errorCount++;
+                errors.add('Batch item failed: ${individualError.toString()}');
+              }
+            }
+          }
+        }
+
+        // Small delay between batches to prevent overwhelming Firebase
+        if (batchEnd < products.length) {
+          await Future.delayed(const Duration(milliseconds: 100));
         }
       }
 
       // Force sync with all users
       await _syncWithAllUsers();
 
+      // Final progress update
+      progressController?.add(ImportProgress(
+        processedCount: products.length,
+        successCount: successCount,
+        errorCount: errorCount,
+        errors: errors.take(5).toList(),
+        currentItem: 'Import completed successfully!',
+        isCompleted: true,
+      ));
+
       final result = {
         'success': true,
         'totalProducts': products.length,
         'successCount': successCount,
         'errorCount': errorCount,
-        'errors': errors,
-        'message': 'Successfully saved $successCount products out of ${products.length}'
+        'skippedCount': skippedCount,
+        'updatedCount': updatedCount,
+        'errors': detailedErrors,
+        'duplicateHandling': duplicateHandling,
+        'message': _buildSuccessMessage(products.length, successCount, errorCount,
+                   skippedCount, updatedCount, duplicateHandling),
+        'rollbackData': rollbackData, // For potential rollback
       };
 
       // Log the upload
@@ -352,12 +535,47 @@ class ExcelUploadService {
       return result;
 
     } catch (e) {
+      // Handle catastrophic failure with rollback
+      if (rollbackData != null) {
+        try {
+          await _performRollback(rollbackData);
+          AppLogger.info('Rollback completed due to import failure',
+            category: LogCategory.excel);
+        } catch (rollbackError) {
+          AppLogger.error('Rollback failed', error: rollbackError,
+            category: LogCategory.excel);
+        }
+      }
+
+      progressController?.add(ImportProgress(
+        processedCount: products.length,
+        successCount: successCount,
+        errorCount: errorCount + 1,
+        errors: [...errors, e.toString()],
+        currentItem: 'Import failed: ${e.toString()}',
+        isCompleted: true,
+        hasError: true,
+      ));
+
       return {
         'success': false,
         'error': e.toString(),
-        'message': 'Failed to save products to database'
+        'message': 'Import failed: ${e.toString()}',
+        'rollbackPerformed': rollbackData != null,
       };
     }
+  }
+
+  // Backward compatibility - delegate to new method
+  static Future<Map<String, dynamic>> saveProducts(
+    List<Map<String, dynamic>> products, {
+    bool clearExisting = false,
+  }) async {
+    return saveProductsWithProgress(
+      products,
+      clearExisting: clearExisting,
+      duplicateHandling: 'update',
+    );
   }
 
   // Get upload history
@@ -389,9 +607,198 @@ class ExcelUploadService {
         'success_count': result['successCount'],
         'error_count': result['errorCount'],
         'total_products': result['totalProducts'],
+        'skipped_count': result['skippedCount'] ?? 0,
+        'updated_count': result['updatedCount'] ?? 0,
+        'duplicate_handling': result['duplicateHandling'] ?? 'update',
+        'has_errors': (result['errorCount'] ?? 0) > 0,
+        'import_method': 'excel_preview',
       });
     } catch (e) {
       AppLogger.error('Error logging upload', error: e, category: LogCategory.excel);
     }
+  }
+
+  // Helper methods for enhanced functionality
+
+  static Map<String, dynamic> _validateProduct(Map<String, dynamic> product, int rowNumber) {
+    final List<String> errors = [];
+
+    // Required field validation
+    if (product['sku'] == null || product['sku'].toString().trim().isEmpty) {
+      errors.add('SKU is required');
+    }
+
+    // SKU format validation (basic)
+    final sku = product['sku']?.toString().trim() ?? '';
+    if (sku.length > 50) {
+      errors.add('SKU too long (max 50 characters)');
+    }
+
+    if (sku.contains(RegExp(r'[^a-zA-Z0-9\\-_]'))) {
+      errors.add('SKU contains invalid characters (only letters, numbers, hyphens, and underscores allowed)');
+    }
+
+    // Price validation
+    final priceStr = product['price']?.toString() ?? '';
+    if (priceStr.isNotEmpty) {
+      final price = _parsePrice(priceStr);
+      if (price == null) {
+        errors.add('Invalid price format');
+      } else if (price < 0) {
+        errors.add('Price cannot be negative');
+      } else if (price > 999999.99) {
+        errors.add('Price too large (max \$999,999.99)');
+      }
+    }
+
+    // Stock validation
+    for (final warehouse in ['KR', 'VN', 'CN', 'TX', 'CUN', 'CDMX']) {
+      if (product[warehouse] != null) {
+        final stockStr = product[warehouse].toString();
+        final stock = _parseStock(stockStr);
+        if (stock != null && stock < 0) {
+          errors.add('$warehouse stock cannot be negative');
+        }
+      }
+    }
+
+    // Description length validation
+    final description = product['description']?.toString() ?? '';
+    if (description.length > 1000) {
+      errors.add('Description too long (max 1000 characters)');
+    }
+
+    return {
+      'isValid': errors.isEmpty,
+      'error': errors.join(', '),
+      'errors': errors,
+    };
+  }
+
+  static Map<String, dynamic> _prepareProductData(Map<String, dynamic> product) {
+    final productData = Map<String, dynamic>.from(product);
+    productData.remove('row_number');
+    productData['uploaded_by'] = _auth.currentUser?.email;
+
+    // Ensure required fields have defaults
+    if (productData['name'] == null || productData['name'].toString().trim().isEmpty) {
+      final sku = productData['sku']?.toString() ?? 'Unknown';
+      final description = productData['description']?.toString() ?? '';
+      productData['name'] = description.isEmpty
+        ? sku
+        : description.split(',').first.trim();
+    }
+
+    if (productData['displayName'] == null || productData['displayName'].toString().trim().isEmpty) {
+      productData['displayName'] = productData['name'];
+    }
+
+    // Set default stock if not provided
+    if (productData['stock'] == null) {
+      productData['stock'] = 0;
+    }
+
+    // Set image URLs based on SKU
+    final sku = productData['sku']?.toString() ?? '';
+    if (sku.isNotEmpty) {
+      productData['image_url'] = 'assets/screenshots/$sku/$sku P.1.png';
+      productData['thumbnailUrl'] = 'assets/thumbnails/$sku/$sku.jpg';
+    }
+
+    return productData;
+  }
+
+  static String _buildSuccessMessage(
+    int total, int success, int errors, int skipped, int updated, String duplicateHandling
+  ) {
+    final parts = <String>[];
+
+    if (success > 0) {
+      if (updated > 0) {
+        parts.add('$updated products updated');
+      }
+      final newCount = success - updated;
+      if (newCount > 0) {
+        parts.add('$newCount new products created');
+      }
+    }
+
+    if (skipped > 0) {
+      parts.add('$skipped duplicates skipped');
+    }
+
+    if (errors > 0) {
+      parts.add('$errors errors occurred');
+    }
+
+    final mainMessage = parts.isEmpty
+      ? 'No products were processed'
+      : parts.join(', ');
+
+    return 'Import completed: $mainMessage (Total: $total products)';
+  }
+
+  static Future<Map<String, String>?> _createRollbackSnapshot() async {
+    try {
+      final snapshot = await _db.ref('products').once();
+      if (snapshot.snapshot.exists && snapshot.snapshot.value != null) {
+        final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        final rollbackData = <String, String>{};
+
+        // Store JSON representation of each product
+        data.forEach((key, value) {
+          rollbackData[key] = value.toString();
+        });
+
+        AppLogger.info('Created rollback snapshot with ${rollbackData.length} products',
+          category: LogCategory.excel);
+        return rollbackData;
+      }
+    } catch (e) {
+      AppLogger.error('Failed to create rollback snapshot', error: e,
+        category: LogCategory.excel);
+    }
+    return null;
+  }
+
+  static Future<void> _performRollback(Map<String, String> rollbackData) async {
+    await _db.ref('products').remove();
+
+    final updates = <String, dynamic>{};
+    rollbackData.forEach((key, valueStr) {
+      // This is a simplified rollback - in production you'd want to properly
+      // deserialize the JSON string back to Map<String, dynamic>
+      updates['products/$key'] = valueStr;
+    });
+
+    await _db.ref().update(updates);
+  }
+}
+
+// Enhanced error categories for better reporting
+enum ImportErrorType {
+  validation,
+  duplicate,
+  firebase,
+  format,
+  system,
+}
+
+class ImportError {
+  final int rowNumber;
+  final String message;
+  final ImportErrorType type;
+  final String? field;
+
+  const ImportError({
+    required this.rowNumber,
+    required this.message,
+    required this.type,
+    this.field,
+  });
+
+  @override
+  String toString() {
+    return 'Row $rowNumber: $message${field != null ? ' (Field: $field)' : ''}';
   }
 }

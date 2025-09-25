@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 class ExcelPreviewDialog extends StatefulWidget {
   final Map<String, dynamic> previewData;
-  final Function(List<Map<String, dynamic>>, bool) onConfirm;
+  final Function(List<Map<String, dynamic>>, bool, String) onConfirm;
 
   const ExcelPreviewDialog({
     super.key,
@@ -19,6 +19,7 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
   bool _clearExisting = false;
   int _currentPage = 0;
   final int _itemsPerPage = 10;
+  String _duplicateHandling = 'update'; // 'update', 'skip', 'error'
   
   List<Map<String, dynamic>> get products => widget.previewData['products'] ?? [];
   List<String> get errors => widget.previewData['errors'] ?? [];
@@ -99,10 +100,66 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
               onChanged: (value) {
                 setState(() {
                   _clearExisting = value ?? false;
+                  // Reset duplicate handling when clearing existing
+                  if (_clearExisting) {
+                    _duplicateHandling = 'update';
+                  }
                 });
               },
               controlAffinity: ListTileControlAffinity.leading,
             ),
+
+            // Duplicate handling options (only show when not clearing existing)
+            if (!_clearExisting) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Duplicate Product Handling:',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Column(
+                children: [
+                  RadioListTile<String>(
+                    title: const Text('Update existing products'),
+                    subtitle: const Text('Replace duplicate products with new data'),
+                    value: 'update',
+                    groupValue: _duplicateHandling,
+                    onChanged: (value) {
+                      setState(() {
+                        _duplicateHandling = value!;
+                      });
+                    },
+                    dense: true,
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('Skip duplicates'),
+                    subtitle: const Text('Keep existing products, skip duplicates'),
+                    value: 'skip',
+                    groupValue: _duplicateHandling,
+                    onChanged: (value) {
+                      setState(() {
+                        _duplicateHandling = value!;
+                      });
+                    },
+                    dense: true,
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('Error on duplicates'),
+                    subtitle: const Text('Stop import if duplicates are found'),
+                    value: 'error',
+                    groupValue: _duplicateHandling,
+                    onChanged: (value) {
+                      setState(() {
+                        _duplicateHandling = value!;
+                      });
+                    },
+                    dense: true,
+                  ),
+                ],
+              ),
+            ],
             const Divider(),
             
             // Products table
@@ -212,21 +269,52 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
         ElevatedButton.icon(
           icon: const Icon(Icons.upload),
           label: Text(
-            _clearExisting 
-                ? 'Replace All Products (${products.length})' 
-                : 'Import ${products.length} Products',
+            _clearExisting
+                ? 'Replace All Products (${products.length})'
+                : _getImportButtonText(),
           ),
           onPressed: products.isNotEmpty
               ? () {
                   Navigator.of(context).pop();
-                  widget.onConfirm(products, _clearExisting);
+                  // Pass duplicate handling along with existing parameters
+                  widget.onConfirm(products, _clearExisting, _duplicateHandling);
                 }
               : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: _clearExisting ? Colors.orange : theme.primaryColor,
+            backgroundColor: _getImportButtonColor(theme),
           ),
         ),
       ],
     );
+  }
+
+  String _getImportButtonText() {
+    switch (_duplicateHandling) {
+      case 'update':
+        return 'Import & Update (${products.length})';
+      case 'skip':
+        return 'Import & Skip Duplicates (${products.length})';
+      case 'error':
+        return 'Import (Error on Duplicates) (${products.length})';
+      default:
+        return 'Import ${products.length} Products';
+    }
+  }
+
+  Color _getImportButtonColor(ThemeData theme) {
+    if (_clearExisting) {
+      return Colors.orange;
+    }
+
+    switch (_duplicateHandling) {
+      case 'update':
+        return Colors.blue;
+      case 'skip':
+        return Colors.green;
+      case 'error':
+        return Colors.red.shade600;
+      default:
+        return theme.primaryColor;
+    }
   }
 }
