@@ -72,9 +72,9 @@ enum UserRole {
   bool get canEditPricing => this == UserRole.superAdmin || this == UserRole.admin || this == UserRole.sales;
   bool get canAccessAdmin => this == UserRole.superAdmin || this == UserRole.admin;
 
-  // SuperAdmin-only permissions
-  bool get canAccessPerformanceDashboard => this == UserRole.superAdmin;
-  bool get canAccessUserInfoDashboard => this == UserRole.superAdmin;
+  // Admin and SuperAdmin permissions
+  bool get canAccessPerformanceDashboard => this == UserRole.superAdmin || this == UserRole.admin;
+  bool get canAccessUserInfoDashboard => this == UserRole.superAdmin || this == UserRole.admin;
   bool get canAccessStockDashboard => this == UserRole.superAdmin || this == UserRole.admin;
   bool get canManageBackups => this == UserRole.superAdmin;
   bool get canExportData => this == UserRole.superAdmin || this == UserRole.admin;
