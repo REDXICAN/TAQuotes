@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../models/user_role.dart';
 import '../auth/models/rbac_permissions.dart';
+import '../config/env_config.dart';
 import 'app_logger.dart';
 
 class RBACService {
@@ -51,8 +52,8 @@ class RBACService {
       return UserRole.distributor;
     }
 
-    // Special handling for SuperAdmin email (backward compatibility)
-    if (user.email == 'andres@turboairmexico.com') {
+    // Special handling for SuperAdmin emails (backward compatibility)
+    if (user.email != null && EnvConfig.isSuperAdminEmail(user.email!)) {
       _roleCache[user.uid] = UserRole.superAdmin;
       return UserRole.superAdmin;
     }
@@ -260,11 +261,11 @@ class RBACService {
   static Future<void> ensureSuperAdminRole() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user?.email == 'andres@turboairmexico.com') {
+      if (user?.email != null && EnvConfig.isSuperAdminEmail(user!.email!)) {
         final database = FirebaseDatabase.instance;
 
         // Check if user profile exists
-        final snapshot = await database.ref('users/${user!.uid}').once();
+        final snapshot = await database.ref('users/${user.uid}').once();
 
         if (snapshot.snapshot.exists && snapshot.snapshot.value != null) {
           final userData = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
@@ -277,9 +278,17 @@ class RBACService {
           }
         } else {
           // Create SuperAdmin profile if doesn't exist
+          // Use a generic name for non-primary superadmins
+          String displayName = user.displayName ?? 'SuperAdmin User';
+          if (user.email == 'andres@turboairmexico.com') {
+            displayName = user.displayName ?? 'Andres Gomez';
+          } else if (user.email == 'carlos@turboairinc.com') {
+            displayName = user.displayName ?? 'Carlos Rodriguez';
+          }
+
           await database.ref('users/${user.uid}').set({
             'email': user.email,
-            'name': user.displayName ?? 'Andres Gomez',
+            'name': displayName,
             'role': 'superadmin',
             'status': 'active',
             'createdAt': DateTime.now().toIso8601String(),

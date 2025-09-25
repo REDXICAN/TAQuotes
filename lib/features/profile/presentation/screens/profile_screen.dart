@@ -28,7 +28,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _checkOfflineData() async {
     try {
       // Check if offline service is available before using it
-      if (!OfflineService.isInitialized || OfflineService.initializationFailed) {
+      if (!OfflineService.isInitialized) {
         setState(() {
           _offlineDataAvailable = false;
           _syncQueueCount = 0;
@@ -728,7 +728,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               onPressed: () async {
                 Navigator.pop(context);
                 try {
-                  if (OfflineService.isInitialized && !OfflineService.initializationFailed) {
+                  if (OfflineService.isInitialized) {
                     await OfflineService.syncPendingChanges();
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(

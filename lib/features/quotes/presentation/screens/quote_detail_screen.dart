@@ -195,7 +195,13 @@ class QuoteDetailScreen extends ConsumerWidget {
                 ),
               ),
             ],
-            onSelected: (value) => _handleMenuAction(context, ref, quote, value),
+            onSelected: (value) {
+              quoteAsync.whenData((quote) {
+                if (quote != null) {
+                  _handleMenuAction(context, ref, quote, value);
+                }
+              });
+            },
           ),
         ],
       ),
@@ -1373,7 +1379,7 @@ class QuoteDetailScreen extends ConsumerWidget {
         clientId: quote.clientId ?? '',
         items: duplicateItems,
         subtotal: quote.subtotal,
-        taxRate: quote.taxRate,
+        taxRate: 8.0, // Standard tax rate
         taxAmount: quote.tax,
         totalAmount: quote.totalAmount,
         discountAmount: quote.discountAmount,

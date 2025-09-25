@@ -95,6 +95,21 @@ class EnvConfig {
   // Admin Credentials - with safe fallbacks
   static String get adminEmail => _getEnv('ADMIN_EMAIL', '');
   static String get adminPassword => _getEnv('ADMIN_PASSWORD', '');
+
+  // SuperAdmin Email Configuration - centralized list
+  static const List<String> superAdminEmails = [
+    'andres@turboairmexico.com',
+    'carlos@turboairinc.com',
+    'admin@turboairinc.com',
+    'superadmin@turboairinc.com',
+  ];
+
+  // Check if email is a superadmin
+  static bool isSuperAdminEmail(String email) {
+    if (email.isEmpty) return false;
+    final lowerEmail = email.toLowerCase();
+    return superAdminEmails.any((adminEmail) => adminEmail.toLowerCase() == lowerEmail);
+  }
   
   // Firebase Configuration
   static String get firebaseProjectId => _getEnv('FIREBASE_PROJECT_ID', 'taquotes');

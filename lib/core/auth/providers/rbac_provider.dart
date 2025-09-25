@@ -2,6 +2,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/user_role.dart';
+import '../../config/env_config.dart';
 import '../models/rbac_permissions.dart';
 import '../services/rbac_service.dart';
 import '../../../core/models/models.dart';
@@ -165,7 +166,7 @@ final isLegacyAdminProvider = FutureProvider<bool>((ref) async {
 
   // Check both new RBAC system and legacy email check
   final isAdminByRole = await ref.read(isAdminProvider.future);
-  final isLegacyAdmin = user!.email == 'andres@turboairmexico.com';
+  final isLegacyAdmin = EnvConfig.isSuperAdminEmail(user!.email!);
 
   return isAdminByRole || isLegacyAdmin;
 });
@@ -182,7 +183,7 @@ final migrationPermissionProvider = FutureProvider.family<bool, Permission>((ref
   if (permission == Permission.accessAdminPanel ||
       permission == Permission.manageDatabase ||
       permission == Permission.importProducts) {
-    final isLegacyAdmin = user!.email == 'andres@turboairmexico.com';
+    final isLegacyAdmin = EnvConfig.isSuperAdminEmail(user!.email!);
     return hasRbacPermission || isLegacyAdmin;
   }
 

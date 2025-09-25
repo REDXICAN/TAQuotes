@@ -76,7 +76,7 @@ class ValidationService {
     for (final pattern in _sqlInjectionPatterns) {
       if (pattern.hasMatch(sanitized)) {
         // Log potential attack attempt
-        AppLogger.warning('[SECURITY] Potential SQL injection attempt detected', metadata: {'input_length': input.length, 'pattern': pattern.pattern});
+        AppLogger.warning('[SECURITY] Potential SQL injection attempt detected', data: {'input_length': input.length, 'pattern': pattern.pattern});
         sanitized = sanitized.replaceAll(pattern, '');
       }
     }

@@ -77,22 +77,58 @@ final cartItemCountProvider = StreamProvider<int>((ref) {
   return dbService.getCartItems().map((items) => items.length);
 });
 
-// Total Clients Provider
-final totalClientsProvider = FutureProvider<int>((ref) async {
+// Auto-refreshing Total Clients Provider
+final totalClientsProvider = StreamProvider.autoDispose<int>((ref) async* {
   final dbService = ref.watch(databaseServiceProvider);
-  return await dbService.getTotalClients();
+
+  // Initial load
+  yield await dbService.getTotalClients();
+
+  // Auto-refresh every 30 seconds
+  await for (final _ in Stream.periodic(const Duration(seconds: 30))) {
+    try {
+      yield await dbService.getTotalClients();
+    } catch (e) {
+      // Continue with previous data on error
+      yield 0;
+    }
+  }
 });
 
-// Total Quotes Provider
-final totalQuotesProvider = FutureProvider<int>((ref) async {
+// Auto-refreshing Total Quotes Provider
+final totalQuotesProvider = StreamProvider.autoDispose<int>((ref) async* {
   final dbService = ref.watch(databaseServiceProvider);
-  return await dbService.getTotalQuotes();
+
+  // Initial load
+  yield await dbService.getTotalQuotes();
+
+  // Auto-refresh every 30 seconds
+  await for (final _ in Stream.periodic(const Duration(seconds: 30))) {
+    try {
+      yield await dbService.getTotalQuotes();
+    } catch (e) {
+      // Continue with previous data on error
+      yield 0;
+    }
+  }
 });
 
-// Total Products Provider
-final totalProductsProvider = FutureProvider<int>((ref) async {
+// Auto-refreshing Total Products Provider
+final totalProductsProvider = StreamProvider.autoDispose<int>((ref) async* {
   final dbService = ref.watch(databaseServiceProvider);
-  return await dbService.getTotalProducts();
+
+  // Initial load
+  yield await dbService.getTotalProducts();
+
+  // Auto-refresh every 30 seconds
+  await for (final _ in Stream.periodic(const Duration(seconds: 30))) {
+    try {
+      yield await dbService.getTotalProducts();
+    } catch (e) {
+      // Continue with previous data on error
+      yield 0;
+    }
+  }
 });
 
 // Recent Quotes Provider

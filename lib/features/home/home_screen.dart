@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/services/offline_service.dart';
 import '../../core/services/cache_manager.dart';
 import '../../core/services/app_logger.dart';
+import '../../core/config/env_config.dart';
 import '../../core/utils/responsive_helper.dart';
 import '../../core/models/models.dart';
 import '../../core/widgets/simple_image_widget.dart';
@@ -313,10 +314,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ],
                       ),
                     ),
-                    // Only show admin button for hardcoded admin emails
-                    if (userEmail == 'andres@turboairmexico.com' ||
-                        userEmail == 'admin@turboairinc.com' ||
-                        userEmail == 'superadmin@turboairinc.com')
+                    // Only show admin button for superadmin emails
+                    if (userEmail != null && EnvConfig.isSuperAdminEmail(userEmail))
                       IconButton(
                         icon: const Icon(Icons.admin_panel_settings, color: Colors.white),
                         onPressed: () => context.go('/admin'),
@@ -329,10 +328,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 height: ResponsiveHelper.getSpacing(context, extraLarge: 24),
               ),
 
-              // User approval notifications for admins and superadmins (hardcoded check)
-              if (userEmail == 'andres@turboairmexico.com' ||
-                  userEmail == 'admin@turboairinc.com' ||
-                  userEmail == 'superadmin@turboairinc.com')
+              // User approval notifications for admins and superadmins
+              if (userEmail != null && EnvConfig.isSuperAdminEmail(userEmail))
                 const UserApprovalsWidget(),
 
               // Connection status

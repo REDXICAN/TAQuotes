@@ -254,7 +254,7 @@ class RateLimiterService {
 
   void _logRateLimitViolation(String identifier, RateLimitType type) {
     // Log to your logging service
-    AppLogger.warning('[SECURITY] Rate limit violation', metadata: {'identifier': identifier, 'request_type': type.toString()});
+    AppLogger.warning('[SECURITY] Rate limit violation', data: {'identifier': identifier, 'request_type': type.toString()});
     // In production, send this to your logging/monitoring service
   }
 

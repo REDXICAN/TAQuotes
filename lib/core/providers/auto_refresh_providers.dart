@@ -60,15 +60,15 @@ extension AutoRefreshProvider on Ref {
     Future<T> Function() fetcher, {
     Duration interval = const Duration(seconds: 30),
     bool immediate = true,
-  }) {
-    final periodicStream = Stream.periodic(interval, (_) => null)
-        .asyncMap((_) => fetcher());
-
+  }) async* {
     if (immediate) {
-      // Emit initial value immediately, then continue with periodic updates
-      return Stream.fromFuture(fetcher()).followedBy(periodicStream);
-    } else {
-      return periodicStream;
+      // Emit initial value immediately
+      yield await fetcher();
+    }
+
+    // Then continue with periodic updates
+    await for (final _ in Stream.periodic(interval)) {
+      yield await fetcher();
     }
   }
 }

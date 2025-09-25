@@ -6,6 +6,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/models/models.dart';
+import '../../../../core/config/env_config.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/services/rbac_service.dart';
@@ -60,8 +61,24 @@ class UserPerformanceMetrics {
   });
 }
 
-// Provider for aggregating user performance data
-final userPerformanceProvider = FutureProvider<List<UserPerformanceMetrics>>((ref) async {
+// Auto-refreshing provider for aggregating user performance data
+final userPerformanceProvider = StreamProvider.autoDispose<List<UserPerformanceMetrics>>((ref) async* {
+  // Initial load
+  yield await _fetchUserPerformanceMetrics();
+
+  // Auto-refresh every 30 seconds
+  await for (final _ in Stream.periodic(const Duration(seconds: 30))) {
+    try {
+      yield await _fetchUserPerformanceMetrics();
+    } catch (e) {
+      // Continue with previous data on error, don't break the stream
+      AppLogger.error('Auto-refresh failed for performance metrics', error: e);
+    }
+  }
+});
+
+// Extract the logic to a separate function for reuse
+Future<List<UserPerformanceMetrics>> _fetchUserPerformanceMetrics() async {
   final database = FirebaseDatabase.instance;
   final currentUser = FirebaseAuth.instance.currentUser;
 
@@ -244,7 +261,7 @@ final userPerformanceProvider = FutureProvider<List<UserPerformanceMetrics>>((re
     AppLogger.error('Error fetching performance metrics', error: e);
     return [];
   }
-});
+}
 
 class PerformanceDashboardScreen extends ConsumerStatefulWidget {
   const PerformanceDashboardScreen({super.key});
@@ -334,10 +351,8 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
     }
 
     // Check if user is admin
-    final userEmail = currentUser.email?.toLowerCase();
-    final isAdmin = userEmail == 'andres@turboairmexico.com' ||
-                   userEmail == 'admin@turboairinc.com' ||
-                   userEmail == 'superadmin@turboairinc.com';
+    final userEmail = currentUser.email;
+    final isAdmin = userEmail != null && EnvConfig.isSuperAdminEmail(userEmail);
 
     if (!isAdmin) {
       return Scaffold(

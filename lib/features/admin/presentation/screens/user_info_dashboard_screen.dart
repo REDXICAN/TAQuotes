@@ -10,8 +10,24 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/services/rbac_service.dart';
 import '../../../../core/services/app_logger.dart';
 
-// Provider for fetching all users with their detailed information
-final allUsersProvider = FutureProvider<List<UserInfo>>((ref) async {
+// Auto-refreshing provider for fetching all users with their detailed information
+final allUsersProvider = StreamProvider.autoDispose<List<UserInfo>>((ref) async* {
+  // Initial load
+  yield await _fetchAllUsers();
+
+  // Auto-refresh every 30 seconds
+  await for (final _ in Stream.periodic(const Duration(seconds: 30))) {
+    try {
+      yield await _fetchAllUsers();
+    } catch (e) {
+      // Continue with previous data on error, don't break the stream
+      AppLogger.error('Auto-refresh failed for users', error: e);
+    }
+  }
+});
+
+// Extract the logic to a separate function for reuse
+Future<List<UserInfo>> _fetchAllUsers() async {
   final database = FirebaseDatabase.instance;
   final currentUser = FirebaseAuth.instance.currentUser;
 
@@ -136,7 +152,7 @@ final allUsersProvider = FutureProvider<List<UserInfo>>((ref) async {
     AppLogger.error('Error loading users', error: e);
     rethrow;
   }
-});
+}
 
 // User Info model
 class UserInfo {

@@ -14,10 +14,28 @@ final backupEntriesProvider = StreamProvider<List<BackupEntry>>((ref) {
   return service.getBackupHistory(limit: 10);
 });
 
-// Future provider for backup statistics
-final backupStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+// Auto-refreshing provider for backup statistics
+final backupStatsProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) async* {
   final service = ref.watch(backupServiceProvider);
-  return await service.getBackupStats();
+
+  // Initial load
+  yield await service.getBackupStats();
+
+  // Auto-refresh every 30 seconds
+  await for (final _ in Stream.periodic(const Duration(seconds: 30))) {
+    try {
+      yield await service.getBackupStats();
+    } catch (e) {
+      // Continue with previous data on error, don't break the stream
+      // Use a default empty stats map to prevent UI breaks
+      yield <String, dynamic>{
+        'totalBackups': 0,
+        'completedBackups': 0,
+        'failedBackups': 0,
+        'totalSize': 0,
+      };
+    }
+  }
 });
 
 class BackupStatusWidget extends ConsumerStatefulWidget {

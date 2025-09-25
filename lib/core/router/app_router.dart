@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../utils/responsive_helper.dart';
+import '../config/env_config.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
@@ -54,10 +55,8 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Check admin access for admin routes
       if (isAdminRoute && isAuthenticated) {
-        final userEmail = user.email?.toLowerCase();
-        final isAdmin = userEmail == 'andres@turboairmexico.com' ||
-                       userEmail == 'admin@turboairinc.com' ||
-                       userEmail == 'superadmin@turboairinc.com';
+        final userEmail = user.email;
+        final isAdmin = userEmail != null && EnvConfig.isSuperAdminEmail(userEmail);
 
         if (!isAdmin) {
           // Non-admin trying to access admin route - redirect to home
@@ -261,12 +260,10 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
 
   @override
   Widget build(BuildContext context) {
-    // Check if user is admin based on email (hardcoded for security)
+    // Check if user is admin based on email (centralized config)
     final authState = ref.watch(authStateProvider);
-    final userEmail = authState.valueOrNull?.email?.toLowerCase();
-    final isAdmin = userEmail == 'andres@turboairmexico.com' ||
-                   userEmail == 'admin@turboairinc.com' ||
-                   userEmail == 'superadmin@turboairinc.com';
+    final userEmail = authState.valueOrNull?.email;
+    final isAdmin = userEmail != null && EnvConfig.isSuperAdminEmail(userEmail);
 
     final currentLocation = GoRouterState.of(context).uri.toString();
     final cartItemCountAsync = ref.watch(cartItemCountProvider);

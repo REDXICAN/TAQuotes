@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'dart:typed_data';
 import 'dart:convert';
 import '../../../../core/services/error_monitoring_service.dart';
+import '../../../../core/config/env_config.dart';
 import '../../../../core/utils/download_helper.dart';
 
 // Provider for error monitoring service
@@ -74,11 +75,9 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
   }
 
   void _checkAdminAccess() {
-    // Check if user is admin (hardcoded for security)
-    final userEmail = ref.read(errorMonitoringProvider).userEmail?.toLowerCase();
-    final isAdmin = userEmail == 'andres@turboairmexico.com' ||
-                    userEmail == 'admin@turboairinc.com' ||
-                    userEmail == 'superadmin@turboairinc.com';
+    // Check if user is admin
+    final userEmail = ref.read(errorMonitoringProvider).userEmail;
+    final isAdmin = userEmail != null && EnvConfig.isSuperAdminEmail(userEmail);
 
     if (!isAdmin) {
       // Not admin - BLOCK ACCESS

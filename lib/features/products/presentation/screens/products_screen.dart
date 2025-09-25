@@ -1362,8 +1362,221 @@ Future<void> _handleExcelUpload() async {
     );
     return '\$$wholePart.${parts[1]}';
   }
-  
-  // Compact quantity selector for list view
+
+  // Enhanced result dialog for import operations
+  Widget _buildEnhancedResultDialog(
+    BuildContext context,
+    Map<String, dynamic> result,
+    String duplicateHandling,
+  ) {
+    final theme = Theme.of(context);
+    final success = result['success'] == true;
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(
+            success ? Icons.check_circle : Icons.error,
+            color: success ? Colors.green : Colors.red,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            success ? 'Import Completed' : 'Import Failed',
+            style: TextStyle(
+              color: success ? Colors.green : Colors.red,
+            ),
+          ),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Main message
+            Text(
+              result['message'] ?? 'Unknown result',
+              style: theme.textTheme.bodyMedium,
+            ),
+
+            if (success) ...[
+              const SizedBox(height: 16),
+
+              // Statistics section
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Import Statistics',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildStatRow('Total Products:', result['totalProducts']),
+                    _buildStatRow('Successfully Imported:', result['successCount']),
+                    if (result['updatedCount'] > 0)
+                      _buildStatRow('Updated Products:', result['updatedCount']),
+                    if (result['skippedCount'] > 0)
+                      _buildStatRow('Skipped Duplicates:', result['skippedCount']),
+                    if (result['errorCount'] > 0)
+                      _buildStatRow('Errors:', result['errorCount'], isError: true),
+                  ],
+                ),
+              ),
+
+              // Duplicate handling info
+              if (duplicateHandling != 'update') ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Duplicate Handling: ${_getDuplicateHandlingDescription(duplicateHandling)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+
+            // Error details
+            if (result['errors'] != null && (result['errors'] as List).isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Error Details:',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                height: 150,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  borderRadius: BorderRadius.circular(4),
+                  color: Colors.red.withOpacity(0.05),
+                ),
+                child: ListView.builder(
+                  itemCount: (result['errors'] as List).length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Text(
+                        result['errors'][index],
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.red[700],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+
+            // Rollback info
+            if (result['rollbackPerformed'] == true) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.restore, size: 16, color: Colors.orange),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Rollback was performed due to import failure. Previous data has been restored.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        if (!success && result['rollbackPerformed'] != true)
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Could add rollback functionality here if needed
+            },
+            child: const Text('Retry'),
+          ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatRow(String label, dynamic value, {bool isError = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(fontSize: 12),
+          ),
+          Text(
+            value.toString(),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isError ? Colors.red : Colors.green[700],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getDuplicateHandlingDescription(String handling) {
+    switch (handling) {
+      case 'update':
+        return 'Updated existing products';
+      case 'skip':
+        return 'Skipped duplicate products';
+      case 'error':
+        return 'Errored on duplicates';
+      default:
+        return handling;
+    }
+  }
 }
 
 class ProductCard extends ConsumerWidget {
@@ -1841,220 +2054,5 @@ class ProductCard extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  // Enhanced result dialog for import operations
-  Widget _buildEnhancedResultDialog(
-    BuildContext context,
-    Map<String, dynamic> result,
-    String duplicateHandling,
-  ) {
-    final theme = Theme.of(context);
-    final success = result['success'] == true;
-
-    return AlertDialog(
-      title: Row(
-        children: [
-          Icon(
-            success ? Icons.check_circle : Icons.error,
-            color: success ? Colors.green : Colors.red,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            success ? 'Import Completed' : 'Import Failed',
-            style: TextStyle(
-              color: success ? Colors.green : Colors.red,
-            ),
-          ),
-        ],
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Main message
-            Text(
-              result['message'] ?? 'Unknown result',
-              style: theme.textTheme.bodyMedium,
-            ),
-
-            if (success) ...[
-              const SizedBox(height: 16),
-
-              // Statistics section
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.withOpacity(0.3)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Import Statistics',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    _buildStatRow('Total Products:', result['totalProducts']),
-                    _buildStatRow('Successfully Imported:', result['successCount']),
-                    if (result['updatedCount'] > 0)
-                      _buildStatRow('Updated Products:', result['updatedCount']),
-                    if (result['skippedCount'] > 0)
-                      _buildStatRow('Skipped Duplicates:', result['skippedCount']),
-                    if (result['errorCount'] > 0)
-                      _buildStatRow('Errors:', result['errorCount'], isError: true),
-                  ],
-                ),
-              ),
-
-              // Duplicate handling info
-              if (duplicateHandling != 'update') ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, size: 16, color: Colors.blue),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Duplicate Handling: ${_getDuplicateHandlingDescription(duplicateHandling)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.blue[700],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-
-            // Error details
-            if (result['errors'] != null && (result['errors'] as List).isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Text(
-                'Error Details:',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                height: 150,
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.red.withOpacity(0.3)),
-                  borderRadius: BorderRadius.circular(4),
-                  color: Colors.red.withOpacity(0.05),
-                ),
-                child: ListView.builder(
-                  itemCount: (result['errors'] as List).length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Text(
-                        result['errors'][index],
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.red[700],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-
-            // Rollback info
-            if (result['rollbackPerformed'] == true) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.restore, size: 16, color: Colors.orange),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Rollback was performed due to import failure. Previous data has been restored.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.orange[700],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-      actions: [
-        if (!success && result['rollbackPerformed'] != true)
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Could add rollback functionality here if needed
-            },
-            child: const Text('Retry'),
-          ),
-        ElevatedButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatRow(String label, dynamic value, {bool isError = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(fontSize: 12),
-          ),
-          Text(
-            value.toString(),
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: isError ? Colors.red : Colors.green[700],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _getDuplicateHandlingDescription(String handling) {
-    switch (handling) {
-      case 'update':
-        return 'Updated existing products';
-      case 'skip':
-        return 'Skipped duplicate products';
-      case 'error':
-        return 'Errored on duplicates';
-      default:
-        return handling;
-    }
   }
 }
