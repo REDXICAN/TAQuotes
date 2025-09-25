@@ -327,10 +327,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               }
                             }
 
-                            // Security check for malicious content
-                            if (ValidationService.containsXss(value) || ValidationService.containsSqlInjection(value)) {
-                              return 'Invalid characters in password';
-                            }
+                            // Note: Passwords should NOT be checked for XSS/SQL injection
+                            // as they need to allow special characters for security
 
                             return null;
                           },
