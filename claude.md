@@ -838,12 +838,6 @@ Application successfully deployed to Firebase Hosting and fully operational.
    - `ProductDetailImages` displays both P.1 and P.2 from Firebase
    - All product cards pass Firebase URLs to image widgets
 
-4. **Scripts Created**
-   - `upload_images_to_firebase.py`: Uploads all images to Firebase Storage
-   - `update_database_urls.py`: Updates database with Firebase Storage URLs
-   - `add_p2_urls.py`: Adds P.2 screenshot URLs to database
-   - `count_uploads.py`: Monitors upload progress
-   - `verify_urls.py`: Verifies database has all image URLs
 
 ### IMPORTANT: DO NOT CHANGE
 - Thumbnails in products screen are working perfectly with Firebase Storage
