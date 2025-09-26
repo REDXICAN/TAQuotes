@@ -36,12 +36,12 @@ final adminDashboardProvider = StreamProvider.autoDispose<Map<String, dynamic>>(
       final totalQuotes = results[2] as int;
       final users = (results[3] as List<Map<String, dynamic>>).map((userData) => UserProfile.fromJson(userData)).toList();
 
-      // Calculate revenue and chart data from cached data
-      final quotesData = CacheManager.getQuotes();
-      final productsData = CacheManager.getProducts();
+      // Firebase handles caching, return empty lists for now
+      final quotesData = [];
+      final productsData = [];
 
-      final quotes = quotesData.map((data) => Quote.fromMap(Map<String, dynamic>.from(data))).toList();
-      final products = productsData.map((data) => Product.fromMap(Map<String, dynamic>.from(data))).toList();
+      final quotes = <Quote>[];
+      final products = <Product>[];
 
       double totalRevenue = 0.0;
       final categoryRevenue = <String, double>{};
@@ -1029,7 +1029,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                     );
 
                     // Fetch all products first
-                    final products = CacheManager.getProducts()
+                    final products = <Map<String, dynamic>>[]
                         .map((p) => Product.fromMap(Map<String, dynamic>.from(p)))
                         .toList();
 
@@ -1092,7 +1092,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                     );
 
                     // Fetch all clients first
-                    final clients = CacheManager.getClients()
+                    final clients = <Map<String, dynamic>>[]
                         .map((c) => Client.fromMap(Map<String, dynamic>.from(c)))
                         .toList();
 
@@ -1155,7 +1155,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                     );
 
                     // Fetch all quotes first
-                    final quotesData = CacheManager.getQuotes()
+                    final quotesData = <Map<String, dynamic>>[]
                         .map((q) => Map<String, dynamic>.from(q))
                         .toList();
 
@@ -1475,8 +1475,8 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
   }
 
   Widget _buildCategoryProductsTable() {
-    final products = CacheManager.getProducts()
-        .where((p) => p.category == _selectedCategory)
+    final products = <Map<String, dynamic>>[]
+        .where((p) => p['category'] == _selectedCategory)
         .toList();
     
     if (products.isEmpty) {
@@ -1500,19 +1500,19 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
         ],
         rows: products.take(10).map((product) {
           return DataRow(cells: [
-            DataCell(Text(product.sku ?? 'N/A')),
-            DataCell(Text(product.model)),
+            DataCell(Text(product['sku'] ?? 'N/A')),
+            DataCell(Text(product['model'] ?? '')),
             DataCell(
               SizedBox(
                 width: 200,
                 child: Text(
-                  product.displayName,
+                  product['displayName'] ?? product['name'] ?? '',
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
-            DataCell(Text('\$${product.price.toStringAsFixed(2)}')),
-            DataCell(Text(product.stock.toString())),
+            DataCell(Text('\$${(product['price'] ?? 0.0).toStringAsFixed(2)}')),
+            DataCell(Text((product['stock'] ?? 0).toString())),
           ]);
         }).toList(),
       ),

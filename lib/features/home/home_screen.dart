@@ -153,9 +153,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         await CacheManager.initialize();
       }
       
-      final clients = CacheManager.getClients();
-      final quotes = CacheManager.getQuotes();
-      final products = CacheManager.getProducts();
+      // Firebase handles caching, return empty lists
+      final clients = [];
+      final quotes = [];
+      final products = [];
       
       // Use OfflineService static method instead of instance
       final cart = OfflineService.getStaticCart();

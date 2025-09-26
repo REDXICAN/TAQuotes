@@ -4,7 +4,6 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
-import 'package:hive/hive.dart';
 import '../config/env_config.dart';
 import 'app_logger.dart';
 
@@ -13,38 +12,17 @@ class CsrfProtectionService {
   factory CsrfProtectionService() => _instance;
   CsrfProtectionService._internal();
 
-  static const String _csrfBoxName = 'csrf_tokens';
-  static const String _csrfTokenKey = 'csrf_token';
-  static const String _csrfSessionKey = 'csrf_session';
   static const int _tokenLength = 32;
   static const Duration _tokenExpiration = Duration(hours: 4);
 
-  Box? _csrfBox;
   String? _currentToken;
   DateTime? _tokenGeneratedAt;
 
   /// Initialize the CSRF protection service
   Future<void> initialize() async {
-    try {
-      if (!Hive.isBoxOpen(_csrfBoxName)) {
-        _csrfBox = await Hive.openBox(_csrfBoxName);
-      } else {
-        _csrfBox = Hive.box(_csrfBoxName);
-      }
-      
-      // Load existing token if valid
-      await _loadExistingToken();
-      
-      // Generate new token if needed
-      if (_currentToken == null || _isTokenExpired()) {
-        await generateNewToken();
-      }
-    } catch (e) {
-      AppLogger.error('Error initializing CSRF protection', error: e);
-      // Generate in-memory token as fallback
-      _currentToken = _generateRandomToken();
-      _tokenGeneratedAt = DateTime.now();
-    }
+    // Generate new token for this session
+    _currentToken = _generateRandomToken();
+    _tokenGeneratedAt = DateTime.now();
   }
 
   /// Get the current CSRF token
@@ -54,10 +32,6 @@ class CsrfProtectionService {
   Future<String> generateNewToken() async {
     _currentToken = _generateRandomToken();
     _tokenGeneratedAt = DateTime.now();
-    
-    // Store token persistently
-    await _storeToken();
-    
     return _currentToken!;
   }
 
@@ -181,11 +155,6 @@ class CsrfProtectionService {
   Future<void> clearToken() async {
     _currentToken = null;
     _tokenGeneratedAt = null;
-    
-    if (_csrfBox != null && _csrfBox!.isOpen) {
-      await _csrfBox!.delete(_csrfTokenKey);
-      await _csrfBox!.delete(_csrfSessionKey);
-    }
   }
 
   // Private helper methods
@@ -199,23 +168,6 @@ class CsrfProtectionService {
   bool _isTokenExpired() {
     if (_tokenGeneratedAt == null) return true;
     return DateTime.now().difference(_tokenGeneratedAt!) > _tokenExpiration;
-  }
-
-  Future<void> _storeToken() async {
-    if (_csrfBox != null && _csrfBox!.isOpen) {
-      await _csrfBox!.put(_csrfTokenKey, _currentToken);
-      await _csrfBox!.put(_csrfSessionKey, _tokenGeneratedAt?.toIso8601String());
-    }
-  }
-
-  Future<void> _loadExistingToken() async {
-    if (_csrfBox != null && _csrfBox!.isOpen) {
-      _currentToken = _csrfBox!.get(_csrfTokenKey);
-      final sessionStr = _csrfBox!.get(_csrfSessionKey);
-      if (sessionStr != null) {
-        _tokenGeneratedAt = DateTime.tryParse(sessionStr);
-      }
-    }
   }
 
   bool _constantTimeCompare(String a, String b) {
