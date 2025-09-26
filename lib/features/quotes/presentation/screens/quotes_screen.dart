@@ -1,5 +1,6 @@
 // lib/features/quotes/presentation/screens/quotes_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
@@ -20,8 +21,8 @@ import '../../../../core/utils/error_messages.dart';
 import 'package:mailer/mailer.dart';
 import 'edit_quote_screen.dart';
 
-// Quotes provider using Realtime Database with real-time updates
-final quotesProvider = StreamProvider.autoDispose<List<Quote>>((ref) {
+// Quotes provider with archived filter using Realtime Database with real-time updates
+final quotesProvider = StreamProvider.autoDispose.family<List<Quote>, bool>((ref, showArchived) {
   // Check authentication
   final user = ref.watch(currentUserProvider);
   if (user == null) {
@@ -86,6 +87,7 @@ final quotesProvider = StreamProvider.autoDispose<List<Quote>>((ref) {
           tax: (quoteData['tax_amount'] ?? 0).toDouble(),
           total: (quoteData['total_amount'] ?? 0).toDouble(),
           status: quoteData['status'] ?? 'draft',
+          archived: quoteData['archived'] ?? false,
           items: items,
           client: clientData != null ? Client.fromMap(clientData) : null,
           createdBy: quoteData['user_id'] ?? '',
@@ -99,8 +101,13 @@ final quotesProvider = StreamProvider.autoDispose<List<Quote>>((ref) {
 
       // Sort by date (newest first)
       quotes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      
-      return quotes;
+
+      // Filter quotes based on archived status
+      final filteredQuotes = showArchived
+        ? quotes.where((quote) => quote.archived).toList()
+        : quotes.where((quote) => !quote.archived).toList();
+
+      return filteredQuotes;
     } catch (e) {
       AppLogger.error('Error loading quotes', error: e);
       return <Quote>[];
@@ -120,16 +127,44 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
   String _filterStatus = 'all';
   String? _filterProjectId;
   bool _groupByProject = false;
+  bool _showArchived = false;
+
+  // Multi-select state
+  final Set<String> _selectedQuoteIds = <String>{};
+  bool _isMultiSelectMode = false;
+
+  // Focus node for keyboard shortcuts
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final quotesAsync = ref.watch(quotesProvider);
+    final quotesAsync = ref.watch(quotesProvider(_showArchived));
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBarWithClient(
-        title: 'Quotes',
-        actions: [
+    return Focus(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: _handleKeyEvent,
+      child: Scaffold(
+        appBar: AppBarWithClient(
+          title: _isMultiSelectMode
+              ? '${_selectedQuoteIds.length} selected'
+              : 'Quotes',
+          leading: _isMultiSelectMode
+              ? IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: _clearSelection,
+                )
+              : null,
+          actions: _isMultiSelectMode
+              ? _buildMultiSelectActions()
+              : [
           PopupMenuButton<String>(
             icon: const Icon(Icons.download),
             onSelected: (value) async {
@@ -235,6 +270,43 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                                         fontSize: 12,
                                         color: _groupByProject ? theme.primaryColor : null,
                                         fontWeight: _groupByProject ? FontWeight.bold : null,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Archive toggle
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(color: theme.dividerColor),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _showArchived = !_showArchived;
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(20),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      _showArchived ? Icons.archive : Icons.unarchive,
+                                      size: 16,
+                                      color: _showArchived ? Colors.orange : null,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _showArchived ? 'Archived' : 'Show Archived',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: _showArchived ? Colors.orange : null,
+                                        fontWeight: _showArchived ? FontWeight.bold : null,
                                       ),
                                     ),
                                   ],
@@ -463,7 +535,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                                 ),
                               ),
                               // Project quotes
-                              ...projectQuotes.map((quote) => _buildQuoteCard(quote)),
+                              ...projectQuotes.map((quote) => _buildQuoteCard(quote, filteredQuotes)),
                             ],
                           );
                         },
@@ -484,7 +556,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                         itemCount: filteredQuotes.length,
                         itemBuilder: (context, index) {
                           final quote = filteredQuotes[index];
-                          return _buildQuoteCard(quote);
+                          return _buildQuoteCard(quote, filteredQuotes);
                         },
                       ),
                     ),
@@ -512,6 +584,11 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
           ),
         ],
       ),
+      // Floating action button for bulk actions when in multi-select mode
+      floatingActionButton: _isMultiSelectMode && _selectedQuoteIds.isNotEmpty
+          ? _buildBulkActionsFAB()
+          : null,
+      ),
     );
   }
 
@@ -533,19 +610,26 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
     );
   }
 
-  Widget _buildQuoteCard(Quote quote) {
+  Widget _buildQuoteCard(Quote quote, List<Quote> allQuotes) {
     final dateFormat = DateFormat('MMM dd, yyyy');
     final statusColor = _getStatusColor(quote.status);
     final theme = Theme.of(context);
     final isMobile = MediaQuery.of(context).size.width < 600;
     final isTablet = MediaQuery.of(context).size.width < 900;
 
+    final isSelected = _selectedQuoteIds.contains(quote.id);
+
     return Card(
       margin: EdgeInsets.only(bottom: isMobile ? 8 : 12),
+      color: isSelected ? theme.primaryColor.withOpacity(0.1) : null,
+      elevation: isSelected ? 3 : 1,
       child: InkWell(
-        onTap: () => _showQuoteDetails(quote),
+        onTap: () => _handleQuoteCardTap(quote),
+        onLongPress: () => _toggleQuoteSelection(quote.id ?? ''),
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
+        child: Stack(
+          children: [
+            Padding(
           padding: EdgeInsets.all(isMobile ? 12 : 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -914,7 +998,536 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
             ],
           ),
         ),
+            // Checkbox overlay
+            if (_isMultiSelectMode)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: theme.cardColor,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Checkbox(
+                    value: isSelected,
+                    onChanged: (value) => _toggleQuoteSelection(quote.id ?? ''),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
+    );
+  }
+
+  // Multi-select helper methods
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      // Ctrl+A for select all
+      if (event.logicalKey == LogicalKeyboardKey.keyA &&
+          (HardwareKeyboard.instance.isControlPressed ||
+           HardwareKeyboard.instance.isMetaPressed)) {
+        _selectAllQuotes();
+        return KeyEventResult.handled;
+      }
+      // Escape to clear selection
+      if (event.logicalKey == LogicalKeyboardKey.escape) {
+        _clearSelection();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  void _handleQuoteCardTap(Quote quote) {
+    if (_isMultiSelectMode) {
+      _toggleQuoteSelection(quote.id ?? '');
+    } else {
+      _showQuoteDetails(quote);
+    }
+  }
+
+  void _toggleQuoteSelection(String quoteId) {
+    if (quoteId.isEmpty) return;
+
+    setState(() {
+      if (_selectedQuoteIds.contains(quoteId)) {
+        _selectedQuoteIds.remove(quoteId);
+        if (_selectedQuoteIds.isEmpty) {
+          _isMultiSelectMode = false;
+        }
+      } else {
+        _selectedQuoteIds.add(quoteId);
+        _isMultiSelectMode = true;
+      }
+    });
+  }
+
+  void _selectAllQuotes() {
+    final quotesAsync = ref.read(quotesProvider(_showArchived));
+    quotesAsync.whenData((quotes) {
+      setState(() {
+        _selectedQuoteIds.clear();
+        _selectedQuoteIds.addAll(quotes.map((q) => q.id ?? '').where((id) => id.isNotEmpty));
+        _isMultiSelectMode = _selectedQuoteIds.isNotEmpty;
+      });
+    });
+  }
+
+  void _toggleSelectAll() {
+    final quotesAsync = ref.read(quotesProvider(_showArchived));
+    quotesAsync.whenData((quotes) {
+      setState(() {
+        if (_isAllSelected()) {
+          _clearSelection();
+        } else {
+          _selectedQuoteIds.clear();
+          _selectedQuoteIds.addAll(quotes.map((q) => q.id ?? '').where((id) => id.isNotEmpty));
+          _isMultiSelectMode = _selectedQuoteIds.isNotEmpty;
+        }
+      });
+    });
+  }
+
+  bool _isAllSelected() {
+    final quotesAsync = ref.read(quotesProvider(_showArchived));
+    return quotesAsync.whenOrNull(
+      data: (quotes) {
+        final validIds = quotes.map((q) => q.id ?? '').where((id) => id.isNotEmpty).toSet();
+        return validIds.isNotEmpty && _selectedQuoteIds.containsAll(validIds);
+      },
+    ) ?? false;
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _selectedQuoteIds.clear();
+      _isMultiSelectMode = false;
+    });
+  }
+
+  List<Widget> _buildMultiSelectActions() {
+    return [
+      IconButton(
+        icon: const Icon(Icons.picture_as_pdf),
+        onPressed: _selectedQuoteIds.isNotEmpty ? _bulkExportPDF : null,
+        tooltip: 'Export Selected as PDF',
+      ),
+      IconButton(
+        icon: const Icon(Icons.delete),
+        onPressed: _selectedQuoteIds.isNotEmpty ? _bulkDeleteQuotes : null,
+        tooltip: 'Delete Selected',
+      ),
+      PopupMenuButton<String>(
+        icon: const Icon(Icons.more_vert),
+        onSelected: (value) {
+          switch (value) {
+            case 'export_excel':
+              _bulkExportExcel();
+              break;
+            case 'change_status':
+              _bulkChangeStatus();
+              break;
+          }
+        },
+        itemBuilder: (context) => [
+          const PopupMenuItem(
+            value: 'export_excel',
+            child: ListTile(
+              leading: Icon(Icons.table_chart),
+              title: Text('Export as Excel'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          const PopupMenuItem(
+            value: 'change_status',
+            child: ListTile(
+              leading: Icon(Icons.edit),
+              title: Text('Change Status'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        ],
+      ),
+    ];
+  }
+
+  Widget _buildBulkActionsFAB() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        FloatingActionButton(
+          heroTag: "bulk_pdf",
+          onPressed: _bulkExportPDF,
+          backgroundColor: Colors.red,
+          tooltip: 'Export Selected as PDF',
+          child: const Icon(Icons.picture_as_pdf, color: Colors.white),
+        ),
+        const SizedBox(height: 8),
+        FloatingActionButton(
+          heroTag: "bulk_delete",
+          onPressed: _bulkDeleteQuotes,
+          backgroundColor: Colors.red.shade700,
+          tooltip: 'Delete Selected',
+          child: const Icon(Icons.delete, color: Colors.white),
+        ),
+        const SizedBox(height: 8),
+        FloatingActionButton(
+          heroTag: "clear_selection",
+          onPressed: _clearSelection,
+          backgroundColor: Colors.grey,
+          tooltip: 'Clear Selection',
+          child: const Icon(Icons.clear, color: Colors.white),
+        ),
+      ],
+    );
+  }
+
+  // Bulk action methods
+  Future<void> _bulkExportPDF() async {
+    final selectedQuotes = await _getSelectedQuotes();
+    if (selectedQuotes.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Export Selected Quotes'),
+        content: Text('Export ${selectedQuotes.length} selected quotes to PDF files?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Export'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: SizedBox(
+            height: 100,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Exporting selected quotes...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      int exported = 0;
+      for (final quote in selectedQuotes) {
+        try {
+          final pdfBytes = await ExportService.generateQuotePDF(quote.id ?? '');
+          final filename = 'Quote_${quote.quoteNumber}_${DateFormat('yyyy-MM-dd').format(quote.createdAt)}.pdf';
+          await DownloadHelper.downloadFile(
+            bytes: pdfBytes,
+            filename: filename,
+            mimeType: 'application/pdf',
+          );
+          exported++;
+        } catch (e) {
+          AppLogger.error('Failed to export quote ${quote.quoteNumber}', error: e);
+        }
+      }
+
+      Navigator.of(context).pop(); // Close loading dialog
+      _clearSelection();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Exported $exported of ${selectedQuotes.length} quotes'),
+          backgroundColor: exported == selectedQuotes.length ? Colors.green : Colors.orange,
+        ),
+      );
+    } catch (e) {
+      Navigator.of(context).pop(); // Close loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Export failed: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _bulkExportExcel() async {
+    final selectedQuotes = await _getSelectedQuotes();
+    if (selectedQuotes.isEmpty) return;
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: SizedBox(
+            height: 100,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Generating Excel export...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Convert quotes to format expected by ExportService
+      final quotesData = selectedQuotes.map((quote) => {
+        'quote_number': quote.quoteNumber,
+        'client': quote.client?.toMap(),
+        'status': quote.status,
+        'created_at': quote.createdAt.toIso8601String(),
+        'quote_items': quote.items.map((item) => item.toMap()).toList(),
+        'subtotal': quote.subtotal,
+        'tax': quote.tax,
+        'total': quote.total,
+        'comments': quote.comments,
+      }).toList();
+
+      final excelBytes = await ExportService.generateQuotesExcel(quotesData);
+      final timestamp = DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now());
+      final filename = 'selected_quotes_export_$timestamp.xlsx';
+
+      await DownloadHelper.downloadFile(
+        bytes: excelBytes,
+        filename: filename,
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+
+      Navigator.of(context).pop(); // Close loading dialog
+      _clearSelection();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Exported ${selectedQuotes.length} quotes to Excel'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      Navigator.of(context).pop(); // Close loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Excel export failed: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _bulkDeleteQuotes() async {
+    final selectedQuotes = await _getSelectedQuotes();
+    if (selectedQuotes.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Selected Quotes'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Are you sure you want to delete ${selectedQuotes.length} selected quotes?'),
+            const SizedBox(height: 8),
+            const Text(
+              'This action cannot be undone.',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete All'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: SizedBox(
+            height: 100,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Deleting quotes...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final dbService = ref.read(databaseServiceProvider);
+      int deleted = 0;
+
+      for (final quote in selectedQuotes) {
+        try {
+          await dbService.deleteQuote(quote.id ?? '');
+          deleted++;
+        } catch (e) {
+          AppLogger.error('Failed to delete quote ${quote.quoteNumber}', error: e);
+        }
+      }
+
+      ref.invalidate(quotesProvider);
+      Navigator.of(context).pop(); // Close loading dialog
+      _clearSelection();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Deleted $deleted of ${selectedQuotes.length} quotes'),
+          backgroundColor: deleted == selectedQuotes.length ? Colors.green : Colors.orange,
+        ),
+      );
+    } catch (e) {
+      Navigator.of(context).pop(); // Close loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Delete failed: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _bulkChangeStatus() async {
+    final selectedQuotes = await _getSelectedQuotes();
+    if (selectedQuotes.isEmpty) return;
+
+    final newStatus = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Change Status for ${selectedQuotes.length} Quotes'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: ['draft', 'sent', 'accepted', 'rejected'].map((status) {
+            return ListTile(
+              title: Text(status.toUpperCase()),
+              leading: Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: _getStatusColor(status),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              onTap: () => Navigator.pop(context, status),
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (newStatus == null) return;
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: SizedBox(
+            height: 100,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Updating status...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final dbService = ref.read(databaseServiceProvider);
+      int updated = 0;
+
+      for (final quote in selectedQuotes) {
+        try {
+          await dbService.updateQuoteStatus(quote.id ?? '', newStatus);
+          updated++;
+        } catch (e) {
+          AppLogger.error('Failed to update quote ${quote.quoteNumber}', error: e);
+        }
+      }
+
+      ref.invalidate(quotesProvider);
+      Navigator.of(context).pop(); // Close loading dialog
+      _clearSelection();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Updated $updated of ${selectedQuotes.length} quotes to ${newStatus.toUpperCase()}'),
+          backgroundColor: updated == selectedQuotes.length ? Colors.green : Colors.orange,
+        ),
+      );
+    } catch (e) {
+      Navigator.of(context).pop(); // Close loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Status update failed: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<List<Quote>> _getSelectedQuotes() async {
+    final quotesAsync = ref.read(quotesProvider(_showArchived));
+    return quotesAsync.when(
+      data: (quotes) => quotes.where((q) => _selectedQuoteIds.contains(q.id)).toList(),
+      loading: () => <Quote>[],
+      error: (_, __) => <Quote>[],
     );
   }
 
@@ -1382,7 +1995,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
       }
 
       // Get quotes from the provider
-      final quotesAsync = ref.read(quotesProvider);
+      final quotesAsync = ref.read(quotesProvider(_showArchived));
 
       List<Quote> quotes = [];
       quotesAsync.when(
@@ -1463,7 +2076,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
 
   // Export all quotes to PDF with progress tracking
   Future<void> _exportQuotesToPDF() async {
-    final quotesAsync = ref.read(quotesProvider);
+    final quotesAsync = ref.read(quotesProvider(_showArchived));
 
     await quotesAsync.when(
       data: (quotes) async {

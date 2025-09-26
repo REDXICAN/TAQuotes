@@ -529,6 +529,22 @@ class RealtimeDatabaseService {
     });
   }
 
+  Future<void> archiveQuote(String quoteId) async {
+    if (userId == null) return;
+    await _db.ref('quotes/$userId/$quoteId').update({
+      'archived': true,
+      'updated_at': ServerValue.timestamp,
+    });
+  }
+
+  Future<void> unarchiveQuote(String quoteId) async {
+    if (userId == null) return;
+    await _db.ref('quotes/$userId/$quoteId').update({
+      'archived': false,
+      'updated_at': ServerValue.timestamp,
+    });
+  }
+
   Future<void> updateQuote(String quoteId, Map<String, dynamic> updates) async {
     if (userId == null) throw Exception('User not authenticated');
     

@@ -17,9 +17,19 @@ import '../../../../core/services/export_service.dart';
 import '../../../../core/services/app_logger.dart';
 import 'package:mailer/mailer.dart';
 import 'package:share_plus/share_plus.dart';
-import 'dart:html' as html;
-import '../../../../core/services/realtime_database_service.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/utils/download_helper.dart';
+
+// Helper class for share capabilities
+class ShareCapabilities {
+  final bool canShareFiles;
+  final bool canUseClipboard;
+
+  ShareCapabilities({
+    required this.canShareFiles,
+    required this.canUseClipboard,
+  });
+}
 
 // Quote detail provider - StreamProvider.autoDispose.family for real-time updates
 final quoteDetailProvider =
@@ -64,6 +74,7 @@ final quoteDetailProvider =
         tax: (quoteData['tax_amount'] ?? 0).toDouble(),
         total: (quoteData['total_amount'] ?? 0).toDouble(),
         status: quoteData['status'] ?? 'draft',
+        archived: quoteData['archived'] ?? false,
         items: items,
         client: clientData != null ? Client.fromMap(clientData) : null,
         createdBy: quoteData['user_id'] ?? '',
@@ -200,6 +211,16 @@ class QuoteDetailScreen extends ConsumerWidget {
                     Icon(Icons.copy),
                     SizedBox(width: 8),
                     Text('Duplicate'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'archive',
+                child: Row(
+                  children: [
+                    Icon(Icons.archive, color: Colors.orange),
+                    SizedBox(width: 8),
+                    Text('Archive', style: TextStyle(color: Colors.orange)),
                   ],
                 ),
               ),
@@ -829,7 +850,7 @@ class QuoteDetailScreen extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: currentColor.withOpacity(0.1),
+          color: currentColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: currentColor),
         ),
@@ -934,10 +955,10 @@ class QuoteDetailScreen extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                         margin: const EdgeInsets.only(right: 6),
                         decoration: BoxDecoration(
-                          color: theme.primaryColor.withOpacity(0.1),
+                          color: theme.primaryColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(3),
                           border: Border.all(
-                            color: theme.primaryColor.withOpacity(0.3),
+                            color: theme.primaryColor.withValues(alpha: 0.3),
                             width: 0.5,
                           ),
                         ),
@@ -978,7 +999,7 @@ class QuoteDetailScreen extends ConsumerWidget {
                           children: [
                             Icon(Icons.note_alt_outlined, 
                               size: 12, 
-                              color: theme.primaryColor.withOpacity(0.7)),
+                              color: theme.primaryColor.withValues(alpha: 0.7)),
                             const SizedBox(width: 4),
                             Text(
                               'View Note',
@@ -998,7 +1019,7 @@ class QuoteDetailScreen extends ConsumerWidget {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: theme.primaryColor.withOpacity(0.05),
+                              color: theme.primaryColor.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Row(
@@ -1006,7 +1027,7 @@ class QuoteDetailScreen extends ConsumerWidget {
                               children: [
                                 Icon(Icons.note, 
                                   size: 14, 
-                                  color: theme.primaryColor.withOpacity(0.7)),
+                                  color: theme.primaryColor.withValues(alpha: 0.7)),
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
@@ -1089,6 +1110,9 @@ class QuoteDetailScreen extends ConsumerWidget {
           break;
         case 'duplicate':
           await _duplicateQuote(context, ref, quote);
+          break;
+        case 'archive':
+          await _archiveQuote(context, ref, quote);
           break;
         case 'delete':
           await _deleteQuote(context, ref, quote);
@@ -1252,55 +1276,80 @@ class QuoteDetailScreen extends ConsumerWidget {
 
   Future<void> _shareQuote(BuildContext context, WidgetRef ref, Quote quote) async {
     try {
-      final dateFormat = DateFormat('MMMM dd, yyyy');
-      final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
+      // Check platform capabilities
+      final platform = Theme.of(context).platform;
+      final canShareFiles = platform == TargetPlatform.iOS ||
+                           platform == TargetPlatform.android;
 
-      String shareText = 'Quote #${quote.quoteNumber}\n';
-      shareText += 'Date: ${dateFormat.format(quote.createdAt)}\n\n';
-
-      if (quote.client != null) {
-        shareText += 'Client: ${quote.client!.company}\n';
-        if (quote.client!.contactName.isNotEmpty) {
-          shareText += 'Contact: ${quote.client!.contactName}\n';
-        }
+      if (canShareFiles) {
+        await _shareQuoteWithFile(context, quote);
+      } else {
+        await _shareQuoteToClipboard(context, quote);
       }
+    } catch (e) {
+      // Fallback to clipboard for web/desktop
+      await _shareQuoteToClipboard(context, quote);
+      AppLogger.error('Error sharing quote', error: e, category: LogCategory.business);
+    }
+  }
 
-      shareText += '\nItems (${quote.items.length}):\n';
-      for (var item in quote.items) {
-        shareText += '• ${item.productName} x${item.quantity} = ${currencyFormat.format(item.total)}\n';
-      }
+  Future<void> _shareQuoteWithFile(BuildContext context, Quote quote) async {
+    try {
+      final shareText = _generateShareText(quote);
 
-      shareText += '\nSubtotal: ${currencyFormat.format(quote.subtotal)}\n';
-      if (quote.discountAmount > 0) {
-        shareText += 'Discount: -${currencyFormat.format(quote.discountAmount)}\n';
-      }
-      shareText += 'Tax: ${currencyFormat.format(quote.tax)}\n';
-      shareText += 'Total: ${currencyFormat.format(quote.totalAmount)}';
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => const AlertDialog(
+          content: SizedBox(
+            height: 100,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Preparing to share...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
 
       // Generate PDF for sharing
       final pdfBytes = await ExportService.generateQuotePDF(quote.id ?? '');
       final fileName = 'Quote_${quote.quoteNumber ?? 'Unknown'}.pdf';
 
-      // Share with files
+      // Close loading dialog
+      if (context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      // Share with files using share_plus
       await Share.shareXFiles(
         [XFile.fromData(pdfBytes, name: fileName, mimeType: 'application/pdf')],
         text: shareText,
         subject: 'Quote #${quote.quoteNumber}',
       );
 
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Quote shared successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
-      // Fallback to text-only sharing if PDF generation fails
-      final dateFormat = DateFormat('MMMM dd, yyyy');
-      final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
+      // Close loading dialog if still open
+      if (context.mounted && Navigator.canPop(context)) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
 
-      String shareText = 'Quote #${quote.quoteNumber}\n';
-      shareText += 'Date: ${dateFormat.format(quote.createdAt)}\n';
-      shareText += 'Total: ${currencyFormat.format(quote.totalAmount)}';
-
-      await Share.share(
-        shareText,
-        subject: 'Quote #${quote.quoteNumber}',
-      );
+      // Fallback to text-only sharing
+      await _shareQuoteText(context, quote);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1313,28 +1362,41 @@ class QuoteDetailScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _printQuote(BuildContext context, WidgetRef ref, Quote quote) async {
+  Future<void> _shareQuoteText(BuildContext context, Quote quote) async {
     try {
-      // Generate PDF for printing
-      final pdfBytes = await ExportService.generateQuotePDF(quote.id ?? '');
+      final shareText = _generateShareText(quote);
 
-      // Create blob and object URL for printing
-      final blob = html.Blob([pdfBytes]);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-
-      // Open in new window for printing
-      html.window.open(url, '_blank');
-
-      // Clean up the object URL after a delay
-      Future.delayed(const Duration(seconds: 1), () {
-        html.Url.revokeObjectUrl(url);
-      });
+      await Share.share(
+        shareText,
+        subject: 'Quote #${quote.quoteNumber}',
+      );
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Opening quote for printing...'),
+            content: Text('Quote details shared!'),
             backgroundColor: Colors.blue,
+          ),
+        );
+      }
+    } catch (e) {
+      // If native sharing fails, fall back to clipboard
+      await _shareQuoteToClipboard(context, quote);
+    }
+  }
+
+  Future<void> _shareQuoteToClipboard(BuildContext context, Quote quote) async {
+    try {
+      final shareText = _generateShareText(quote);
+
+      await Clipboard.setData(ClipboardData(text: shareText));
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Quote details copied to clipboard!'),
+            backgroundColor: Colors.blue,
+            duration: Duration(seconds: 3),
           ),
         );
       }
@@ -1342,7 +1404,93 @@ class QuoteDetailScreen extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to print quote: ${e.toString()}'),
+            content: Text('Unable to share quote: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  String _generateShareText(Quote quote) {
+    final dateFormat = DateFormat('MMMM dd, yyyy');
+    final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
+
+    String shareText = '📋 Quote #${quote.quoteNumber}\n';
+    shareText += '📅 Date: ${dateFormat.format(quote.createdAt)}\n\n';
+
+    // Client information
+    if (quote.client != null) {
+      shareText += '🏢 Client Information:\n';
+      shareText += '• Company: ${quote.client!.company}\n';
+      if (quote.client!.contactName.isNotEmpty) {
+        shareText += '• Contact: ${quote.client!.contactName}\n';
+      }
+      if (quote.client!.email.isNotEmpty) {
+        shareText += '• Email: ${quote.client!.email}\n';
+      }
+      if (quote.client!.phone.isNotEmpty) {
+        shareText += '• Phone: ${quote.client!.phone}\n';
+      }
+      shareText += '\n';
+    }
+
+    // Items
+    shareText += '📦 Items (${quote.items.length}):\n';
+    for (var item in quote.items) {
+      shareText += '• ${item.productName}\n';
+      shareText += '  Qty: ${item.quantity} × ${currencyFormat.format(item.unitPrice)}';
+      if (item.discount > 0) {
+        shareText += ' (${item.discount}% discount)';
+      }
+      shareText += ' = ${currencyFormat.format(item.total)}\n';
+    }
+
+    // Totals
+    shareText += '\n💰 Summary:\n';
+    shareText += '• Subtotal: ${currencyFormat.format(quote.subtotal)}\n';
+    if (quote.discountAmount > 0) {
+      final discountLabel = quote.discountType == 'percentage'
+          ? 'Discount (${quote.discountValue}%)'
+          : 'Discount';
+      shareText += '• $discountLabel: -${currencyFormat.format(quote.discountAmount)}\n';
+    }
+    shareText += '• Tax: ${currencyFormat.format(quote.tax)}\n';
+    shareText += '• **Total: ${currencyFormat.format(quote.totalAmount)}**\n\n';
+
+    shareText += '---\nGenerated by Turbo Air Quotes (TAQ)\n';
+    shareText += 'Professional B2B Quote Management System';
+
+    return shareText;
+  }
+
+  Future<void> _printQuote(BuildContext context, WidgetRef ref, Quote quote) async {
+    try {
+      // Generate PDF for printing
+      final pdfBytes = await ExportService.generateQuotePDF(quote.id ?? '');
+
+      // For web platform, download the PDF instead of opening for print
+      final fileName = 'Quote_${quote.quoteNumber ?? 'Unknown'}_Print.pdf';
+      await DownloadHelper.downloadFile(
+        bytes: pdfBytes,
+        filename: fileName,
+        mimeType: 'application/pdf',
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PDF downloaded: $fileName\\nOpen the file to print'),
+            backgroundColor: Colors.blue,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to download PDF for printing: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -1439,6 +1587,60 @@ class QuoteDetailScreen extends ConsumerWidget {
         );
       }
       AppLogger.error('Failed to duplicate quote', error: e, category: LogCategory.business);
+    }
+  }
+
+  Future<void> _archiveQuote(BuildContext context, WidgetRef ref, Quote quote) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Archive Quote'),
+        content: Text('Are you sure you want to archive Quote #${quote.quoteNumber}?\n\nArchived quotes will be hidden from the main quotes list but can still be accessed from the archived quotes view.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Archive'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        final dbService = ref.read(databaseServiceProvider);
+        await dbService.archiveQuote(quote.id ?? '');
+
+        if (context.mounted) {
+          // Navigate back to quotes list
+          context.go('/quotes');
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Quote archived successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to archive quote: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        AppLogger.error('Failed to archive quote', error: e, category: LogCategory.business);
+      }
     }
   }
 

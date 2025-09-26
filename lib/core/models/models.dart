@@ -623,6 +623,7 @@ class Quote {
   final double total;
   final double totalAmount;
   final String status;
+  final bool archived;
   final String? notes;
   final String? comments;
   final bool includeCommentInEmail;
@@ -647,6 +648,7 @@ class Quote {
     required this.total,
     double? totalAmount,
     required this.status,
+    this.archived = false,
     this.notes,
     this.comments,
     this.includeCommentInEmail = false,
@@ -673,6 +675,7 @@ class Quote {
       'total': total,
       'totalAmount': totalAmount,
       'status': status,
+      'archived': archived,
       'notes': notes,
       'comments': comments,
       'includeCommentInEmail': includeCommentInEmail,
@@ -702,6 +705,7 @@ class Quote {
       total: SafeConversions.toPrice(map['total'] ?? map['total_amount']),
       totalAmount: SafeConversions.toPrice(map['totalAmount'] ?? map['total_amount'] ?? map['total']),
       status: map['status'] ?? 'draft',
+      archived: map['archived'] ?? false,
       notes: map['notes'],
       comments: map['comments'],
       includeCommentInEmail: map['includeCommentInEmail'] ?? map['include_comment_in_email'] ?? false,
