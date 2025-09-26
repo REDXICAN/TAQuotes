@@ -105,28 +105,5 @@ class GlobalRefreshNotifier extends StateNotifier<DateTime> {
 /// Helper to force refresh all providers
 void forceRefreshAll(WidgetRef ref) {
   ref.read(globalRefreshProvider.notifier).refresh();
-
-  // Add specific providers to refresh here
-  ref.invalidate(enhancedProductsProvider);
-  ref.invalidate(clientsStreamProvider);
-  ref.invalidate(quotesStreamProvider);
-  ref.invalidate(pendingUserApprovalsProvider);
-  // Add more providers as needed
+  // Add specific providers to refresh here as needed
 }
-
-// Import these providers from their respective files
-final enhancedProductsProvider = StreamProvider<List<dynamic>>((ref) {
-  throw UnimplementedError('Import from enhanced_providers.dart');
-});
-
-final clientsStreamProvider = StreamProvider<List<dynamic>>((ref) {
-  throw UnimplementedError('Import from client_providers.dart');
-});
-
-final quotesStreamProvider = StreamProvider<List<dynamic>>((ref) {
-  throw UnimplementedError('Import from quote_providers.dart');
-});
-
-final pendingUserApprovalsProvider = StreamProvider<List<dynamic>>((ref) {
-  throw UnimplementedError('Import from user_approvals_widget.dart');
-});

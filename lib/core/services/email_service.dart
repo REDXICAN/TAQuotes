@@ -447,8 +447,6 @@ If you received both attachments, the email service is working correctly on all 
     required Map<String, dynamic> userInfo, // User/salesman info
     List<Attachment>? attachments,
   }) async {
-    AppLogger.debug('Preparing to send email to $recipientEmail on $_platformInfo',
-        category: LogCategory.email);
 
     // Check if service is properly configured
     if (!isConfigured) {
@@ -508,7 +506,6 @@ $userSignature
         message.attachments.addAll(attachments);
       }
 
-      AppLogger.debug('Attempting to send email via SMTP', category: LogCategory.email);
       
       // Send email with timeout
       final sendReport = await send(message, _smtpServer,
@@ -688,7 +685,6 @@ $userSignature
     String enhancedHtmlContent = htmlContent;
     
     try {
-      AppLogger.debug('Generating PDF for quote $quoteId', category: LogCategory.email);
       
       // Validate inputs
       if (quoteId.isEmpty) {
@@ -705,8 +701,6 @@ $userSignature
         throw Exception('Generated PDF is empty');
       }
       
-      AppLogger.debug('PDF generated successfully, size: ${pdfBytes.length} bytes', 
-          category: LogCategory.email);
       
       // Create attachment from bytes using StreamAttachment
       final attachment = StreamAttachment(
@@ -716,7 +710,6 @@ $userSignature
       );
       
       attachments.add(attachment);
-      AppLogger.debug('PDF attachment created successfully', category: LogCategory.email);
     } catch (e, stackTrace) {
       AppLogger.error('Failed to generate PDF attachment for quote $quoteNumber', 
           error: e, stackTrace: stackTrace, category: LogCategory.email);
@@ -771,8 +764,6 @@ $userSignature
         throw Exception('Quote number is empty');
       }
       
-      AppLogger.debug('PDF bytes validation passed, size: ${pdfBytes.length} bytes', 
-          category: LogCategory.email);
     // Build responsive email HTML content with table
     final htmlContent = '''
 <!DOCTYPE html>
@@ -827,7 +818,6 @@ $userSignature
         fileName: 'Quote_$quoteNumber.pdf',
       );
       
-      AppLogger.debug('PDF attachment created from provided bytes', category: LogCategory.email);
 
       final result = await sendQuoteEmail(
         recipientEmail: recipientEmail,
@@ -910,13 +900,10 @@ $userSignature
     List<Attachment> attachments = [];
 
     try {
-      AppLogger.debug('Generating Excel for quote $quoteNumber', category: LogCategory.email);
 
       // Call ExportService to generate Excel
       final excelBytes = await ExportService.generateQuoteExcel(quoteId);
 
-      AppLogger.debug('Excel generated successfully, size: ${excelBytes.length} bytes',
-          category: LogCategory.email);
 
       // Create attachment from bytes using StreamAttachment
       final attachment = StreamAttachment(
@@ -926,7 +913,6 @@ $userSignature
       );
 
       attachments.add(attachment);
-      AppLogger.debug('Excel attachment created successfully', category: LogCategory.email);
     } catch (e, stackTrace) {
       AppLogger.error('Failed to generate Excel attachment for quote $quoteNumber',
           error: e, stackTrace: stackTrace, category: LogCategory.email);
@@ -1008,7 +994,6 @@ $userSignature
 
     try {
       // Generate PDF attachment
-      AppLogger.debug('Generating PDF for quote $quoteNumber', category: LogCategory.email);
       final pdfBytes = await ExportService.generateQuotePDF(quoteId);
 
       final pdfAttachment = StreamAttachment(
@@ -1019,7 +1004,6 @@ $userSignature
       attachments.add(pdfAttachment);
 
       // Generate Excel attachment
-      AppLogger.debug('Generating Excel for quote $quoteNumber', category: LogCategory.email);
       final excelBytes = await ExportService.generateQuoteExcel(quoteId);
 
       final excelAttachment = StreamAttachment(
@@ -1029,7 +1013,6 @@ $userSignature
       );
       attachments.add(excelAttachment);
 
-      AppLogger.debug('Both attachments created successfully', category: LogCategory.email);
     } catch (e, stackTrace) {
       AppLogger.error('Failed to generate attachments for quote $quoteNumber',
           error: e, stackTrace: stackTrace, category: LogCategory.email);

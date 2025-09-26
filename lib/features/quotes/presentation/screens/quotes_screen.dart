@@ -1211,11 +1211,6 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
             ref.invalidate(quotesProvider);
           } catch (statusError) {
             // Continue even if status update fails
-            AppLogger.debug(
-              'Failed to update quote status after email, continuing anyway',
-              error: statusError,
-              category: LogCategory.business,
-            );
           }
         }
         
@@ -1239,20 +1234,10 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
           Navigator.of(context, rootNavigator: true).pop();
         } catch (navError) {
           // Try alternative close method
-          AppLogger.debug(
-            'Failed to close dialog with root navigator, trying alternative',
-            error: navError,
-            category: LogCategory.ui,
-          );
           try {
             Navigator.of(context).pop();
           } catch (altNavError) {
             // Ignore if already closed
-            AppLogger.debug(
-              'Dialog may already be closed',
-              error: altNavError,
-              category: LogCategory.ui,
-            );
           }
         }
       }
@@ -1779,11 +1764,6 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
           ref.invalidate(quotesProvider);
         } catch (statusError) {
           // Continue even if status update fails
-          AppLogger.debug(
-            'Failed to update quote status after export, continuing anyway',
-            error: statusError,
-            category: LogCategory.business,
-          );
         }
       }
 
@@ -1804,20 +1784,10 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
           Navigator.of(context, rootNavigator: true).pop();
         } catch (navError) {
           // Try alternative close method
-          AppLogger.debug(
-            'Failed to close dialog with root navigator, trying alternative',
-            error: navError,
-            category: LogCategory.ui,
-          );
           try {
             Navigator.of(context).pop();
           } catch (altNavError) {
             // Ignore if already closed
-            AppLogger.debug(
-              'Dialog may already be closed',
-              error: altNavError,
-              category: LogCategory.ui,
-            );
           }
         }
       }
