@@ -12,7 +12,6 @@ import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/widgets/simple_image_widget.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/services/excel_upload_service.dart';
-import '../../../../core/services/excel_inventory_service.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/services/rbac_service.dart';
 import '../../../../core/utils/warehouse_utils.dart';
@@ -20,33 +19,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../widgets/excel_preview_dialog.dart';
 import '../../widgets/import_progress_dialog.dart';
 
-// Enhanced products provider that includes Excel inventory stock data
-final productsWithExcelStockProvider =
-    FutureProvider.family<List<Product>, String?>((ref, category) async {
-  try {
-    // Get Excel inventory products (sorted by stock volume)
-    final excelProducts = await ExcelInventoryService.getProductsSortedByStock();
-
-    // Filter by category if specified
-    if (category == null || category.isEmpty) {
-      return excelProducts;
-    } else {
-      return excelProducts.where((product) {
-        final productCategory = product.category.trim().toLowerCase();
-        final filterCategory = category.trim().toLowerCase();
-
-        return productCategory == filterCategory ||
-               productCategory.contains(filterCategory) ||
-               filterCategory.contains(productCategory);
-      }).toList();
-    }
-  } catch (e) {
-    AppLogger.error('Error loading Excel products: $e', category: LogCategory.database);
-    return [];
-  }
-});
-
-// Original Firebase products provider for backward compatibility
+// Firebase products provider
 final productsProvider =
     StreamProvider.family<List<Product>, String?>((ref, category) {
   try {
@@ -216,7 +189,6 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
   List<String> _productTypes = ['All'];
   String _selectedProductType = 'All';
   String? _selectedWarehouse; // Warehouse filter state
-  bool _useExcelStock = false; // Toggle for Excel stock data source - default to Firebase
   
   @override
   void initState() {
@@ -527,10 +499,8 @@ Future<void> _handleExcelUpload() async {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Get products based on category using appropriate provider
-    final productsAsync = _useExcelStock
-        ? ref.watch(productsWithExcelStockProvider(null))
-        : ref.watch(productsProvider(null));
+    // Get products from Firebase
+    final productsAsync = ref.watch(productsProvider(null));
 
     // Check if current user is superadmin
     final isSuperAdmin = ExcelUploadService.isSuperAdmin;
@@ -540,46 +510,6 @@ Future<void> _handleExcelUpload() async {
         title: 'Products',
         elevation: 0,
         actions: [
-          // Excel Stock Data Toggle
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _useExcelStock ? 'Excel' : 'Firebase',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Switch(
-                  value: _useExcelStock,
-                  onChanged: (value) {
-                    setState(() {
-                      _useExcelStock = value;
-                    });
-                  },
-                  activeColor: Colors.white,
-                  activeTrackColor: Colors.white.withOpacity(0.3),
-                  inactiveThumbColor: Colors.grey,
-                  inactiveTrackColor: Colors.grey.withOpacity(0.3),
-                ),
-                Tooltip(
-                  message: _useExcelStock
-                    ? 'Using Excel inventory (O:\\...\\09.12.25 INVENTARIO MEXICO.xlsx)'
-                    : 'Using Firebase real-time database',
-                  child: Icon(
-                    Icons.info_outline,
-                    size: 14,
-                    color: Colors.white.withOpacity(0.7),
-                  ),
-                ),
-              ],
-            ),
-          ),
           // Excel Import Button - Only for Admin and SuperAdmin
           FutureBuilder<bool>(
             future: RBACService.hasPermission('import_products'),
