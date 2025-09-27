@@ -135,6 +135,39 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
   }
 
   Future<void> _saveProductChanges(Product product) async {
+    // Show confirmation dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Changes'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Are you sure you want to save these changes?'),
+            const SizedBox(height: 16),
+            Text('SKU: ${_productControllers['${product.id}_sku']?.text}', style: const TextStyle(fontSize: 12)),
+            Text('Model: ${_productControllers['${product.id}_model']?.text}', style: const TextStyle(fontSize: 12)),
+            Text('Name: ${_productControllers['${product.id}_name']?.text}', style: const TextStyle(fontSize: 12)),
+            Text('Price: \$${_productControllers['${product.id}_price']?.text}', style: const TextStyle(fontSize: 12)),
+            Text('Stock: ${_productControllers['${product.id}_stock']?.text}', style: const TextStyle(fontSize: 12)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save Changes'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     setState(() => _isLoading = true);
     try {
       final updatedProduct = Product(
@@ -146,7 +179,7 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
         description: _productControllers['${product.id}_description']?.text ?? product.description,
         price: double.tryParse(_productControllers['${product.id}_price']?.text ?? '') ?? product.price,
         category: _productControllers['${product.id}_category']?.text ?? product.category,
-        stock: product.stock,
+        stock: int.tryParse(_productControllers['${product.id}_stock']?.text ?? '') ?? product.stock,
         createdAt: product.createdAt,
         imageUrl: product.imageUrl,
         thumbnailUrl: product.thumbnailUrl,
@@ -190,6 +223,7 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
       _productControllers['${product.id}_description'] = TextEditingController(text: product.description);
       _productControllers['${product.id}_price'] = TextEditingController(text: product.price.toString());
       _productControllers['${product.id}_category'] = TextEditingController(text: product.category);
+      _productControllers['${product.id}_stock'] = TextEditingController(text: product.stock.toString());
     });
   }
 
@@ -197,7 +231,7 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
     setState(() {
       _editingProducts.remove(productId);
       // Clean up controllers
-      ['sku', 'model', 'name', 'description', 'price', 'category'].forEach((field) {
+      ['sku', 'model', 'name', 'description', 'price', 'category', 'stock'].forEach((field) {
         _productControllers['${productId}_$field']?.dispose();
         _productControllers.remove('${productId}_$field');
       });
@@ -248,6 +282,37 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
   }
 
   Future<void> _saveUserChanges(String userId, Map<String, dynamic> userData) async {
+    // Show confirmation dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm User Changes'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Are you sure you want to save these changes?'),
+            const SizedBox(height: 16),
+            Text('Name: ${_userControllers['${userId}_name']?.text}', style: const TextStyle(fontSize: 12)),
+            Text('Email: ${_userControllers['${userId}_email']?.text}', style: const TextStyle(fontSize: 12)),
+            Text('Role: ${_userControllers['${userId}_role']?.text}', style: const TextStyle(fontSize: 12)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save Changes'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     setState(() => _isLoading = true);
     try {
       final updates = {
@@ -405,6 +470,7 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
                       DataColumn(label: Text('Name')),
                       DataColumn(label: Text('Category')),
                       DataColumn(label: Text('Price')),
+                      DataColumn(label: Text('Stock')),
                       DataColumn(label: Text('Actions')),
                     ],
                     rows: products.map((product) {
@@ -453,6 +519,16 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
                                     style: const TextStyle(fontSize: 14),
                                   )
                                 : Text('\$${product.price.toStringAsFixed(2)}'),
+                          ),
+                          DataCell(
+                            isEditing
+                                ? TextField(
+                                    controller: _productControllers['${product.id}_stock'],
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                    style: const TextStyle(fontSize: 14),
+                                  )
+                                : Text(product.stock.toString()),
                           ),
                           DataCell(
                             Row(
