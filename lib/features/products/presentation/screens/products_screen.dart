@@ -216,7 +216,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
   List<String> _productTypes = ['All'];
   String _selectedProductType = 'All';
   String? _selectedWarehouse; // Warehouse filter state
-  bool _useExcelStock = true; // Toggle for Excel stock data source
+  bool _useExcelStock = false; // Toggle for Excel stock data source - default to Firebase
   
   @override
   void initState() {
@@ -547,8 +547,12 @@ Future<void> _handleExcelUpload() async {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Excel Stock',
-                  style: TextStyle(color: Colors.white, fontSize: 12),
+                  _useExcelStock ? 'Excel' : 'Firebase',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Switch(
@@ -562,6 +566,16 @@ Future<void> _handleExcelUpload() async {
                   activeTrackColor: Colors.white.withOpacity(0.3),
                   inactiveThumbColor: Colors.grey,
                   inactiveTrackColor: Colors.grey.withOpacity(0.3),
+                ),
+                Tooltip(
+                  message: _useExcelStock
+                    ? 'Using Excel inventory (O:\\...\\09.12.25 INVENTARIO MEXICO.xlsx)'
+                    : 'Using Firebase real-time database',
+                  child: Icon(
+                    Icons.info_outline,
+                    size: 14,
+                    color: Colors.white.withOpacity(0.7),
+                  ),
                 ),
               ],
             ),
