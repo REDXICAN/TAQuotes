@@ -189,7 +189,8 @@
       "WebFetch(domain:turboairinc.com)",
       "WebFetch(domain:www.centralrestaurant.com)",
       "Read(//d//**)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Read(//o/OneDrive/Documentos/-- TurboAir/7 Bots/**)"
     ],
     "deny": [],
     "ask": [

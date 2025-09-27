@@ -1,0 +1,68 @@
+{
+  "sheet_names": [
+    "INVENTARIOS"
+  ],
+  "columns": [
+    "CONTPAQ i",
+    "TAR COMMERCIAL REFRIGERATION",
+    "12/SEP/2025"
+  ],
+  "shape": [
+    890,
+    3
+  ],
+  "warehouse_columns": [],
+  "sku_columns": [],
+  "sample_rows": [
+    {
+      "CONTPAQ i": NaN,
+      "TAR COMMERCIAL REFRIGERATION": "INVENTARIO ACTUAL",
+      "12/SEP/2025": NaN
+    },
+    {
+      "CONTPAQ i": NaN,
+      "TAR COMMERCIAL REFRIGERATION": NaN,
+      "12/SEP/2025": NaN
+    },
+    {
+      "CONTPAQ i": "C\u00f3digo",
+      "TAR COMMERCIAL REFRIGERATION": "Nombre (Producto)",
+      "12/SEP/2025": "Existencia"
+    },
+    {
+      "CONTPAQ i": NaN,
+      "TAR COMMERCIAL REFRIGERATION": NaN,
+      "12/SEP/2025": NaN
+    },
+    {
+      "CONTPAQ i": " ",
+      "TAR COMMERCIAL REFRIGERATION": NaN,
+      "12/SEP/2025": NaN
+    },
+    {
+      "CONTPAQ i": "Almac\u00e9n:",
+      "TAR COMMERCIAL REFRIGERATION": NaN,
+      "12/SEP/2025": NaN
+    },
+    {
+      "CONTPAQ i": "'999                           ",
+      "TAR COMMERCIAL REFRIGERATION": "MERCANCIA APARTADA",
+      "12/SEP/2025": NaN
+    },
+    {
+      "CONTPAQ i": " ",
+      "TAR COMMERCIAL REFRIGERATION": NaN,
+      "12/SEP/2025": NaN
+    },
+    {
+      "CONTPAQ i": "30220L0900",
+      "TAR COMMERCIAL REFRIGERATION": "CLIP DE PLASTICO COLOR BLANCO PARA REJILLA",
+      "12/SEP/2025": 12
+    },
+    {
+      "CONTPAQ i": "G2F1800104NW",
+      "TAR COMMERCIAL REFRIGERATION": "REJILLA  M3R24-1/2, M3F24-1/2 (24'' X 23.5'')",
+      "12/SEP/2025": 3
+    }
+  ]
+}

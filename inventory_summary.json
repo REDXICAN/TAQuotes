@@ -1,0 +1,2232 @@
+{
+  "warehouse_totals": {
+    "999": 0,
+    "220": 0,
+    "104": 6,
+    "241": 24,
+    "472": 65,
+    "812": 80,
+    "262": 5,
+    "660": 5,
+    "654": 42,
+    "448": 0,
+    "460": 17,
+    "711": 44,
+    "042": 0,
+    "504": 2,
+    "030": 0,
+    "010": 0,
+    "122": 1,
+    "060": 0,
+    "452": 22,
+    "180": 19,
+    "723": 134,
+    "854": 18,
+    "100": 44,
+    "500": 0,
+    "178": 0,
+    "750": 0,
+    "120": 0,
+    "150": 0,
+    "147": 16,
+    "040": 2,
+    "818": 51,
+    "024": 91,
+    "000": 0,
+    "207": 0,
+    "229": 0,
+    "251": 0,
+    "680": 8,
+    "191": 0,
+    "192": 0,
+    "123": 0,
+    "126": 0,
+    "127": 0,
+    "135": 0,
+    "143": 0,
+    "193": 0,
+    "054": 73,
+    "615": 2,
+    "230": 202,
+    "206": 0,
+    "213": 0,
+    "265": 0,
+    "281": 0,
+    "930": 0,
+    "102": 0,
+    "300": 0,
+    "600": 0,
+    "700": 0,
+    "200": 0,
+    "105": 0,
+    "201": 0,
+    "400": 0,
+    "103": 0,
+    "902": 0,
+    "303": 0,
+    "106": 0,
+    "301": 0,
+    "404": 0,
+    "148": 0,
+    "181": 0,
+    "189": 0,
+    "003": 0,
+    "107": 0,
+    "114": 0,
+    "199": 0,
+    "101": 0,
+    "068": 0,
+    "267": 0,
+    "051": 0,
+    "205": 0,
+    "001": 0,
+    "211": 0,
+    "218": 0,
+    "221": 0,
+    "223": 0,
+    "227": 0,
+    "243": 0,
+    "278": 0,
+    "283": 0,
+    "410": 0,
+    "710": 0,
+    "900": 0,
+    "397": 0,
+    "601": 0,
+    "041": 0,
+    "291": 0,
+    "020": 0,
+    "064": 0,
+    "050": 0,
+    "036": 0,
+    "202": 1,
+    "501": 0,
+    "025": 0,
+    "046": 0,
+    "047": 0,
+    "550": 0,
+    "802": 0,
+    "905": 0,
+    "165": 0,
+    "540": 0,
+    "450": 0,
+    "403": 0,
+    "012": 0,
+    "086": 0,
+    "401": 0,
+    "035": 0,
+    "110": 0,
+    "118": 0,
+    "128": 0,
+    "129": 0,
+    "138": 0,
+    "151": 0,
+    "156": 0,
+    "183": 0,
+    "208": 0,
+    "602": 0,
+    "307": 0,
+    "407": 0,
+    "115": 0,
+    "225": 0,
+    "595": 0,
+    "853": 0,
+    "170": 0,
+    "140": 0,
+    "430": 0,
+    "470": 0,
+    "160": 0,
+    "261": 0,
+    "510": 0,
+    "070": 0,
+    "290": 0,
+    "880": 0,
+    "543": 0,
+    "124": 0,
+    "503": 0
+  },
+  "top_products_by_stock": {
+    "XPR44N": 65,
+    "XUR48N6": 64,
+    "XPR67N": 63,
+    "XST48N": 54,
+    "XST60N": 52,
+    "XUR60N6": 43,
+    "XST28N6": 39,
+    "XUR28N6": 29,
+    "XST72N": 22,
+    "TBD1SBDN6": 18,
+    "XUF48N": 18,
+    "TGM23SDBN6": 17,
+    "XUF60N": 14,
+    "MUR28N1": 13,
+    "TSR23SDN6": 12,
+    "CAS16WBT00": 12,
+    "MST60N": 11,
+    "TBB2SSDN6": 10,
+    "TWR48SDN": 9,
+    "MST28N": 9
+  },
+  "warehouses": [
+    {
+      "code": "999",
+      "name": "MERCANCIA APARTADA"
+    },
+    {
+      "code": "220",
+      "name": "L"
+    },
+    {
+      "code": "104",
+      "name": "NW REJILLA  M"
+    },
+    {
+      "code": "241",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "812",
+      "name": "N MESA DE PREP"
+    },
+    {
+      "code": "262",
+      "name": "HG GABINETE CALIENTE"
+    },
+    {
+      "code": "660",
+      "name": "RUEDA"
+    },
+    {
+      "code": "654",
+      "name": "NNB VITRINA REFRIGERADA"
+    },
+    {
+      "code": "241",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N"
+    },
+    {
+      "code": "241",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "812",
+      "name": "N MESA DE PREP"
+    },
+    {
+      "code": "660",
+      "name": "RUEDA"
+    },
+    {
+      "code": "448",
+      "name": "SBDN"
+    },
+    {
+      "code": "448",
+      "name": "SGSDN CONTRABARRA REFRIG"
+    },
+    {
+      "code": "448",
+      "name": "SSDN"
+    },
+    {
+      "code": "460",
+      "name": "SBDN"
+    },
+    {
+      "code": "460",
+      "name": "SGSDN CONTRABARRA REFRIG"
+    },
+    {
+      "code": "460",
+      "name": "SSDN"
+    },
+    {
+      "code": "472",
+      "name": "SBDN"
+    },
+    {
+      "code": "472",
+      "name": "SGSDN CONTRABARRA REFRIG"
+    },
+    {
+      "code": "472",
+      "name": "SSDN"
+    },
+    {
+      "code": "711",
+      "name": "CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N"
+    },
+    {
+      "code": "042",
+      "name": "BEX EVAPORADOR DESH"
+    },
+    {
+      "code": "241",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "G GABINETE CALIENTE"
+    },
+    {
+      "code": "241",
+      "name": "GN REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "504",
+      "name": "RGN REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "030",
+      "name": "MR"
+    },
+    {
+      "code": "448",
+      "name": "SGSDN CONTRABARRA REFRIG"
+    },
+    {
+      "code": "460",
+      "name": "SBDN"
+    },
+    {
+      "code": "010",
+      "name": "LR"
+    },
+    {
+      "code": "122",
+      "name": "X"
+    },
+    {
+      "code": "060",
+      "name": "NW VITRINA VERTICAL ABIERTA"
+    },
+    {
+      "code": "711",
+      "name": "VITRINA HORIZONTAL ABIERTA CON FRENTE RRECTO TIPO EUROPEO"
+    },
+    {
+      "code": "472",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "GABINETE CALIENTE"
+    },
+    {
+      "code": "241",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "452",
+      "name": "N REFRIGERADOR Y CONGELADOR"
+    },
+    {
+      "code": "180",
+      "name": "CMS"
+    },
+    {
+      "code": "241",
+      "name": "N"
+    },
+    {
+      "code": "723",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "723",
+      "name": "NL REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "854",
+      "name": "NNBX VITRINA REFRIGERADA"
+    },
+    {
+      "code": "100",
+      "name": "C HORNO DE MICROONDAS"
+    },
+    {
+      "code": "472",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N"
+    },
+    {
+      "code": "500",
+      "name": "GN BARRA DE ENSALADAS REFRIGERADA DE SOBREMESA"
+    },
+    {
+      "code": "241",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "178",
+      "name": "CM"
+    },
+    {
+      "code": "750",
+      "name": "NW VITRINA HORIZ"
+    },
+    {
+      "code": "460",
+      "name": "SGDN CONTRABARRA REFRIG"
+    },
+    {
+      "code": "854",
+      "name": "NNBX VITRINA REFRIGERADA"
+    },
+    {
+      "code": "120",
+      "name": "CMS"
+    },
+    {
+      "code": "120",
+      "name": "CMS"
+    },
+    {
+      "code": "150",
+      "name": "CMS"
+    },
+    {
+      "code": "147",
+      "name": "CM"
+    },
+    {
+      "code": "120",
+      "name": "CMS"
+    },
+    {
+      "code": "120",
+      "name": "CMS"
+    },
+    {
+      "code": "150",
+      "name": "CMS"
+    },
+    {
+      "code": "147",
+      "name": "CM"
+    },
+    {
+      "code": "241",
+      "name": "G GABINETE CALIENTE"
+    },
+    {
+      "code": "472",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N"
+    },
+    {
+      "code": "472",
+      "name": "N"
+    },
+    {
+      "code": "040",
+      "name": "EMPAQUE TST"
+    },
+    {
+      "code": "241",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "818",
+      "name": "N MESA REF"
+    },
+    {
+      "code": "024",
+      "name": "N MESA REF"
+    },
+    {
+      "code": "654",
+      "name": "NNB VITRINA REFRIGERADA"
+    },
+    {
+      "code": "000",
+      "name": "CASQUILLO DE PUERTA TGM"
+    },
+    {
+      "code": "207",
+      "name": "D"
+    },
+    {
+      "code": "207",
+      "name": "H"
+    },
+    {
+      "code": "220",
+      "name": "L"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "251",
+      "name": "D"
+    },
+    {
+      "code": "104",
+      "name": "NW REJILLA  M"
+    },
+    {
+      "code": "680",
+      "name": "REGILLA DE ACERO INOXIDABLE PRO"
+    },
+    {
+      "code": "241",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "191",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "192",
+      "name": "N REFRIGERADOR Y CONGELADOR"
+    },
+    {
+      "code": "452",
+      "name": "N REFRIGERADOR Y CONGELADOR"
+    },
+    {
+      "code": "100",
+      "name": "D"
+    },
+    {
+      "code": "123",
+      "name": "L"
+    },
+    {
+      "code": "126",
+      "name": "A"
+    },
+    {
+      "code": "126",
+      "name": "L"
+    },
+    {
+      "code": "127",
+      "name": "E"
+    },
+    {
+      "code": "135",
+      "name": "E"
+    },
+    {
+      "code": "135",
+      "name": "E"
+    },
+    {
+      "code": "143",
+      "name": "E"
+    },
+    {
+      "code": "143",
+      "name": "E"
+    },
+    {
+      "code": "193",
+      "name": "S"
+    },
+    {
+      "code": "448",
+      "name": "SGDN CONTRABARRA REFRIG"
+    },
+    {
+      "code": "460",
+      "name": "SGDN CONTRABARRA REFRIG"
+    },
+    {
+      "code": "654",
+      "name": "NNB VITRINA REFRIGERADA"
+    },
+    {
+      "code": "854",
+      "name": "NNB VITRINA REFRIGERADA"
+    },
+    {
+      "code": "054",
+      "name": "NNB VITRINA REFRIGERADA"
+    },
+    {
+      "code": "100",
+      "name": "REJILLAS PARA MESAS DE PREPARCION LINEA"
+    },
+    {
+      "code": "191",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "723",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "191",
+      "name": "N"
+    },
+    {
+      "code": "472",
+      "name": "N"
+    },
+    {
+      "code": "723",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "812",
+      "name": "N"
+    },
+    {
+      "code": "615",
+      "name": "N"
+    },
+    {
+      "code": "818",
+      "name": "N MESA DE PREP"
+    },
+    {
+      "code": "024",
+      "name": "N MESA DE PREP"
+    },
+    {
+      "code": "230",
+      "name": "N MESA DE PREP"
+    },
+    {
+      "code": "206",
+      "name": "P"
+    },
+    {
+      "code": "213",
+      "name": "A"
+    },
+    {
+      "code": "220",
+      "name": "L"
+    },
+    {
+      "code": "220",
+      "name": "L"
+    },
+    {
+      "code": "265",
+      "name": "L"
+    },
+    {
+      "code": "265",
+      "name": "L"
+    },
+    {
+      "code": "281",
+      "name": "Q"
+    },
+    {
+      "code": "930",
+      "name": "MOTOR DEL VENTILADOR DE EVAPORADOR MESAS DE PREP LINEA X"
+    },
+    {
+      "code": "102",
+      "name": "MANIJA DE PUERTA MESAS DE PREPARACION LINEA"
+    },
+    {
+      "code": "300",
+      "name": "EJE DE BISAGRA PARA TAPA SUPERIOR MESAS DE PREP"
+    },
+    {
+      "code": "600",
+      "name": "EJE DE BISABRA PARA TAPA SUPERIOR MESAS  DE PREP"
+    },
+    {
+      "code": "700",
+      "name": "EJE DE BISAGRA PARA TAPA SUPERIOR MESAS DE PREP"
+    },
+    {
+      "code": "200",
+      "name": "ALMUADILLAS DE PAPEL PARA CHAROLA DE DESAG"
+    },
+    {
+      "code": "105",
+      "name": "ESTANTES XRF"
+    },
+    {
+      "code": "201",
+      "name": "CAJA DE DESAG"
+    },
+    {
+      "code": "400",
+      "name": "CONJUNTO DE PAPEL DE DRENAJE  MESAS DE PREPARACION LINEA X"
+    },
+    {
+      "code": "103",
+      "name": "TABLA PARA PICAR DE MESAS DE PREPARACION LINEA"
+    },
+    {
+      "code": "902",
+      "name": "CONJUNTO DE PAPEL DE DRENAJE  MESAS DE PREPARACION LINEA X"
+    },
+    {
+      "code": "303",
+      "name": "EVAPORADOR MESAS DE PREPARACION LINEA"
+    },
+    {
+      "code": "106",
+      "name": "TABLA PARA PICAR PARA MESAS DE PREPARACION LINEA X"
+    },
+    {
+      "code": "103",
+      "name": "TABLA PARA PICAR PARA MESAS DE PREPARACION LINEA"
+    },
+    {
+      "code": "301",
+      "name": "TABLA BLANCA PARA PICAR MESAS DE PREPARCION LINEA"
+    },
+    {
+      "code": "100",
+      "name": "CONDENSADOR MESA DE PREPARACION LINEA"
+    },
+    {
+      "code": "100",
+      "name": "CONDENSADOR MESA DE PREPARACION LINEA"
+    },
+    {
+      "code": "404",
+      "name": "CONDENSADOR REFRIGARADOR VERTICAL LINEA"
+    },
+    {
+      "code": "105",
+      "name": "CONDENSADOR REFRIGERADOR VERTICAL LINEA"
+    },
+    {
+      "code": "106",
+      "name": "CONDENSADOR AS REFRIGERADOR VERTICAL LINEA"
+    },
+    {
+      "code": "106",
+      "name": "CONDENSADOR REFRIGERADOR VERTICAL LINEA"
+    },
+    {
+      "code": "127",
+      "name": "E"
+    },
+    {
+      "code": "148",
+      "name": "S"
+    },
+    {
+      "code": "181",
+      "name": "L"
+    },
+    {
+      "code": "189",
+      "name": "E"
+    },
+    {
+      "code": "189",
+      "name": "E"
+    },
+    {
+      "code": "189",
+      "name": "E"
+    },
+    {
+      "code": "189",
+      "name": "E"
+    },
+    {
+      "code": "189",
+      "name": "E"
+    },
+    {
+      "code": "189",
+      "name": "E"
+    },
+    {
+      "code": "191",
+      "name": "E"
+    },
+    {
+      "code": "193",
+      "name": "S"
+    },
+    {
+      "code": "100",
+      "name": "LLAVES  M"
+    },
+    {
+      "code": "100",
+      "name": "ASPA DEL MOTOR DEL VENTILADOR DEL CONDENSADOR"
+    },
+    {
+      "code": "003",
+      "name": "EVAPORADOR MESAS DE PREPARACION LINEA X"
+    },
+    {
+      "code": "100",
+      "name": "A"
+    },
+    {
+      "code": "100",
+      "name": "A"
+    },
+    {
+      "code": "100",
+      "name": "E"
+    },
+    {
+      "code": "100",
+      "name": "E"
+    },
+    {
+      "code": "100",
+      "name": "E"
+    },
+    {
+      "code": "100",
+      "name": "E"
+    },
+    {
+      "code": "100",
+      "name": "E"
+    },
+    {
+      "code": "100",
+      "name": "E"
+    },
+    {
+      "code": "107",
+      "name": "A"
+    },
+    {
+      "code": "114",
+      "name": "A"
+    },
+    {
+      "code": "114",
+      "name": "E"
+    },
+    {
+      "code": "114",
+      "name": "E"
+    },
+    {
+      "code": "114",
+      "name": "E"
+    },
+    {
+      "code": "123",
+      "name": "A"
+    },
+    {
+      "code": "123",
+      "name": "A"
+    },
+    {
+      "code": "123",
+      "name": "E"
+    },
+    {
+      "code": "123",
+      "name": "E"
+    },
+    {
+      "code": "123",
+      "name": "E"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "E"
+    },
+    {
+      "code": "127",
+      "name": "E"
+    },
+    {
+      "code": "127",
+      "name": "E"
+    },
+    {
+      "code": "135",
+      "name": "A"
+    },
+    {
+      "code": "135",
+      "name": "A"
+    },
+    {
+      "code": "143",
+      "name": "A"
+    },
+    {
+      "code": "143",
+      "name": "A"
+    },
+    {
+      "code": "143",
+      "name": "H"
+    },
+    {
+      "code": "143",
+      "name": "H"
+    },
+    {
+      "code": "181",
+      "name": "A"
+    },
+    {
+      "code": "199",
+      "name": "A"
+    },
+    {
+      "code": "199",
+      "name": "A"
+    },
+    {
+      "code": "100",
+      "name": "REJILLAS PARA MESAS DE PREPARCION LINEA"
+    },
+    {
+      "code": "101",
+      "name": "REJILLAS PARA MESAS DE PREPARACION LINEA"
+    },
+    {
+      "code": "100",
+      "name": "JALADERA DE TAPA SUPERIOR MESAS DE PREPARACION LINEA"
+    },
+    {
+      "code": "101",
+      "name": "REJILLAS PARA MESAS DE PREPARACION LINEA"
+    },
+    {
+      "code": "068",
+      "name": "U"
+    },
+    {
+      "code": "068",
+      "name": "U"
+    },
+    {
+      "code": "267",
+      "name": "WT"
+    },
+    {
+      "code": "051",
+      "name": "RELAY EM"
+    },
+    {
+      "code": "200",
+      "name": "B"
+    },
+    {
+      "code": "200",
+      "name": "G"
+    },
+    {
+      "code": "200",
+      "name": "L"
+    },
+    {
+      "code": "205",
+      "name": "MOTOR DEL CONDENSADOR"
+    },
+    {
+      "code": "001",
+      "name": "BANDEJA DE DESAG"
+    },
+    {
+      "code": "211",
+      "name": "A"
+    },
+    {
+      "code": "211",
+      "name": "B"
+    },
+    {
+      "code": "213",
+      "name": "A"
+    },
+    {
+      "code": "218",
+      "name": "F"
+    },
+    {
+      "code": "220",
+      "name": "L"
+    },
+    {
+      "code": "221",
+      "name": "M"
+    },
+    {
+      "code": "223",
+      "name": "D"
+    },
+    {
+      "code": "223",
+      "name": "R"
+    },
+    {
+      "code": "227",
+      "name": "Q"
+    },
+    {
+      "code": "227",
+      "name": "Q"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "L"
+    },
+    {
+      "code": "229",
+      "name": "L"
+    },
+    {
+      "code": "229",
+      "name": "L"
+    },
+    {
+      "code": "229",
+      "name": "M"
+    },
+    {
+      "code": "229",
+      "name": "M"
+    },
+    {
+      "code": "243",
+      "name": "L"
+    },
+    {
+      "code": "243",
+      "name": "Q"
+    },
+    {
+      "code": "251",
+      "name": "L"
+    },
+    {
+      "code": "251",
+      "name": "M"
+    },
+    {
+      "code": "265",
+      "name": "H"
+    },
+    {
+      "code": "265",
+      "name": "H"
+    },
+    {
+      "code": "278",
+      "name": "Q"
+    },
+    {
+      "code": "278",
+      "name": "Q"
+    },
+    {
+      "code": "278",
+      "name": "Q"
+    },
+    {
+      "code": "278",
+      "name": "R"
+    },
+    {
+      "code": "281",
+      "name": "Q"
+    },
+    {
+      "code": "281",
+      "name": "R"
+    },
+    {
+      "code": "281",
+      "name": "R"
+    },
+    {
+      "code": "283",
+      "name": "D"
+    },
+    {
+      "code": "000",
+      "name": "LLAVES TBB"
+    },
+    {
+      "code": "410",
+      "name": "MOTOR DE VENTILADOR DE CONDENSADOR"
+    },
+    {
+      "code": "710",
+      "name": "MOTOR DE VENTILADOR TGM"
+    },
+    {
+      "code": "120",
+      "name": "MOTOR DEL VENTILADOR TGM"
+    },
+    {
+      "code": "900",
+      "name": "MOTOR VENTILADOR DE EVAPORADOR DAI"
+    },
+    {
+      "code": "397",
+      "name": "YS COMPRESOR  EM"
+    },
+    {
+      "code": "601",
+      "name": "CONTROL DE TEMPERATURA DISPLAY PCB M"
+    },
+    {
+      "code": "300",
+      "name": "A TARJETA PRINCIPAL PCB TST"
+    },
+    {
+      "code": "010",
+      "name": "LED LAMP"
+    },
+    {
+      "code": "010",
+      "name": "EMPAQUE PARA TBP"
+    },
+    {
+      "code": "041",
+      "name": "GASKET"
+    },
+    {
+      "code": "291",
+      "name": "GASKET"
+    },
+    {
+      "code": "020",
+      "name": "EMPAQUE PARA TBP"
+    },
+    {
+      "code": "020",
+      "name": "TAPA CARATULA PARA DISPLAY PCB"
+    },
+    {
+      "code": "030",
+      "name": "CAJA CARATULA PARA DISPLAY PCB"
+    },
+    {
+      "code": "040",
+      "name": "SEGUROS DE CARATULAS DISPLAY TBP"
+    },
+    {
+      "code": "064",
+      "name": "HARNES DE DIPLAY A TARJETA PCB"
+    },
+    {
+      "code": "040",
+      "name": "REGULADOR DE TEMPERATURA TOS"
+    },
+    {
+      "code": "050",
+      "name": "TARJETA PRINCIPAL PCB TBP"
+    },
+    {
+      "code": "123",
+      "name": "AC"
+    },
+    {
+      "code": "010",
+      "name": "LED LAMP"
+    },
+    {
+      "code": "010",
+      "name": "LED LAMP"
+    },
+    {
+      "code": "010",
+      "name": "FUENTE DE PODER SMPS TBP"
+    },
+    {
+      "code": "400",
+      "name": "TOPE DE PUERTA IZQUIERDO"
+    },
+    {
+      "code": "600",
+      "name": "PLACA DE RESORTE DE TOPE DE PUERTA  M"
+    },
+    {
+      "code": "100",
+      "name": "TOPE DE PUERTA DERECHO M"
+    },
+    {
+      "code": "200",
+      "name": "INTERRUPTOR DE PUERTA PREPARACI"
+    },
+    {
+      "code": "100",
+      "name": "DOOR SPRING JST"
+    },
+    {
+      "code": "036",
+      "name": "AZK REJILLA INFERIOR TRASERA TCDD"
+    },
+    {
+      "code": "100",
+      "name": "SERPENTIN DEL CONDENSADOR  TGM"
+    },
+    {
+      "code": "100",
+      "name": "EMPAQUE PRCBE"
+    },
+    {
+      "code": "100",
+      "name": "SERPENTIN DEL CONDENSADOR PRCBE"
+    },
+    {
+      "code": "100",
+      "name": "EMPAQUE PRCBE"
+    },
+    {
+      "code": "202",
+      "name": "LIMPIADOR DEL COPNDENSADOR PRCBE"
+    },
+    {
+      "code": "501",
+      "name": "SERPENTIN DEL CONDENSADOR PRCBE"
+    },
+    {
+      "code": "100",
+      "name": "EMPAQUE PRCBE"
+    },
+    {
+      "code": "101",
+      "name": "SERPENTIN DEL CONDENSADOR  PRCBE"
+    },
+    {
+      "code": "100",
+      "name": "EMPAQUE PRCBE"
+    },
+    {
+      "code": "100",
+      "name": "LIMPIADOR DEL CONDENSADOR TCBE"
+    },
+    {
+      "code": "000",
+      "name": "AZK SERPENTIN DEL CONDENSADOR TOM"
+    },
+    {
+      "code": "300",
+      "name": "N SERPENTIN DEL CONDENSADOR TIOM"
+    },
+    {
+      "code": "101",
+      "name": "EMPAQUE TPR"
+    },
+    {
+      "code": "101",
+      "name": "EMPAQUE TPR"
+    },
+    {
+      "code": "101",
+      "name": "EMPAQUE TST"
+    },
+    {
+      "code": "104",
+      "name": "EMPAQUE TST"
+    },
+    {
+      "code": "025",
+      "name": "VIDRIO LATERAL IZQUIERDO P"
+    },
+    {
+      "code": "046",
+      "name": "MOTOR DE VENTILADOR  TOM"
+    },
+    {
+      "code": "047",
+      "name": "MOTOR DE VENTILADOR TOM"
+    },
+    {
+      "code": "550",
+      "name": "RIEL DEL CAJON TST"
+    },
+    {
+      "code": "550",
+      "name": "R RIEL DEL CAJON TST"
+    },
+    {
+      "code": "100",
+      "name": "PARRILLA"
+    },
+    {
+      "code": "104",
+      "name": "NW REJILLA  M"
+    },
+    {
+      "code": "101",
+      "name": "SERPENTIN DEL CONDENSADOR M"
+    },
+    {
+      "code": "100",
+      "name": "CALENTADOR DE DESCONGELAMIENTO M"
+    },
+    {
+      "code": "101",
+      "name": "SERPENTIN DEL CONDENSADOR M"
+    },
+    {
+      "code": "105",
+      "name": "NW REJILLA M"
+    },
+    {
+      "code": "100",
+      "name": "CALENTADOR DE DESHIELO M"
+    },
+    {
+      "code": "101",
+      "name": "SERPENTIN DEL CONDENSADOR M"
+    },
+    {
+      "code": "000",
+      "name": "BARILLA TENSORA DE LA PUERTA  M"
+    },
+    {
+      "code": "200",
+      "name": "VARILLA TENSORA DE PUERTA M"
+    },
+    {
+      "code": "802",
+      "name": "DOOR BUSHING M"
+    },
+    {
+      "code": "101",
+      "name": "PARRILLA"
+    },
+    {
+      "code": "101",
+      "name": "RUEDA"
+    },
+    {
+      "code": "201",
+      "name": "RUEDA"
+    },
+    {
+      "code": "201",
+      "name": "SERPENTIN DEL CONDENSADOR  M"
+    },
+    {
+      "code": "905",
+      "name": "TERMOMETRO DIGITAL PARA TCBE"
+    },
+    {
+      "code": "135",
+      "name": "RIEL DE CAJON  TST"
+    },
+    {
+      "code": "135",
+      "name": "R RIEL DEL CAJON TST"
+    },
+    {
+      "code": "165",
+      "name": "RIEL DEL CAJON TPR"
+    },
+    {
+      "code": "165",
+      "name": "R RIEL DEL CAJON TPR"
+    },
+    {
+      "code": "100",
+      "name": "CALENTADOR DE DESHIELO PRO"
+    },
+    {
+      "code": "540",
+      "name": "SENSOR PRO"
+    },
+    {
+      "code": "500",
+      "name": "BISAGRA CON MICRO SWITCH PARA PRO"
+    },
+    {
+      "code": "450",
+      "name": "EMPAQUE PRO"
+    },
+    {
+      "code": "680",
+      "name": "REGILLA DE ACERO INOXIDABLE PRO"
+    },
+    {
+      "code": "102",
+      "name": "CALENTADOR DE DESHIELO M"
+    },
+    {
+      "code": "001",
+      "name": "SENSOR UR"
+    },
+    {
+      "code": "101",
+      "name": "SENSOR JUR"
+    },
+    {
+      "code": "103",
+      "name": "SERPENTIN DEL CONDENSADOR JUR"
+    },
+    {
+      "code": "104",
+      "name": "SERPENTIN DEL CONDENSADOR  JUR"
+    },
+    {
+      "code": "200",
+      "name": "PUERTA IZQUIERDA JBT"
+    },
+    {
+      "code": "101",
+      "name": "BISAGRA INFERIOR DERECHA  JUR"
+    },
+    {
+      "code": "303",
+      "name": "BISAGRA SUPERIOR IZQUIERDA  JUR"
+    },
+    {
+      "code": "403",
+      "name": "BISAGRA SUPERIOR DERECHA JUR"
+    },
+    {
+      "code": "101",
+      "name": "BISAGRA INFERIOR IZQUIERDA JUR"
+    },
+    {
+      "code": "100",
+      "name": "CERRADURA DE PUERTA MUR"
+    },
+    {
+      "code": "103",
+      "name": "SENSOR DE PUERTA PARTE SUPERIOE M"
+    },
+    {
+      "code": "012",
+      "name": "LAMPARA LED TBP"
+    },
+    {
+      "code": "086",
+      "name": "EZK LAMPARA LED TOM"
+    },
+    {
+      "code": "103",
+      "name": "EMPAQUE TST"
+    },
+    {
+      "code": "100",
+      "name": "EMPAQUE TST"
+    },
+    {
+      "code": "100",
+      "name": "REGULADOR  DE TEMPERATURA PREP"
+    },
+    {
+      "code": "100",
+      "name": "CHAROLA DE DESAG"
+    },
+    {
+      "code": "030",
+      "name": "EMPAQUE PARA MESAS  MST"
+    },
+    {
+      "code": "100",
+      "name": "TAPA TRASERA DE CONDUCTO DE AIRE M"
+    },
+    {
+      "code": "100",
+      "name": "BANDEJA DE DESAG"
+    },
+    {
+      "code": "102",
+      "name": "EMPAQUE TST"
+    },
+    {
+      "code": "401",
+      "name": "LIMPIADOR DEL CONDENSADOR M"
+    },
+    {
+      "code": "100",
+      "name": "EMPAQUE"
+    },
+    {
+      "code": "040",
+      "name": "EMPAQUE TST"
+    },
+    {
+      "code": "102",
+      "name": "EMPAQUE TST"
+    },
+    {
+      "code": "050",
+      "name": "EMPAQUE MST"
+    },
+    {
+      "code": "103",
+      "name": "PUERTA IZQUIERDA MST"
+    },
+    {
+      "code": "100",
+      "name": "BISAGRA SUPERIOR DERECHA"
+    },
+    {
+      "code": "200",
+      "name": "BISAGRA SUPERIOR IZQUIERDA TST"
+    },
+    {
+      "code": "100",
+      "name": "RUEDA"
+    },
+    {
+      "code": "200",
+      "name": "RURDA"
+    },
+    {
+      "code": "100",
+      "name": "DOOR BUSHING TST"
+    },
+    {
+      "code": "100",
+      "name": "BANDEJA DE DESAG"
+    },
+    {
+      "code": "100",
+      "name": "LIMPIADOR DEL CONDENSADOR  M"
+    },
+    {
+      "code": "300",
+      "name": "LIMPIADOR DEL CONDENSADOR M"
+    },
+    {
+      "code": "100",
+      "name": "LIMPIADOR DEL CONDENSADOR M"
+    },
+    {
+      "code": "101",
+      "name": "SERPENTIN DEL CONDENSADOR TUR"
+    },
+    {
+      "code": "000",
+      "name": "PUERTA INFERIOR M"
+    },
+    {
+      "code": "201",
+      "name": "PUERTA SUPERIOR M"
+    },
+    {
+      "code": "303",
+      "name": "CALENTADOR DE DESHIELO M"
+    },
+    {
+      "code": "301",
+      "name": "CALENTADOR DE DESHIELO M"
+    },
+    {
+      "code": "035",
+      "name": "HP"
+    },
+    {
+      "code": "100",
+      "name": "B"
+    },
+    {
+      "code": "100",
+      "name": "B"
+    },
+    {
+      "code": "100",
+      "name": "C"
+    },
+    {
+      "code": "100",
+      "name": "C"
+    },
+    {
+      "code": "100",
+      "name": "C"
+    },
+    {
+      "code": "100",
+      "name": "C"
+    },
+    {
+      "code": "100",
+      "name": "D"
+    },
+    {
+      "code": "100",
+      "name": "D"
+    },
+    {
+      "code": "100",
+      "name": "F"
+    },
+    {
+      "code": "100",
+      "name": "F"
+    },
+    {
+      "code": "100",
+      "name": "F"
+    },
+    {
+      "code": "100",
+      "name": "F"
+    },
+    {
+      "code": "100",
+      "name": "S"
+    },
+    {
+      "code": "100",
+      "name": "S"
+    },
+    {
+      "code": "100",
+      "name": "S"
+    },
+    {
+      "code": "100",
+      "name": "S"
+    },
+    {
+      "code": "110",
+      "name": "F"
+    },
+    {
+      "code": "110",
+      "name": "F"
+    },
+    {
+      "code": "118",
+      "name": "J"
+    },
+    {
+      "code": "118",
+      "name": "L"
+    },
+    {
+      "code": "120",
+      "name": "A"
+    },
+    {
+      "code": "120",
+      "name": "F"
+    },
+    {
+      "code": "120",
+      "name": "F"
+    },
+    {
+      "code": "123",
+      "name": "A"
+    },
+    {
+      "code": "123",
+      "name": "A"
+    },
+    {
+      "code": "123",
+      "name": "L"
+    },
+    {
+      "code": "123",
+      "name": "S"
+    },
+    {
+      "code": "123",
+      "name": "S"
+    },
+    {
+      "code": "123",
+      "name": "S"
+    },
+    {
+      "code": "123",
+      "name": "S"
+    },
+    {
+      "code": "128",
+      "name": "B"
+    },
+    {
+      "code": "128",
+      "name": "B"
+    },
+    {
+      "code": "129",
+      "name": "R"
+    },
+    {
+      "code": "129",
+      "name": "U"
+    },
+    {
+      "code": "129",
+      "name": "U"
+    },
+    {
+      "code": "138",
+      "name": "A"
+    },
+    {
+      "code": "138",
+      "name": "A"
+    },
+    {
+      "code": "138",
+      "name": "B"
+    },
+    {
+      "code": "138",
+      "name": "B"
+    },
+    {
+      "code": "138",
+      "name": "L"
+    },
+    {
+      "code": "143",
+      "name": "A"
+    },
+    {
+      "code": "143",
+      "name": "A"
+    },
+    {
+      "code": "143",
+      "name": "E"
+    },
+    {
+      "code": "143",
+      "name": "L"
+    },
+    {
+      "code": "143",
+      "name": "N"
+    },
+    {
+      "code": "143",
+      "name": "S"
+    },
+    {
+      "code": "151",
+      "name": "A"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "165",
+      "name": "B"
+    },
+    {
+      "code": "181",
+      "name": "E"
+    },
+    {
+      "code": "181",
+      "name": "E"
+    },
+    {
+      "code": "181",
+      "name": "E"
+    },
+    {
+      "code": "183",
+      "name": "E"
+    },
+    {
+      "code": "183",
+      "name": "E"
+    },
+    {
+      "code": "183",
+      "name": "E"
+    },
+    {
+      "code": "191",
+      "name": "E"
+    },
+    {
+      "code": "191",
+      "name": "E"
+    },
+    {
+      "code": "193",
+      "name": "S"
+    },
+    {
+      "code": "193",
+      "name": "S"
+    },
+    {
+      "code": "193",
+      "name": "S"
+    },
+    {
+      "code": "208",
+      "name": "EMPAQUE M"
+    },
+    {
+      "code": "104",
+      "name": "SERPENTIN DE CONDENSADOR PRO"
+    },
+    {
+      "code": "602",
+      "name": "EMPAQUE"
+    },
+    {
+      "code": "106",
+      "name": "BISAGRA SUPERIOR DERECHA M"
+    },
+    {
+      "code": "206",
+      "name": "BISAGRA SUPERIOR IZQUIERDA M"
+    },
+    {
+      "code": "307",
+      "name": "BISAGRA INFERIOR DERECHA M"
+    },
+    {
+      "code": "407",
+      "name": "BISAGRA INFERIOR IZQUIERDA M"
+    },
+    {
+      "code": "200",
+      "name": "SENSOR DE PUERTA M"
+    },
+    {
+      "code": "100",
+      "name": "LLAVES  M"
+    },
+    {
+      "code": "500",
+      "name": "CERRADURA DE PUERTA M"
+    },
+    {
+      "code": "100",
+      "name": "LIMPIADOR DEL CONDENSADOR TPR"
+    },
+    {
+      "code": "115",
+      "name": "V"
+    },
+    {
+      "code": "225",
+      "name": "V"
+    },
+    {
+      "code": "595",
+      "name": "KDFT"
+    },
+    {
+      "code": "853",
+      "name": "A"
+    },
+    {
+      "code": "853",
+      "name": "A"
+    },
+    {
+      "code": "301",
+      "name": "ALMUADILLAS DEL DESAG"
+    },
+    {
+      "code": "170",
+      "name": "ARNES PARA DISPLAY M"
+    },
+    {
+      "code": "660",
+      "name": "RUEDA"
+    },
+    {
+      "code": "140",
+      "name": "RUEDA"
+    },
+    {
+      "code": "150",
+      "name": "RUEDA"
+    },
+    {
+      "code": "010",
+      "name": "DOOR RIGHT TBP"
+    },
+    {
+      "code": "020",
+      "name": "DOOR LEFT TBP"
+    },
+    {
+      "code": "010",
+      "name": "DOOR RIGHT TBP"
+    },
+    {
+      "code": "020",
+      "name": "DOOR LEFT TBP"
+    },
+    {
+      "code": "100",
+      "name": "RODILLO CORREDERAD DE PUERTA TBP"
+    },
+    {
+      "code": "201",
+      "name": "HARNESS DISPLAY M"
+    },
+    {
+      "code": "430",
+      "name": "AZK CRISTAL FRONTAL PARA TOM"
+    },
+    {
+      "code": "106",
+      "name": "P"
+    },
+    {
+      "code": "300",
+      "name": "ARNES DEL INTERUPTOR DE LA PUERTA M"
+    },
+    {
+      "code": "170",
+      "name": "DISPLAY PCB STICKER M"
+    },
+    {
+      "code": "450",
+      "name": "SERPENTIN DEL CONDENSADOR M"
+    },
+    {
+      "code": "470",
+      "name": "BANDEJA DE DRENAJE DE CONDENSADO  M"
+    },
+    {
+      "code": "160",
+      "name": "DISPLAY PCB STICKER M"
+    },
+    {
+      "code": "060",
+      "name": "EMPAQUE M"
+    },
+    {
+      "code": "261",
+      "name": "ARENES DE DISPLAY M"
+    },
+    {
+      "code": "550",
+      "name": "ARNES PARA SWITCH DE PUERTA M"
+    },
+    {
+      "code": "500",
+      "name": "RUEDA CON FRENO"
+    },
+    {
+      "code": "510",
+      "name": "RUEDA SIN FRENO"
+    },
+    {
+      "code": "100",
+      "name": "TARJETA PRINCIPAL PCB M"
+    },
+    {
+      "code": "100",
+      "name": "TARJETA PCB PRINCIPAL M"
+    },
+    {
+      "code": "100",
+      "name": "CALENTADOR DE DESHIELO TSF"
+    },
+    {
+      "code": "070",
+      "name": "EMPAQUE M"
+    },
+    {
+      "code": "550",
+      "name": "ARNES PARA SWITCH DE PUERTA M"
+    },
+    {
+      "code": "401",
+      "name": "SENSOR M"
+    },
+    {
+      "code": "102",
+      "name": "SENSOR M"
+    },
+    {
+      "code": "100",
+      "name": "SERPENTIN DEL CONDENSADOR TCBE"
+    },
+    {
+      "code": "290",
+      "name": ""
+    },
+    {
+      "code": "200",
+      "name": "SERPENTIN DEL CONDENSADOR  TPR"
+    },
+    {
+      "code": "202",
+      "name": "SERPENTIN DEL CONDENSADOR TPR"
+    },
+    {
+      "code": "880",
+      "name": "SENSOR"
+    },
+    {
+      "code": "543",
+      "name": "BARRA TENSORA MST"
+    },
+    {
+      "code": "100",
+      "name": "TEMPORIZADOR DE DESCONGELACI"
+    },
+    {
+      "code": "300",
+      "name": "DOOR SPRING MUR"
+    },
+    {
+      "code": "123",
+      "name": "A"
+    },
+    {
+      "code": "124",
+      "name": "M"
+    },
+    {
+      "code": "143",
+      "name": "H"
+    },
+    {
+      "code": "151",
+      "name": "D"
+    },
+    {
+      "code": "100",
+      "name": "NW REJILLA SHELF MST"
+    },
+    {
+      "code": "003",
+      "name": "EMPAQUE TPR"
+    },
+    {
+      "code": "003",
+      "name": "EMPAQUE TPR"
+    },
+    {
+      "code": "106",
+      "name": "EMPAQUE TPR"
+    },
+    {
+      "code": "503",
+      "name": "TAPA"
+    },
+    {
+      "code": "700",
+      "name": "TAPA"
+    },
+    {
+      "code": "001",
+      "name": "A INTERUPTOR DE ENCENDIDO TOM"
+    },
+    {
+      "code": "001",
+      "name": "B BOTON DE ENCENDIDO TOM"
+    }
+  ]
+}

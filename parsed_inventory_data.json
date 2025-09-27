@@ -1,0 +1,3343 @@
+{
+  "warehouses": [
+    {
+      "code": "999",
+      "name": "MERCANCIA APARTADA"
+    },
+    {
+      "code": "220",
+      "name": "L"
+    },
+    {
+      "code": "104",
+      "name": "NW REJILLA  M"
+    },
+    {
+      "code": "241",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "812",
+      "name": "N MESA DE PREP"
+    },
+    {
+      "code": "262",
+      "name": "HG GABINETE CALIENTE"
+    },
+    {
+      "code": "660",
+      "name": "RUEDA"
+    },
+    {
+      "code": "654",
+      "name": "NNB VITRINA REFRIGERADA"
+    },
+    {
+      "code": "241",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N"
+    },
+    {
+      "code": "241",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "812",
+      "name": "N MESA DE PREP"
+    },
+    {
+      "code": "660",
+      "name": "RUEDA"
+    },
+    {
+      "code": "448",
+      "name": "SBDN"
+    },
+    {
+      "code": "448",
+      "name": "SGSDN CONTRABARRA REFRIG"
+    },
+    {
+      "code": "448",
+      "name": "SSDN"
+    },
+    {
+      "code": "460",
+      "name": "SBDN"
+    },
+    {
+      "code": "460",
+      "name": "SGSDN CONTRABARRA REFRIG"
+    },
+    {
+      "code": "460",
+      "name": "SSDN"
+    },
+    {
+      "code": "472",
+      "name": "SBDN"
+    },
+    {
+      "code": "472",
+      "name": "SGSDN CONTRABARRA REFRIG"
+    },
+    {
+      "code": "472",
+      "name": "SSDN"
+    },
+    {
+      "code": "711",
+      "name": "CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N"
+    },
+    {
+      "code": "042",
+      "name": "BEX EVAPORADOR DESH"
+    },
+    {
+      "code": "241",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "G GABINETE CALIENTE"
+    },
+    {
+      "code": "241",
+      "name": "GN REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "504",
+      "name": "RGN REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "030",
+      "name": "MR"
+    },
+    {
+      "code": "448",
+      "name": "SGSDN CONTRABARRA REFRIG"
+    },
+    {
+      "code": "460",
+      "name": "SBDN"
+    },
+    {
+      "code": "010",
+      "name": "LR"
+    },
+    {
+      "code": "122",
+      "name": "X"
+    },
+    {
+      "code": "060",
+      "name": "NW VITRINA VERTICAL ABIERTA"
+    },
+    {
+      "code": "711",
+      "name": "VITRINA HORIZONTAL ABIERTA CON FRENTE RRECTO TIPO EUROPEO"
+    },
+    {
+      "code": "472",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "GABINETE CALIENTE"
+    },
+    {
+      "code": "241",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "452",
+      "name": "N REFRIGERADOR Y CONGELADOR"
+    },
+    {
+      "code": "180",
+      "name": "CMS"
+    },
+    {
+      "code": "241",
+      "name": "N"
+    },
+    {
+      "code": "723",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "723",
+      "name": "NL REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "854",
+      "name": "NNBX VITRINA REFRIGERADA"
+    },
+    {
+      "code": "100",
+      "name": "C HORNO DE MICROONDAS"
+    },
+    {
+      "code": "472",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N"
+    },
+    {
+      "code": "500",
+      "name": "GN BARRA DE ENSALADAS REFRIGERADA DE SOBREMESA"
+    },
+    {
+      "code": "241",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "178",
+      "name": "CM"
+    },
+    {
+      "code": "750",
+      "name": "NW VITRINA HORIZ"
+    },
+    {
+      "code": "460",
+      "name": "SGDN CONTRABARRA REFRIG"
+    },
+    {
+      "code": "854",
+      "name": "NNBX VITRINA REFRIGERADA"
+    },
+    {
+      "code": "120",
+      "name": "CMS"
+    },
+    {
+      "code": "120",
+      "name": "CMS"
+    },
+    {
+      "code": "150",
+      "name": "CMS"
+    },
+    {
+      "code": "147",
+      "name": "CM"
+    },
+    {
+      "code": "120",
+      "name": "CMS"
+    },
+    {
+      "code": "120",
+      "name": "CMS"
+    },
+    {
+      "code": "150",
+      "name": "CMS"
+    },
+    {
+      "code": "147",
+      "name": "CM"
+    },
+    {
+      "code": "241",
+      "name": "G GABINETE CALIENTE"
+    },
+    {
+      "code": "472",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N"
+    },
+    {
+      "code": "472",
+      "name": "N"
+    },
+    {
+      "code": "040",
+      "name": "EMPAQUE TST"
+    },
+    {
+      "code": "241",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "818",
+      "name": "N MESA REF"
+    },
+    {
+      "code": "024",
+      "name": "N MESA REF"
+    },
+    {
+      "code": "654",
+      "name": "NNB VITRINA REFRIGERADA"
+    },
+    {
+      "code": "000",
+      "name": "CASQUILLO DE PUERTA TGM"
+    },
+    {
+      "code": "207",
+      "name": "D"
+    },
+    {
+      "code": "207",
+      "name": "H"
+    },
+    {
+      "code": "220",
+      "name": "L"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "251",
+      "name": "D"
+    },
+    {
+      "code": "104",
+      "name": "NW REJILLA  M"
+    },
+    {
+      "code": "680",
+      "name": "REGILLA DE ACERO INOXIDABLE PRO"
+    },
+    {
+      "code": "241",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "191",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "192",
+      "name": "N REFRIGERADOR Y CONGELADOR"
+    },
+    {
+      "code": "452",
+      "name": "N REFRIGERADOR Y CONGELADOR"
+    },
+    {
+      "code": "100",
+      "name": "D"
+    },
+    {
+      "code": "123",
+      "name": "L"
+    },
+    {
+      "code": "126",
+      "name": "A"
+    },
+    {
+      "code": "126",
+      "name": "L"
+    },
+    {
+      "code": "127",
+      "name": "E"
+    },
+    {
+      "code": "135",
+      "name": "E"
+    },
+    {
+      "code": "135",
+      "name": "E"
+    },
+    {
+      "code": "143",
+      "name": "E"
+    },
+    {
+      "code": "143",
+      "name": "E"
+    },
+    {
+      "code": "193",
+      "name": "S"
+    },
+    {
+      "code": "448",
+      "name": "SGDN CONTRABARRA REFRIG"
+    },
+    {
+      "code": "460",
+      "name": "SGDN CONTRABARRA REFRIG"
+    },
+    {
+      "code": "654",
+      "name": "NNB VITRINA REFRIGERADA"
+    },
+    {
+      "code": "854",
+      "name": "NNB VITRINA REFRIGERADA"
+    },
+    {
+      "code": "054",
+      "name": "NNB VITRINA REFRIGERADA"
+    },
+    {
+      "code": "100",
+      "name": "REJILLAS PARA MESAS DE PREPARCION LINEA"
+    },
+    {
+      "code": "191",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "241",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "472",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "723",
+      "name": "N CONGELADOR VERTICAL"
+    },
+    {
+      "code": "191",
+      "name": "N"
+    },
+    {
+      "code": "472",
+      "name": "N"
+    },
+    {
+      "code": "723",
+      "name": "N REFRIGERADOR VERTICAL"
+    },
+    {
+      "code": "812",
+      "name": "N"
+    },
+    {
+      "code": "615",
+      "name": "N"
+    },
+    {
+      "code": "818",
+      "name": "N MESA DE PREP"
+    },
+    {
+      "code": "024",
+      "name": "N MESA DE PREP"
+    },
+    {
+      "code": "230",
+      "name": "N MESA DE PREP"
+    },
+    {
+      "code": "206",
+      "name": "P"
+    },
+    {
+      "code": "213",
+      "name": "A"
+    },
+    {
+      "code": "220",
+      "name": "L"
+    },
+    {
+      "code": "220",
+      "name": "L"
+    },
+    {
+      "code": "265",
+      "name": "L"
+    },
+    {
+      "code": "265",
+      "name": "L"
+    },
+    {
+      "code": "281",
+      "name": "Q"
+    },
+    {
+      "code": "930",
+      "name": "MOTOR DEL VENTILADOR DE EVAPORADOR MESAS DE PREP LINEA X"
+    },
+    {
+      "code": "102",
+      "name": "MANIJA DE PUERTA MESAS DE PREPARACION LINEA"
+    },
+    {
+      "code": "300",
+      "name": "EJE DE BISAGRA PARA TAPA SUPERIOR MESAS DE PREP"
+    },
+    {
+      "code": "600",
+      "name": "EJE DE BISABRA PARA TAPA SUPERIOR MESAS  DE PREP"
+    },
+    {
+      "code": "700",
+      "name": "EJE DE BISAGRA PARA TAPA SUPERIOR MESAS DE PREP"
+    },
+    {
+      "code": "200",
+      "name": "ALMUADILLAS DE PAPEL PARA CHAROLA DE DESAG"
+    },
+    {
+      "code": "105",
+      "name": "ESTANTES XRF"
+    },
+    {
+      "code": "201",
+      "name": "CAJA DE DESAG"
+    },
+    {
+      "code": "400",
+      "name": "CONJUNTO DE PAPEL DE DRENAJE  MESAS DE PREPARACION LINEA X"
+    },
+    {
+      "code": "103",
+      "name": "TABLA PARA PICAR DE MESAS DE PREPARACION LINEA"
+    },
+    {
+      "code": "902",
+      "name": "CONJUNTO DE PAPEL DE DRENAJE  MESAS DE PREPARACION LINEA X"
+    },
+    {
+      "code": "303",
+      "name": "EVAPORADOR MESAS DE PREPARACION LINEA"
+    },
+    {
+      "code": "106",
+      "name": "TABLA PARA PICAR PARA MESAS DE PREPARACION LINEA X"
+    },
+    {
+      "code": "103",
+      "name": "TABLA PARA PICAR PARA MESAS DE PREPARACION LINEA"
+    },
+    {
+      "code": "301",
+      "name": "TABLA BLANCA PARA PICAR MESAS DE PREPARCION LINEA"
+    },
+    {
+      "code": "100",
+      "name": "CONDENSADOR MESA DE PREPARACION LINEA"
+    },
+    {
+      "code": "100",
+      "name": "CONDENSADOR MESA DE PREPARACION LINEA"
+    },
+    {
+      "code": "404",
+      "name": "CONDENSADOR REFRIGARADOR VERTICAL LINEA"
+    },
+    {
+      "code": "105",
+      "name": "CONDENSADOR REFRIGERADOR VERTICAL LINEA"
+    },
+    {
+      "code": "106",
+      "name": "CONDENSADOR AS REFRIGERADOR VERTICAL LINEA"
+    },
+    {
+      "code": "106",
+      "name": "CONDENSADOR REFRIGERADOR VERTICAL LINEA"
+    },
+    {
+      "code": "127",
+      "name": "E"
+    },
+    {
+      "code": "148",
+      "name": "S"
+    },
+    {
+      "code": "181",
+      "name": "L"
+    },
+    {
+      "code": "189",
+      "name": "E"
+    },
+    {
+      "code": "189",
+      "name": "E"
+    },
+    {
+      "code": "189",
+      "name": "E"
+    },
+    {
+      "code": "189",
+      "name": "E"
+    },
+    {
+      "code": "189",
+      "name": "E"
+    },
+    {
+      "code": "189",
+      "name": "E"
+    },
+    {
+      "code": "191",
+      "name": "E"
+    },
+    {
+      "code": "193",
+      "name": "S"
+    },
+    {
+      "code": "100",
+      "name": "LLAVES  M"
+    },
+    {
+      "code": "100",
+      "name": "ASPA DEL MOTOR DEL VENTILADOR DEL CONDENSADOR"
+    },
+    {
+      "code": "003",
+      "name": "EVAPORADOR MESAS DE PREPARACION LINEA X"
+    },
+    {
+      "code": "100",
+      "name": "A"
+    },
+    {
+      "code": "100",
+      "name": "A"
+    },
+    {
+      "code": "100",
+      "name": "E"
+    },
+    {
+      "code": "100",
+      "name": "E"
+    },
+    {
+      "code": "100",
+      "name": "E"
+    },
+    {
+      "code": "100",
+      "name": "E"
+    },
+    {
+      "code": "100",
+      "name": "E"
+    },
+    {
+      "code": "100",
+      "name": "E"
+    },
+    {
+      "code": "107",
+      "name": "A"
+    },
+    {
+      "code": "114",
+      "name": "A"
+    },
+    {
+      "code": "114",
+      "name": "E"
+    },
+    {
+      "code": "114",
+      "name": "E"
+    },
+    {
+      "code": "114",
+      "name": "E"
+    },
+    {
+      "code": "123",
+      "name": "A"
+    },
+    {
+      "code": "123",
+      "name": "A"
+    },
+    {
+      "code": "123",
+      "name": "E"
+    },
+    {
+      "code": "123",
+      "name": "E"
+    },
+    {
+      "code": "123",
+      "name": "E"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "A"
+    },
+    {
+      "code": "127",
+      "name": "E"
+    },
+    {
+      "code": "127",
+      "name": "E"
+    },
+    {
+      "code": "127",
+      "name": "E"
+    },
+    {
+      "code": "135",
+      "name": "A"
+    },
+    {
+      "code": "135",
+      "name": "A"
+    },
+    {
+      "code": "143",
+      "name": "A"
+    },
+    {
+      "code": "143",
+      "name": "A"
+    },
+    {
+      "code": "143",
+      "name": "H"
+    },
+    {
+      "code": "143",
+      "name": "H"
+    },
+    {
+      "code": "181",
+      "name": "A"
+    },
+    {
+      "code": "199",
+      "name": "A"
+    },
+    {
+      "code": "199",
+      "name": "A"
+    },
+    {
+      "code": "100",
+      "name": "REJILLAS PARA MESAS DE PREPARCION LINEA"
+    },
+    {
+      "code": "101",
+      "name": "REJILLAS PARA MESAS DE PREPARACION LINEA"
+    },
+    {
+      "code": "100",
+      "name": "JALADERA DE TAPA SUPERIOR MESAS DE PREPARACION LINEA"
+    },
+    {
+      "code": "101",
+      "name": "REJILLAS PARA MESAS DE PREPARACION LINEA"
+    },
+    {
+      "code": "068",
+      "name": "U"
+    },
+    {
+      "code": "068",
+      "name": "U"
+    },
+    {
+      "code": "267",
+      "name": "WT"
+    },
+    {
+      "code": "051",
+      "name": "RELAY EM"
+    },
+    {
+      "code": "200",
+      "name": "B"
+    },
+    {
+      "code": "200",
+      "name": "G"
+    },
+    {
+      "code": "200",
+      "name": "L"
+    },
+    {
+      "code": "205",
+      "name": "MOTOR DEL CONDENSADOR"
+    },
+    {
+      "code": "001",
+      "name": "BANDEJA DE DESAG"
+    },
+    {
+      "code": "211",
+      "name": "A"
+    },
+    {
+      "code": "211",
+      "name": "B"
+    },
+    {
+      "code": "213",
+      "name": "A"
+    },
+    {
+      "code": "218",
+      "name": "F"
+    },
+    {
+      "code": "220",
+      "name": "L"
+    },
+    {
+      "code": "221",
+      "name": "M"
+    },
+    {
+      "code": "223",
+      "name": "D"
+    },
+    {
+      "code": "223",
+      "name": "R"
+    },
+    {
+      "code": "227",
+      "name": "Q"
+    },
+    {
+      "code": "227",
+      "name": "Q"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "D"
+    },
+    {
+      "code": "229",
+      "name": "L"
+    },
+    {
+      "code": "229",
+      "name": "L"
+    },
+    {
+      "code": "229",
+      "name": "L"
+    },
+    {
+      "code": "229",
+      "name": "M"
+    },
+    {
+      "code": "229",
+      "name": "M"
+    },
+    {
+      "code": "243",
+      "name": "L"
+    },
+    {
+      "code": "243",
+      "name": "Q"
+    },
+    {
+      "code": "251",
+      "name": "L"
+    },
+    {
+      "code": "251",
+      "name": "M"
+    },
+    {
+      "code": "265",
+      "name": "H"
+    },
+    {
+      "code": "265",
+      "name": "H"
+    },
+    {
+      "code": "278",
+      "name": "Q"
+    },
+    {
+      "code": "278",
+      "name": "Q"
+    },
+    {
+      "code": "278",
+      "name": "Q"
+    },
+    {
+      "code": "278",
+      "name": "R"
+    },
+    {
+      "code": "281",
+      "name": "Q"
+    },
+    {
+      "code": "281",
+      "name": "R"
+    },
+    {
+      "code": "281",
+      "name": "R"
+    },
+    {
+      "code": "283",
+      "name": "D"
+    },
+    {
+      "code": "000",
+      "name": "LLAVES TBB"
+    },
+    {
+      "code": "410",
+      "name": "MOTOR DE VENTILADOR DE CONDENSADOR"
+    },
+    {
+      "code": "710",
+      "name": "MOTOR DE VENTILADOR TGM"
+    },
+    {
+      "code": "120",
+      "name": "MOTOR DEL VENTILADOR TGM"
+    },
+    {
+      "code": "900",
+      "name": "MOTOR VENTILADOR DE EVAPORADOR DAI"
+    },
+    {
+      "code": "397",
+      "name": "YS COMPRESOR  EM"
+    },
+    {
+      "code": "601",
+      "name": "CONTROL DE TEMPERATURA DISPLAY PCB M"
+    },
+    {
+      "code": "300",
+      "name": "A TARJETA PRINCIPAL PCB TST"
+    },
+    {
+      "code": "010",
+      "name": "LED LAMP"
+    },
+    {
+      "code": "010",
+      "name": "EMPAQUE PARA TBP"
+    },
+    {
+      "code": "041",
+      "name": "GASKET"
+    },
+    {
+      "code": "291",
+      "name": "GASKET"
+    },
+    {
+      "code": "020",
+      "name": "EMPAQUE PARA TBP"
+    },
+    {
+      "code": "020",
+      "name": "TAPA CARATULA PARA DISPLAY PCB"
+    },
+    {
+      "code": "030",
+      "name": "CAJA CARATULA PARA DISPLAY PCB"
+    },
+    {
+      "code": "040",
+      "name": "SEGUROS DE CARATULAS DISPLAY TBP"
+    },
+    {
+      "code": "064",
+      "name": "HARNES DE DIPLAY A TARJETA PCB"
+    },
+    {
+      "code": "040",
+      "name": "REGULADOR DE TEMPERATURA TOS"
+    },
+    {
+      "code": "050",
+      "name": "TARJETA PRINCIPAL PCB TBP"
+    },
+    {
+      "code": "123",
+      "name": "AC"
+    },
+    {
+      "code": "010",
+      "name": "LED LAMP"
+    },
+    {
+      "code": "010",
+      "name": "LED LAMP"
+    },
+    {
+      "code": "010",
+      "name": "FUENTE DE PODER SMPS TBP"
+    },
+    {
+      "code": "400",
+      "name": "TOPE DE PUERTA IZQUIERDO"
+    },
+    {
+      "code": "600",
+      "name": "PLACA DE RESORTE DE TOPE DE PUERTA  M"
+    },
+    {
+      "code": "100",
+      "name": "TOPE DE PUERTA DERECHO M"
+    },
+    {
+      "code": "200",
+      "name": "INTERRUPTOR DE PUERTA PREPARACI"
+    },
+    {
+      "code": "100",
+      "name": "DOOR SPRING JST"
+    },
+    {
+      "code": "036",
+      "name": "AZK REJILLA INFERIOR TRASERA TCDD"
+    },
+    {
+      "code": "100",
+      "name": "SERPENTIN DEL CONDENSADOR  TGM"
+    },
+    {
+      "code": "100",
+      "name": "EMPAQUE PRCBE"
+    },
+    {
+      "code": "100",
+      "name": "SERPENTIN DEL CONDENSADOR PRCBE"
+    },
+    {
+      "code": "100",
+      "name": "EMPAQUE PRCBE"
+    },
+    {
+      "code": "202",
+      "name": "LIMPIADOR DEL COPNDENSADOR PRCBE"
+    },
+    {
+      "code": "501",
+      "name": "SERPENTIN DEL CONDENSADOR PRCBE"
+    },
+    {
+      "code": "100",
+      "name": "EMPAQUE PRCBE"
+    },
+    {
+      "code": "101",
+      "name": "SERPENTIN DEL CONDENSADOR  PRCBE"
+    },
+    {
+      "code": "100",
+      "name": "EMPAQUE PRCBE"
+    },
+    {
+      "code": "100",
+      "name": "LIMPIADOR DEL CONDENSADOR TCBE"
+    },
+    {
+      "code": "000",
+      "name": "AZK SERPENTIN DEL CONDENSADOR TOM"
+    },
+    {
+      "code": "300",
+      "name": "N SERPENTIN DEL CONDENSADOR TIOM"
+    },
+    {
+      "code": "101",
+      "name": "EMPAQUE TPR"
+    },
+    {
+      "code": "101",
+      "name": "EMPAQUE TPR"
+    },
+    {
+      "code": "101",
+      "name": "EMPAQUE TST"
+    },
+    {
+      "code": "104",
+      "name": "EMPAQUE TST"
+    },
+    {
+      "code": "025",
+      "name": "VIDRIO LATERAL IZQUIERDO P"
+    },
+    {
+      "code": "046",
+      "name": "MOTOR DE VENTILADOR  TOM"
+    },
+    {
+      "code": "047",
+      "name": "MOTOR DE VENTILADOR TOM"
+    },
+    {
+      "code": "550",
+      "name": "RIEL DEL CAJON TST"
+    },
+    {
+      "code": "550",
+      "name": "R RIEL DEL CAJON TST"
+    },
+    {
+      "code": "100",
+      "name": "PARRILLA"
+    },
+    {
+      "code": "104",
+      "name": "NW REJILLA  M"
+    },
+    {
+      "code": "101",
+      "name": "SERPENTIN DEL CONDENSADOR M"
+    },
+    {
+      "code": "100",
+      "name": "CALENTADOR DE DESCONGELAMIENTO M"
+    },
+    {
+      "code": "101",
+      "name": "SERPENTIN DEL CONDENSADOR M"
+    },
+    {
+      "code": "105",
+      "name": "NW REJILLA M"
+    },
+    {
+      "code": "100",
+      "name": "CALENTADOR DE DESHIELO M"
+    },
+    {
+      "code": "101",
+      "name": "SERPENTIN DEL CONDENSADOR M"
+    },
+    {
+      "code": "000",
+      "name": "BARILLA TENSORA DE LA PUERTA  M"
+    },
+    {
+      "code": "200",
+      "name": "VARILLA TENSORA DE PUERTA M"
+    },
+    {
+      "code": "802",
+      "name": "DOOR BUSHING M"
+    },
+    {
+      "code": "101",
+      "name": "PARRILLA"
+    },
+    {
+      "code": "101",
+      "name": "RUEDA"
+    },
+    {
+      "code": "201",
+      "name": "RUEDA"
+    },
+    {
+      "code": "201",
+      "name": "SERPENTIN DEL CONDENSADOR  M"
+    },
+    {
+      "code": "905",
+      "name": "TERMOMETRO DIGITAL PARA TCBE"
+    },
+    {
+      "code": "135",
+      "name": "RIEL DE CAJON  TST"
+    },
+    {
+      "code": "135",
+      "name": "R RIEL DEL CAJON TST"
+    },
+    {
+      "code": "165",
+      "name": "RIEL DEL CAJON TPR"
+    },
+    {
+      "code": "165",
+      "name": "R RIEL DEL CAJON TPR"
+    },
+    {
+      "code": "100",
+      "name": "CALENTADOR DE DESHIELO PRO"
+    },
+    {
+      "code": "540",
+      "name": "SENSOR PRO"
+    },
+    {
+      "code": "500",
+      "name": "BISAGRA CON MICRO SWITCH PARA PRO"
+    },
+    {
+      "code": "450",
+      "name": "EMPAQUE PRO"
+    },
+    {
+      "code": "680",
+      "name": "REGILLA DE ACERO INOXIDABLE PRO"
+    },
+    {
+      "code": "102",
+      "name": "CALENTADOR DE DESHIELO M"
+    },
+    {
+      "code": "001",
+      "name": "SENSOR UR"
+    },
+    {
+      "code": "101",
+      "name": "SENSOR JUR"
+    },
+    {
+      "code": "103",
+      "name": "SERPENTIN DEL CONDENSADOR JUR"
+    },
+    {
+      "code": "104",
+      "name": "SERPENTIN DEL CONDENSADOR  JUR"
+    },
+    {
+      "code": "200",
+      "name": "PUERTA IZQUIERDA JBT"
+    },
+    {
+      "code": "101",
+      "name": "BISAGRA INFERIOR DERECHA  JUR"
+    },
+    {
+      "code": "303",
+      "name": "BISAGRA SUPERIOR IZQUIERDA  JUR"
+    },
+    {
+      "code": "403",
+      "name": "BISAGRA SUPERIOR DERECHA JUR"
+    },
+    {
+      "code": "101",
+      "name": "BISAGRA INFERIOR IZQUIERDA JUR"
+    },
+    {
+      "code": "100",
+      "name": "CERRADURA DE PUERTA MUR"
+    },
+    {
+      "code": "103",
+      "name": "SENSOR DE PUERTA PARTE SUPERIOE M"
+    },
+    {
+      "code": "012",
+      "name": "LAMPARA LED TBP"
+    },
+    {
+      "code": "086",
+      "name": "EZK LAMPARA LED TOM"
+    },
+    {
+      "code": "103",
+      "name": "EMPAQUE TST"
+    },
+    {
+      "code": "100",
+      "name": "EMPAQUE TST"
+    },
+    {
+      "code": "100",
+      "name": "REGULADOR  DE TEMPERATURA PREP"
+    },
+    {
+      "code": "100",
+      "name": "CHAROLA DE DESAG"
+    },
+    {
+      "code": "030",
+      "name": "EMPAQUE PARA MESAS  MST"
+    },
+    {
+      "code": "100",
+      "name": "TAPA TRASERA DE CONDUCTO DE AIRE M"
+    },
+    {
+      "code": "100",
+      "name": "BANDEJA DE DESAG"
+    },
+    {
+      "code": "102",
+      "name": "EMPAQUE TST"
+    },
+    {
+      "code": "401",
+      "name": "LIMPIADOR DEL CONDENSADOR M"
+    },
+    {
+      "code": "100",
+      "name": "EMPAQUE"
+    },
+    {
+      "code": "040",
+      "name": "EMPAQUE TST"
+    },
+    {
+      "code": "102",
+      "name": "EMPAQUE TST"
+    },
+    {
+      "code": "050",
+      "name": "EMPAQUE MST"
+    },
+    {
+      "code": "103",
+      "name": "PUERTA IZQUIERDA MST"
+    },
+    {
+      "code": "100",
+      "name": "BISAGRA SUPERIOR DERECHA"
+    },
+    {
+      "code": "200",
+      "name": "BISAGRA SUPERIOR IZQUIERDA TST"
+    },
+    {
+      "code": "100",
+      "name": "RUEDA"
+    },
+    {
+      "code": "200",
+      "name": "RURDA"
+    },
+    {
+      "code": "100",
+      "name": "DOOR BUSHING TST"
+    },
+    {
+      "code": "100",
+      "name": "BANDEJA DE DESAG"
+    },
+    {
+      "code": "100",
+      "name": "LIMPIADOR DEL CONDENSADOR  M"
+    },
+    {
+      "code": "300",
+      "name": "LIMPIADOR DEL CONDENSADOR M"
+    },
+    {
+      "code": "100",
+      "name": "LIMPIADOR DEL CONDENSADOR M"
+    },
+    {
+      "code": "101",
+      "name": "SERPENTIN DEL CONDENSADOR TUR"
+    },
+    {
+      "code": "000",
+      "name": "PUERTA INFERIOR M"
+    },
+    {
+      "code": "201",
+      "name": "PUERTA SUPERIOR M"
+    },
+    {
+      "code": "303",
+      "name": "CALENTADOR DE DESHIELO M"
+    },
+    {
+      "code": "301",
+      "name": "CALENTADOR DE DESHIELO M"
+    },
+    {
+      "code": "035",
+      "name": "HP"
+    },
+    {
+      "code": "100",
+      "name": "B"
+    },
+    {
+      "code": "100",
+      "name": "B"
+    },
+    {
+      "code": "100",
+      "name": "C"
+    },
+    {
+      "code": "100",
+      "name": "C"
+    },
+    {
+      "code": "100",
+      "name": "C"
+    },
+    {
+      "code": "100",
+      "name": "C"
+    },
+    {
+      "code": "100",
+      "name": "D"
+    },
+    {
+      "code": "100",
+      "name": "D"
+    },
+    {
+      "code": "100",
+      "name": "F"
+    },
+    {
+      "code": "100",
+      "name": "F"
+    },
+    {
+      "code": "100",
+      "name": "F"
+    },
+    {
+      "code": "100",
+      "name": "F"
+    },
+    {
+      "code": "100",
+      "name": "S"
+    },
+    {
+      "code": "100",
+      "name": "S"
+    },
+    {
+      "code": "100",
+      "name": "S"
+    },
+    {
+      "code": "100",
+      "name": "S"
+    },
+    {
+      "code": "110",
+      "name": "F"
+    },
+    {
+      "code": "110",
+      "name": "F"
+    },
+    {
+      "code": "118",
+      "name": "J"
+    },
+    {
+      "code": "118",
+      "name": "L"
+    },
+    {
+      "code": "120",
+      "name": "A"
+    },
+    {
+      "code": "120",
+      "name": "F"
+    },
+    {
+      "code": "120",
+      "name": "F"
+    },
+    {
+      "code": "123",
+      "name": "A"
+    },
+    {
+      "code": "123",
+      "name": "A"
+    },
+    {
+      "code": "123",
+      "name": "L"
+    },
+    {
+      "code": "123",
+      "name": "S"
+    },
+    {
+      "code": "123",
+      "name": "S"
+    },
+    {
+      "code": "123",
+      "name": "S"
+    },
+    {
+      "code": "123",
+      "name": "S"
+    },
+    {
+      "code": "128",
+      "name": "B"
+    },
+    {
+      "code": "128",
+      "name": "B"
+    },
+    {
+      "code": "129",
+      "name": "R"
+    },
+    {
+      "code": "129",
+      "name": "U"
+    },
+    {
+      "code": "129",
+      "name": "U"
+    },
+    {
+      "code": "138",
+      "name": "A"
+    },
+    {
+      "code": "138",
+      "name": "A"
+    },
+    {
+      "code": "138",
+      "name": "B"
+    },
+    {
+      "code": "138",
+      "name": "B"
+    },
+    {
+      "code": "138",
+      "name": "L"
+    },
+    {
+      "code": "143",
+      "name": "A"
+    },
+    {
+      "code": "143",
+      "name": "A"
+    },
+    {
+      "code": "143",
+      "name": "E"
+    },
+    {
+      "code": "143",
+      "name": "L"
+    },
+    {
+      "code": "143",
+      "name": "N"
+    },
+    {
+      "code": "143",
+      "name": "S"
+    },
+    {
+      "code": "151",
+      "name": "A"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "156",
+      "name": "E"
+    },
+    {
+      "code": "165",
+      "name": "B"
+    },
+    {
+      "code": "181",
+      "name": "E"
+    },
+    {
+      "code": "181",
+      "name": "E"
+    },
+    {
+      "code": "181",
+      "name": "E"
+    },
+    {
+      "code": "183",
+      "name": "E"
+    },
+    {
+      "code": "183",
+      "name": "E"
+    },
+    {
+      "code": "183",
+      "name": "E"
+    },
+    {
+      "code": "191",
+      "name": "E"
+    },
+    {
+      "code": "191",
+      "name": "E"
+    },
+    {
+      "code": "193",
+      "name": "S"
+    },
+    {
+      "code": "193",
+      "name": "S"
+    },
+    {
+      "code": "193",
+      "name": "S"
+    },
+    {
+      "code": "208",
+      "name": "EMPAQUE M"
+    },
+    {
+      "code": "104",
+      "name": "SERPENTIN DE CONDENSADOR PRO"
+    },
+    {
+      "code": "602",
+      "name": "EMPAQUE"
+    },
+    {
+      "code": "106",
+      "name": "BISAGRA SUPERIOR DERECHA M"
+    },
+    {
+      "code": "206",
+      "name": "BISAGRA SUPERIOR IZQUIERDA M"
+    },
+    {
+      "code": "307",
+      "name": "BISAGRA INFERIOR DERECHA M"
+    },
+    {
+      "code": "407",
+      "name": "BISAGRA INFERIOR IZQUIERDA M"
+    },
+    {
+      "code": "200",
+      "name": "SENSOR DE PUERTA M"
+    },
+    {
+      "code": "100",
+      "name": "LLAVES  M"
+    },
+    {
+      "code": "500",
+      "name": "CERRADURA DE PUERTA M"
+    },
+    {
+      "code": "100",
+      "name": "LIMPIADOR DEL CONDENSADOR TPR"
+    },
+    {
+      "code": "115",
+      "name": "V"
+    },
+    {
+      "code": "225",
+      "name": "V"
+    },
+    {
+      "code": "595",
+      "name": "KDFT"
+    },
+    {
+      "code": "853",
+      "name": "A"
+    },
+    {
+      "code": "853",
+      "name": "A"
+    },
+    {
+      "code": "301",
+      "name": "ALMUADILLAS DEL DESAG"
+    },
+    {
+      "code": "170",
+      "name": "ARNES PARA DISPLAY M"
+    },
+    {
+      "code": "660",
+      "name": "RUEDA"
+    },
+    {
+      "code": "140",
+      "name": "RUEDA"
+    },
+    {
+      "code": "150",
+      "name": "RUEDA"
+    },
+    {
+      "code": "010",
+      "name": "DOOR RIGHT TBP"
+    },
+    {
+      "code": "020",
+      "name": "DOOR LEFT TBP"
+    },
+    {
+      "code": "010",
+      "name": "DOOR RIGHT TBP"
+    },
+    {
+      "code": "020",
+      "name": "DOOR LEFT TBP"
+    },
+    {
+      "code": "100",
+      "name": "RODILLO CORREDERAD DE PUERTA TBP"
+    },
+    {
+      "code": "201",
+      "name": "HARNESS DISPLAY M"
+    },
+    {
+      "code": "430",
+      "name": "AZK CRISTAL FRONTAL PARA TOM"
+    },
+    {
+      "code": "106",
+      "name": "P"
+    },
+    {
+      "code": "300",
+      "name": "ARNES DEL INTERUPTOR DE LA PUERTA M"
+    },
+    {
+      "code": "170",
+      "name": "DISPLAY PCB STICKER M"
+    },
+    {
+      "code": "450",
+      "name": "SERPENTIN DEL CONDENSADOR M"
+    },
+    {
+      "code": "470",
+      "name": "BANDEJA DE DRENAJE DE CONDENSADO  M"
+    },
+    {
+      "code": "160",
+      "name": "DISPLAY PCB STICKER M"
+    },
+    {
+      "code": "060",
+      "name": "EMPAQUE M"
+    },
+    {
+      "code": "261",
+      "name": "ARENES DE DISPLAY M"
+    },
+    {
+      "code": "550",
+      "name": "ARNES PARA SWITCH DE PUERTA M"
+    },
+    {
+      "code": "500",
+      "name": "RUEDA CON FRENO"
+    },
+    {
+      "code": "510",
+      "name": "RUEDA SIN FRENO"
+    },
+    {
+      "code": "100",
+      "name": "TARJETA PRINCIPAL PCB M"
+    },
+    {
+      "code": "100",
+      "name": "TARJETA PCB PRINCIPAL M"
+    },
+    {
+      "code": "100",
+      "name": "CALENTADOR DE DESHIELO TSF"
+    },
+    {
+      "code": "070",
+      "name": "EMPAQUE M"
+    },
+    {
+      "code": "550",
+      "name": "ARNES PARA SWITCH DE PUERTA M"
+    },
+    {
+      "code": "401",
+      "name": "SENSOR M"
+    },
+    {
+      "code": "102",
+      "name": "SENSOR M"
+    },
+    {
+      "code": "100",
+      "name": "SERPENTIN DEL CONDENSADOR TCBE"
+    },
+    {
+      "code": "290",
+      "name": ""
+    },
+    {
+      "code": "200",
+      "name": "SERPENTIN DEL CONDENSADOR  TPR"
+    },
+    {
+      "code": "202",
+      "name": "SERPENTIN DEL CONDENSADOR TPR"
+    },
+    {
+      "code": "880",
+      "name": "SENSOR"
+    },
+    {
+      "code": "543",
+      "name": "BARRA TENSORA MST"
+    },
+    {
+      "code": "100",
+      "name": "TEMPORIZADOR DE DESCONGELACI"
+    },
+    {
+      "code": "300",
+      "name": "DOOR SPRING MUR"
+    },
+    {
+      "code": "123",
+      "name": "A"
+    },
+    {
+      "code": "124",
+      "name": "M"
+    },
+    {
+      "code": "143",
+      "name": "H"
+    },
+    {
+      "code": "151",
+      "name": "D"
+    },
+    {
+      "code": "100",
+      "name": "NW REJILLA SHELF MST"
+    },
+    {
+      "code": "003",
+      "name": "EMPAQUE TPR"
+    },
+    {
+      "code": "003",
+      "name": "EMPAQUE TPR"
+    },
+    {
+      "code": "106",
+      "name": "EMPAQUE TPR"
+    },
+    {
+      "code": "503",
+      "name": "TAPA"
+    },
+    {
+      "code": "700",
+      "name": "TAPA"
+    },
+    {
+      "code": "001",
+      "name": "A INTERUPTOR DE ENCENDIDO TOM"
+    },
+    {
+      "code": "001",
+      "name": "B BOTON DE ENCENDIDO TOM"
+    }
+  ],
+  "products": {
+    "JUF36N": {
+      "name": "MESA CONGELACION. UNDERCOUNTER 36\", 1 PUERTA SOLIDA, A.I.",
+      "warehouses": {
+        "104": 3
+      }
+    },
+    "JUR36N6": {
+      "name": "MESA REFRIG. UNDERCOUNTER 36\", 1 PUERTA SOLIDA, A.I.",
+      "warehouses": {
+        "104": 3
+      }
+    },
+    "MST48N": {
+      "name": "MESA FRIA DE PREP. SANDWITCH/ENS.12 INS.2 PTAS.SOL. A.INOX.",
+      "warehouses": {
+        "812": 1,
+        "472": 1,
+        "452": 1,
+        "241": 1,
+        "818": 3
+      }
+    },
+    "MUF28N": {
+      "name": "MESA FRIA DE CONGELACION BAJO MOSTRADOR 1 PTA.SOL.A.INOX",
+      "warehouses": {
+        "812": 2,
+        "452": 1,
+        "723": 1,
+        "024": 4
+      }
+    },
+    "MUF28N1": {
+      "name": "MESA FRIA DE CONGELACIÓN BAJO MOSTRADOR, 1 PTA, RUEDAS 1\"",
+      "warehouses": {
+        "812": 1,
+        "024": 4
+      }
+    },
+    "MUF48N": {
+      "name": "MESA FRIA DE CONGELACION BAJO MOSTRADOR 2 PTAS.SOLID. AI",
+      "warehouses": {
+        "812": 4,
+        "452": 1
+      }
+    },
+    "MUR28N": {
+      "name": "MESA FRIA \"BAJO MOSTRADOR\" 1 PTA. SOLIDA. A.INOX.",
+      "warehouses": {
+        "812": 2,
+        "472": 2,
+        "723": 1,
+        "452": 3
+      }
+    },
+    "MUR28N1": {
+      "name": "MESA FRIA \"BAJO MOSTRADOR\" 1 PTA. SOLIDAS, RUEDAS 1\", AI",
+      "warehouses": {
+        "812": 1,
+        "024": 12
+      }
+    },
+    "MUR48N": {
+      "name": "MESA FRIA \"BAJO MOSTRADOR\" 2 PTAS. SOL. A.INOX.",
+      "warehouses": {
+        "812": 1,
+        "452": 1,
+        "241": 1,
+        "024": 3
+      }
+    },
+    "MUR60N": {
+      "name": "MESA FRIA \"BAJO MOSTRADOR\"  2 PTAS. SOL. A.INOX.",
+      "warehouses": {
+        "812": 2,
+        "472": 1
+      }
+    },
+    "PRO26FN": {
+      "name": "CONGELADOR VERTICAL 1 PUERTA SOLIDA, ACERO INOX.",
+      "warehouses": {
+        "262": 1,
+        "241": 1
+      }
+    },
+    "PRO26RGSHPTNRL": {
+      "name": "REFRIGERADOR VERTICAL PASS THRU, 4 MEDIAS PUERTAS",
+      "warehouses": {
+        "262": 4,
+        "024": 2
+      }
+    },
+    "TBB2SGDN": {
+      "name": "CONTRABARRA REFRIG. 2 PUERTAS DE CRISTAL, EXT. VINIL NEGRO",
+      "warehouses": {
+        "660": 1,
+        "180": 1,
+        "460": 2
+      }
+    },
+    "TBC24SBGFN6": {
+      "name": "ENFRIADOR DE VASOS/TARROS 24\", 1 PUERTA. EXT. VINIL NEGRO",
+      "warehouses": {
+        "660": 1
+      }
+    },
+    "TBC36SBGFN": {
+      "name": "ENFRIADOR DE VASOS/TARROS 36\", 1 PUERTA. EXT. VINIL NEGRO",
+      "warehouses": {
+        "660": 2
+      }
+    },
+    "TBD1SBDN6": {
+      "name": "DISPENSADOR DE CERVEZA, 1 PUERTA SOLIDA, VINIL COLOR NEGRO",
+      "warehouses": {
+        "660": 1,
+        "472": 17
+      }
+    },
+    "TGF23SDBN": {
+      "name": "CONGELADOR VERTICAL COLOR NEGRO, 1 PUERTA DE CRISTAL",
+      "warehouses": {
+        "654": 1,
+        "460": 1
+      }
+    },
+    "TGM23SDBN6": {
+      "name": "REFRIGERADOR VERT. COLOR NEGRO, 1 PUERTA DE CRISTAL",
+      "warehouses": {
+        "654": 1,
+        "460": 3,
+        "180": 1,
+        "054": 12
+      }
+    },
+    "TGM23SDBN6L": {
+      "name": "REFRIGERADOR VERTICAL 1 PUERTA DE CRISTAL, COLOR NEGRO",
+      "warehouses": {
+        "654": 1,
+        "460": 1,
+        "180": 2
+      }
+    },
+    "TOM48EBN": {
+      "name": "VITRINA VERTICAL ABIERTA 48\" EXT. NEGRA",
+      "warehouses": {
+        "654": 1,
+        "147": 2
+      }
+    },
+    "TOM50BN": {
+      "name": "VITRINA VERTICAL ABIERTA 50\" EXT. COLOR NEGRO",
+      "warehouses": {
+        "654": 4
+      }
+    },
+    "TOM72EBN": {
+      "name": "VITRINA VERTICAL ABIERTA 72\" EXT. NEGRA",
+      "warehouses": {
+        "654": 1,
+        "147": 2
+      }
+    },
+    "TSF23SDN": {
+      "name": "CONGELADOR VERTICAL 1 PUERTA SOLIDA, EN ACERO INOX.",
+      "warehouses": {
+        "654": 7,
+        "100": 1
+      }
+    },
+    "TSR23GSDN6": {
+      "name": "REFRIGERADOR VERTICAL 1 PUERTA DE CRISTAL. A.INOX.",
+      "warehouses": {
+        "654": 1,
+        "711": 1,
+        "054": 2
+      }
+    },
+    "TSR23SDN6": {
+      "name": "REFRIGERADOR VERTICAL 1 PUERTA SOLIDA, A.INOX.",
+      "warehouses": {
+        "654": 4,
+        "711": 4,
+        "854": 1,
+        "054": 3
+      }
+    },
+    "TSR49SDN6": {
+      "name": "REFRIGERADOR VERTICAL 2 PUERTAS SOLIDAS, A.INOX.",
+      "warehouses": {
+        "654": 2,
+        "180": 1,
+        "854": 2,
+        "054": 3
+      }
+    },
+    "TST72SDLRD2NSL": {
+      "name": "MESA DE PREPARACIÓN DE ALIMENTOS, 3 PUERTAS, ACERO INOX",
+      "warehouses": {
+        "654": 1
+      }
+    },
+    "TUR48SDD4N": {
+      "name": "REFRIGERADOR BAJO BARRA 4 CAJONES, EN A.INOX.",
+      "warehouses": {
+        "654": 2
+      }
+    },
+    "TWR48SDN": {
+      "name": "MESA DE TRABAJO REFRIGERADA 2 PTAS. SOLIDAS. A.INOX.",
+      "warehouses": {
+        "654": 2,
+        "711": 1,
+        "180": 3,
+        "054": 3
+      }
+    },
+    "XST28N6": {
+      "name": "MESA DE PREP. DE SANDWITCH/ENS. 8 INS. 1 PTA. SOL. AI",
+      "warehouses": {
+        "241": 1,
+        "100": 1,
+        "812": 37
+      }
+    },
+    "XST48N": {
+      "name": "MESA DE PREP. DE SANDWITCH/ENS. 12 INS. 2 PTAS. SOL. AI",
+      "warehouses": {
+        "241": 4,
+        "854": 2,
+        "818": 48
+      }
+    },
+    "XST72N": {
+      "name": "MESA DE PREP. SANDWITCH/ENS. 18 INS. 3 PTA. A.INOX.",
+      "warehouses": {
+        "241": 1,
+        "230": 21
+      }
+    },
+    "XUR28N6": {
+      "name": "MESA FRIA \"BAJO MOSTRADOR\" 1 PTA. SOLIDA. A.INOX.",
+      "warehouses": {
+        "241": 1,
+        "230": 28
+      }
+    },
+    "XUR48N6": {
+      "name": "MESA FRIA \"BAJO MOSTRADOR\" 2 PTAS. SOL. A.INOX.",
+      "warehouses": {
+        "241": 1,
+        "100": 1,
+        "230": 62
+      }
+    },
+    "XUR72N": {
+      "name": "MESA FRIA \"BAJO MOSTRADOR\"  3 PTAS. SOL. A.INOX.",
+      "warehouses": {
+        "241": 1,
+        "230": 3
+      }
+    },
+    "CA": {
+      "name": "CANCUN",
+      "warehouses": {
+        "241": 0
+      }
+    },
+    "JBT72NX": {
+      "name": "MESA FRIA REFRIGERADA PARA BUFFET, 3 PUERTAS",
+      "warehouses": {
+        "241": 2,
+        "680": 2
+      }
+    },
+    "MST24SN6": {
+      "name": "MESA FRIA DE PREP. DE ENSALADAS. 1 PTA. SOL. TAPA TRANSPAREN",
+      "warehouses": {
+        "472": 1
+      }
+    },
+    "MST36N6": {
+      "name": "MESA FRIA DE PREP. SANDWTCH/ENS.10 INS. 2 PTA.SOL. A. INOX.",
+      "warehouses": {
+        "812": 1,
+        "452": 1
+      }
+    },
+    "MST60N": {
+      "name": "MESA FRIA DE PREP. SANDWITCH/ENS. 16 INS. 2 PTAS. SOL. A.I.",
+      "warehouses": {
+        "812": 7,
+        "472": 1,
+        "452": 3
+      }
+    },
+    "MUF60N": {
+      "name": "MESA FRIA DE CONGELACION BAJO MOSTRADOR 2 PTAS.SOL. A.INOX.",
+      "warehouses": {
+        "812": 2
+      }
+    },
+    "PRCBE48FN": {
+      "name": "BASE CHEF DE CONGELACION 48\", 2 CAJONES, EN A.INOX.",
+      "warehouses": {
+        "812": 2
+      }
+    },
+    "PRCBE60RN": {
+      "name": "BASE CHEF REFRIGERADA 60\", 2 CAJONES. EN ACERO INOX.",
+      "warehouses": {
+        "812": 7,
+        "472": 1
+      }
+    },
+    "PRO26HG": {
+      "name": "GABINETE CALIENTE 1 PUERTA DE CRISTAL, EN ACERO INOX.",
+      "warehouses": {
+        "812": 1
+      }
+    },
+    "PRO26RN": {
+      "name": "REFRIGERADOR VERTICAL 1 PUERTA SOLIDA, EN ACERO INOX.",
+      "warehouses": {
+        "812": 1,
+        "472": 2
+      }
+    },
+    "PRO50RRIN": {
+      "name": "REFRIGERADOR VERTICAL 67\" 2 PUERTAS SOLIDAS A. INOX",
+      "warehouses": {
+        "812": 1
+      }
+    },
+    "PUR28GN": {
+      "name": "REFRIGERADOR BAJO MOSTRADOR, 1 PUERTA DE CRISTAL, A.INOX.",
+      "warehouses": {
+        "812": 7
+      }
+    },
+    "TBB2SBDN6": {
+      "name": "CONTRABARRA REFRIG. 2 PUERTAS SOLIDAS, EXT. VINIL NEGRO",
+      "warehouses": {
+        "472": 2,
+        "460": 1
+      }
+    },
+    "TBB2SSDN6": {
+      "name": "CONTRABARRA REFRIG. 2 PUERTAS SOLIDAS, EN ACERO INOX.",
+      "warehouses": {
+        "472": 10
+      }
+    },
+    "TBB4SBDN": {
+      "name": "CONTRABARRA REFRIG. 3 PUERTAS SOLIDAS, EXT. VINIL NEGRO",
+      "warehouses": {
+        "472": 1
+      }
+    },
+    "TBC24SDGFN6": {
+      "name": "ENFRIADOR DE VASOS/TARROS 24\", 1 PUERTA. EXT. ACERO INOX.",
+      "warehouses": {
+        "472": 1
+      }
+    },
+    "TBC50SDGFN": {
+      "name": "ENFRIADOR DE VASOS/TARROS 50\", 2 PUERTAS, ACERO INOX.",
+      "warehouses": {
+        "472": 2
+      }
+    },
+    "TBD2SDDN6": {
+      "name": "DISPENSADOR DE CERVEZA, 2 DISP., ACERO INOX.",
+      "warehouses": {
+        "472": 3,
+        "460": 1
+      }
+    },
+    "TCBE72SDRN": {
+      "name": "BASE CHEF REFRIGERADA 72\", 4 CAJONES",
+      "warehouses": {
+        "472": 1,
+        "054": 2
+      }
+    },
+    "TGF5SDBN": {
+      "name": "CONGELADOR DE SOBREMESA, COLOR NEGRO, PUERTA DE CRISTAL",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "TGM47SDBN": {
+      "name": "REFRIGERADOR VERTICAL COLOR NEGRO, 2 PUERTAS DE CRISTAL",
+      "warehouses": {
+        "711": 2,
+        "460": 1,
+        "854": 1
+      }
+    },
+    "TGM7SDWN6": {
+      "name": "REFRIGERADOR 1 PUERTA DE CRISTAL, 7 PIES, COLOR BALNCO",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "TIOM48CCBN": {
+      "name": "VITRINA CUADRADA 51-1/8\" COSTADO CON CRISTAL, ACERO INOX.",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "TOM25MSEBN": {
+      "name": "VITRINA ABIERTA 25\", MEDIA ALTURA, COLOR NEGRO",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "TOM40BN": {
+      "name": "VITRINA VERTICAL ABIERTA 39\" EXT. COLOR NEGRO",
+      "warehouses": {
+        "711": 1,
+        "054": 4
+      }
+    },
+    "TOM50SEBN": {
+      "name": "VITRINA ABIERTA 50\", ALTA, SLIM PROFILE, COLOR NEGRO",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "TPR44SDD2N": {
+      "name": "MESA REFRIG. DE PREP. DE PIZZA 6 INS. 2 CAJONES. A.INOX.",
+      "warehouses": {
+        "711": 1,
+        "854": 2
+      }
+    },
+    "TPR67SDD4N": {
+      "name": "MESA REFRIG. DE PREP. DE PIZZA 9 INS. 4 CAJONES. A.INOX.",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "TSF72SDN": {
+      "name": "CONGELADOR VERTICAL 3 PUERTAS SOLIDAS, EN A.INOX.",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "TSOS5RT": {
+      "name": "REPISA SUPERIOR DOBLE 60\" ACERO INOX",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "TST60SD08SN": {
+      "name": "MESA DE PREP. DE SAND/ENS. 2 PTAS SOLIDAS IZQ, A. INOX.",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "TST60SDN": {
+      "name": "MESA FRIA DE PREP. SAND/ENS. 16 INS. 2 PUERTAS A.INOX.",
+      "warehouses": {
+        "711": 1,
+        "180": 1
+      }
+    },
+    "TUF48SDN": {
+      "name": "CONGELADOR BAJO MOSTRADOR 2 PUERTAS 48\", A.INOX.",
+      "warehouses": {
+        "711": 2,
+        "180": 1
+      }
+    },
+    "TWF28SDN": {
+      "name": "MESA DE TRABAJO DE CONGELACION 1 PTA. SOLIDA. A.INOX.",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "TWF48SDN": {
+      "name": "MESA DE TRABAJO DE CONGELACION, 2 PTAS. SOLIDAS. A.INOX.",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "TWF60SDN": {
+      "name": "MESA DE TRABAJO DE CONGELACION 2 PTAS. SOLIDAS. A.INOX.",
+      "warehouses": {
+        "711": 2
+      }
+    },
+    "TWR28SDN": {
+      "name": "MESA DE TRABAJO REFRIGERADA 1 PTA SOLIDA, A.INOX.",
+      "warehouses": {
+        "711": 8
+      }
+    },
+    "CA1": {
+      "name": "CANCUN EXHIBICION",
+      "warehouses": {
+        "711": 0
+      }
+    },
+    "PRCBE60FN": {
+      "name": "BASE CHEF DE CONGELACION 60\", 2 CAJONES, A.INOX.",
+      "warehouses": {
+        "472": 1
+      }
+    },
+    "PRO15RGN": {
+      "name": "REFRIGERADOR VERTICAL 1 PUERTA DE CRISTA, EN ACERO INOX.",
+      "warehouses": {
+        "472": 1,
+        "452": 1,
+        "024": 2
+      }
+    },
+    "PRO26HRI": {
+      "name": "GABINETE CALIENTE ROLL-IN  PUERTA SOLIDA, A.INOX.",
+      "warehouses": {
+        "472": 2
+      }
+    },
+    "PRO26RGD2N": {
+      "name": "REFRIGERADOR VERT. 1 PUERTA DE CRISTAL Y 2 CAJONES, A.INOX.",
+      "warehouses": {
+        "472": 1
+      }
+    },
+    "PRO26RGRIN": {
+      "name": "REFRIGERADOR VERTICAL REACH INN PUERTA CRISTAL, A.INOX.",
+      "warehouses": {
+        "472": 1
+      }
+    },
+    "PRO50HGRT": {
+      "name": "GABINETE CALIENTE PASS THRU 2 PTAS DE CRISTAL, ACERO INOX.",
+      "warehouses": {
+        "504": 1
+      }
+    },
+    "PUR48GN": {
+      "name": "REFRIGERADOR BAJO MOSTRADOR, A.INOX. 2 PTAS DE CRISTAL",
+      "warehouses": {
+        "504": 1
+      }
+    },
+    "TBB2SGSDN": {
+      "name": "CONTRABARRA REFRIG. 2 PUERTAS DE CRISTAL. ACERO INOX..",
+      "warehouses": {
+        "460": 2
+      }
+    },
+    "TBC24SDN6": {
+      "name": "ENFRIADOR DE BOTELLAS 24\" EN ACERO INOX.",
+      "warehouses": {
+        "460": 1
+      }
+    },
+    "TBC50SBN6": {
+      "name": "ENFRIADOR DE BOTELLAS COLOR NEGRO, 2 PTAS AI MARCA TURBOAIR",
+      "warehouses": {
+        "460": 1,
+        "723": 1
+      }
+    },
+    "TCGB48UFWN": {
+      "name": "VITRINA PASTELERA 48\", T/EUROPEA, FRENTE DE CRISTAL, BLANCO",
+      "warehouses": {
+        "460": 1
+      }
+    },
+    "TCGB72UFWNL": {
+      "name": "VITRINA REFRIG. 72\" CERRADA, 2 ENTREP. A.I., COLOR BLANCO",
+      "warehouses": {
+        "460": 1
+      }
+    },
+    "TGM23SDHWN6": {
+      "name": "REFRIGERADOR 1 PUERTA DE CRISTAL 23' COLOR BLANCO",
+      "warehouses": {
+        "460": 1
+      }
+    },
+    "TJMR55SDBN": {
+      "name": "REFRIG. VERTICAL \"JUMBO\" 2 PUERTAS DE CRISTAL, COLOR NEGRO",
+      "warehouses": {
+        "122": 1
+      }
+    },
+    "TOM40SBNX": {
+      "name": "VITRINA HORIZONTAL ABIERTA 39\"L SLIM LINE COLOR NEGRO",
+      "warehouses": {
+        "711": 1,
+        "100": 5
+      }
+    },
+    "TOM40SWN": {
+      "name": "VITRINA HORIZONTAL ABIERTA 39\"L SLIM LINE COLOR BLANCO",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "TOM48LUFDB3SIN": {
+      "name": "VITRINA \"DROP IN\" ABIERTA 2 ENTREP. Y PISO, COLOR NEGRO",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "TOS40NNB": {
+      "name": "VITRINA REFRIG. HORIZ. ABIERTA 40\", COLOR NEGRO",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "TPR67SDN": {
+      "name": "MESA REFRIG DE PREP. DE PIZZA 9 INS. 2 PTAS. SOLIDAS. A.INOX",
+      "warehouses": {
+        "711": 1,
+        "054": 2
+      }
+    },
+    "TST48SD08SNCL": {
+      "name": "MESA DE PREP. DE SAND/ENS. 8 INS. 2 PTAS AI C/TAPA TRANSP.",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "TST48SD18NDS": {
+      "name": "MESA REF. DE PREP. SAND/ENS 48\" 2 PUERTAS, DOBLE ACCESO",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "TST48SD18NGL": {
+      "name": "MESA DE PREP. DE SAND/ENS. 18 INS.1/3 2PTAS AI, TAPA CRISTAL",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "TUR28SDD2N": {
+      "name": "MESA REFRIG. UNDERCOUNTER 28\", 2 CAJONES, A.INOX.",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "CA2": {
+      "name": "CANCUN EQUIPOS A PRUEBA",
+      "warehouses": {
+        "711": 0
+      }
+    },
+    "JUR48GN": {
+      "name": "MESA REFRIG. UNDERCOUNTER 48\", 2 PUERTAS DE CRISTAL, A.INOX.",
+      "warehouses": {
+        "711": 1
+      }
+    },
+    "MST28NX": {
+      "name": "MESA FRIA DE PREP. DE SANDWITCH/ENS. 8 INS. 1 PTA. SOL. AI",
+      "warehouses": {
+        "452": 1
+      }
+    },
+    "PRCBE36FN": {
+      "name": "BASE CHEF DE CONGELACION 36\", 2 CAJONES, EN A. INOX.",
+      "warehouses": {
+        "452": 1
+      }
+    },
+    "PRCBE36RN": {
+      "name": "BASE CHEF REFRIGERADA 36\" 2 CAJONES, A.INOX.",
+      "warehouses": {
+        "452": 1,
+        "024": 3
+      }
+    },
+    "PRCBE48RN": {
+      "name": "BASE CHEF REFRIGERADA 48\", 2 CAJONES, EN ACERO INOX.",
+      "warehouses": {
+        "452": 1,
+        "241": 1,
+        "024": 3
+      }
+    },
+    "PRO15FN": {
+      "name": "CONGELADOR VERTICAL 1 PUERTA SOLIDA, EN ACERO INOX.",
+      "warehouses": {
+        "452": 2
+      }
+    },
+    "PRO26RD4N": {
+      "name": "REFRIGERADOR VERTICAL CON 4 CAJONES AINOX.",
+      "warehouses": {
+        "452": 1
+      }
+    },
+    "TCGB60UFBN": {
+      "name": "VITRINA REFRIGERADA CERRADA 2 ENTREP. AI, EN COLOR NEGRO",
+      "warehouses": {
+        "180": 1
+      }
+    },
+    "TGM5SDBN6": {
+      "name": "REFRIGERADOR 1 PUERTA DE CRISTAL 5', COLOR NEGRO",
+      "warehouses": {
+        "180": 1,
+        "854": 1
+      }
+    },
+    "TPR44SDN": {
+      "name": "MESA REFRIG DE PREP. DE PIZZA 6 INS. 1 PTA. SOLIDA. A.INOX.",
+      "warehouses": {
+        "180": 1,
+        "054": 6
+      }
+    },
+    "TSF49SDN": {
+      "name": "CONGELADOR VERTICAL 2 PUERTAS SOLIDAS, EN A.INOX.",
+      "warehouses": {
+        "180": 1,
+        "054": 2
+      }
+    },
+    "TSR72SDN": {
+      "name": "REFRIGERADOR VERTICAL 3 PUERTAS SOLIDAS, A.INOX.",
+      "warehouses": {
+        "180": 1
+      }
+    },
+    "TST48SD18N": {
+      "name": "MESA REF. DE PREP. DE SANDWITCH/ENSALADA 48\", 18 INS. 2 PTAS",
+      "warehouses": {
+        "180": 1
+      }
+    },
+    "TST48SDN": {
+      "name": "MESA FRIA PREPARACION DE ENSALADA/SANDWITCH, 2 PTAS. A.INOX.",
+      "warehouses": {
+        "180": 1
+      }
+    },
+    "TST72SDD6N": {
+      "name": "MESA FRIA PREPA. SAND/ENS 6 CAJONES A.INOX",
+      "warehouses": {
+        "180": 1
+      }
+    },
+    "TST72SDN": {
+      "name": "MESA DE PREPARACION DE ALIMENTOS, 3 PUERTAS, A.INOX.",
+      "warehouses": {
+        "180": 1
+      }
+    },
+    "CA3": {
+      "name": "CANCUN LABORATORIO",
+      "warehouses": {
+        "241": 0
+      }
+    },
+    "PRO50RN": {
+      "name": "REFRIGERADOR VERTICAL 2 PUERTAS SOLIDAS, EN ACERO INOX.",
+      "warehouses": {
+        "723": 1
+      }
+    },
+    "TCDD48HBN": {
+      "name": "VITRINA 48\" 3 NIVELES, COLOR NEGRO",
+      "warehouses": {
+        "854": 2
+      }
+    },
+    "TCGB60UFWN": {
+      "name": "VITRINA PASTELERA 60\" CRISTAL. T/EUROPEA, EN COLOR BLANCO",
+      "warehouses": {
+        "854": 1
+      }
+    },
+    "TGF47SDHBN": {
+      "name": "CONGELADOR VERTICAL 2 PUERTAS DE CRISTAL, COLOR NEGRO",
+      "warehouses": {
+        "854": 1
+      }
+    },
+    "TGM47SDWN": {
+      "name": "REFRIGERADOR BLANCO 2 PUERTAS DE CRISTAL",
+      "warehouses": {
+        "854": 1
+      }
+    },
+    "CA4": {
+      "name": "CANCUN AREA DE AJUSTE",
+      "warehouses": {
+        "472": 0
+      }
+    },
+    "TGM12SDBN6": {
+      "name": "REFRIGERADOR 1 PUERTA DE CRISTAL 12', COLOR NEGRO",
+      "warehouses": {
+        "854": 2
+      }
+    },
+    "TOM36ESN": {
+      "name": "VITRINA VERTICAL ABIERTA 36\" EXT. ACERO INOX.",
+      "warehouses": {
+        "854": 1
+      }
+    },
+    "TST48SD18D4N": {
+      "name": "MESA REF. DE PREP. SANDWITCH/ENS. 48\", 18 INS. 4 CAJONES AI.",
+      "warehouses": {
+        "854": 1
+      }
+    },
+    "COCZ": {
+      "name": "CONSIGNACION CANCUN ZICOR",
+      "warehouses": {
+        "854": 0
+      }
+    },
+    "COPZ": {
+      "name": "CONSIGNACION PUEBLA ZICOR",
+      "warehouses": {
+        "147": 0
+      }
+    },
+    "TCGB48UFBN": {
+      "name": "VITRINA PASTELERA 48\" CRISTAL, T/EUROPEA, EN COLOR NEGRO",
+      "warehouses": {
+        "147": 1
+      }
+    },
+    "TIOM48RRBN": {
+      "name": "VITRINA REFRIGERADA, CIRCULAR 48\", COLOR NEGRO",
+      "warehouses": {
+        "147": 1
+      }
+    },
+    "TOM36EBN": {
+      "name": "VITRINA VERTICAL ABIERTA 36\" EXT. NEGRA",
+      "warehouses": {
+        "147": 3
+      }
+    },
+    "TOM48DXBN": {
+      "name": "VITRINA  VERTICAL ABIERTA 48\" EXT. COLOR NEGRO",
+      "warehouses": {
+        "147": 1
+      }
+    },
+    "TOM48LUFDB3SN": {
+      "name": "VITRINA ABIERTA, 2 ENTREP. Y PISO, COLOR NEGRO",
+      "warehouses": {
+        "147": 1
+      }
+    },
+    "TOM60LUFB1SIN": {
+      "name": "VITRINA HORIZONTAL ABIERTA DE 60\"",
+      "warehouses": {
+        "147": 2
+      }
+    },
+    "INT": {
+      "name": "INTERNACIONAL",
+      "warehouses": {
+        "147": 0
+      }
+    },
+    "IJUR60GN": {
+      "name": "MESA REFRIG. UNDERCOUNTER 60\" 2 PUERTAS CRISTAL A.I.",
+      "warehouses": {
+        "147": 2
+      }
+    },
+    "IJUR93DN": {
+      "name": "MESA REFRIG. UNDERCOUNTER 93\", 3 PUERTAS SOL. A.I.",
+      "warehouses": {
+        "147": 1
+      }
+    },
+    "IMST28N": {
+      "name": "MESA FRIA DE PREP. DE SANDWITCH/ENS. 8 INS. 1 PTA. SOL. A.I.",
+      "warehouses": {
+        "472": 1
+      }
+    },
+    "IMUR36N6": {
+      "name": "MESA FRIA \"BAJO MOSTRADOR\" 2 PTAS. SOLIDAS. A. INOX.",
+      "warehouses": {
+        "472": 1
+      }
+    },
+    "IMUR48N": {
+      "name": "MESA REFRIGERADA 2 PUERTAS SOLIDAS, A.INOX.",
+      "warehouses": {
+        "472": 1
+      }
+    },
+    "IMUR60N": {
+      "name": "MESA FRÍA \"BAJO MOSTRADOR\" 2 PTAS. SOL. A. INOX.",
+      "warehouses": {
+        "472": 3
+      }
+    },
+    "ITGM23SDBN6": {
+      "name": "REFRIGERADOR VERT. COLOR NEGRO, 1 PUERTA DE CRISTAL",
+      "warehouses": {
+        "472": 1
+      }
+    },
+    "ITGM47SDBN": {
+      "name": "REFRIGERADOR VERTICAL COLOR NEGRO, 2 PUERTAS DE CRISTAL",
+      "warehouses": {
+        "472": 1
+      }
+    },
+    "ITOM36EBN": {
+      "name": "VITRINA VERTICAL ABIERTA 36\" EXT. NEGRA",
+      "warehouses": {
+        "472": 1
+      }
+    },
+    "ITPR67SDN": {
+      "name": "MESA REFRIG DE PREP. DE PIZZA 9 INS. 2 PTAS. SÓLIDAS A. INOX",
+      "warehouses": {
+        "472": 1
+      }
+    },
+    "ITWR28SDN": {
+      "name": "MESA DE TRABAJO REFRIGERADA 1 PTA SOLIDA, A.INOX.",
+      "warehouses": {
+        "472": 1
+      }
+    },
+    "IXST48N": {
+      "name": "MESA DE PREP. PARA SAND/ENSALADA, 2 PUERTAS SÓLIDAS",
+      "warehouses": {
+        "472": 1
+      }
+    },
+    "IXUR48N6": {
+      "name": "REFRIGERADOR BAJOBARRA, 2 PUERTAS SÓLIDAS",
+      "warehouses": {
+        "472": 1
+      }
+    },
+    "MEE": {
+      "name": "MEXICO PROYECTOS ESPECIALES",
+      "warehouses": {
+        "040": 0
+      }
+    },
+    "JBT48N": {
+      "name": "MESA FRIA REFRIGERADA PARA BUFFET, 2 PUERTAS",
+      "warehouses": {
+        "040": 2
+      }
+    },
+    "MST28N": {
+      "name": "MESA FRIA DE PREP. DE SANDWITCH/ENS. 8 INS. 1 PTA. SOL. AI",
+      "warehouses": {
+        "241": 9
+      }
+    },
+    "MUF36N": {
+      "name": "MESA FRÍA DE CONGELACIÓN BAJO MOSTRADOR 2 PTAS. SOLID. AI.",
+      "warehouses": {
+        "024": 1
+      }
+    },
+    "PRO26RGSHPTNLR": {
+      "name": "REFRIGERADOR VERTICAL PASS THRU, 4 MEDIAS PUERTAS (L)",
+      "warehouses": {
+        "024": 3
+      }
+    },
+    "TBC24SBN6": {
+      "name": "ENFRIADOR DE BOTELLAS 24\" EN VINYL COLOR NEGRO",
+      "warehouses": {
+        "024": 2
+      }
+    },
+    "TCBE52SDRN": {
+      "name": "BASE CHEF REFRIGERADA 52\", 2 CAJONES. A.INOX.",
+      "warehouses": {
+        "654": 1,
+        "054": 4
+      }
+    },
+    "TGM35RN": {
+      "name": "EXHIBIDOR 2 PTAS CORREDIZAS DE CRISTAL NEGRAS GABINETE BLANC",
+      "warehouses": {
+        "654": 1
+      }
+    },
+    "TGM7SDBN6": {
+      "name": "REFRIGERADOR 1 PUERTA DE CRISTAL 7 PIES, COLOR NEGRO",
+      "warehouses": {
+        "654": 5
+      }
+    },
+    "TSF23SDNL": {
+      "name": "CONGELADOR VERTICAL 1 PUERTA SOLIDA (IZQ). A.INOX.",
+      "warehouses": {
+        "654": 2
+      }
+    },
+    "TSF35SDNN": {
+      "name": "CONGELADOR VERTICAL 2 PUERTAS SOLIDAS, A.INOX.",
+      "warehouses": {
+        "654": 1
+      }
+    },
+    "TST60SD24D2RNSL": {
+      "name": "MESA DE PREP. DE SAND/ENS. MEGA TOP CON TAPA TRASERA DESLIZ",
+      "warehouses": {
+        "654": 4
+      }
+    },
+    "PU": {
+      "name": "PUEBLA BINEX",
+      "warehouses": {
+        "654": 0
+      }
+    },
+    "JST48N": {
+      "name": "MESA FRIA DE PREP. SANDWITCH/ENSALADA, 2 PUERTAS ACERO INOX.",
+      "warehouses": {
+        "680": 6
+      }
+    },
+    "MUR28NL": {
+      "name": "MESA FRIA \"BAJO MOSTRADOR\" 1 PTA. SOLIDA, A. INOX. (L)",
+      "warehouses": {
+        "452": 3
+      }
+    },
+    "TCBE48SDRN": {
+      "name": "BASE CHEF REFRIGERADA 48\", 2 CAJONES, A.INOX.",
+      "warehouses": {
+        "054": 3
+      }
+    },
+    "TGF47SDBN": {
+      "name": "CONGELADOR VERTICAL 2 PUERTAS DE CRISTAL, COLOR NEGRO",
+      "warehouses": {
+        "054": 1
+      }
+    },
+    "TIOM48CSCBN": {
+      "name": "VITRINA RECTANGULAR 47\"X85\", ABIERTA. LUZ LED, COLOR NEGRO",
+      "warehouses": {
+        "054": 1
+      }
+    },
+    "TIOM48RSRBN": {
+      "name": "VITRINA OVAL 96\" 3 ENTREP. LUZ LED, COLOR NEGRO",
+      "warehouses": {
+        "054": 1
+      }
+    },
+    "TOM30LWN": {
+      "name": "VITRINA HORIZONTAL ABIERTA 28\" COLOR BLANCO",
+      "warehouses": {
+        "054": 4
+      }
+    },
+    "TOM40MBN": {
+      "name": "VITRINA VERTICAL ABIERTA 39\" MEDIA ALTURA, COLOR NEGRO",
+      "warehouses": {
+        "054": 4
+      }
+    },
+    "TOM60EBN": {
+      "name": "VITRINA VERTICAL ABIERTA 60\" EXT. NEGRA",
+      "warehouses": {
+        "054": 1
+      }
+    },
+    "TOMW50SBN": {
+      "name": "VITRINA COMBI 50\" ABAJO ABIERTA, ARRIBA CERRADA. COLOR NEGRO",
+      "warehouses": {
+        "054": 5
+      }
+    },
+    "TSF23GSDN": {
+      "name": "CONGELADOR VERTICAL 1 PUERTA DE CRISTAL, ACERO INOX.",
+      "warehouses": {
+        "054": 1
+      }
+    },
+    "TSR35SDN6": {
+      "name": "REFRIGERADOR VERTICAL 2 PUERTAS SOLIDAS, ACERO INOX.",
+      "warehouses": {
+        "054": 2
+      }
+    },
+    "TSR49GSDN": {
+      "name": "REFRIGERADOR VERTICAL 2 PUERTAS DE CRISTAL, A.INOX.",
+      "warehouses": {
+        "054": 4
+      }
+    },
+    "TST28SD12N": {
+      "name": "MESA DE PREPARACION DE AIMENTOS 1 PUERTA, 12 INSERTOS. A.I.",
+      "warehouses": {
+        "054": 1
+      }
+    },
+    "TWR60SDN": {
+      "name": "MESA DE TRABAJO REFRIGERADA 2 PTAS. SOLIDAS. A.INOX.",
+      "warehouses": {
+        "054": 1
+      }
+    },
+    "TWR72SDN": {
+      "name": "MESA DE TRABAJO REFRIGERADA 3 PTAS. SOLIDAS, A.INOX.",
+      "warehouses": {
+        "054": 1
+      }
+    },
+    "SI": {
+      "name": "SILAO BINEX",
+      "warehouses": {
+        "100": 0
+      }
+    },
+    "XCA": {
+      "name": "REFRIGERATION X CANCUN",
+      "warehouses": {
+        "100": 0
+      }
+    },
+    "XPU": {
+      "name": "REFRIGERATION X PUEBLA",
+      "warehouses": {
+        "100": 0
+      }
+    },
+    "XPR44N": {
+      "name": "MESA REFRIG DE PREP. DE PIZZA 6 INS. 1 PTA. SOLIDA. A.INOX.M",
+      "warehouses": {
+        "723": 65
+      }
+    },
+    "XPR67N": {
+      "name": "MESA REFRIG DE PREP. DE PIZZA 9 INS. 2 PTAS. SOLIDAS. A.INOX",
+      "warehouses": {
+        "723": 63
+      }
+    },
+    "XPR93N": {
+      "name": "MESA REFRIG DE PREP. DE PIZZA 12 NS. 3 PTAS SOLIDAS A. INOX.",
+      "warehouses": {
+        "723": 2
+      }
+    },
+    "XST36N6": {
+      "name": "MESA DE PREP. SAND/ENS. 10 INSD. 2 PTAS, A. INOX.",
+      "warehouses": {
+        "615": 2
+      }
+    },
+    "XST60N": {
+      "name": "MESA DE PREP. SANDWITCH/ENS. 16 INS. 2 PTAS. A.INOX.",
+      "warehouses": {
+        "024": 52
+      }
+    },
+    "XUF28N": {
+      "name": "MESA FRIA DE CONGELACIÓN BAJO MOSTRADOR 1 PTA. SOL. AI.",
+      "warehouses": {
+        "230": 7
+      }
+    },
+    "XUF36N": {
+      "name": "MESA FRIA DE CONGELACIÓN BAJO MOSTRADOR 2 PTAS. SOL. AI.",
+      "warehouses": {
+        "230": 2
+      }
+    },
+    "XUF48N": {
+      "name": "MESA FRIA DE CONGELACIÓN BAJO MOSTRADOR 2 PTAS. SOL. AI.",
+      "warehouses": {
+        "230": 18
+      }
+    },
+    "XUF60N": {
+      "name": "MESA FRIA DE CONGELACIÓN BAJO MOSTRADOR 2 PTAS. SOL. AI.",
+      "warehouses": {
+        "230": 14
+      }
+    },
+    "XUR36N6": {
+      "name": "MESA FRIA \"BAJO MOSTRADOR\" 2 PTAS. SOL. A. INOX.",
+      "warehouses": {
+        "230": 4
+      }
+    },
+    "XUR60N6": {
+      "name": "MESA FRIA \"BAJO MOSTRADOR\"  2 PTAS. SOL. A.INOX.",
+      "warehouses": {
+        "230": 43
+      }
+    },
+    "XZRE": {
+      "name": "REFACCIONES REFRIGERATION X",
+      "warehouses": {
+        "230": 0
+      }
+    },
+    "ZRE": {
+      "name": "REFACCIONES",
+      "warehouses": {
+        "101": 0
+      }
+    },
+    "CAS16WBT00": {
+      "name": "RUEDA 4.06 CMS. SIN FRENO, P/VITRINAS",
+      "warehouses": {
+        "100": 12
+      }
+    },
+    "CAS1NBST00CC": {
+      "name": "RUEDA 1.5 SIN FRENO",
+      "warehouses": {
+        "100": 8
+      }
+    },
+    "CAS1WBST00CC": {
+      "name": "RUEDA 1.5\" CON FRENO",
+      "warehouses": {
+        "100": 8
+      }
+    },
+    "PC48J": {
+      "name": "TAPA TRANSPARENTE PARA JBT-48",
+      "warehouses": {
+        "100": 1
+      }
+    },
+    "TOMWICKHF": {
+      "name": "ALMUADILLAS PARA CHAROLA DE SEDAGÜE TOM-40/50 /M, TOM-E-36/",
+      "warehouses": {
+        "100": 2
+      }
+    },
+    "TOMWICKHN": {
+      "name": "ALMUADILLAS DE CHAROLA PARA DESAGÜE TOM 40/50",
+      "warehouses": {
+        "100": 2
+      }
+    },
+    "TOMWICKLF": {
+      "name": "JUEGO DE ALMUADILLAS PARA DESAGÜE  TOM-30/40/50 L/S, TOM-W-4",
+      "warehouses": {
+        "100": 1
+      }
+    },
+    "TOMWICKLN": {
+      "name": "JUEGO DE ALMUADILLAS PARA DESAGÜE  TOM-W-40/50",
+      "warehouses": {
+        "100": 2
+      }
+    },
+    "TSOS4R": {
+      "name": "REPISA SUPERIOR DOBLE 48\" ACERO INOX.",
+      "warehouses": {
+        "202": 1
+      }
+    }
+  },
+  "summary": {
+    "total_warehouses": 515,
+    "total_products": 199,
+    "extraction_date": "2025-01-26"
+  }
+}
