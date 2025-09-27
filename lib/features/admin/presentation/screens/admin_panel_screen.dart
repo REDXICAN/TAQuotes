@@ -308,6 +308,13 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                 onTap: () => setState(() => _selectedView = 'settings'),
               ),
               _buildMenuCard(
+                icon: Icons.storage,
+                title: 'Database Management',
+                subtitle: 'Manage database',
+                color: Colors.teal,
+                onTap: () => context.go('/admin/database'),
+              ),
+              _buildMenuCard(
                 icon: Icons.settings,
                 title: 'Settings',
                 subtitle: 'App settings',

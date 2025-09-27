@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:typed_data';
 import 'dart:async';
 import '../../../../core/utils/download_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -28,87 +27,109 @@ final cartProvider = StreamProvider.autoDispose<List<CartItem>>((ref) {
   if (user == null) {
     return Stream.value([]);
   }
-  
+
   final dbService = ref.watch(databaseServiceProvider);
   final database = FirebaseDatabase.instance;
-  
-  // Keep cart synced for real-time updates
-  database.ref('cart_items/${user.uid}').keepSynced(true);
-  
-  return database.ref('cart_items/${user.uid}').onValue.asyncMap((event) async {
+
+  // Keep cart synced for real-time updates (skip on web if causing issues)
+  try {
+    database.ref('cart_items/${user.uid}').keepSynced(true);
+  } catch (e) {
+    AppLogger.warning('Could not enable keepSynced for cart', error: e);
+  }
+
+  return database.ref('cart_items/${user.uid}').onValue
+    .timeout(const Duration(seconds: 15))
+    .asyncMap((event) async {
     try {
       if (!event.snapshot.exists || event.snapshot.value == null) {
         return <CartItem>[];
       }
-      
+
       final data = Map<String, dynamic>.from(event.snapshot.value as Map);
       final items = data.entries.map((e) => {
         ...Map<String, dynamic>.from(e.value),
         'id': e.key,
       }).toList();
-      
-      // Fetch product details for each cart item
+
+      // Fetch product details for each cart item with timeout
       final List<CartItem> cartItems = [];
 
       for (final item in items) {
-        final itemType = item['type'] ?? 'product';
-        Product? product;
-        String productName = '';
-        double unitPrice = 0.0;
-        
-        if (itemType == 'spare_part') {
-          // Handle spare parts
-          final sparePartSnapshot = await database.ref('spareparts/${item['product_id']}').get();
-          if (sparePartSnapshot.exists && sparePartSnapshot.value != null) {
-            final sparePartData = Map<String, dynamic>.from(sparePartSnapshot.value as Map);
-            productName = item['name'] ?? sparePartData['name'] ?? '';
-            unitPrice = item['price']?.toDouble() ?? sparePartData['price']?.toDouble() ?? 0.0;
-            // Create a minimal product object for spare parts
-            product = Product(
-              id: item['product_id'],
-              sku: item['sku'] ?? item['product_id'],
-              model: item['sku'] ?? item['product_id'],
-              displayName: productName,
-              name: productName,
-              description: productName,
-              price: unitPrice,
-              category: 'Spare Parts',
-              stock: sparePartData['stock'] ?? 0,
-              createdAt: DateTime.now(),
-            );
+        try {
+          final itemType = item['type'] ?? 'product';
+          Product? product;
+          String productName = '';
+          double unitPrice = 0.0;
+
+          if (itemType == 'spare_part') {
+            // Handle spare parts with timeout
+            final sparePartSnapshot = await database.ref('spareparts/${item['product_id']}')
+              .get()
+              .timeout(const Duration(seconds: 5));
+            if (sparePartSnapshot.exists && sparePartSnapshot.value != null) {
+              final sparePartData = Map<String, dynamic>.from(sparePartSnapshot.value as Map);
+              productName = item['name'] ?? sparePartData['name'] ?? '';
+              unitPrice = item['price']?.toDouble() ?? sparePartData['price']?.toDouble() ?? 0.0;
+              // Create a minimal product object for spare parts
+              product = Product(
+                id: item['product_id'],
+                sku: item['sku'] ?? item['product_id'],
+                model: item['sku'] ?? item['product_id'],
+                displayName: productName,
+                name: productName,
+                description: productName,
+                price: unitPrice,
+                category: 'Spare Parts',
+                stock: sparePartData['stock'] ?? 0,
+                createdAt: DateTime.now(),
+              );
+            } else {
+              // Use data from cart item if spare part not found
+              productName = item['name'] ?? 'Spare Part';
+              unitPrice = item['price']?.toDouble() ?? 0.0;
+            }
           } else {
-            // Use data from cart item if spare part not found
-            productName = item['name'] ?? 'Spare Part';
-            unitPrice = item['price']?.toDouble() ?? 0.0;
+            // Handle regular products with timeout
+            try {
+              final productData = await Future.value(dbService.getProduct(item['product_id']))
+                .timeout(const Duration(seconds: 5));
+              product = productData != null ? Product.fromMap(productData) : null;
+              productName = product?.description ?? item['product_name'] ?? '';
+              unitPrice = product?.price ?? item['unit_price']?.toDouble() ?? 0.0;
+            } catch (e) {
+              // Fallback to cart item data if product fetch fails
+              productName = item['product_name'] ?? 'Product';
+              unitPrice = item['unit_price']?.toDouble() ?? 0.0;
+              AppLogger.warning('Failed to fetch product ${item['product_id']}, using cart data', error: e);
+            }
           }
-        } else {
-          // Handle regular products
-          final productData = await dbService.getProduct(item['product_id']);
-          product = productData != null ? Product.fromMap(productData) : null;
-          productName = product?.description ?? item['product_name'] ?? '';
-          unitPrice = product?.price ?? item['unit_price']?.toDouble() ?? 0.0;
+
+          final quantity = item['quantity'] ?? 1;
+
+          cartItems.add(CartItem(
+            id: item['id'],
+            userId: item['user_id'] ?? user.uid,
+            productId: item['product_id'],
+            productName: productName,
+            quantity: quantity,
+            unitPrice: unitPrice,
+            total: unitPrice * quantity,
+            product: product,
+            addedAt: item['added_at'] != null
+                ? DateTime.fromMillisecondsSinceEpoch(item['added_at'])
+                : item['created_at'] != null
+                    ? DateTime.fromMillisecondsSinceEpoch(item['created_at'])
+                    : DateTime.now(),
+            discount: (item['discount'] ?? 0).toDouble(),
+            note: item['note'],
+            sequenceNumber: item['sequence_number'] ?? item['sequenceNumber'],
+          ));
+        } catch (e) {
+          AppLogger.warning('Failed to process cart item ${item['id']}', error: e);
+          // Continue with other items instead of failing the entire cart
+          continue;
         }
-        
-        final quantity = item['quantity'] ?? 1;
-        
-        cartItems.add(CartItem(
-          id: item['id'],
-          userId: item['user_id'] ?? user.uid,
-          productId: item['product_id'],
-          productName: productName,
-          quantity: quantity,
-          unitPrice: unitPrice,
-          total: unitPrice * quantity,
-          product: product,
-          addedAt: item['added_at'] != null
-              ? DateTime.fromMillisecondsSinceEpoch(item['added_at'])
-              : item['created_at'] != null
-                  ? DateTime.fromMillisecondsSinceEpoch(item['created_at'])
-                  : DateTime.now(),
-          discount: (item['discount'] ?? 0).toDouble(),
-          note: item['note'],
-          sequenceNumber: item['sequence_number'] ?? item['sequenceNumber'],
-        ));
       }
 
       return cartItems;
@@ -116,6 +137,10 @@ final cartProvider = StreamProvider.autoDispose<List<CartItem>>((ref) {
       AppLogger.error('Error loading cart items', error: e);
       return <CartItem>[];
     }
+  })
+  .handleError((error) {
+    AppLogger.error('Cart stream error', error: error);
+    return <CartItem>[];
   });
 });
 

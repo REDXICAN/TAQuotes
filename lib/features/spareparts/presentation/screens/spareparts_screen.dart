@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/services/app_logger.dart';
+import '../../../../core/services/excel_inventory_service.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/models/models.dart';
 
 // Spare part model
 class SparePart {
@@ -33,32 +35,35 @@ class SparePart {
   }
 }
 
-// Provider for spare parts
+// Provider for spare parts from Excel inventory (warehouse 999 only)
 final sparePartsProvider = StreamProvider.autoDispose<List<SparePart>>((ref) {
-  final database = FirebaseDatabase.instance;
-  
-  // Keep synced for faster loads
-  database.ref('spareparts').keepSynced(true);
-  
-  return database.ref('spareparts').onValue.map((event) {
-    if (!event.snapshot.exists || event.snapshot.value == null) {
-      return [];
-    }
-    
-    try {
-      final data = Map<String, dynamic>.from(event.snapshot.value as Map);
-      return data.entries.map((entry) {
-        return SparePart.fromMap(
-          entry.key,
-          Map<String, dynamic>.from(entry.value as Map),
-        );
-      }).toList()
-        ..sort((a, b) => b.stock.compareTo(a.stock)); // Sort by stock quantity
-    } catch (e) {
-      AppLogger.error('Error loading spare parts', error: e);
-      return [];
-    }
-  });
+  return Stream.periodic(const Duration(seconds: 30), (_) => null)
+      .asyncMap((_) async {
+        try {
+          // Get products from Excel inventory service
+          final products = await ExcelInventoryService.getProductsSortedByStock();
+
+          // Convert to SparePart objects with warehouse 999 stock only
+          return products.map((product) {
+            final warehouse999Stock = ExcelInventoryService.getProductStock(product.sku ?? '')['999'] ?? 0;
+            return SparePart(
+              sku: product.sku ?? '',
+              name: product.name,
+              stock: warehouse999Stock,
+              warehouse: '999', // MERCANCIA APARTADA
+              price: product.price,
+            );
+          }).where((part) => part.stock > 0).toList() // Only show items with stock
+            ..sort((a, b) => b.stock.compareTo(a.stock)); // Sort by stock quantity
+        } catch (e) {
+          AppLogger.error('Error loading spare parts from Excel inventory', error: e);
+          return <SparePart>[];
+        }
+      })
+      .handleError((error) {
+        AppLogger.error('Error in spare parts provider', error: error);
+        return <SparePart>[];
+      });
 });
 
 // Spare parts screen
@@ -230,12 +235,11 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                           value: null,
                           child: Text('All Warehouses'),
                         ),
-                        ...['CA', 'CA1', 'CA2', 'CA3', 'CA4', '999', 'COCZ', 'COPZ', 'MEE', 'PU', 'SI', 'XCA', 'XPU']
-                            .map((warehouse) => DropdownMenuItem(
-                                  value: warehouse,
-                                  child: Text(warehouse),
-                                ))
-                            .toList(),
+                        // Only show warehouse 999 (MERCANCIA APARTADA) from Excel inventory
+                        const DropdownMenuItem(
+                          value: '999',
+                          child: Text('999 - MERCANCIA APARTADA'),
+                        ),
                       ],
                       onChanged: (value) {
                         setState(() {
@@ -259,7 +263,9 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                       part.sku.toLowerCase().contains(_searchQuery) ||
                       part.name.toLowerCase().contains(_searchQuery);
                   
+                  // All parts are from warehouse 999, so always match
                   final matchesWarehouse = _selectedWarehouse == null ||
+                      _selectedWarehouse == '999' ||
                       part.warehouse == _selectedWarehouse;
                   
                   return matchesSearch && matchesWarehouse;
@@ -284,7 +290,7 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                         Text(
                           _searchQuery.isNotEmpty
                               ? 'Try adjusting your search'
-                              : 'No spare parts available',
+                              : 'No spare parts available in warehouse 999',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.disabledColor,
                           ),
@@ -310,7 +316,7 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '${filteredParts.length} spare parts',
+                            '${filteredParts.length} spare parts (Warehouse 999)',
                             style: theme.textTheme.titleMedium,
                           ),
                           Text(
@@ -396,13 +402,13 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                                             vertical: 2,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: theme.primaryColor.withOpacity(0.1),
+                                            color: Colors.amber.withOpacity(0.2),
                                             borderRadius: BorderRadius.circular(4),
                                           ),
                                           child: Text(
-                                            part.warehouse!,
+                                            '999 - APARTADA',
                                             style: theme.textTheme.bodySmall?.copyWith(
-                                              color: theme.primaryColor,
+                                              color: Colors.amber.shade700,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),

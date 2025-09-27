@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -34,6 +35,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
   String? _selectedClientId;
   String _selectedProjectStatus = 'planning';
   List<String> _selectedProductLines = [];
+  bool _isSaving = false;
 
   final List<String> _statusOptions = ['planning', 'active', 'completed', 'on-hold'];
   final List<String> _productLineOptions = [
@@ -121,6 +123,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
     _selectedClientId = null;
     _selectedProjectStatus = 'planning';
     _selectedProductLines = [];
+    _isSaving = false;
   }
 
   Widget _buildProjectDialog(Project? project) {
@@ -206,12 +209,10 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                   TextFormField(
                     controller: _addressController,
                     decoration: const InputDecoration(
-                      labelText: 'Project Address',
+                      labelText: 'Project Address (Optional)',
                       prefixIcon: Icon(Icons.location_on),
                     ),
                     maxLines: 2,
-                    validator: (value) =>
-                        value?.isEmpty ?? true ? 'Address is required' : null,
                   ),
                   const SizedBox(height: 16),
 
@@ -246,13 +247,14 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                   TextFormField(
                     controller: _estimatedValueController,
                     decoration: const InputDecoration(
-                      labelText: 'Estimated Project Value',
+                      labelText: 'Estimated Project Value (Optional)',
                       prefixIcon: Icon(Icons.attach_money),
                     ),
                     keyboardType: TextInputType.number,
                     validator: (value) {
-                      if (value?.isEmpty ?? true) return 'Value is required';
-                      if (double.tryParse(value!) == null) return 'Invalid number';
+                      if (value?.isNotEmpty == true && double.tryParse(value!) == null) {
+                        return 'Invalid number';
+                      }
                       return null;
                     },
                   ),
@@ -329,8 +331,20 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => _saveProject(project?.id),
-              child: Text(project != null ? 'Update' : 'Create'),
+              onPressed: _isSaving ? null : () async {
+                setState(() => _isSaving = true);
+                await _saveProject(project?.id);
+                if (mounted) {
+                  setState(() => _isSaving = false);
+                }
+              },
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(project != null ? 'Update' : 'Create'),
             ),
           ],
         );
@@ -339,55 +353,92 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
   }
 
   Future<void> _saveProject(String? projectId) async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_selectedProductLines.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least one product line')),
-      );
-      return;
-    }
-    if (_startDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a start date')),
-      );
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
     try {
       final user = ref.read(authStateProvider).valueOrNull;
-      if (user == null) throw Exception('Not authenticated');
+      if (user == null) {
+        throw Exception('Not authenticated');
+      }
 
       final dbService = ref.read(databaseServiceProvider);
 
+      // Parse estimated value safely
+      double? estimatedValue;
+      if (_estimatedValueController.text.isNotEmpty) {
+        estimatedValue = double.tryParse(_estimatedValueController.text);
+      }
+
       if (projectId != null) {
         // Update existing project
-        await dbService.updateProject(projectId, {
-          'name': _nameController.text,
+        final updateData = <String, dynamic>{
+          'name': _nameController.text.trim(),
           'clientId': _selectedClientId,
-          'productLines': _selectedProductLines,
-          'address': _addressController.text,
+          'address': _addressController.text.trim(),
           'status': _selectedProjectStatus,
-          'estimatedValue': double.parse(_estimatedValueController.text),
-          'startDate': _startDate!.toIso8601String(),
-          'completionDate': _completionDate?.toIso8601String(),
-          'salesRepId': user.uid,
-          'salesRepName': user.email,
-          'description': _descriptionController.text,
-        });
+          'description': _descriptionController.text.trim(),
+        };
+
+        // Add optional fields only if they have values
+        if (_selectedProductLines.isNotEmpty) {
+          updateData['productLines'] = _selectedProductLines;
+        }
+        if (estimatedValue != null) {
+          updateData['estimatedValue'] = estimatedValue;
+        }
+        if (_startDate != null) {
+          updateData['startDate'] = _startDate!.toIso8601String();
+        }
+        if (_completionDate != null) {
+          updateData['completionDate'] = _completionDate!.toIso8601String();
+        }
+        updateData['salesRepId'] = user.uid;
+        updateData['salesRepName'] = user.email ?? '';
+
+        await dbService.updateProject(projectId, updateData);
+
         if (mounted) {
+          // Refresh the projects list
+          ref.invalidate(projectsProvider);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Project updated successfully')),
           );
         }
       } else {
-        // Create new project
-        await dbService.createProject(
-          name: _nameController.text,
-          clientId: _selectedClientId!,
-          description: _descriptionController.text,
-          status: _selectedProjectStatus,
-        );
+        // Create new project - use the actual method signature
+        final projectData = <String, dynamic>{
+          'name': _nameController.text.trim(),
+          'clientId': _selectedClientId!,
+          'address': _addressController.text.trim(),
+          'status': _selectedProjectStatus,
+          'description': _descriptionController.text.trim(),
+          'productLines': _selectedProductLines,
+          'salesRepId': user.uid,
+          'salesRepName': user.email ?? '',
+          'createdAt': DateTime.now().toIso8601String(),
+        };
+
+        // Add optional fields only if they have values
+        if (estimatedValue != null) {
+          projectData['estimatedValue'] = estimatedValue;
+        }
+        if (_startDate != null) {
+          projectData['startDate'] = _startDate!.toIso8601String();
+        }
+        if (_completionDate != null) {
+          projectData['completionDate'] = _completionDate!.toIso8601String();
+        }
+
+        // Use Firebase directly to save all project data
+        final database = FirebaseDatabase.instance;
+        final newProjectRef = database.ref('projects/${user.uid}').push();
+        await newProjectRef.set(projectData);
+
         if (mounted) {
+          // Refresh the projects list
+          ref.invalidate(projectsProvider);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Project created successfully')),
           );
@@ -395,11 +446,16 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
       }
 
       _clearForm();
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context); // Close the form dialog
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text('Error saving project: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }

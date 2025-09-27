@@ -192,6 +192,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: 'errors',
                 builder: (context, state) => const ErrorMonitoringDashboard(),
               ),
+              GoRoute(
+                path: 'database',
+                // TODO: Replace with dedicated DatabaseManagementScreen when created
+                builder: (context, state) => const UserInfoDashboardScreen(),
+              ),
             ],
           ),
         ],

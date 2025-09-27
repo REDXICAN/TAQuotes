@@ -12,13 +12,41 @@ import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/widgets/simple_image_widget.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/services/excel_upload_service.dart';
+import '../../../../core/services/excel_inventory_service.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/services/rbac_service.dart';
+import '../../../../core/utils/warehouse_utils.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../widgets/excel_preview_dialog.dart';
 import '../../widgets/import_progress_dialog.dart';
 
-// Products provider using StreamProvider for real-time updates without heavy caching
+// Enhanced products provider that includes Excel inventory stock data
+final productsWithExcelStockProvider =
+    FutureProvider.family<List<Product>, String?>((ref, category) async {
+  try {
+    // Get Excel inventory products (sorted by stock volume)
+    final excelProducts = await ExcelInventoryService.getProductsSortedByStock();
+
+    // Filter by category if specified
+    if (category == null || category.isEmpty) {
+      return excelProducts;
+    } else {
+      return excelProducts.where((product) {
+        final productCategory = product.category.trim().toLowerCase();
+        final filterCategory = category.trim().toLowerCase();
+
+        return productCategory == filterCategory ||
+               productCategory.contains(filterCategory) ||
+               filterCategory.contains(productCategory);
+      }).toList();
+    }
+  } catch (e) {
+    AppLogger.error('Error loading Excel products: $e', category: LogCategory.database);
+    return [];
+  }
+});
+
+// Original Firebase products provider for backward compatibility
 final productsProvider =
     StreamProvider.family<List<Product>, String?>((ref, category) {
   try {
@@ -188,6 +216,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
   List<String> _productTypes = ['All'];
   String _selectedProductType = 'All';
   String? _selectedWarehouse; // Warehouse filter state
+  bool _useExcelStock = true; // Toggle for Excel stock data source
   
   @override
   void initState() {
@@ -498,8 +527,10 @@ Future<void> _handleExcelUpload() async {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Get products based on category
-    final productsAsync = ref.watch(productsProvider(null));
+    // Get products based on category using appropriate provider
+    final productsAsync = _useExcelStock
+        ? ref.watch(productsWithExcelStockProvider(null))
+        : ref.watch(productsProvider(null));
 
     // Check if current user is superadmin
     final isSuperAdmin = ExcelUploadService.isSuperAdmin;
@@ -509,6 +540,32 @@ Future<void> _handleExcelUpload() async {
         title: 'Products',
         elevation: 0,
         actions: [
+          // Excel Stock Data Toggle
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Excel Stock',
+                  style: TextStyle(color: Colors.white, fontSize: 12),
+                ),
+                const SizedBox(width: 8),
+                Switch(
+                  value: _useExcelStock,
+                  onChanged: (value) {
+                    setState(() {
+                      _useExcelStock = value;
+                    });
+                  },
+                  activeColor: Colors.white,
+                  activeTrackColor: Colors.white.withOpacity(0.3),
+                  inactiveThumbColor: Colors.grey,
+                  inactiveTrackColor: Colors.grey.withOpacity(0.3),
+                ),
+              ],
+            ),
+          ),
           // Excel Import Button - Only for Admin and SuperAdmin
           FutureBuilder<bool>(
             future: RBACService.hasPermission('import_products'),
@@ -611,58 +668,61 @@ Future<void> _handleExcelUpload() async {
                   ),
                   const SizedBox(width: 8),
 
-                  // Warehouse Filter Dropdown
-                  Container(
-                    constraints: BoxConstraints(
-                      maxWidth: ResponsiveHelper.getValue(
-                        context,
-                        mobile: 130,
-                        tablet: 160,
-                        desktop: 190,
-                      ),
-                    ),
-                    child: PopupMenuButton<String?>(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: _selectedWarehouse != null
-                              ? theme.primaryColor.withOpacity(0.2)
-                              : theme.dividerColor.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: _selectedWarehouse != null
-                                ? theme.primaryColor
-                                : theme.dividerColor,
-                            width: _selectedWarehouse != null ? 2 : 1,
+                  // Warehouse Filter Dropdown with Legend
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        constraints: BoxConstraints(
+                          maxWidth: ResponsiveHelper.getValue(
+                            context,
+                            mobile: 130,
+                            tablet: 160,
+                            desktop: 190,
                           ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.warehouse,
-                              size: 18,
+                        child: PopupMenuButton<String?>(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
                               color: _selectedWarehouse != null
-                                  ? theme.primaryColor
-                                  : null,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                _selectedWarehouse ?? 'Warehouse',
-                                style: TextStyle(
-                                  fontSize: ResponsiveHelper.isMobile(context) ? 13 : 14,
-                                  fontWeight: _selectedWarehouse != null
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                ),
-                                overflow: TextOverflow.ellipsis,
+                                  ? theme.primaryColor.withOpacity(0.2)
+                                  : theme.dividerColor.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: _selectedWarehouse != null
+                                    ? theme.primaryColor
+                                    : theme.dividerColor,
+                                width: _selectedWarehouse != null ? 2 : 1,
                               ),
                             ),
-                            const Icon(Icons.arrow_drop_down, size: 18),
-                          ],
-                        ),
-                      ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.warehouse,
+                                  size: 18,
+                                  color: _selectedWarehouse != null
+                                      ? theme.primaryColor
+                                      : null,
+                                ),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    _selectedWarehouse ?? 'Warehouse',
+                                    style: TextStyle(
+                                      fontSize: ResponsiveHelper.isMobile(context) ? 13 : 14,
+                                      fontWeight: _selectedWarehouse != null
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const Icon(Icons.arrow_drop_down, size: 18),
+                              ],
+                            ),
+                          ),
                       onSelected: (value) {
                         setState(() {
                           _selectedWarehouse = value;
@@ -818,7 +878,14 @@ Future<void> _handleExcelUpload() async {
                         ),
                       ],
                     ),
-                  ),
+                        ),
+                        // Warehouse Info Icon with Legend
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4),
+                          child: WarehouseUtils.createInfoTooltip(context),
+                        ),
+                      ],
+                    ),
                   const SizedBox(width: 8),
 
                   // Product Line Dropdown
@@ -1099,83 +1166,134 @@ Future<void> _handleExcelUpload() async {
     final textController = TextEditingController(text: quantity.toString());
 
     return Container(
+      constraints: const BoxConstraints(
+        minWidth: 100,
+        maxWidth: 120,
+      ),
       decoration: BoxDecoration(
         border: Border.all(color: theme.dividerColor),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Minus button
-          InkWell(
-            onTap: () async {
-              if (quantity > 0) {
-                quantityNotifier.decrement(product.id ?? '');
-                try {
-                  await dbService.addToCart(product.id ?? '', quantity - 1);
-                  if (context.mounted && quantity == 1) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${product.sku ?? product.model} removed from cart'),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+      child: IntrinsicHeight(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Minus button
+            Flexible(
+              child: InkWell(
+                onTap: () async {
+                  if (quantity > 0) {
+                    quantityNotifier.decrement(product.id ?? '');
+                    try {
+                      await dbService.addToCart(product.id ?? '', quantity - 1);
+                      if (context.mounted && quantity == 1) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('${product.sku ?? product.model} removed from cart'),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error updating cart: $e'),
+                            backgroundColor: Theme.of(context).colorScheme.error,
+                          ),
+                        );
+                      }
+                    }
                   }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error updating cart: $e'),
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                      ),
-                    );
-                  }
-                }
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              child: Icon(
-                Icons.remove,
-                size: 16,
-                color: quantity > 0 ? theme.primaryColor : theme.disabledColor,
+                },
+                child: Container(
+                  width: 32,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.remove,
+                    size: 16,
+                    color: quantity > 0 ? theme.primaryColor : theme.disabledColor,
+                  ),
+                ),
               ),
             ),
-          ),
-          // Quantity input
-          Container(
-            width: ResponsiveHelper.isVerticalDisplay(context) ? 50 : 40,
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: Center(
-              child: TextField(
-                controller: textController,
-                textAlign: TextAlign.center,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                  counterText: '',
+            // Quantity input
+            Expanded(
+              child: Container(
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: TextField(
+                  controller: textController,
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 8),
+                    counterText: '',
+                  ),
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.isVerticalDisplay(context) ? 14 : 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  onChanged: (value) async {
+                  final newQuantity = int.tryParse(value) ?? 0;
+                  quantityNotifier.setQuantity(product.id ?? '', newQuantity);
+
+                  if (newQuantity > 0) {
+                    try {
+                      await dbService.addToCart(product.id ?? '', newQuantity);
+                      if (context.mounted && newQuantity > quantity) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('${product.displayName} quantity updated'),
+                            action: SnackBarAction(
+                              label: 'View Cart',
+                              onPressed: () {
+                                context.go('/cart');
+                              },
+                            ),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error updating cart: $e'),
+                            backgroundColor: Theme.of(context).colorScheme.error,
+                          ),
+                        );
+                      }
+                    }
+                  } else if (quantity > 0) {
+                    // Remove from cart if quantity is 0
+                    try {
+                      await dbService.addToCart(product.id ?? '', 0);
+                    } catch (e) {
+                      // Handle error silently
+                    }
+                  }
+                },
                 ),
-                textAlignVertical: TextAlignVertical.center,
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.isVerticalDisplay(context) ? 16 : 14,
-                  fontWeight: FontWeight.w600,
-                ),
-                onChanged: (value) async {
-                final newQuantity = int.tryParse(value) ?? 0;
-                quantityNotifier.setQuantity(product.id ?? '', newQuantity);
-                
-                if (newQuantity > 0) {
+              ),
+            ),
+            // Plus button
+            Flexible(
+              child: InkWell(
+                onTap: () async {
+                  quantityNotifier.increment(product.id ?? '');
+                  final newQuantity = quantity + 1;
+
                   try {
                     await dbService.addToCart(product.id ?? '', newQuantity);
-                    if (context.mounted && newQuantity > quantity) {
+                    if (context.mounted && quantity == 0) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('${product.displayName} quantity updated'),
+                          content: Text('${product.sku ?? product.model} added to cart'),
                           action: SnackBarAction(
                             label: 'View Cart',
                             onPressed: () {
@@ -1189,66 +1307,27 @@ Future<void> _handleExcelUpload() async {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Error updating cart: $e'),
+                          content: Text('Error adding to cart: $e'),
                           backgroundColor: Theme.of(context).colorScheme.error,
                         ),
                       );
                     }
                   }
-                } else if (quantity > 0) {
-                  // Remove from cart if quantity is 0
-                  try {
-                    await dbService.addToCart(product.id ?? '', 0);
-                  } catch (e) {
-                    // Handle error silently
-                  }
-                }
-              },
+                },
+                child: Container(
+                  width: 32,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.add,
+                    size: 16,
+                    color: theme.primaryColor,
+                  ),
+                ),
               ),
             ),
-          ),
-          // Plus button
-          InkWell(
-            onTap: () async {
-              quantityNotifier.increment(product.id ?? '');
-              final newQuantity = quantity + 1;
-              
-              try {
-                await dbService.addToCart(product.id ?? '', newQuantity);
-                if (context.mounted && quantity == 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${product.sku ?? product.model} added to cart'),
-                      action: SnackBarAction(
-                        label: 'View Cart',
-                        onPressed: () {
-                          context.go('/cart');
-                        },
-                      ),
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error adding to cart: $e'),
-                      backgroundColor: Theme.of(context).colorScheme.error,
-                    ),
-                  );
-                }
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              child: Icon(
-                Icons.add,
-                size: 16,
-                color: theme.primaryColor,
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1299,8 +1378,6 @@ Future<void> _handleExcelUpload() async {
     return LayoutBuilder(
       builder: (context, constraints) {
         final crossAxisCount = ResponsiveHelper.getGridColumns(context);
-        final isCompact = ResponsiveHelper.useCompactLayout(context);
-        final screenWidth = MediaQuery.of(context).size.width;
         
         // Adjust aspect ratio based on screen size - taller cards for vertical
         double childAspectRatio;
@@ -1594,83 +1671,134 @@ class ProductCard extends ConsumerWidget {
     final textController = TextEditingController(text: quantity.toString());
 
     return Container(
+      constraints: const BoxConstraints(
+        minWidth: 100,
+        maxWidth: 120,
+      ),
       decoration: BoxDecoration(
         border: Border.all(color: theme.dividerColor),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Minus button
-          InkWell(
-            onTap: () async {
-              if (quantity > 0) {
-                quantityNotifier.decrement(product.id ?? '');
-                try {
-                  await dbService.addToCart(product.id ?? '', quantity - 1);
-                  if (context.mounted && quantity == 1) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${product.sku ?? product.model} removed from cart'),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
+      child: IntrinsicHeight(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Minus button
+            Flexible(
+              child: InkWell(
+                onTap: () async {
+                  if (quantity > 0) {
+                    quantityNotifier.decrement(product.id ?? '');
+                    try {
+                      await dbService.addToCart(product.id ?? '', quantity - 1);
+                      if (context.mounted && quantity == 1) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('${product.sku ?? product.model} removed from cart'),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error updating cart: $e'),
+                            backgroundColor: Theme.of(context).colorScheme.error,
+                          ),
+                        );
+                      }
+                    }
                   }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error updating cart: $e'),
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                      ),
-                    );
-                  }
-                }
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              child: Icon(
-                Icons.remove,
-                size: 16,
-                color: quantity > 0 ? theme.primaryColor : theme.disabledColor,
+                },
+                child: Container(
+                  width: 32,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.remove,
+                    size: 16,
+                    color: quantity > 0 ? theme.primaryColor : theme.disabledColor,
+                  ),
+                ),
               ),
             ),
-          ),
-          // Quantity input
-          Container(
-            width: ResponsiveHelper.isVerticalDisplay(context) ? 50 : 40,
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: Center(
-              child: TextField(
-                controller: textController,
-                textAlign: TextAlign.center,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                  counterText: '',
+            // Quantity input
+            Expanded(
+              child: Container(
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: TextField(
+                  controller: textController,
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 8),
+                    counterText: '',
+                  ),
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.isVerticalDisplay(context) ? 14 : 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  onChanged: (value) async {
+                  final newQuantity = int.tryParse(value) ?? 0;
+                  quantityNotifier.setQuantity(product.id ?? '', newQuantity);
+
+                  if (newQuantity > 0) {
+                    try {
+                      await dbService.addToCart(product.id ?? '', newQuantity);
+                      if (context.mounted && newQuantity > quantity) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('${product.displayName} quantity updated'),
+                            action: SnackBarAction(
+                              label: 'View Cart',
+                              onPressed: () {
+                                context.go('/cart');
+                              },
+                            ),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error updating cart: $e'),
+                            backgroundColor: Theme.of(context).colorScheme.error,
+                          ),
+                        );
+                      }
+                    }
+                  } else if (quantity > 0) {
+                    // Remove from cart if quantity is 0
+                    try {
+                      await dbService.addToCart(product.id ?? '', 0);
+                    } catch (e) {
+                      // Handle error silently
+                    }
+                  }
+                },
                 ),
-                textAlignVertical: TextAlignVertical.center,
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.isVerticalDisplay(context) ? 16 : 14,
-                  fontWeight: FontWeight.w600,
-                ),
-                onChanged: (value) async {
-                final newQuantity = int.tryParse(value) ?? 0;
-                quantityNotifier.setQuantity(product.id ?? '', newQuantity);
-                
-                if (newQuantity > 0) {
+              ),
+            ),
+            // Plus button
+            Flexible(
+              child: InkWell(
+                onTap: () async {
+                  quantityNotifier.increment(product.id ?? '');
+                  final newQuantity = quantity + 1;
+
                   try {
                     await dbService.addToCart(product.id ?? '', newQuantity);
-                    if (context.mounted && newQuantity > quantity) {
+                    if (context.mounted && quantity == 0) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('${product.displayName} quantity updated'),
+                          content: Text('${product.sku ?? product.model} added to cart'),
                           action: SnackBarAction(
                             label: 'View Cart',
                             onPressed: () {
@@ -1684,66 +1812,27 @@ class ProductCard extends ConsumerWidget {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Error updating cart: $e'),
+                          content: Text('Error adding to cart: $e'),
                           backgroundColor: Theme.of(context).colorScheme.error,
                         ),
                       );
                     }
                   }
-                } else if (quantity > 0) {
-                  // Remove from cart if quantity is 0
-                  try {
-                    await dbService.addToCart(product.id ?? '', 0);
-                  } catch (e) {
-                    // Handle error silently
-                  }
-                }
-              },
+                },
+                child: Container(
+                  width: 32,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.add,
+                    size: 16,
+                    color: theme.primaryColor,
+                  ),
+                ),
               ),
             ),
-          ),
-          // Plus button
-          InkWell(
-            onTap: () async {
-              quantityNotifier.increment(product.id ?? '');
-              final newQuantity = quantity + 1;
-              
-              try {
-                await dbService.addToCart(product.id ?? '', newQuantity);
-                if (context.mounted && quantity == 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${product.sku ?? product.model} added to cart'),
-                      action: SnackBarAction(
-                        label: 'View Cart',
-                        onPressed: () {
-                          context.go('/cart');
-                        },
-                      ),
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error adding to cart: $e'),
-                      backgroundColor: Theme.of(context).colorScheme.error,
-                    ),
-                  );
-                }
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              child: Icon(
-                Icons.add,
-                size: 16,
-                color: theme.primaryColor,
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1752,10 +1841,8 @@ class ProductCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final dbService = ref.read(databaseServiceProvider);
-    final isCompact = ResponsiveHelper.useCompactLayout(context);
     final isMobile = ResponsiveHelper.isMobile(context);
     final isVertical = ResponsiveHelper.isVerticalDisplay(context);
-    final fontScale = ResponsiveHelper.getFontScale(context);
 
     // Format price with commas
     String formatPrice(double price) {
@@ -2013,6 +2100,8 @@ class ProductCard extends ConsumerWidget {
                             color: theme.primaryColor,
                             fontWeight: FontWeight.bold,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 8),
                         SizedBox(
@@ -2022,11 +2111,13 @@ class ProductCard extends ConsumerWidget {
                       ],
                     )
                   else
-                    // Desktop/Tablet - side by side
+                    // Desktop/Tablet - side by side with proper constraints
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Flexible(
+                        Expanded(
+                          flex: 2,
                           child: Text(
                             formatPrice(product.price),
                             style: TextStyle(
@@ -2034,17 +2125,20 @@ class ProductCard extends ConsumerWidget {
                                 context,
                                 baseFontSize: 16,
                                 minFontSize: 14,
-                                maxFontSize: 20,
+                                maxFontSize: 18,
                               ),
                               color: theme.primaryColor,
                               fontWeight: FontWeight.bold,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        SizedBox(
-                          width: ResponsiveHelper.getSpacing(context, small: 4),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          flex: 1,
+                          child: _buildQuantitySelector(product, ref, context, theme, dbService),
                         ),
-                        _buildQuantitySelector(product, ref, context, theme, dbService),
                       ],
                     ),
                 ],

@@ -1,37 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../../../core/services/app_logger.dart';
+import '../../../../core/services/excel_inventory_service.dart';
 import '../../../../core/models/models.dart';
-import '../../../products/presentation/screens/products_screen.dart';
+import '../../../../core/utils/warehouse_utils.dart';
 
-// Provider for real-time stock data from Firebase
-final stockDataProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) {
-  final database = FirebaseDatabase.instance;
-
-  return database.ref('warehouse_stock').onValue.map((event) {
-    if (event.snapshot.value == null) {
-      return {};
-    }
-    return Map<String, dynamic>.from(event.snapshot.value as Map);
-  });
+// Provider for Excel inventory data
+final stockDataProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  return await ExcelInventoryService.loadInventoryData();
 });
 
-// Provider for products to get SKU details
-final productsForStockProvider = StreamProvider.autoDispose<List<Product>>((ref) {
-  final database = FirebaseDatabase.instance;
-
-  return database.ref('products').onValue.map((event) {
-    if (event.snapshot.value == null) return [];
-
-    final Map<String, dynamic> data = Map<String, dynamic>.from(event.snapshot.value as Map);
-    return data.entries.map((entry) {
-      final productData = Map<String, dynamic>.from(entry.value as Map);
-      productData['id'] = entry.key;
-      return Product.fromMap(productData);
-    }).toList();
-  });
+// Provider for products from Excel inventory (sorted by stock volume)
+final productsForStockProvider = FutureProvider.autoDispose<List<Product>>((ref) async {
+  return await ExcelInventoryService.getProductsSortedByStock();
 });
 
 class StockDashboardScreen extends ConsumerStatefulWidget {
@@ -46,7 +27,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
   String selectedCategory = 'All';
   String searchQuery = '';
 
-  final warehouses = ['All', 'KR', 'VN', 'CN', 'TX', 'CUN', 'CDMX'];
+  final warehouses = ['All', '999']; // Updated to match Excel file warehouses
   final categories = ['All', 'Refrigeration', 'Freezers', 'Prep Tables', 'Display Cases', 'Ice Machines'];
 
   @override
@@ -228,17 +209,27 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
               ),
             ),
             const SizedBox(width: 16),
-            DropdownButton<String>(
-              value: selectedWarehouse,
-              items: warehouses.map((w) => DropdownMenuItem(
-                value: w,
-                child: Text(w),
-              )).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedWarehouse = value!;
-                });
-              },
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButton<String>(
+                  value: selectedWarehouse,
+                  items: warehouses.map((w) => DropdownMenuItem(
+                    value: w,
+                    child: Text(w == 'All' ? w : '${w} - ${WarehouseUtils.getShortName(w)}'),
+                  )).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedWarehouse = value!;
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                WarehouseUtils.createInfoTooltip(
+                  context,
+                  customMessage: 'Warehouse Information:\\n\\n999 - MERCANCIA APARTADA\\n(Reserved Merchandise)\\n\\nThis is the main warehouse from Excel\\ncontaining reserved inventory',
+                ),
+              ],
             ),
             const SizedBox(width: 16),
             DropdownButton<String>(
@@ -271,9 +262,18 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Stock by Warehouse',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                const Text(
+                  'Stock by Warehouse',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                WarehouseUtils.createInfoTooltip(
+                  context,
+                  customMessage: 'Warehouse Legend:\\n\\n999 - MERCANCIA APARTADA\\n(Reserved Merchandise)\\n\\nThis shows inventory distribution\\nacross different warehouse locations',
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -519,34 +519,41 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
-                columns: const [
-                  DataColumn(label: Text('SKU')),
-                  DataColumn(label: Text('Product Name')),
-                  DataColumn(label: Text('Category')),
-                  DataColumn(label: Text('KR'), numeric: true),
-                  DataColumn(label: Text('VN'), numeric: true),
-                  DataColumn(label: Text('CN'), numeric: true),
-                  DataColumn(label: Text('TX'), numeric: true),
-                  DataColumn(label: Text('CUN'), numeric: true),
-                  DataColumn(label: Text('CDMX'), numeric: true),
-                  DataColumn(label: Text('Total'), numeric: true),
-                  DataColumn(label: Text('Status')),
+                columns: [
+                  const DataColumn(label: Text('SKU')),
+                  const DataColumn(label: Text('Product Name')),
+                  const DataColumn(label: Text('Category')),
+                  DataColumn(
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('999 (Reserved)'),
+                        const SizedBox(width: 4),
+                        Tooltip(
+                          message: WarehouseUtils.getDescription('999'),
+                          child: Icon(
+                            Icons.help_outline,
+                            size: 14,
+                            color: Theme.of(context).primaryColor.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                    numeric: true,
+                  ),
+                  const DataColumn(label: Text('Total'), numeric: true),
+                  const DataColumn(label: Text('Status')),
                 ],
                 rows: filteredProducts.take(50).map((product) {
-                  final warehouseStocks = _getProductStock(stockData, product.sku ?? '');
-                  final total = warehouseStocks.values.fold(0, (sum, count) => sum + count);
+                  final warehouseStock999 = ExcelInventoryService.getProductStock(product.sku ?? '')['999'] ?? 0;
+                  final total = product.stock ?? 0;
 
                   return DataRow(
                     cells: [
                       DataCell(Text(product.sku ?? '')),
                       DataCell(Text(product.name, overflow: TextOverflow.ellipsis)),
-                      DataCell(Text(product.category ?? 'N/A')),
-                      DataCell(Text(warehouseStocks['KR']?.toString() ?? '0')),
-                      DataCell(Text(warehouseStocks['VN']?.toString() ?? '0')),
-                      DataCell(Text(warehouseStocks['CN']?.toString() ?? '0')),
-                      DataCell(Text(warehouseStocks['TX']?.toString() ?? '0')),
-                      DataCell(Text(warehouseStocks['CUN']?.toString() ?? '0')),
-                      DataCell(Text(warehouseStocks['CDMX']?.toString() ?? '0')),
+                      DataCell(Text(product.category ?? 'Inventory')),
+                      DataCell(Text(warehouseStock999.toString())),
                       DataCell(
                         Text(
                           total.toString(),
@@ -598,23 +605,14 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
 
   Map<String, int> _calculateStockByWarehouse(Map<String, dynamic> stockData) {
     final stockByWarehouse = <String, int>{
-      'KR': 0,
-      'VN': 0,
-      'CN': 0,
-      'TX': 0,
-      'CUN': 0,
-      'CDMX': 0,
+      '999': 0,
     };
 
-    stockData.forEach((key, value) {
-      if (value is Map) {
-        final stockInfo = Map<String, dynamic>.from(value);
-        final warehouse = key.split('_').last;
-        if (stockByWarehouse.containsKey(warehouse)) {
-          stockByWarehouse[warehouse] = stockByWarehouse[warehouse]! + (stockInfo['available'] ?? 0) as int;
-        }
-      }
-    });
+    // Use Excel inventory service warehouse totals
+    final warehouseTotals = ExcelInventoryService.warehouseTotals;
+    for (final entry in warehouseTotals.entries) {
+      stockByWarehouse[entry.key] = entry.value;
+    }
 
     return stockByWarehouse;
   }
@@ -632,25 +630,13 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
   }
 
   Map<String, int> _getProductStock(Map<String, dynamic> stockData, String sku) {
-    final warehouseStock = <String, int>{};
-    final warehouses = ['KR', 'VN', 'CN', 'TX', 'CUN', 'CDMX'];
-
-    for (final warehouse in warehouses) {
-      final key = '${sku}_$warehouse';
-      if (stockData.containsKey(key)) {
-        final stockInfo = Map<String, dynamic>.from(stockData[key] as Map);
-        warehouseStock[warehouse] = stockInfo['available'] ?? 0;
-      } else {
-        warehouseStock[warehouse] = 0;
-      }
-    }
-
-    return warehouseStock;
+    // Use Excel inventory service to get product stock
+    return ExcelInventoryService.getProductStock(sku);
   }
 
   int _getProductTotalStock(Map<String, dynamic> stockData, String sku) {
-    final warehouseStock = _getProductStock(stockData, sku);
-    return warehouseStock.values.fold(0, (sum, count) => sum + count);
+    // Use Excel inventory service to get total stock
+    return ExcelInventoryService.getTotalStock(sku);
   }
 
   List<MapEntry<String, dynamic>> _getLowStockItems(Map<String, dynamic> stockData, List<Product> products) {
@@ -683,15 +669,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
   }
 
   Color _getWarehouseColor(String warehouse) {
-    switch (warehouse) {
-      case 'KR': return Colors.blue;
-      case 'VN': return Colors.green;
-      case 'CN': return Colors.red;
-      case 'TX': return Colors.orange;
-      case 'CUN': return Colors.purple;
-      case 'CDMX': return Colors.teal;
-      default: return Colors.grey;
-    }
+    return WarehouseUtils.getWarehouseColor(warehouse);
   }
 
   Color _getCategoryColor(String category) {
