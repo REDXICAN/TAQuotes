@@ -510,7 +510,7 @@ class Product {
       imageUrl2: map['imageUrl2'] ?? map['image_url2'],  // P.2 screenshot
       thumbnailUrl: map['thumbnailUrl'] ?? map['thumbnail_url'],  // Handle both formats
       pdfUrl: map['pdfUrl'] ?? map['pdf_url'],  // PDF specification file
-      stock: parseIntWithDefault(map['stock']),
+      stock: parseIntWithDefault(map['stock'] ?? map['totalStock'] ?? map['availableStock']),
       warehouse: map['warehouse'],
       dimensions: map['dimensions'],
       weight: map['weight'],

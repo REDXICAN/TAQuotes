@@ -45,6 +45,15 @@ firebase-admin-key.json
 scripts/*.py
 scripts/*.js
 scripts/*.dart
+populate_stock*.dart
+populate_stock*.js
+populate_stock*.html
+update_stock*.js
+create_firebase*.js
+*firebase_import*.json
+*stock_update*.json
+*stock_patches*.json
+*inventory*.json
 FIX_LOGIN_ISSUE.md
 SESSION_SUMMARY.md
 TOMORROW_NOTES.md

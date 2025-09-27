@@ -1,18 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../../../core/services/excel_inventory_service.dart';
+import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/models/models.dart';
-import '../../../../core/utils/warehouse_utils.dart';
 
-// Provider for Excel inventory data
-final stockDataProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
-  return await ExcelInventoryService.loadInventoryData();
+// Provider for stock data from Firebase
+final stockDataProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return FirebaseDatabase.instance.ref('products').onValue.map((event) {
+    final data = event.snapshot.value as Map<dynamic, dynamic>? ?? {};
+    final stockData = <String, dynamic>{};
+
+    data.forEach((key, value) {
+      if (value is Map) {
+        final product = Map<String, dynamic>.from(value);
+        final stock = product['stock'] ?? product['totalStock'] ?? product['availableStock'] ?? 0;
+        if (stock > 0) {
+          stockData[key] = {
+            'available': stock,
+            'warehouse': product['warehouse'] ?? 'Main',
+          };
+        }
+      }
+    });
+
+    return stockData;
+  });
 });
 
-// Provider for products from Excel inventory (sorted by stock volume)
-final productsForStockProvider = FutureProvider.autoDispose<List<Product>>((ref) async {
-  return await ExcelInventoryService.getProductsSortedByStock();
+// Provider for products from Firebase (sorted by stock volume)
+final productsForStockProvider = StreamProvider.autoDispose<List<Product>>((ref) {
+  return FirebaseDatabase.instance.ref('products').onValue.map((event) {
+    final data = event.snapshot.value as Map<dynamic, dynamic>? ?? {};
+    final products = <Product>[];
+
+    data.forEach((key, value) {
+      if (value is Map) {
+        final productMap = Map<String, dynamic>.from(value);
+        productMap['id'] = key;
+        products.add(Product.fromMap(productMap));
+      }
+    });
+
+    // Sort by stock volume descending
+    products.sort((a, b) => (b.stock ?? 0).compareTo(a.stock ?? 0));
+    return products;
+  });
 });
 
 class StockDashboardScreen extends ConsumerStatefulWidget {
@@ -27,7 +59,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
   String selectedCategory = 'All';
   String searchQuery = '';
 
-  final warehouses = ['All', '999']; // Updated to match Excel file warehouses
+  final warehouses = ['All', 'Main'];
   final categories = ['All', 'Refrigeration', 'Freezers', 'Prep Tables', 'Display Cases', 'Ice Machines'];
 
   @override
@@ -48,10 +80,10 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
             children: [
               const Icon(Icons.error, size: 64, color: Colors.red),
               const SizedBox(height: 16),
-              Text('Error loading stock data: ${error.toString()}'),
-              const SizedBox(height: 16),
+              Text('Error: ${error.toString()}'),
+              const SizedBox(height: 8),
               ElevatedButton(
-                onPressed: () => ref.invalidate(stockDataProvider),
+                onPressed: () => ref.refresh(stockDataProvider),
                 child: const Text('Retry'),
               ),
             ],
@@ -59,535 +91,532 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
         ),
         data: (stockData) => productsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) => Center(child: Text('Error: $error')),
-          data: (products) => _buildDashboard(stockData, products),
-        ),
-      ),
-    );
-  }
+          error: (error, stack) => Center(child: Text('Error loading products: $error')),
+          data: (products) {
+            // Calculate total stock
+            int totalStock = 0;
+            stockData.forEach((key, value) {
+              if (value is Map) {
+                totalStock += (value['available'] as int? ?? 0);
+              }
+            });
 
-  Widget _buildDashboard(Map<String, dynamic> stockData, List<Product> products) {
-    // Calculate key metrics
-    final totalProducts = products.length;
-    final stockByWarehouse = _calculateStockByWarehouse(stockData);
-    final lowStockItems = _getLowStockItems(stockData, products);
-    final outOfStockItems = _getOutOfStockItems(stockData, products);
-    final stockByCategory = _calculateStockByCategory(stockData, products);
+            // Calculate unique SKUs with stock
+            final skusWithStock = stockData.keys.where((key) {
+              final stock = stockData[key];
+              if (stock is Map) {
+                return (stock['available'] as int? ?? 0) > 0;
+              }
+              return false;
+            }).length;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Key Metrics Cards
-          _buildMetricsRow(totalProducts, stockByWarehouse, lowStockItems, outOfStockItems),
-          const SizedBox(height: 24),
+            // Calculate warehouse distribution
+            final stockByWarehouse = _calculateStockByWarehouse(stockData);
 
-          // Filters
-          _buildFilters(),
-          const SizedBox(height: 24),
+            // Calculate category distribution
+            final stockByCategory = _calculateStockByCategory(stockData, products);
 
-          // Stock Overview Chart
-          _buildStockOverviewChart(stockByWarehouse),
-          const SizedBox(height: 24),
+            // Filter products based on search and filters
+            var filteredProducts = products.where((product) {
+              // Search filter
+              if (searchQuery.isNotEmpty) {
+                final query = searchQuery.toLowerCase();
+                return (product.sku?.toLowerCase().contains(query) ?? false) ||
+                       (product.name.toLowerCase().contains(query));
+              }
+              return true;
+            }).where((product) {
+              // Category filter
+              if (selectedCategory != 'All') {
+                return product.category == selectedCategory;
+              }
+              return true;
+            }).where((product) {
+              // Warehouse filter - for now just show all if Main selected
+              return true;
+            }).toList();
 
-          // Category Distribution
-          _buildCategoryDistribution(stockByCategory),
-          const SizedBox(height: 24),
+            // Get low stock and out of stock items
+            final lowStockItems = _getLowStockItems(stockData, products);
+            final outOfStockItems = _getOutOfStockItems(stockData, products);
 
-          // Critical Stock Alerts
-          _buildCriticalAlerts(lowStockItems, outOfStockItems, products),
-          const SizedBox(height: 24),
-
-          // Detailed Stock Table
-          _buildDetailedStockTable(stockData, products),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMetricsRow(int totalProducts, Map<String, int> stockByWarehouse,
-                          List<MapEntry<String, dynamic>> lowStock,
-                          List<MapEntry<String, dynamic>> outOfStock) {
-    final totalStock = stockByWarehouse.values.fold(0, (sum, count) => sum + count);
-
-    return Row(
-      children: [
-        Expanded(
-          child: _buildMetricCard(
-            'Total Products',
-            totalProducts.toString(),
-            Icons.inventory,
-            Colors.blue,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildMetricCard(
-            'Total Stock',
-            totalStock.toString(),
-            Icons.warehouse,
-            Colors.green,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildMetricCard(
-            'Low Stock',
-            lowStock.length.toString(),
-            Icons.warning,
-            Colors.orange,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildMetricCard(
-            'Out of Stock',
-            outOfStock.length.toString(),
-            Icons.error,
-            Colors.red,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMetricCard(String title, String value, IconData icon, Color color) {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: color, size: 24),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilters() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                decoration: const InputDecoration(
-                  labelText: 'Search SKU or Product',
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    searchQuery = value;
-                  });
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButton<String>(
-                  value: selectedWarehouse,
-                  items: warehouses.map((w) => DropdownMenuItem(
-                    value: w,
-                    child: Text(w == 'All' ? w : '${w} - ${WarehouseUtils.getShortName(w)}'),
-                  )).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedWarehouse = value!;
-                    });
-                  },
-                ),
-                const SizedBox(width: 8),
-                WarehouseUtils.createInfoTooltip(
-                  context,
-                  customMessage: 'Warehouse Information:\\n\\n999 - MERCANCIA APARTADA\\n(Reserved Merchandise)\\n\\nThis is the main warehouse from Excel\\ncontaining reserved inventory',
-                ),
-              ],
-            ),
-            const SizedBox(width: 16),
-            DropdownButton<String>(
-              value: selectedCategory,
-              items: categories.map((c) => DropdownMenuItem(
-                value: c,
-                child: Text(c),
-              )).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedCategory = value!;
-                });
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStockOverviewChart(Map<String, int> stockByWarehouse) {
-    final filteredData = selectedWarehouse == 'All'
-        ? stockByWarehouse
-        : {selectedWarehouse: stockByWarehouse[selectedWarehouse] ?? 0};
-
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Text(
-                  'Stock by Warehouse',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(width: 8),
-                WarehouseUtils.createInfoTooltip(
-                  context,
-                  customMessage: 'Warehouse Legend:\\n\\n999 - MERCANCIA APARTADA\\n(Reserved Merchandise)\\n\\nThis shows inventory distribution\\nacross different warehouse locations',
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 300,
-              child: BarChart(
-                BarChartData(
-                  alignment: BarChartAlignment.spaceAround,
-                  barGroups: filteredData.entries.map((entry) {
-                    final index = filteredData.keys.toList().indexOf(entry.key);
-                    return BarChartGroupData(
-                      x: index,
-                      barRods: [
-                        BarChartRodData(
-                          toY: entry.value.toDouble(),
-                          color: _getWarehouseColor(entry.key),
-                          width: 40,
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 40,
-                        getTitlesWidget: (value, meta) => Text(
-                          value.toInt().toString(),
-                          style: const TextStyle(fontSize: 12),
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Summary Cards
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Total Stock',
+                                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  totalStock.toString(),
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue,
+                                  ),
+                                ),
+                                const Text(
+                                  'units',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          final warehouses = filteredData.keys.toList();
-                          if (value.toInt() < warehouses.length) {
-                            return Text(
-                              warehouses[value.toInt()],
-                              style: const TextStyle(fontSize: 12),
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                  ),
-                  gridData: const FlGridData(show: true),
-                  borderData: FlBorderData(show: false),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryDistribution(Map<String, int> stockByCategory) {
-    final total = stockByCategory.values.fold(0, (sum, count) => sum + count);
-
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Stock Distribution by Category',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            ...stockByCategory.entries.map((entry) {
-              final percentage = total > 0 ? (entry.value / total * 100) : 0;
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(entry.key),
-                        Text('${entry.value} units (${percentage.toStringAsFixed(1)}%)'),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    LinearProgressIndicator(
-                      value: percentage / 100,
-                      backgroundColor: Colors.grey[300],
-                      valueColor: AlwaysStoppedAnimation<Color>(_getCategoryColor(entry.key)),
-                      minHeight: 8,
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCriticalAlerts(List<MapEntry<String, dynamic>> lowStock,
-                              List<MapEntry<String, dynamic>> outOfStock,
-                              List<Product> products) {
-    return Card(
-      elevation: 4,
-      color: Colors.red.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.warning, color: Colors.red.shade700),
-                const SizedBox(width: 8),
-                Text(
-                  'Critical Stock Alerts',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red.shade700,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (outOfStock.isNotEmpty) ...[
-              const Text(
-                'Out of Stock:',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
-              ),
-              const SizedBox(height: 8),
-              ...outOfStock.take(5).map((item) {
-                final product = products.firstWhere(
-                  (p) => p.sku == item.key.split('_').first,
-                  orElse: () => Product(
-                    name: item.key,
-                    sku: item.key,
-                    model: item.key,
-                    price: 0,
-                    displayName: item.key,
-                    description: '',
-                    category: 'Uncategorized',
-                    stock: 0,
-                    createdAt: DateTime.now(),
-                  ),
-                );
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error, color: Colors.red, size: 16),
-                      const SizedBox(width: 8),
-                      Text('${product.sku} - ${product.name}'),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ],
-            if (lowStock.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              const Text(
-                'Low Stock (< 5 units):',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
-              ),
-              const SizedBox(height: 8),
-              ...lowStock.take(5).map((item) {
-                final product = products.firstWhere(
-                  (p) => p.sku == item.key.split('_').first,
-                  orElse: () => Product(
-                    name: item.key,
-                    sku: item.key,
-                    model: item.key,
-                    price: 0,
-                    displayName: item.key,
-                    description: '',
-                    category: 'Uncategorized',
-                    stock: 0,
-                    createdAt: DateTime.now(),
-                  ),
-                );
-                final stockInfo = Map<String, dynamic>.from(item.value as Map);
-                final available = stockInfo['available'] ?? 0;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.warning, color: Colors.orange, size: 16),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text('${product.sku} - ${product.name} ($available units)'),
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Unique SKUs',
+                                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  skusWithStock.toString(),
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                                const Text(
+                                  'with stock',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Low Stock',
+                                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  lowStockItems.length.toString(),
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.orange,
+                                  ),
+                                ),
+                                const Text(
+                                  'items < 5 units',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Out of Stock',
+                                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  outOfStockItems.length.toString(),
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                                const Text(
+                                  'items',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                );
-              }).toList(),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _buildDetailedStockTable(Map<String, dynamic> stockData, List<Product> products) {
-    // Filter products based on search and category
-    var filteredProducts = products.where((product) {
-      if (searchQuery.isNotEmpty) {
-        final query = searchQuery.toLowerCase();
-        if (!(product.sku ?? '').toLowerCase().contains(query) &&
-            !product.name.toLowerCase().contains(query)) {
-          return false;
-        }
-      }
-      if (selectedCategory != 'All' && product.category != selectedCategory) {
-        return false;
-      }
-      return true;
-    }).toList();
+                  const SizedBox(height: 24),
 
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Detailed Stock Information',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: [
-                  const DataColumn(label: Text('SKU')),
-                  const DataColumn(label: Text('Product Name')),
-                  const DataColumn(label: Text('Category')),
-                  DataColumn(
-                    label: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('999 (Reserved)'),
-                        const SizedBox(width: 4),
-                        Tooltip(
-                          message: WarehouseUtils.getDescription('999'),
-                          child: Icon(
-                            Icons.help_outline,
-                            size: 14,
-                            color: Theme.of(context).primaryColor.withOpacity(0.6),
+                  // Warehouse Distribution Chart
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Stock by Warehouse',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            height: 300,
+                            child: BarChart(
+                              BarChartData(
+                                alignment: BarChartAlignment.spaceAround,
+                                maxY: stockByWarehouse.values.isEmpty
+                                    ? 100
+                                    : stockByWarehouse.values.reduce((a, b) => a > b ? a : b).toDouble() * 1.2,
+                                barTouchData: BarTouchData(
+                                  enabled: true,
+                                  touchTooltipData: BarTouchTooltipData(
+                                    tooltipRoundedRadius: 8,
+                                    tooltipPadding: const EdgeInsets.all(8),
+                                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                                      final warehouse = stockByWarehouse.keys.elementAt(groupIndex);
+                                      final stock = rod.toY.toInt();
+                                      return BarTooltipItem(
+                                        '$warehouse\n$stock units',
+                                        const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                titlesData: FlTitlesData(
+                                  show: true,
+                                  rightTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false),
+                                  ),
+                                  topTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false),
+                                  ),
+                                  bottomTitles: AxisTitles(
+                                    sideTitles: SideTitles(
+                                      showTitles: true,
+                                      getTitlesWidget: (value, meta) {
+                                        final index = value.toInt();
+                                        if (index < stockByWarehouse.keys.length) {
+                                          final warehouse = stockByWarehouse.keys.elementAt(index);
+                                          return Padding(
+                                            padding: const EdgeInsets.only(top: 8),
+                                            child: Text(
+                                              warehouse,
+                                              style: const TextStyle(
+                                                color: Colors.black,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        return const SizedBox();
+                                      },
+                                    ),
+                                  ),
+                                  leftTitles: AxisTitles(
+                                    sideTitles: SideTitles(
+                                      showTitles: true,
+                                      reservedSize: 40,
+                                      getTitlesWidget: (value, meta) {
+                                        return Text(
+                                          value.toInt().toString(),
+                                          style: const TextStyle(
+                                            color: Colors.black,
+                                            fontSize: 10,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                borderData: FlBorderData(show: false),
+                                barGroups: stockByWarehouse.entries.map((entry) {
+                                  final index = stockByWarehouse.keys.toList().indexOf(entry.key);
+                                  return BarChartGroupData(
+                                    x: index,
+                                    barRods: [
+                                      BarChartRodData(
+                                        toY: entry.value.toDouble(),
+                                        color: _getWarehouseColor(entry.key),
+                                        width: 40,
+                                        borderRadius: const BorderRadius.only(
+                                          topLeft: Radius.circular(4),
+                                          topRight: Radius.circular(4),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    numeric: true,
                   ),
-                  const DataColumn(label: Text('Total'), numeric: true),
-                  const DataColumn(label: Text('Status')),
-                ],
-                rows: filteredProducts.take(50).map((product) {
-                  final warehouseStock999 = ExcelInventoryService.getProductStock(product.sku ?? '')['999'] ?? 0;
-                  final total = product.stock ?? 0;
 
-                  return DataRow(
-                    cells: [
-                      DataCell(Text(product.sku ?? '')),
-                      DataCell(Text(product.name, overflow: TextOverflow.ellipsis)),
-                      DataCell(Text(product.category ?? 'Inventory')),
-                      DataCell(Text(warehouseStock999.toString())),
-                      DataCell(
-                        Text(
-                          total.toString(),
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: _getStockStatusColor(total),
+                  const SizedBox(height: 24),
+
+                  // Category Distribution Chart
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Stock by Category',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                        ),
+                          const SizedBox(height: 16),
+                          if (stockByCategory.isEmpty)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(32),
+                                child: Text('No category data available'),
+                              ),
+                            )
+                          else
+                            SizedBox(
+                              height: 300,
+                              child: PieChart(
+                                PieChartData(
+                                  sectionsSpace: 2,
+                                  centerSpaceRadius: 40,
+                                  sections: stockByCategory.entries.map((entry) {
+                                    final percentage = (entry.value / totalStock * 100);
+                                    return PieChartSectionData(
+                                      value: entry.value.toDouble(),
+                                      title: '${percentage.toStringAsFixed(1)}%',
+                                      color: _getCategoryColor(entry.key),
+                                      radius: 100,
+                                      titleStyle: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 16),
+                          // Legend
+                          Wrap(
+                            spacing: 16,
+                            runSpacing: 8,
+                            children: stockByCategory.entries.map((entry) {
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 16,
+                                    height: 16,
+                                    decoration: BoxDecoration(
+                                      color: _getCategoryColor(entry.key),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${entry.key}: ${entry.value}',
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        ],
                       ),
-                      DataCell(_buildStockStatusChip(total)),
-                    ],
-                  );
-                }).toList(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Filters and Search
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Product Inventory',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  decoration: InputDecoration(
+                                    labelText: 'Search by SKU or Name',
+                                    prefixIcon: const Icon(Icons.search),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      searchQuery = value;
+                                    });
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              SizedBox(
+                                width: 150,
+                                child: DropdownButtonFormField<String>(
+                                  value: selectedCategory,
+                                  decoration: InputDecoration(
+                                    labelText: 'Category',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  items: categories.map((category) {
+                                    return DropdownMenuItem(
+                                      value: category,
+                                      child: Text(category),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      selectedCategory = value ?? 'All';
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Products Table
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Showing ${filteredProducts.take(50).length} of ${filteredProducts.length} products',
+                                style: const TextStyle(color: Colors.grey),
+                              ),
+                              TextButton(
+                                onPressed: () => ref.refresh(stockDataProvider),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.refresh, size: 16),
+                                    SizedBox(width: 4),
+                                    Text('Refresh'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: DataTable(
+                              columns: const [
+                                DataColumn(label: Text('SKU')),
+                                DataColumn(label: Text('Product Name')),
+                                DataColumn(label: Text('Category')),
+                                DataColumn(label: Text('Stock'), numeric: true),
+                                DataColumn(label: Text('Status')),
+                              ],
+                              rows: filteredProducts.take(50).map((product) {
+                                final stock = product.stock ?? 0;
+
+                                return DataRow(
+                                  cells: [
+                                    DataCell(Text(product.sku ?? '')),
+                                    DataCell(Text(product.name, overflow: TextOverflow.ellipsis)),
+                                    DataCell(Text(product.category ?? 'Uncategorized')),
+                                    DataCell(
+                                      Text(
+                                        stock.toString(),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: _getStockStatusColor(stock),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(_buildStockStatusChip(stock)),
+                                  ],
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildStockStatusChip(int total) {
+  Color _getStockStatusColor(int stock) {
+    if (stock == 0) return Colors.red;
+    if (stock < 5) return Colors.orange;
+    if (stock < 20) return Colors.amber;
+    return Colors.green;
+  }
+
+  Widget _buildStockStatusChip(int stock) {
     String label;
     Color color;
 
-    if (total == 0) {
+    if (stock == 0) {
       label = 'Out of Stock';
       color = Colors.red;
-    } else if (total < 5) {
+    } else if (stock < 5) {
       label = 'Low Stock';
       color = Colors.orange;
-    } else if (total < 20) {
-      label = 'Normal';
-      color = Colors.blue;
+    } else if (stock < 20) {
+      label = 'Limited';
+      color = Colors.amber;
     } else {
       label = 'In Stock';
       color = Colors.green;
@@ -596,7 +625,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
     return Chip(
       label: Text(
         label,
-        style: TextStyle(color: Colors.white, fontSize: 12),
+        style: const TextStyle(color: Colors.white, fontSize: 12),
       ),
       backgroundColor: color,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
@@ -604,15 +633,15 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
   }
 
   Map<String, int> _calculateStockByWarehouse(Map<String, dynamic> stockData) {
-    final stockByWarehouse = <String, int>{
-      '999': 0,
-    };
+    final stockByWarehouse = <String, int>{'Main': 0};
 
-    // Use Excel inventory service warehouse totals
-    final warehouseTotals = ExcelInventoryService.warehouseTotals;
-    for (final entry in warehouseTotals.entries) {
-      stockByWarehouse[entry.key] = entry.value;
-    }
+    stockData.forEach((key, value) {
+      if (value is Map) {
+        final warehouse = value['warehouse'] ?? 'Main';
+        final stock = value['available'] as int? ?? 0;
+        stockByWarehouse[warehouse] = (stockByWarehouse[warehouse] ?? 0) + stock;
+      }
+    });
 
     return stockByWarehouse;
   }
@@ -622,35 +651,24 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
 
     for (final product in products) {
       final category = product.category ?? 'Uncategorized';
-      final stock = _getProductTotalStock(stockData, product.sku ?? '');
-      stockByCategory[category] = (stockByCategory[category] ?? 0) + stock;
+      final stock = product.stock ?? 0;
+      if (stock > 0) {
+        stockByCategory[category] = (stockByCategory[category] ?? 0) + stock;
+      }
     }
 
     return stockByCategory;
   }
 
-  Map<String, int> _getProductStock(Map<String, dynamic> stockData, String sku) {
-    // Use Excel inventory service to get product stock
-    return ExcelInventoryService.getProductStock(sku);
-  }
-
-  int _getProductTotalStock(Map<String, dynamic> stockData, String sku) {
-    // Use Excel inventory service to get total stock
-    return ExcelInventoryService.getTotalStock(sku);
-  }
-
   List<MapEntry<String, dynamic>> _getLowStockItems(Map<String, dynamic> stockData, List<Product> products) {
     final lowStock = <MapEntry<String, dynamic>>[];
 
-    stockData.entries.forEach((entry) {
-      if (entry.value is Map) {
-        final stockInfo = Map<String, dynamic>.from(entry.value as Map);
-        final available = stockInfo['available'] ?? 0;
-        if (available > 0 && available < 5) {
-          lowStock.add(entry);
-        }
+    for (final product in products) {
+      final stock = product.stock ?? 0;
+      if (stock > 0 && stock < 5) {
+        lowStock.add(MapEntry(product.sku ?? '', {'available': stock}));
       }
-    });
+    }
 
     return lowStock;
   }
@@ -659,8 +677,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
     final outOfStock = <MapEntry<String, dynamic>>[];
 
     for (final product in products) {
-      final totalStock = _getProductTotalStock(stockData, product.sku ?? '');
-      if (totalStock == 0) {
+      if ((product.stock ?? 0) == 0) {
         outOfStock.add(MapEntry(product.sku ?? '', {'available': 0}));
       }
     }
@@ -669,24 +686,30 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
   }
 
   Color _getWarehouseColor(String warehouse) {
-    return WarehouseUtils.getWarehouseColor(warehouse);
+    switch (warehouse) {
+      case 'Main':
+        return Colors.blue;
+      case '999':
+        return Colors.purple;
+      default:
+        return Colors.grey;
+    }
   }
 
   Color _getCategoryColor(String category) {
     switch (category) {
-      case 'Refrigeration': return Colors.blue;
-      case 'Freezers': return Colors.cyan;
-      case 'Prep Tables': return Colors.green;
-      case 'Display Cases': return Colors.orange;
-      case 'Ice Machines': return Colors.purple;
-      default: return Colors.grey;
+      case 'Refrigeration':
+        return Colors.blue;
+      case 'Freezers':
+        return Colors.cyan;
+      case 'Prep Tables':
+        return Colors.green;
+      case 'Display Cases':
+        return Colors.orange;
+      case 'Ice Machines':
+        return Colors.purple;
+      default:
+        return Colors.grey;
     }
-  }
-
-  Color _getStockStatusColor(int total) {
-    if (total == 0) return Colors.red;
-    if (total < 5) return Colors.orange;
-    if (total < 20) return Colors.blue;
-    return Colors.green;
   }
 }
