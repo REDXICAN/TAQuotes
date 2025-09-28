@@ -15,6 +15,13 @@ import '../../../../core/utils/download_helper.dart';
 import '../../../../core/services/rbac_service.dart';
 import '../../../../core/services/app_logger.dart';
 import '../widgets/user_approvals_widget.dart';
+import '../widgets/mock_analytics_generator_widget.dart';
+import '../../../../core/services/hybrid_database_service.dart';
+
+// Database Service Provider
+final databaseServiceProvider = Provider<HybridDatabaseService>((ref) {
+  return HybridDatabaseService();
+});
 
 // Admin Dashboard Providers
 final adminDashboardProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) async* {
@@ -28,7 +35,7 @@ final adminDashboardProvider = StreamProvider.autoDispose<Map<String, dynamic>>(
         dbService.getTotalProducts(),
         dbService.getTotalClients(),
         dbService.getTotalQuotes(),
-        dbService.getAllUsers(),
+        dbService.getAllUsersOnce(),
       ]);
 
       final totalProducts = results[0] as int;
@@ -1015,6 +1022,10 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
 
           // Backup Status Section
           const BackupStatusWidget(),
+          const SizedBox(height: 24),
+
+          // Mock Analytics Data Generator
+          const MockAnalyticsGeneratorWidget(),
           const SizedBox(height: 24),
 
           // Export data

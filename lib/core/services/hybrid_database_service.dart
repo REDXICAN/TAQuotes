@@ -295,4 +295,138 @@ class HybridDatabaseService {
     
     return newQuoteRef.key!;
   }
+
+  // ============ ANALYTICS & ADMIN METHODS ============
+
+  /// Get total number of products
+  Future<int> getTotalProducts() async {
+    try {
+      final snapshot = await _realtimeDb.ref('products').get();
+      if (snapshot.exists && snapshot.value != null) {
+        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        return data.length;
+      }
+      return 0;
+    } catch (e) {
+      AppLogger.error('Error getting total products', error: e);
+      return 0;
+    }
+  }
+
+  /// Get total number of clients (for superadmin: all clients, for users: their clients)
+  Future<int> getTotalClients() async {
+    try {
+      final path = isSuperAdmin ? 'clients' : 'clients/$userId';
+      final snapshot = await _realtimeDb.ref(path).get();
+
+      if (!snapshot.exists || snapshot.value == null) return 0;
+
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
+
+      if (isSuperAdmin) {
+        // Count all clients across all users
+        int totalClients = 0;
+        data.forEach((userId, userClients) {
+          if (userClients is Map) {
+            totalClients += Map<String, dynamic>.from(userClients).length;
+          }
+        });
+        return totalClients;
+      } else {
+        // Count user's clients
+        return data.length;
+      }
+    } catch (e) {
+      AppLogger.error('Error getting total clients', error: e);
+      return 0;
+    }
+  }
+
+  /// Get total number of quotes (for superadmin: all quotes, for users: their quotes)
+  Future<int> getTotalQuotes() async {
+    try {
+      final path = isSuperAdmin ? 'quotes' : 'quotes/$userId';
+      final snapshot = await _realtimeDb.ref(path).get();
+
+      if (!snapshot.exists || snapshot.value == null) return 0;
+
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
+
+      if (isSuperAdmin) {
+        // Count all quotes across all users
+        int totalQuotes = 0;
+        data.forEach((userId, userQuotes) {
+          if (userQuotes is Map) {
+            totalQuotes += Map<String, dynamic>.from(userQuotes).length;
+          }
+        });
+        return totalQuotes;
+      } else {
+        // Count user's quotes
+        return data.length;
+      }
+    } catch (e) {
+      AppLogger.error('Error getting total quotes', error: e);
+      return 0;
+    }
+  }
+
+  /// Get all users (Firestore) - returns List<Map<String, dynamic>>
+  Future<List<Map<String, dynamic>>> getAllUsersOnce() async {
+    try {
+      if (!isSuperAdmin) return [];
+
+      final querySnapshot = await _firestore.collection('users').get();
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+    } catch (e) {
+      AppLogger.error('Error getting all users', error: e);
+      return [];
+    }
+  }
+
+  /// Approve user request (placeholder - implement based on your user approval system)
+  Future<void> approveUserRequest({required String requestId, String? approvedBy, String? reason}) async {
+    try {
+      if (!isSuperAdmin) throw Exception('Only superadmin can approve user requests');
+
+      // Implementation depends on your user approval system
+      // This is a placeholder - you might store approval requests in Firestore or Realtime DB
+      await _firestore.collection('user_approval_requests').doc(requestId).update({
+        'status': 'approved',
+        'approvedBy': approvedBy ?? _auth.currentUser?.uid,
+        'approvedAt': FieldValue.serverTimestamp(),
+        'reason': reason,
+      });
+
+      AppLogger.info('User request approved', data: {'requestId': requestId, 'reason': reason});
+    } catch (e) {
+      AppLogger.error('Error approving user request', error: e, data: {'requestId': requestId});
+      rethrow;
+    }
+  }
+
+  /// Reject user request (placeholder - implement based on your user approval system)
+  Future<void> rejectUserRequest({required String requestId, String? rejectedBy, String? reason}) async {
+    try {
+      if (!isSuperAdmin) throw Exception('Only superadmin can reject user requests');
+
+      // Implementation depends on your user approval system
+      // This is a placeholder - you might store approval requests in Firestore or Realtime DB
+      await _firestore.collection('user_approval_requests').doc(requestId).update({
+        'status': 'rejected',
+        'rejectedBy': rejectedBy ?? _auth.currentUser?.uid,
+        'rejectedAt': FieldValue.serverTimestamp(),
+        'reason': reason,
+      });
+
+      AppLogger.info('User request rejected', data: {'requestId': requestId, 'reason': reason});
+    } catch (e) {
+      AppLogger.error('Error rejecting user request', error: e, data: {'requestId': requestId});
+      rethrow;
+    }
+  }
 }
