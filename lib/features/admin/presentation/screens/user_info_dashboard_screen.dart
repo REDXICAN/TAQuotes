@@ -415,7 +415,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
                     crossAxisCount: isMobile ? 1 : 3,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
-                    childAspectRatio: isMobile ? 4.0 : 2.2,
+                    childAspectRatio: isMobile ? 3.5 : 2.0,
                   ),
                   itemCount: filteredUsers.length,
                   itemBuilder: (context, index) {

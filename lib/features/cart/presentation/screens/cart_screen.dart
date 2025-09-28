@@ -695,12 +695,12 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                     decoration: BoxDecoration(
                                       color: (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty)
                                           ? theme.primaryColor.withOpacity(0.1)
-                                          : Colors.grey.withOpacity(0.1),
+                                          : theme.cardColor,
                                       borderRadius: BorderRadius.circular(4),
                                       border: Border.all(
                                         color: (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty)
                                             ? theme.primaryColor.withOpacity(0.3)
-                                            : Colors.grey.withOpacity(0.3),
+                                            : theme.cardColor,
                                       ),
                                     ),
                                     child: Text(

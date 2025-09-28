@@ -96,7 +96,7 @@ class _OptimizedProductCardState extends ConsumerState<OptimizedProductCard>
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth > 1200;
     final cardPadding = isDesktop ? 16.0 : 12.0;
-    final imageHeight = isDesktop ? 140.0 : 120.0;
+    final imageHeight = isDesktop ? 160.0 : 140.0;
 
     return Card(
       elevation: 2,
@@ -117,7 +117,7 @@ class _OptimizedProductCardState extends ConsumerState<OptimizedProductCard>
           children: [
             // Image with optimized loading
             AspectRatio(
-              aspectRatio: 1.2,
+              aspectRatio: 1.3,
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(12),
