@@ -63,10 +63,10 @@ class BackupService {
       // Fetch spare parts (all users can backup)
       if (includeSpareParts) {
         AppLogger.info('Fetching spare parts for backup');
-        final sparePartsSnapshot = await _db.ref('spare_parts').get();
+        final sparePartsSnapshot = await _db.ref('spareparts').get();
         if (sparePartsSnapshot.exists) {
-          backupData['data']['spare_parts'] = sparePartsSnapshot.value;
-          backupData['metadata']['sections'].add('spare_parts');
+          backupData['data']['spareparts'] = sparePartsSnapshot.value;
+          backupData['metadata']['sections'].add('spareparts');
           AppLogger.info('Added spare parts to backup');
         }
       }
@@ -212,7 +212,7 @@ class BackupService {
         includeClients: sections.contains('clients'),
         includeQuotes: sections.contains('quotes'),
         includeUsers: sections.contains('users'),
-        includeSpareParts: sections.contains('spare_parts'),
+        includeSpareParts: sections.contains('spareparts'),
         includeWarehouseData: sections.contains('warehouse_stock'),
       );
 
@@ -265,11 +265,11 @@ class BackupService {
       }
 
       // Restore spare parts (admin only)
-      if (data.containsKey('spare_parts') && canManageBackups) {
+      if (data.containsKey('spareparts') && canManageBackups) {
         try {
-          await _db.ref('spare_parts').set(data['spare_parts']);
-          restoredSections.add('spare_parts');
-          itemsRestored += (data['spare_parts'] as Map).length;
+          await _db.ref('spareparts').set(data['spareparts']);
+          restoredSections.add('spareparts');
+          itemsRestored += (data['spareparts'] as Map).length;
         } catch (e) {
           errors.add('Failed to restore spare parts: $e');
         }

@@ -120,6 +120,12 @@
     "backup_metadata": {
       ".read": "auth != null && auth.token.role == 'superadmin'",
       ".write": "auth != null && auth.token.role == 'superadmin'"
+    },
+
+    "backup_history": {
+      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin')",
+      ".write": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin')",
+      ".indexOn": ["userId", "createdAt", "status", "type"]
     }
   }
 }
