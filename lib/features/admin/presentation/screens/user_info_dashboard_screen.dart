@@ -415,7 +415,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
                     crossAxisCount: isMobile ? 1 : 3,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
-                    childAspectRatio: isMobile ? 3 : 1.5,
+                    childAspectRatio: isMobile ? 4.0 : 2.2,
                   ),
                   itemCount: filteredUsers.length,
                   itemBuilder: (context, index) {
@@ -468,9 +468,12 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 200),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
               Row(
                 children: [
                   CircleAvatar(
@@ -604,7 +607,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
                 )),
               ],
 
-              const Spacer(),
+              const SizedBox(height: 8),
               const Divider(),
               Row(
                 children: [
@@ -626,6 +629,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
                 ],
               ),
             ],
+            ),
           ),
         ),
       ),

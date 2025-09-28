@@ -1326,13 +1326,13 @@ Future<void> _handleExcelUpload() async {
         // Adjust aspect ratio based on screen size - taller cards for vertical
         double childAspectRatio;
         if (ResponsiveHelper.isVerticalDisplay(context)) {
-          childAspectRatio = 0.52;  // Taller cards to prevent overlap on vertical screens
+          childAspectRatio = 0.67;  // Taller cards to prevent overlap on vertical screens
         } else if (ResponsiveHelper.isMobile(context)) {
-          childAspectRatio = 0.55;  // Shorter cards for phones
+          childAspectRatio = 0.70;  // Taller cards for phones
         } else if (ResponsiveHelper.isTablet(context)) {
-          childAspectRatio = 0.65;  // Shorter cards for tablets
+          childAspectRatio = 0.80;  // Taller cards for tablets
         } else {
-          childAspectRatio = 0.7;   // Shorter cards for desktop
+          childAspectRatio = 0.85;   // Taller cards for desktop
         }
         
         // Increased spacing for vertical screens to prevent overlap
@@ -1880,7 +1880,7 @@ class ProductCard extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          product.sku ?? product.model,
+                          product.sku ?? product.model ?? '',
                           style: TextStyle(
                             fontSize: isVertical ? 18 : (isMobile ? 16 : 14),
                             fontWeight: FontWeight.bold,
@@ -1920,7 +1920,7 @@ class ProductCard extends ConsumerWidget {
                       fontSize: isMobile ? 14 : 12,
                       height: 1.2,
                     ),
-                    maxLines: isMobile ? 2 : 1,
+                    maxLines: isVertical ? 3 : (isMobile ? 2 : 1),
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
