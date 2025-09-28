@@ -18,6 +18,7 @@ import '../auth/presentation/providers/auth_provider.dart';
 import '../products/presentation/screens/products_screen.dart';
 import '../../core/widgets/recent_searches_widget.dart';
 import '../admin/presentation/widgets/user_approvals_widget.dart';
+import 'widgets/projects_dashboard_widget.dart';
 
 // Search history provider - stores last 10 searched products
 final searchHistoryProvider = StreamProvider.autoDispose<List<Product>>((ref) {
@@ -456,7 +457,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               SizedBox(
                 height: ResponsiveHelper.getSpacing(context, extraLarge: 24),
               ),
-              
+
+              // Projects Dashboard Section
+              const ProjectsDashboardWidget(),
+
+              SizedBox(
+                height: ResponsiveHelper.getSpacing(context, extraLarge: 24),
+              ),
+
               // Recently Searched Products Section
               const RecentSearchesWidget(),
             ],

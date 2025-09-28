@@ -193,7 +193,9 @@
       "Read(//o/OneDrive/Documentos/-- TurboAir/7 Bots/**)",
       "Bash(./check_secrets.sh)",
       "Bash(echo:*)",
-      "Read(//c/Users/andre/Desktop/**)"
+      "Read(//c/Users/andre/Desktop/**)",
+      "Bash(chmod:*)",
+      "Bash(npm run setup-gcloud:*)"
     ],
     "deny": [],
     "ask": [
