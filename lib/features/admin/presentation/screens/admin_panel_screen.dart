@@ -17,6 +17,7 @@ import '../../../../core/services/app_logger.dart';
 import '../widgets/user_approvals_widget.dart';
 import '../widgets/mock_analytics_generator_widget.dart';
 import '../../../../core/services/hybrid_database_service.dart';
+import '../../../settings/presentation/screens/app_settings_screen.dart';
 
 // Database Service Provider
 final databaseServiceProvider = Provider<HybridDatabaseService>((ref) {
@@ -241,6 +242,8 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
         return _buildPendingUsers();
       case 'analytics':
         return _buildAnalytics();
+      case 'backup':
+        return _buildBackupManagement();
       case 'settings':
         return _buildSettings();
       default:
@@ -309,10 +312,10 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
               ),
               _buildMenuCard(
                 icon: Icons.backup,
-                title: 'Backup Status',
-                subtitle: 'Manage backups',
+                title: 'Backup Management',
+                subtitle: 'View and manage backups',
                 color: Colors.indigo,
-                onTap: () => setState(() => _selectedView = 'settings'),
+                onTap: () => setState(() => _selectedView = 'backup'),
               ),
               _buildMenuCard(
                 icon: Icons.storage,
@@ -324,7 +327,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
               _buildMenuCard(
                 icon: Icons.settings,
                 title: 'Settings',
-                subtitle: 'App settings',
+                subtitle: 'App configuration & permissions',
                 color: Colors.grey,
                 onTap: () => setState(() => _selectedView = 'settings'),
               ),
@@ -1006,13 +1009,30 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
   }
 
   Widget _buildSettings() {
+    // Navigate to the new settings screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => const AppSettingsScreen(),
+        ),
+      );
+      // Reset view to menu after navigation
+      setState(() => _selectedView = null);
+    });
+
+    return const Center(
+      child: CircularProgressIndicator(),
+    );
+  }
+
+  Widget _buildBackupManagement() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Settings',
+            'Backup Management',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,

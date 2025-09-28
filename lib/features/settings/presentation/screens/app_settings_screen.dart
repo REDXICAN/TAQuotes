@@ -1,0 +1,756 @@
+// lib/features/settings/presentation/screens/app_settings_screen.dart
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_database/firebase_database.dart';
+import '../../../../core/auth/models/rbac_permissions.dart';
+import '../../../../core/auth/providers/rbac_provider.dart';
+import '../../../../core/models/user_role.dart';
+import '../../../auth/presentation/providers/auth_provider.dart' hide currentUserRoleProvider;
+import '../../../../core/services/app_logger.dart';
+import 'package:intl/intl.dart';
+
+// Provider for app settings
+final appSettingsProvider = StreamProvider<Map<String, dynamic>>((ref) {
+  return FirebaseDatabase.instance
+      .ref('app_settings/global')
+      .onValue
+      .map((event) {
+    if (event.snapshot.value != null) {
+      return Map<String, dynamic>.from(event.snapshot.value as Map);
+    }
+    return {};
+  });
+});
+
+// Provider for user preferences
+final userPreferencesProvider = StreamProvider<Map<String, dynamic>>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return Stream.value({});
+
+  return FirebaseDatabase.instance
+      .ref('app_settings/user_preferences/${user.uid}')
+      .onValue
+      .map((event) {
+    if (event.snapshot.value != null) {
+      return Map<String, dynamic>.from(event.snapshot.value as Map);
+    }
+    return {};
+  });
+});
+
+class AppSettingsScreen extends ConsumerStatefulWidget {
+  const AppSettingsScreen({super.key});
+
+  @override
+  ConsumerState<AppSettingsScreen> createState() => _AppSettingsScreenState();
+}
+
+class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
+  final _backupScheduleController = TextEditingController();
+  final _maintenanceMessageController = TextEditingController();
+  final _maxUsersController = TextEditingController();
+  final _sessionTimeoutController = TextEditingController();
+
+  bool _maintenanceMode = false;
+  bool _autoBackup = true;
+  bool _emailNotifications = true;
+  bool _darkModeEnabled = false;
+  bool _compactView = false;
+  String _defaultWarehouse = 'TX';
+  String _defaultCurrency = 'USD';
+  int _itemsPerPage = 50;
+
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      // Load global settings
+      final globalSnapshot = await FirebaseDatabase.instance
+          .ref('app_settings/global')
+          .once();
+
+      if (globalSnapshot.snapshot.value != null) {
+        final globalData = Map<String, dynamic>.from(
+            globalSnapshot.snapshot.value as Map);
+
+        setState(() {
+          _maintenanceMode = globalData['maintenance_mode'] ?? false;
+          _autoBackup = globalData['auto_backup'] ?? true;
+          _emailNotifications = globalData['email_notifications'] ?? true;
+          _backupScheduleController.text = globalData['backup_schedule'] ?? 'daily';
+          _maintenanceMessageController.text = globalData['maintenance_message'] ?? '';
+          _maxUsersController.text = (globalData['max_concurrent_users'] ?? 100).toString();
+          _sessionTimeoutController.text = (globalData['session_timeout_minutes'] ?? 30).toString();
+        });
+      }
+
+      // Load user preferences
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
+        final userSnapshot = await FirebaseDatabase.instance
+            .ref('app_settings/user_preferences/${user.uid}')
+            .once();
+
+        if (userSnapshot.snapshot.value != null) {
+          final userData = Map<String, dynamic>.from(
+              userSnapshot.snapshot.value as Map);
+
+          setState(() {
+            _darkModeEnabled = userData['dark_mode'] ?? false;
+            _compactView = userData['compact_view'] ?? false;
+            _defaultWarehouse = userData['default_warehouse'] ?? 'TX';
+            _defaultCurrency = userData['default_currency'] ?? 'USD';
+            _itemsPerPage = userData['items_per_page'] ?? 50;
+          });
+        }
+      }
+    } catch (e) {
+      AppLogger.error('Failed to load settings', error: e);
+    }
+  }
+
+  Future<void> _saveGlobalSettings() async {
+    setState(() => _isLoading = true);
+
+    try {
+      // Check if user has permission
+      final hasPermission = await ref.read(
+          hasPermissionProvider(Permission.manageDatabase).future);
+
+      if (!hasPermission) {
+        _showError('You do not have permission to modify system settings');
+        return;
+      }
+
+      final updates = {
+        'maintenance_mode': _maintenanceMode,
+        'auto_backup': _autoBackup,
+        'email_notifications': _emailNotifications,
+        'backup_schedule': _backupScheduleController.text,
+        'maintenance_message': _maintenanceMessageController.text,
+        'max_concurrent_users': int.tryParse(_maxUsersController.text) ?? 100,
+        'session_timeout_minutes': int.tryParse(_sessionTimeoutController.text) ?? 30,
+        'updated_at': DateTime.now().toIso8601String(),
+        'updated_by': ref.read(currentUserProvider)?.uid,
+      };
+
+      await FirebaseDatabase.instance
+          .ref('app_settings/global')
+          .update(updates);
+
+      AppLogger.info('Global settings updated successfully');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Global settings saved successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      AppLogger.error('Failed to save global settings', error: e);
+      _showError('Failed to save settings: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveUserPreferences() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final user = ref.read(currentUserProvider);
+      if (user == null) {
+        _showError('You must be logged in to save preferences');
+        return;
+      }
+
+      final updates = {
+        'dark_mode': _darkModeEnabled,
+        'compact_view': _compactView,
+        'default_warehouse': _defaultWarehouse,
+        'default_currency': _defaultCurrency,
+        'items_per_page': _itemsPerPage,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      await FirebaseDatabase.instance
+          .ref('app_settings/user_preferences/${user.uid}')
+          .update(updates);
+
+      AppLogger.info('User preferences updated successfully');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Preferences saved successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      AppLogger.error('Failed to save user preferences', error: e);
+      _showError('Failed to save preferences: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasSystemPermission = ref.watch(
+        hasPermissionProvider(Permission.manageDatabase));
+    final isAdmin = ref.watch(isAdminProvider);
+    final userRole = ref.watch(currentUserRoleProvider);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Application Settings'),
+        actions: [
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // User Role and Permissions Info Card
+            Card(
+              color: Theme.of(context).primaryColor.withAlpha(25),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.security, size: 20),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Your Role & Permissions',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    userRole.when(
+                      data: (role) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Text('Current Role: '),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _getRoleColor(role),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  role.displayName,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Level: ${role.level} | ${_getRoleDescription(role)}',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      loading: () => const LinearProgressIndicator(),
+                      error: (e, s) => Text('Error loading role: $e'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Global System Settings (Admin only)
+            hasSystemPermission.when(
+              data: (hasPermission) {
+                if (!hasPermission) {
+                  return const SizedBox.shrink();
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'System Settings',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Text(
+                      'These settings affect all users',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            // Maintenance Mode
+                            SwitchListTile(
+                              title: const Text('Maintenance Mode'),
+                              subtitle: const Text('Temporarily disable access for non-admin users'),
+                              value: _maintenanceMode,
+                              onChanged: (value) {
+                                setState(() => _maintenanceMode = value);
+                              },
+                              secondary: Icon(
+                                Icons.construction,
+                                color: _maintenanceMode ? Colors.orange : null,
+                              ),
+                            ),
+
+                            if (_maintenanceMode) ...[
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: _maintenanceMessageController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Maintenance Message',
+                                  hintText: 'Message to show users during maintenance',
+                                  border: OutlineInputBorder(),
+                                ),
+                                maxLines: 2,
+                              ),
+                            ],
+
+                            const Divider(height: 24),
+
+                            // Auto Backup
+                            SwitchListTile(
+                              title: const Text('Automatic Backups'),
+                              subtitle: const Text('Automatically backup data on schedule'),
+                              value: _autoBackup,
+                              onChanged: (value) {
+                                setState(() => _autoBackup = value);
+                              },
+                              secondary: const Icon(Icons.backup),
+                            ),
+
+                            if (_autoBackup) ...[
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                value: _backupScheduleController.text.isEmpty
+                                    ? 'daily'
+                                    : _backupScheduleController.text,
+                                decoration: const InputDecoration(
+                                  labelText: 'Backup Schedule',
+                                  border: OutlineInputBorder(),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: 'hourly',
+                                    child: Text('Every Hour'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'daily',
+                                    child: Text('Daily'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'weekly',
+                                    child: Text('Weekly'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'monthly',
+                                    child: Text('Monthly'),
+                                  ),
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    _backupScheduleController.text = value ?? 'daily';
+                                  });
+                                },
+                              ),
+                            ],
+
+                            const Divider(height: 24),
+
+                            // Email Notifications
+                            SwitchListTile(
+                              title: const Text('Email Notifications'),
+                              subtitle: const Text('Send system emails for important events'),
+                              value: _emailNotifications,
+                              onChanged: (value) {
+                                setState(() => _emailNotifications = value);
+                              },
+                              secondary: const Icon(Icons.email),
+                            ),
+
+                            const Divider(height: 24),
+
+                            // Session Settings
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _sessionTimeoutController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Session Timeout (minutes)',
+                                      border: OutlineInputBorder(),
+                                      helperText: 'Auto-logout after inactivity',
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _maxUsersController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Max Concurrent Users',
+                                      border: OutlineInputBorder(),
+                                      helperText: 'Limit simultaneous users',
+                                    ),
+                                    keyboardType: TextInputType.number,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            ElevatedButton.icon(
+                              onPressed: _isLoading ? null : _saveGlobalSettings,
+                              icon: const Icon(Icons.save),
+                              label: const Text('Save System Settings'),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(double.infinity, 48),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                );
+              },
+              loading: () => const CircularProgressIndicator(),
+              error: (e, s) => const SizedBox.shrink(),
+            ),
+
+            // User Preferences
+            const Text(
+              'Personal Preferences',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Text(
+              'These settings only affect your account',
+              style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    // Dark Mode
+                    SwitchListTile(
+                      title: const Text('Dark Mode'),
+                      subtitle: const Text('Use dark theme throughout the app'),
+                      value: _darkModeEnabled,
+                      onChanged: (value) {
+                        setState(() => _darkModeEnabled = value);
+                      },
+                      secondary: Icon(
+                        _darkModeEnabled ? Icons.dark_mode : Icons.light_mode,
+                      ),
+                    ),
+
+                    const Divider(height: 24),
+
+                    // Compact View
+                    SwitchListTile(
+                      title: const Text('Compact View'),
+                      subtitle: const Text('Reduce spacing for more content'),
+                      value: _compactView,
+                      onChanged: (value) {
+                        setState(() => _compactView = value);
+                      },
+                      secondary: const Icon(Icons.view_compact),
+                    ),
+
+                    const Divider(height: 24),
+
+                    // Default Warehouse
+                    DropdownButtonFormField<String>(
+                      value: _defaultWarehouse,
+                      decoration: const InputDecoration(
+                        labelText: 'Default Warehouse',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'TX', child: Text('Texas')),
+                        DropdownMenuItem(value: 'KR', child: Text('Korea')),
+                        DropdownMenuItem(value: 'VN', child: Text('Vietnam')),
+                        DropdownMenuItem(value: 'CN', child: Text('China')),
+                        DropdownMenuItem(value: 'CUN', child: Text('Cancun')),
+                        DropdownMenuItem(value: 'CDMX', child: Text('Mexico City')),
+                      ],
+                      onChanged: (value) {
+                        setState(() => _defaultWarehouse = value ?? 'TX');
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Default Currency
+                    DropdownButtonFormField<String>(
+                      value: _defaultCurrency,
+                      decoration: const InputDecoration(
+                        labelText: 'Default Currency',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'USD', child: Text('USD - US Dollar')),
+                        DropdownMenuItem(value: 'MXN', child: Text('MXN - Mexican Peso')),
+                        DropdownMenuItem(value: 'EUR', child: Text('EUR - Euro')),
+                        DropdownMenuItem(value: 'CAD', child: Text('CAD - Canadian Dollar')),
+                      ],
+                      onChanged: (value) {
+                        setState(() => _defaultCurrency = value ?? 'USD');
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Items Per Page
+                    DropdownButtonFormField<int>(
+                      value: _itemsPerPage,
+                      decoration: const InputDecoration(
+                        labelText: 'Items Per Page',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 10, child: Text('10')),
+                        DropdownMenuItem(value: 25, child: Text('25')),
+                        DropdownMenuItem(value: 50, child: Text('50')),
+                        DropdownMenuItem(value: 100, child: Text('100')),
+                      ],
+                      onChanged: (value) {
+                        setState(() => _itemsPerPage = value ?? 50);
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    ElevatedButton.icon(
+                      onPressed: _isLoading ? null : _saveUserPreferences,
+                      icon: const Icon(Icons.save),
+                      label: const Text('Save Preferences'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Permission Details Section
+            isAdmin.when(
+              data: (isAdminUser) {
+                if (!isAdminUser) return const SizedBox.shrink();
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Permission Details',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Text(
+                      'Your current permissions',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: _buildPermissionsGrid(),
+                      ),
+                    ),
+                  ],
+                );
+              },
+              loading: () => const SizedBox.shrink(),
+              error: (e, s) => const SizedBox.shrink(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPermissionsGrid() {
+    final permissions = ref.watch(currentUserPermissionsProvider);
+
+    return permissions.when(
+      data: (userPermissions) {
+        final categories = <String, List<Permission>>{};
+
+        // Group permissions by category
+        for (final permission in userPermissions) {
+          final category = _getPermissionCategory(permission);
+          categories.putIfAbsent(category, () => []).add(permission);
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: categories.entries.map((entry) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    entry.key,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: entry.value.map((permission) {
+                      return Chip(
+                        label: Text(
+                          _formatPermissionName(permission.value),
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        backgroundColor: Theme.of(context).primaryColor.withAlpha(50),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, s) => Text('Error loading permissions: $e'),
+    );
+  }
+
+  String _getPermissionCategory(Permission permission) {
+    final name = permission.value;
+    if (name.contains('product')) return 'Products';
+    if (name.contains('client')) return 'Clients';
+    if (name.contains('quote')) return 'Quotes';
+    if (name.contains('project')) return 'Projects';
+    if (name.contains('user') || name.contains('role')) return 'User Management';
+    if (name.contains('admin') || name.contains('system')) return 'System';
+    if (name.contains('warehouse')) return 'Warehouse';
+    if (name.contains('backup')) return 'Backup';
+    if (name.contains('email')) return 'Communication';
+    return 'Other';
+  }
+
+  String _formatPermissionName(String permission) {
+    return permission
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map((word) => word.isNotEmpty
+            ? '${word[0].toUpperCase()}${word.substring(1)}'
+            : '')
+        .join(' ');
+  }
+
+  Color _getRoleColor(UserRole role) {
+    switch (role) {
+      case UserRole.superAdmin:
+        return Colors.red;
+      case UserRole.admin:
+        return Colors.orange;
+      case UserRole.sales:
+        return Colors.blue;
+      case UserRole.distributor:
+        return Colors.green;
+    }
+  }
+
+  String _getRoleDescription(UserRole role) {
+    switch (role) {
+      case UserRole.superAdmin:
+        return 'Full system access with all permissions';
+      case UserRole.admin:
+        return 'Administrative access with user management';
+      case UserRole.sales:
+        return 'Sales operations and client management';
+      case UserRole.distributor:
+        return 'Basic access for distribution operations';
+    }
+  }
+
+  @override
+  void dispose() {
+    _backupScheduleController.dispose();
+    _maintenanceMessageController.dispose();
+    _maxUsersController.dispose();
+    _sessionTimeoutController.dispose();
+    super.dispose();
+  }
+}
