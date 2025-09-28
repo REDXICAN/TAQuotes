@@ -22,7 +22,7 @@ import '../../features/admin/presentation/screens/performance_dashboard_screen.d
 import '../../features/admin/presentation/screens/user_info_dashboard_screen.dart';
 import '../../features/admin/presentation/screens/user_details_screen.dart';
 import '../../features/admin/presentation/screens/error_monitoring_dashboard_optimized.dart';
-import '../../features/admin/presentation/screens/database_management_screen.dart';
+import '../../features/admin/presentation/screens/database_management_screen_optimized.dart';
 import '../../features/stock/presentation/screens/stock_dashboard_screen.dart';
 import '../../features/spareparts/presentation/screens/spareparts_screen.dart';
 import '../../features/projects/presentation/screens/projects_screen.dart';
@@ -195,7 +195,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: 'database',
-                builder: (context, state) => const DatabaseManagementScreen(),
+                builder: (context, state) => const OptimizedDatabaseManagementScreen(),
               ),
             ],
           ),
