@@ -1,6 +1,7 @@
 // lib/core/utils/disabled_state_helper.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Helper class for consistent disabled state handling across the app
 class DisabledStateHelper {

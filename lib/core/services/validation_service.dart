@@ -233,6 +233,22 @@ class ValidationService {
     return false;
   }
 
+  /// General input sanitization method (used by tests)
+  static String sanitizeInput(String input) {
+    return sanitizeForDatabase(input);
+  }
+
+  /// Validate price is positive and within reasonable range
+  static bool isValidPrice(double price) {
+    if (price.isNaN || price.isInfinite) return false;
+    return price > 0 && price <= 1000000;
+  }
+
+  /// Validate quantity is positive integer within limits
+  static bool isValidQuantity(int quantity) {
+    return quantity > 0 && quantity < 10000;
+  }
+
   /// Validate numeric input
   static bool isValidNumber(String input, {double? min, double? max}) {
     final number = double.tryParse(input);
