@@ -2,7 +2,6 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/user_role.dart';
-import '../../config/env_config.dart';
 import '../models/rbac_permissions.dart';
 import '../services/rbac_service.dart';
 import '../../../core/models/models.dart';
@@ -158,36 +157,30 @@ class RbacHelper {
   }
 }
 
-/// Provider for checking legacy email-based admin access (for backward compatibility)
-/// This should be gradually replaced with proper RBAC checks
-final isLegacyAdminProvider = FutureProvider<bool>((ref) async {
-  final user = ref.watch(currentUserProvider);
-  if (user?.email == null) return false;
-
-  // Check both new RBAC system and legacy email check
-  final isAdminByRole = await ref.read(isAdminProvider.future);
-  final isLegacyAdmin = EnvConfig.isSuperAdminEmail(user!.email!);
-
-  return isAdminByRole || isLegacyAdmin;
+/// Provider for checking if current user has superadmin role through pure RBAC
+final isSuperAdminByRoleProvider = FutureProvider<bool>((ref) async {
+  final userRole = await ref.watch(currentUserRoleProvider.future);
+  return userRole.isSuperAdmin;
 });
 
-/// Provider for migration helper - combines RBAC with legacy checks
-final migrationPermissionProvider = FutureProvider.family<bool, Permission>((ref, permission) async {
+/// Provider for validating superadmin permissions with Firebase custom claims
+final validateSuperAdminProvider = FutureProvider<bool>((ref) async {
   final user = ref.watch(currentUserProvider);
-  if (user?.email == null) return false;
+  if (user?.uid == null) return false;
 
-  // Check new RBAC system first
-  final hasRbacPermission = await ref.read(hasPermissionProvider(permission).future);
+  final rbacService = ref.read(rbacServiceProvider);
 
-  // For admin-level permissions, also check legacy email
-  if (permission == Permission.accessAdminPanel ||
-      permission == Permission.manageDatabase ||
-      permission == Permission.importProducts) {
-    final isLegacyAdmin = EnvConfig.isSuperAdminEmail(user!.email!);
-    return hasRbacPermission || isLegacyAdmin;
-  }
+  // First check RBAC role
+  final hasRbacSuperAdmin = await ref.read(isSuperAdminByRoleProvider.future);
 
-  return hasRbacPermission;
+  // Then validate with Firebase custom claims if available
+  final hasValidClaims = await rbacService.validateRoleWithCustomClaims(
+    user!.uid,
+    UserRole.superAdmin
+  );
+
+  // User must have both RBAC role AND valid claims (or fallback to RBAC only)
+  return hasRbacSuperAdmin && hasValidClaims;
 });
 
 /// Exception thrown when user doesn't have required permissions

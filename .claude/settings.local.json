@@ -190,7 +190,10 @@
       "WebFetch(domain:www.centralrestaurant.com)",
       "Read(//d//**)",
       "Bash(git diff:*)",
-      "Read(//o/OneDrive/Documentos/-- TurboAir/7 Bots/**)"
+      "Read(//o/OneDrive/Documentos/-- TurboAir/7 Bots/**)",
+      "Bash(./check_secrets.sh)",
+      "Bash(echo:*)",
+      "Read(//c/Users/andre/Desktop/**)"
     ],
     "deny": [],
     "ask": [

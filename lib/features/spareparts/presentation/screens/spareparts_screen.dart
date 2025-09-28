@@ -3,10 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/services/app_logger.dart';
-import '../../../../core/services/excel_inventory_service.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/utils/price_formatter.dart';
-import '../../../../core/models/models.dart';
 
 // Spare part model
 class SparePart {
@@ -35,35 +33,101 @@ class SparePart {
   }
 }
 
-// Provider for spare parts from Excel inventory (warehouse 999 only)
+// Provider for spare parts from Firebase
 final sparePartsProvider = StreamProvider.autoDispose<List<SparePart>>((ref) {
-  return Stream.periodic(const Duration(seconds: 30), (_) => null)
-      .asyncMap((_) async {
-        try {
-          // Get products from Excel inventory service
-          final products = await ExcelInventoryService.getProductsSortedByStock();
+  try {
+    final database = FirebaseDatabase.instance;
 
-          // Convert to SparePart objects with warehouse 999 stock only
-          return products.map((product) {
-            final warehouse999Stock = ExcelInventoryService.getProductStock(product.sku ?? '')['999'] ?? 0;
-            return SparePart(
-              sku: product.sku ?? '',
-              name: product.name,
-              stock: warehouse999Stock,
-              warehouse: '999', // MERCANCIA APARTADA
-              price: product.price,
-            );
-          }).where((part) => part.stock > 0).toList() // Only show items with stock
-            ..sort((a, b) => b.stock.compareTo(a.stock)); // Sort by stock quantity
-        } catch (e) {
-          AppLogger.error('Error loading spare parts from Excel inventory', error: e);
-          return <SparePart>[];
+    // Stream spare parts directly from Firebase products that have available warehouse stock
+    return database.ref('products').onValue.map((event) {
+      final List<SparePart> spareParts = [];
+
+      if (event.snapshot.exists && event.snapshot.value != null) {
+        final productsMap = Map<String, dynamic>.from(event.snapshot.value as Map);
+
+        for (final entry in productsMap.entries) {
+          final productData = Map<String, dynamic>.from(entry.value as Map);
+
+          // Check for warehouse stock data
+          final warehouseStock = productData['warehouse_stock'] as Map<dynamic, dynamic>?;
+
+          if (warehouseStock != null) {
+            // First, check warehouse 999 (reserved/potentially available)
+            final warehouse999Stock = warehouseStock['999'] as Map<dynamic, dynamic>?;
+            if (warehouse999Stock != null) {
+              final available999 = warehouse999Stock['available'] ?? 0;
+              final available999Int = (available999 is int ? available999 : 0);
+
+              if (available999Int > 0) {
+                spareParts.add(SparePart(
+                  sku: productData['sku'] ?? entry.key,
+                  name: productData['name'] ?? productData['model'] ?? '',
+                  stock: available999Int,
+                  warehouse: '999', // Reserved but potentially available
+                  price: PriceFormatter.safeToDouble(productData['price']),
+                ));
+              }
+            }
+
+            // Then calculate total available stock across other warehouses
+            int totalAvailableStock = 0;
+            String primaryWarehouse = '';
+
+            for (final warehouseEntry in warehouseStock.entries) {
+              final warehouseId = warehouseEntry.key.toString();
+
+              // Skip warehouse 999 as we handled it separately
+              if (warehouseId == '999') continue;
+
+              final stockData = warehouseEntry.value as Map<dynamic, dynamic>?;
+              if (stockData != null) {
+                final available = stockData['available'] ?? 0;
+                final availableInt = (available is int ? available : 0);
+
+                if (availableInt > 0) {
+                  totalAvailableStock += availableInt;
+                  // Track the warehouse with most stock as primary
+                  if (primaryWarehouse.isEmpty || availableInt > totalAvailableStock / 2) {
+                    primaryWarehouse = warehouseId;
+                  }
+                }
+              }
+            }
+
+            // Add entry for available stock from other warehouses
+            if (totalAvailableStock > 0) {
+              // Check if we already added this SKU from warehouse 999
+              final existing999 = spareParts.any((part) =>
+                part.sku == (productData['sku'] ?? entry.key) && part.warehouse == '999');
+
+              // If product exists in 999, add as separate entry to show both
+              // If not, add as normal available stock
+              spareParts.add(SparePart(
+                sku: productData['sku'] ?? entry.key,
+                name: productData['name'] ?? productData['model'] ?? '',
+                stock: totalAvailableStock,
+                warehouse: primaryWarehouse, // Show primary warehouse
+                price: PriceFormatter.safeToDouble(productData['price']),
+              ));
+            }
+          }
         }
-      })
-      .handleError((error) {
-        AppLogger.error('Error in spare parts provider', error: error);
-        return <SparePart>[];
-      });
+      }
+
+      // Sort by stock quantity (highest first)
+      spareParts.sort((a, b) => b.stock.compareTo(a.stock));
+
+      AppLogger.info('Loaded ${spareParts.length} spare parts with available stock from Firebase');
+      return spareParts;
+    }).handleError((error) {
+      AppLogger.error('Error streaming spare parts from Firebase', error: error);
+      return <SparePart>[];
+    });
+  } catch (e) {
+    AppLogger.error('Error setting up spare parts provider', error: e);
+    // Return an empty stream on error
+    return Stream.value(<SparePart>[]);
+  }
 });
 
 // Spare parts screen
@@ -222,7 +286,7 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                   SizedBox(
                     width: 200,
                     child: DropdownButtonFormField<String>(
-                      value: _selectedWarehouse,
+                      initialValue: _selectedWarehouse,
                       decoration: InputDecoration(
                         labelText: 'Warehouse',
                         border: OutlineInputBorder(
@@ -235,10 +299,33 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                           value: null,
                           child: Text('All Warehouses'),
                         ),
-                        // Only show warehouse 999 (MERCANCIA APARTADA) from Excel inventory
+                        const DropdownMenuItem(
+                          value: 'KR',
+                          child: Text('KR - Korea'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'VN',
+                          child: Text('VN - Vietnam'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'CN',
+                          child: Text('CN - China'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'TX',
+                          child: Text('TX - Texas'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'CUN',
+                          child: Text('CUN - Cancun'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'CDMX',
+                          child: Text('CDMX - Mexico City'),
+                        ),
                         const DropdownMenuItem(
                           value: '999',
-                          child: Text('999 - MERCANCIA APARTADA'),
+                          child: Text('999 - Reserved (Pending Deals)'),
                         ),
                       ],
                       onChanged: (value) {
@@ -262,10 +349,9 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                   final matchesSearch = _searchQuery.isEmpty ||
                       part.sku.toLowerCase().contains(_searchQuery) ||
                       part.name.toLowerCase().contains(_searchQuery);
-                  
-                  // All parts are from warehouse 999, so always match
+
+                  // Filter by selected warehouse
                   final matchesWarehouse = _selectedWarehouse == null ||
-                      _selectedWarehouse == '999' ||
                       part.warehouse == _selectedWarehouse;
                   
                   return matchesSearch && matchesWarehouse;
@@ -290,7 +376,7 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                         Text(
                           _searchQuery.isNotEmpty
                               ? 'Try adjusting your search'
-                              : 'No spare parts available in warehouse 999',
+                              : 'No spare parts with available stock',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.disabledColor,
                           ),
@@ -311,12 +397,17 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                     // Summary bar
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      color: theme.primaryColor.withOpacity(0.1),
+                      color: theme.primaryColor.withValues(alpha: 0.1),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '${filteredParts.length} spare parts (Warehouse 999)',
+                            '${filteredParts.length} spare parts' +
+                            (_selectedWarehouse == '999'
+                                ? ' (Reserved - Pending Deals)'
+                                : _selectedWarehouse != null
+                                    ? ' (Warehouse $_selectedWarehouse)'
+                                    : ' (All Warehouses)'),
                             style: theme.textTheme.titleMedium,
                           ),
                           Text(
@@ -344,7 +435,7 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                                 width: 48,
                                 height: 48,
                                 decoration: BoxDecoration(
-                                  color: theme.primaryColor.withOpacity(0.1),
+                                  color: theme.primaryColor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Icon(
@@ -402,13 +493,19 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                                             vertical: 2,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.amber.withOpacity(0.2),
+                                            color: part.warehouse == '999'
+                                                ? Colors.amber.withValues(alpha: 0.2)
+                                                : Colors.blue.withValues(alpha: 0.2),
                                             borderRadius: BorderRadius.circular(4),
                                           ),
                                           child: Text(
-                                            '999 - APARTADA',
+                                            part.warehouse == '999'
+                                                ? '999 - RESERVED'
+                                                : part.warehouse?.toUpperCase() ?? 'STOCK',
                                             style: theme.textTheme.bodySmall?.copyWith(
-                                              color: Colors.amber.shade700,
+                                              color: part.warehouse == '999'
+                                                  ? Colors.amber.shade700
+                                                  : Colors.blue.shade700,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),

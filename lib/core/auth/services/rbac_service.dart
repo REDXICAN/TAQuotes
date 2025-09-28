@@ -32,13 +32,20 @@ class RbacService {
     return UserRole.fromString(profile.role);
   }
 
-  /// Check if user has specific permission
+  /// Check if user has specific permission using pure RBAC
   Future<bool> hasPermission(String userId, Permission permission) async {
     try {
       final userRole = await getUserRole(userId);
-      return RolePermissions.hasPermission(userRole, permission);
+      final hasPermission = RolePermissions.hasPermission(userRole, permission);
+
+      // Log permission check for security audit
+      logPermissionCheck(userId, permission, hasPermission);
+
+      return hasPermission;
     } catch (e) {
       AppLogger.error('Error checking permission', error: e, category: LogCategory.auth);
+      // Log failed permission check
+      logPermissionCheck(userId, permission, false, additionalInfo: 'Error: ${e.toString()}');
       return false; // Deny access on error
     }
   }
@@ -175,39 +182,48 @@ class RbacService {
     }
   }
 
-  /// Check if operation requires email-based legacy admin check (for migration)
-  bool requiresLegacyAdminCheck(Permission permission) {
-    const legacyAdminPermissions = {
-      Permission.importProducts,
-      Permission.manageDatabase,
-      Permission.backupSystem,
-      Permission.restoreSystem,
-    };
+  /// Check if user has Firebase custom claims for the specified role
+  Future<bool> hasFirebaseCustomClaim(User user, String claim, dynamic expectedValue) async {
+    try {
+      final idTokenResult = await user.getIdTokenResult();
+      final claims = idTokenResult.claims;
 
-    return legacyAdminPermissions.contains(permission);
-  }
+      if (claims == null) {
+        AppLogger.warning('No custom claims found for user ${user.uid}', category: LogCategory.auth);
+        return false;
+      }
 
-  /// Legacy admin check (for backward compatibility)
-  bool isLegacyAdmin(User? user) {
-    return user?.email == 'andres@turboairmexico.com';
-  }
-
-  /// Combined permission check (RBAC + legacy)
-  Future<bool> hasPermissionWithLegacyFallback(
-    String userId,
-    Permission permission,
-    User? firebaseUser,
-  ) async {
-    // Check RBAC first
-    final hasRbacPermission = await hasPermission(userId, permission);
-
-    // For certain operations, also check legacy admin
-    if (requiresLegacyAdminCheck(permission)) {
-      final isLegacy = isLegacyAdmin(firebaseUser);
-      return hasRbacPermission || isLegacy;
+      final claimValue = claims[claim];
+      return claimValue == expectedValue;
+    } catch (e) {
+      AppLogger.error('Error checking Firebase custom claims', error: e, category: LogCategory.auth);
+      return false;
     }
+  }
 
-    return hasRbacPermission;
+  /// Validate user role against Firebase custom claims
+  Future<bool> validateRoleWithCustomClaims(String userId, UserRole expectedRole) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null || user.uid != userId) {
+        AppLogger.warning('User not authenticated or ID mismatch', category: LogCategory.auth);
+        return false;
+      }
+
+      // Check if user has the expected role in custom claims
+      final hasValidClaim = await hasFirebaseCustomClaim(user, 'role', expectedRole.value);
+
+      if (!hasValidClaim) {
+        // Fallback to database role check for users without custom claims
+        final dbRole = await getUserRole(userId);
+        return dbRole == expectedRole;
+      }
+
+      return hasValidClaim;
+    } catch (e) {
+      AppLogger.error('Error validating role with custom claims', error: e, category: LogCategory.auth);
+      return false;
+    }
   }
 
   /// Get role statistics for admin dashboard

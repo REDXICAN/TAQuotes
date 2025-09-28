@@ -116,17 +116,17 @@ class EnvConfig {
   static String get firebaseProjectId => _getEnv('FIREBASE_PROJECT_ID', 'taquotes');
   static String get firebaseDatabaseUrl => _getEnv('FIREBASE_DATABASE_URL', 'https://taquotes-default-rtdb.firebaseio.com');
   
-  // Platform-specific API Keys
-  static String get firebaseApiKeyWeb => _getEnv('FIREBASE_API_KEY_WEB');
-  static String get firebaseApiKeyAndroid => _getEnv('FIREBASE_API_KEY_ANDROID');
-  static String get firebaseApiKeyIos => _getEnv('FIREBASE_API_KEY_IOS');
-  static String get firebaseApiKeyWindows => _getEnv('FIREBASE_API_KEY_WINDOWS');
-  
-  // Platform-specific App IDs
-  static String get firebaseAppIdWeb => _getEnv('FIREBASE_APP_ID_WEB');
-  static String get firebaseAppIdAndroid => _getEnv('FIREBASE_APP_ID_ANDROID');
-  static String get firebaseAppIdIos => _getEnv('FIREBASE_APP_ID_IOS');
-  static String get firebaseAppIdWindows => _getEnv('FIREBASE_APP_ID_WINDOWS');
+  // Platform-specific API Keys - MUST be set in .env for production
+  static String get firebaseApiKeyWeb => _getEnv('FIREBASE_API_KEY_WEB', 'MISSING_WEB_API_KEY');
+  static String get firebaseApiKeyAndroid => _getEnv('FIREBASE_API_KEY_ANDROID', 'MISSING_ANDROID_API_KEY');
+  static String get firebaseApiKeyIos => _getEnv('FIREBASE_API_KEY_IOS', 'MISSING_IOS_API_KEY');
+  static String get firebaseApiKeyWindows => _getEnv('FIREBASE_API_KEY_WINDOWS', 'MISSING_WINDOWS_API_KEY');
+
+  // Platform-specific App IDs - MUST be set in .env for production
+  static String get firebaseAppIdWeb => _getEnv('FIREBASE_APP_ID_WEB', 'MISSING_WEB_APP_ID');
+  static String get firebaseAppIdAndroid => _getEnv('FIREBASE_APP_ID_ANDROID', 'MISSING_ANDROID_APP_ID');
+  static String get firebaseAppIdIos => _getEnv('FIREBASE_APP_ID_IOS', 'MISSING_IOS_APP_ID');
+  static String get firebaseAppIdWindows => _getEnv('FIREBASE_APP_ID_WINDOWS', 'MISSING_WINDOWS_APP_ID');
   
   // Common Firebase Config
   static String get firebaseAuthDomain => _getEnv('FIREBASE_AUTH_DOMAIN', 'taquotes.firebaseapp.com');

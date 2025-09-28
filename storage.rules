@@ -5,14 +5,12 @@ service firebase.storage {
     match /backups/{userId}/{fileName} {
       allow read: if request.auth != null &&
         (request.auth.uid == userId ||
-         request.auth.token.email == 'andres@turboairmexico.com' ||
-         request.auth.token.email == 'turboairquotes@gmail.com');
+         request.auth.token.role == 'superadmin');
       allow write: if request.auth != null &&
         (request.auth.uid == userId ||
-         request.auth.token.email == 'andres@turboairmexico.com' ||
-         request.auth.token.email == 'turboairquotes@gmail.com');
+         request.auth.token.role == 'superadmin');
       allow delete: if request.auth != null &&
-        (request.auth.token.email == 'andres@turboairmexico.com');
+        (request.auth.token.role == 'superadmin');
     }
 
     // Allow public read access to all other files
@@ -20,8 +18,7 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.auth != null && (
         request.auth.token.role == 'superadmin' ||
-        request.auth.token.role == 'admin' ||
-        request.auth.token.email == 'andres@turboairmexico.com'
+        request.auth.token.role == 'admin'
       );
     }
 
@@ -30,8 +27,7 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.auth != null && (
         request.auth.token.role == 'superadmin' ||
-        request.auth.token.role == 'admin' ||
-        request.auth.token.email == 'andres@turboairmexico.com'
+        request.auth.token.role == 'admin'
       );
     }
 
@@ -40,8 +36,7 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.auth != null && (
         request.auth.token.role == 'superadmin' ||
-        request.auth.token.role == 'admin' ||
-        request.auth.token.email == 'andres@turboairmexico.com'
+        request.auth.token.role == 'admin'
       );
     }
 
@@ -50,8 +45,7 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.auth != null && (
         request.auth.token.role == 'superadmin' ||
-        request.auth.token.role == 'admin' ||
-        request.auth.token.email == 'andres@turboairmexico.com'
+        request.auth.token.role == 'admin'
       );
     }
 
@@ -60,8 +54,7 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.auth != null && (
         request.auth.token.role == 'superadmin' ||
-        request.auth.token.role == 'admin' ||
-        request.auth.token.email == 'andres@turboairmexico.com'
+        request.auth.token.role == 'admin'
       );
     }
 
@@ -70,8 +63,7 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.auth != null && (
         request.auth.token.role == 'superadmin' ||
-        request.auth.token.role == 'admin' ||
-        request.auth.token.email == 'andres@turboairmexico.com'
+        request.auth.token.role == 'admin'
       );
     }
 
@@ -80,26 +72,20 @@ service firebase.storage {
       allow read: if request.auth != null && (
         request.auth.uid == userId ||
         request.auth.token.role == 'superadmin' ||
-        request.auth.token.role == 'admin' ||
-        request.auth.token.email == 'andres@turboairmexico.com'
+        request.auth.token.role == 'admin'
       );
       allow write: if request.auth != null && (
         request.auth.uid == userId ||
-        request.auth.token.role == 'superadmin' ||
-        request.auth.token.email == 'andres@turboairmexico.com'
+        request.auth.token.role == 'superadmin'
       );
     }
 
     // Backups - SuperAdmin only
     match /backups/{allPaths=**} {
-      allow read: if request.auth != null && (
-        request.auth.token.role == 'superadmin' ||
-        request.auth.token.email == 'andres@turboairmexico.com'
-      );
-      allow write: if request.auth != null && (
-        request.auth.token.role == 'superadmin' ||
-        request.auth.token.email == 'andres@turboairmexico.com'
-      );
+      allow read: if request.auth != null &&
+        request.auth.token.role == 'superadmin';
+      allow write: if request.auth != null &&
+        request.auth.token.role == 'superadmin';
     }
   }
 }

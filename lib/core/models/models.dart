@@ -1,8 +1,6 @@
 // lib/core/models/models.dart
 import '../services/app_logger.dart';
-
 import '../utils/safe_conversions.dart';
-import '../services/app_logger.dart';
 
 // Export UserRole enum
 export 'user_role.dart';

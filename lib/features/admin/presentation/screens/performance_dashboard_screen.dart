@@ -6,11 +6,42 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/models/models.dart';
-import '../../../../core/config/env_config.dart';
+import '../../../../core/auth/providers/rbac_provider.dart';
+import '../../../../core/auth/models/rbac_permissions.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/services/rbac_service.dart';
 import '../../../../core/services/app_logger.dart';
+
+// Performance Metrics Provider
+final performanceMetricsProvider = FutureProvider.family<List<UserPerformanceMetrics>, String>((ref, period) async {
+  // Mock data for now - in real app this would fetch from Firebase
+  return [
+    UserPerformanceMetrics(
+      userId: 'user1',
+      email: 'sales@turboairmexico.com',
+      displayName: 'Sales Representative',
+      totalQuotes: 45,
+      acceptedQuotes: 38,
+      pendingQuotes: 5,
+      rejectedQuotes: 2,
+      totalRevenue: 125000.0,
+      averageQuoteValue: 2777.78,
+      conversionRate: 84.4,
+      totalClients: 15,
+      newClientsThisMonth: 3,
+      lastActivity: DateTime.now().subtract(const Duration(hours: 2)),
+      quotesThisWeek: 8,
+      quotesThisMonth: 18,
+      revenueThisMonth: 45000.0,
+      productsSold: {'Refrigeration': 12, 'Freezers': 8, 'Prep Tables': 15},
+      categoryRevenue: {'Refrigeration': 65000.0, 'Freezers': 35000.0, 'Prep Tables': 25000.0},
+      recentQuotes: [],
+      averageResponseTime: 2.5,
+      totalProducts: 835,
+    ),
+  ];
+});
 
 // User performance metrics model
 class UserPerformanceMetrics {
@@ -270,12 +301,23 @@ class PerformanceDashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<PerformanceDashboardScreen> createState() => _PerformanceDashboardScreenState();
 }
 
-class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboardScreen> 
+class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboardScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String _selectedPeriod = 'month';
   String _sortBy = 'revenue';
   UserPerformanceMetrics? _selectedUser;
+
+  // Add missing getters
+  ThemeData get theme => Theme.of(context);
+  NumberFormat get numberFormat => NumberFormat('#,##0');
+  NumberFormat get currencyFormat => NumberFormat.currency(symbol: '\$');
+  bool get isMobile => MediaQuery.of(context).size.width < 600;
+
+  // Performance metrics async provider
+  AsyncValue<List<UserPerformanceMetrics>> get performanceAsync {
+    return ref.watch(performanceMetricsProvider(_selectedPeriod));
+  }
   
   @override
   void initState() {
@@ -350,11 +392,50 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
       );
     }
 
-    // Check if user is admin
-    final userEmail = currentUser.email;
-    final isAdmin = userEmail != null && EnvConfig.isSuperAdminEmail(userEmail);
+    // Check if user has permission to view performance dashboard
+    final hasPermission = ref.watch(hasPermissionProvider(Permission.viewPerformanceDashboard));
 
-    if (!isAdmin) {
+    return hasPermission.when(
+      data: (canView) {
+        if (!canView) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Access Denied'),
+              backgroundColor: Theme.of(context).colorScheme.errorContainer,
+            ),
+            body: const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.lock, size: 64, color: Colors.red),
+                  SizedBox(height: 16),
+                  Text(
+                    'You do not have permission to view the performance dashboard.',
+                    style: TextStyle(fontSize: 18),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return _buildDashboard(currentUser, ref);
+      },
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stack) => Scaffold(
+        appBar: AppBar(title: const Text('Error')),
+        body: Center(
+          child: Text('Error checking permissions: $error'),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDashboard(User currentUser, WidgetRef ref) {
+    if (false) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Performance Dashboard'),

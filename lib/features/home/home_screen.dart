@@ -7,7 +7,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/services/offline_service.dart';
 import '../../core/services/cache_manager.dart';
 import '../../core/services/app_logger.dart';
-import '../../core/config/env_config.dart';
+import '../../core/auth/providers/rbac_provider.dart';
+import '../../core/auth/models/rbac_permissions.dart';
 import '../../core/utils/responsive_helper.dart';
 import '../../core/models/models.dart';
 import '../../core/widgets/simple_image_widget.dart';
@@ -315,13 +316,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ],
                       ),
                     ),
-                    // Only show admin button for superadmin emails
-                    if (userEmail != null && EnvConfig.isSuperAdminEmail(userEmail))
-                      IconButton(
+                    // Only show admin button for users with admin panel access permission
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final hasAdminAccess = ref.watch(hasPermissionProvider(Permission.accessAdminPanel));
+                        return hasAdminAccess.when(
+                          data: (hasAccess) => hasAccess ? child! : const SizedBox.shrink(),
+                          loading: () => const SizedBox.shrink(),
+                          error: (_, __) => const SizedBox.shrink(),
+                        );
+                      },
+                      child: IconButton(
                         icon: const Icon(Icons.admin_panel_settings, color: Colors.white),
                         onPressed: () => context.go('/admin'),
                         tooltip: 'Admin Panel',
                       ),
+                    ),
                   ],
                 ),
               ),
@@ -329,9 +339,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 height: ResponsiveHelper.getSpacing(context, extraLarge: 24),
               ),
 
-              // User approval notifications for admins and superadmins
-              if (userEmail != null && EnvConfig.isSuperAdminEmail(userEmail))
-                const UserApprovalsWidget(),
+              // User approval notifications for users with approval permissions
+              Consumer(
+                builder: (context, ref, child) {
+                  final canApproveUsers = ref.watch(hasPermissionProvider(Permission.approveUsers));
+                  return canApproveUsers.when(
+                    data: (canApprove) => canApprove ? const UserApprovalsWidget() : const SizedBox.shrink(),
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  );
+                },
+              ),
 
               // Connection status
               if (!_isOnline || _syncQueueCount > 0)

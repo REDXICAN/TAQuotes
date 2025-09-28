@@ -70,6 +70,7 @@ lib/config/email_config.dart
 **/credentials.dart
 **/config/production.dart
 **/config/staging.dart
+**/config.dev.dart
 lib/config/app_config.dart
 
 # === FLUTTER/DART ===

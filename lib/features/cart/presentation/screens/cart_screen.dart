@@ -225,10 +225,12 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
     final cartClient = ref.watch(cartClientProvider);
     final clientsScreenClient = ref.watch(selectedClientProvider);
     
-    // Sync if they're different
-    if (clientsScreenClient != null && cartClient?.id != clientsScreenClient.id) {
+    // Sync if they're different (but only if cart client is null to prevent loops)
+    if (clientsScreenClient != null && cartClient == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(cartClientProvider.notifier).state = clientsScreenClient;
+        if (mounted) {
+          ref.read(cartClientProvider.notifier).state = clientsScreenClient;
+        }
       });
     }
     
@@ -430,8 +432,6 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                             selectedClient: selectedClient,
                             onClientSelected: (client) {
                               ref.read(cartClientProvider.notifier).state = client;
-                              // Also sync with clients screen
-                              ref.read(selectedClientProvider.notifier).state = client;
                             },
                             hintText: 'Search by company, contact, email, or phone...',
                             showAddButton: true,
@@ -1570,8 +1570,6 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
 
     if (client != null && mounted) {
       ref.read(cartClientProvider.notifier).state = client;
-      // Sync with clients screen toggle
-      ref.read(selectedClientProvider.notifier).state = client;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Selected client: ${client.company}'),
@@ -2158,7 +2156,6 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                 
                 // Select the new client
                 ref.read(cartClientProvider.notifier).state = newClient;
-                ref.read(selectedClientProvider.notifier).state = newClient;
                 
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(context).showSnackBar(

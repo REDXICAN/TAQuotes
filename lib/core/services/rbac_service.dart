@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../models/user_role.dart';
 import '../auth/models/rbac_permissions.dart';
-import '../config/env_config.dart';
 import 'app_logger.dart';
 
 class RBACService {
@@ -52,11 +51,7 @@ class RBACService {
       return UserRole.distributor;
     }
 
-    // Special handling for SuperAdmin emails (backward compatibility)
-    if (user.email != null && EnvConfig.isSuperAdminEmail(user.email!)) {
-      _roleCache[user.uid] = UserRole.superAdmin;
-      return UserRole.superAdmin;
-    }
+    // Get user role from database - no email-based bypasses
 
     return await getUserRole(user.uid);
   }
@@ -257,56 +252,46 @@ class RBACService {
     );
   }
 
-  /// Ensure SuperAdmin exists and has correct role in database
-  static Future<void> ensureSuperAdminRole() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user?.email != null && EnvConfig.isSuperAdminEmail(user!.email!)) {
-        final database = FirebaseDatabase.instance;
-
-        // Check if user profile exists
-        final snapshot = await database.ref('users/${user.uid}').once();
-
-        if (snapshot.snapshot.exists && snapshot.snapshot.value != null) {
-          final userData = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
-          final currentRole = userData['role'] as String? ?? '';
-
-          // Update to SuperAdmin if not already set
-          if (currentRole != 'superadmin') {
-            await database.ref('users/${user.uid}/role').set('superadmin');
-            AppLogger.info('SuperAdmin role assigned to ${user.email}');
-          }
-        } else {
-          // Create SuperAdmin profile if doesn't exist
-          // Use a generic name for non-primary superadmins
-          String displayName = user.displayName ?? 'SuperAdmin User';
-          if (user.email == 'andres@turboairmexico.com') {
-            displayName = user.displayName ?? 'Andres Gomez';
-          } else if (user.email == 'carlos@turboairinc.com') {
-            displayName = user.displayName ?? 'Carlos Rodriguez';
-          }
-
-          await database.ref('users/${user.uid}').set({
-            'email': user.email,
-            'name': displayName,
-            'role': 'superadmin',
-            'status': 'active',
-            'createdAt': DateTime.now().toIso8601String(),
-          });
-          AppLogger.info('SuperAdmin profile created for ${user.email}');
-        }
-
-        // Update cache
-        _roleCache[user.uid] = UserRole.superAdmin;
-      }
-    } catch (e) {
-      AppLogger.error('Error ensuring SuperAdmin role', error: e);
-    }
-  }
 
   /// Clear role cache (useful for testing or when user logs out)
   static void clearCache() {
     _roleCache.clear();
+  }
+
+  /// Ensure super admin role exists for the current user
+  static Future<void> ensureSuperAdminRole() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        AppLogger.warning('No authenticated user found for super admin role setup');
+        return;
+      }
+
+      // Check if user is already super admin
+      final currentRole = await getUserRole(user.uid);
+      if (currentRole == UserRole.superAdmin) {
+        AppLogger.debug('User ${user.uid} already has super admin role');
+        return;
+      }
+
+      // Update user role to super admin
+      final database = FirebaseDatabase.instance;
+      await database.ref('users/${user.uid}').update({
+        'role': UserRole.superAdmin.value,
+        'updated_at': DateTime.now().toIso8601String(),
+        'updated_by': 'system',
+      });
+
+      // Clear cache to force refresh
+      _roleCache.remove(user.uid);
+
+      AppLogger.info(
+        'Super admin role ensured for user ${user.uid}',
+        category: LogCategory.auth,
+      );
+    } catch (e) {
+      AppLogger.error('Error ensuring super admin role', error: e, category: LogCategory.auth);
+    }
   }
 
   /// Clear cache for specific user

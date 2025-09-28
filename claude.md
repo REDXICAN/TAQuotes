@@ -1,7 +1,64 @@
 # Turbo Air Quotes (TAQ) - Development Documentation
 
-## 🚨 CRITICAL: NEVER HARDCODE CREDENTIALS
-**VIOLATION COUNT: 5** - Use environment variables ONLY. No passwords, emails, or API keys in code.
+## 🚨 ABSOLUTELY CRITICAL - READ FIRST
+
+### ⛔ NEVER HARDCODE CREDENTIALS
+**VIOLATION COUNT: 6 TIMES** - UNACCEPTABLE!
+
+**CREDENTIAL RULES:**
+1. NEVER hardcode passwords/emails/API keys in ANY file
+2. Use environment variables ONLY (.env file)
+3. Never commit credentials to git
+4. No default values for sensitive data
+5. No credentials in comments
+
+```dart
+// ✅ CORRECT
+static String get emailAppPassword => dotenv.env['EMAIL_APP_PASSWORD'] ?? '';
+// ❌ WRONG - NEVER DO THIS
+static String get emailAppPassword => 'any_password_here'; // NEVER!
+```
+
+### 🔐 SECURITY VIOLATIONS PREVENTION
+
+**BEFORE CREATING ANY FILE:**
+1. Check if it contains API keys, passwords, emails
+2. Use .env variables for ALL sensitive data
+3. Never create temporary scripts with credentials
+4. Never create HTML files with Firebase config
+5. Never create .dart/.js/.py files with hardcoded secrets
+
+**FORBIDDEN PATTERNS:**
+```javascript
+// ❌ NEVER DO THIS
+const firebaseConfig = {
+  apiKey: "AIzaSy...", // NEVER HARDCODE
+  authDomain: "taquotes.firebaseapp.com", // NEVER HARDCODE
+};
+
+// ❌ NEVER DO THIS
+await signInWithEmailAndPassword(auth, "email@example.com", "password");
+
+// ❌ NEVER DO THIS IN DART
+FirebaseOptions(
+  apiKey: "AIzaSy...", // NEVER!
+  authDomain: "taquotes.firebaseapp.com", // NEVER!
+);
+```
+
+**ALWAYS CHECK BEFORE COMMIT:**
+```bash
+# Run these checks before EVERY commit:
+git diff --cached | grep -E "(AIzaSy|@gmail\.com|@turboairmexico|password|PASSWORD)"
+git status --porcelain | grep -E "\.(html|js|py|dart)$"
+```
+
+**FILES THAT MUST NEVER BE CREATED:**
+- populate_stock.html
+- firebase_config.js
+- setup_admin.py
+- Any file with Firebase configuration
+- Any file with email/password combinations
 
 ## 🚀 Production Status: LIVE
 - **URL**: https://taquotes.web.app
@@ -1123,5 +1180,34 @@ final newProvider = StreamProvider.autoDispose<Data>((ref) {
 - Core functionality
 - Basic CRUD operations
 
+## 🔴 SECURITY INCIDENTS - LESSONS LEARNED
+
+### Incident Log (MUST READ):
+1. **Aug 27, 2024**: Complete database deletion - wrong Firebase import path
+2. **Aug 26, 2024**: Development environment broken - incorrect configuration
+3. **Jan 26, 2025 (Incident #6)**: Committed Firebase API keys and credentials to GitHub
+   - Created populate_stock_firebase.dart with hardcoded Firebase config
+   - Exposed API keys: AIzaSyC7AcT-HA8zNQ4kzN-EIskpTL8AqERK78M
+   - Had to force-push to clean Git history
+
+### TRUST STATUS: ⚠️ COMPROMISED
+**Mandatory Extra Precautions:**
+1. Double-check EVERY file before creation
+2. NEVER create scripts with Firebase config
+3. Always use environment variables
+4. Review git diff before EVERY commit
+5. Run security checks before push
+
+### Pre-Commit Security Checklist:
+```bash
+# MUST RUN BEFORE EVERY COMMIT:
+echo "=== SECURITY CHECK ==="
+git diff --cached | grep -E "(apiKey|authDomain|projectId|messagingSenderId|appId)"
+git diff --cached | grep -E "(@gmail|@turboairmexico|password|PASSWORD)"
+git ls-files | grep -E "(populate_stock|firebase_config|setup_admin)"
+echo "=== If any output above, DO NOT COMMIT ==="
+```
+
 ---
 **Version**: 1.5.3 | **Last Updated**: January 2025 | **Status**: PRODUCTION LIVE
+**Security Violations**: 6 | **Trust Level**: COMPROMISED | **Extra Caution Required**: YES

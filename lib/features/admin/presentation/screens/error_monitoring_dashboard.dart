@@ -5,7 +5,8 @@ import 'package:intl/intl.dart';
 import 'dart:typed_data';
 import 'dart:convert';
 import '../../../../core/services/error_monitoring_service.dart';
-import '../../../../core/config/env_config.dart';
+import '../../../../core/auth/providers/rbac_provider.dart';
+import '../../../../core/auth/models/rbac_permissions.dart';
 import '../../../../core/utils/download_helper.dart';
 
 // Provider for error monitoring service
@@ -75,26 +76,25 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
   }
 
   void _checkAdminAccess() {
-    // Check if user is admin
-    final userEmail = ref.read(errorMonitoringProvider).userEmail;
-    final isAdmin = userEmail != null && EnvConfig.isSuperAdminEmail(userEmail);
-
-    if (!isAdmin) {
-      // Not admin - BLOCK ACCESS
-      Future.microtask(() {
-        if (mounted) {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Access Denied: Admin privileges required for Error Monitoring.'),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 3),
-            ),
-          );
-        }
-      });
-      return;
-    }
+    // Check if user has permission to view system logs
+    ref.read(hasPermissionProvider(Permission.viewSystemLogs).future).then((hasPermission) {
+      if (!hasPermission) {
+        // No permission - BLOCK ACCESS
+        Future.microtask(() {
+          if (mounted) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Access Denied: Admin privileges required for Error Monitoring.'),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+        });
+        return;
+      }
+    });
 
     setState(() {
       _hasAccess = true;
