@@ -1155,239 +1155,86 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                                     Consumer(
                                       builder: (context, ref, child) {
                                         final projectsAsync = ref.watch(clientProjectsProvider(client.id!));
-                                        
+
                                         return projectsAsync.when(
                                           data: (projects) {
-                                            if (projects.isEmpty) {
-                                              return Container(
-                                                padding: const EdgeInsets.all(16),
-                                                decoration: BoxDecoration(
-                                                  color: theme.disabledColor.withOpacity(0.1),
-                                                  borderRadius: BorderRadius.circular(8),
+                                            return Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                // Add Project Button
+                                                Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: Text(
+                                                        'Projects',
+                                                        style: theme.textTheme.titleMedium?.copyWith(
+                                                          fontWeight: FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    ElevatedButton.icon(
+                                                      onPressed: () => _showCreateProjectDialog(client),
+                                                      icon: const Icon(Icons.add, size: 16),
+                                                      label: const Text('Create Project'),
+                                                      style: ElevatedButton.styleFrom(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                        textStyle: const TextStyle(fontSize: 12),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                                child: Center(
-                                                  child: Column(
-                                                    mainAxisAlignment: MainAxisAlignment.center,
-                                                    children: [
-                                                      Icon(
-                                                        Icons.folder_outlined,
-                                                        size: 48,
-                                                        color: theme.disabledColor,
-                                                      ),
-                                                      const SizedBox(height: 8),
-                                                      Text(
-                                                        'No projects yet',
-                                                        style: TextStyle(
-                                                          color: theme.disabledColor,
-                                                          fontStyle: FontStyle.italic,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(height: 4),
-                                                      Text(
-                                                        'Projects will appear when quotes are created',
-                                                        style: TextStyle(
-                                                          color: theme.disabledColor.withOpacity(0.7),
-                                                          fontSize: 12,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              );
-                                            }
-                                            
-                                            return ListView.builder(
-                                              shrinkWrap: true,
-                                              itemCount: projects.length,
-                                              itemBuilder: (context, index) {
-                                                final project = projects[index];
-                                                final dateFormat = DateFormat('MMM dd, yyyy');
-                                                final createdAt = project['createdAt'] != null
-                                                    ? DateTime.fromMillisecondsSinceEpoch(project['createdAt'])
-                                                    : DateTime.now();
-                                                
-                                                return Card(
-                                                  margin: const EdgeInsets.only(bottom: 8),
-                                                  child: Theme(
-                                                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                                                    child: ExpansionTile(
-                                                      initiallyExpanded: false,
-                                                      tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                                      childrenPadding: const EdgeInsets.all(12),
-                                                      leading: Container(
-                                                        padding: const EdgeInsets.all(8),
-                                                        decoration: BoxDecoration(
-                                                          color: _getProjectStatusColor(project['status']).withOpacity(0.1),
-                                                          borderRadius: BorderRadius.circular(8),
-                                                        ),
-                                                        child: Icon(
-                                                          Icons.folder,
-                                                          color: _getProjectStatusColor(project['status']),
-                                                          size: 20,
-                                                        ),
-                                                      ),
-                                                      title: Row(
+                                                const SizedBox(height: 12),
+
+                                                // Projects List or Empty State
+                                                if (projects.isEmpty)
+                                                  Container(
+                                                    padding: const EdgeInsets.all(16),
+                                                    decoration: BoxDecoration(
+                                                      color: theme.disabledColor.withOpacity(0.1),
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: Center(
+                                                      child: Column(
+                                                        mainAxisAlignment: MainAxisAlignment.center,
                                                         children: [
-                                                          Expanded(
-                                                            child: Text(
-                                                              project['name'] ?? 'Unnamed Project',
-                                                              style: const TextStyle(fontWeight: FontWeight.w600),
-                                                              overflow: TextOverflow.ellipsis,
+                                                          Icon(
+                                                            Icons.folder_outlined,
+                                                            size: 48,
+                                                            color: theme.disabledColor,
+                                                          ),
+                                                          const SizedBox(height: 8),
+                                                          Text(
+                                                            'No projects yet',
+                                                            style: TextStyle(
+                                                              color: theme.disabledColor,
+                                                              fontStyle: FontStyle.italic,
                                                             ),
                                                           ),
-                                                          const SizedBox(width: 8),
-                                                          Container(
-                                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                                            decoration: BoxDecoration(
-                                                              color: _getProjectStatusColor(project['status']).withOpacity(0.2),
-                                                              borderRadius: BorderRadius.circular(12),
-                                                            ),
-                                                            child: Text(
-                                                              project['status'] ?? 'active',
-                                                              style: TextStyle(
-                                                                fontSize: 10,
-                                                                color: _getProjectStatusColor(project['status']),
-                                                                fontWeight: FontWeight.bold,
-                                                              ),
+                                                          const SizedBox(height: 4),
+                                                          Text(
+                                                            'Create your first project for this client',
+                                                            style: TextStyle(
+                                                              color: theme.disabledColor.withOpacity(0.7),
+                                                              fontSize: 12,
                                                             ),
                                                           ),
                                                         ],
                                                       ),
-                                                      subtitle: Text(
-                                                        'Created ${dateFormat.format(createdAt)}',
-                                                        style: theme.textTheme.bodySmall,
-                                                      ),
-                                                      children: [
-                                                        // Project Details
-                                                        Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            if (project['description'] != null && project['description'].toString().isNotEmpty) ...[
-                                                              Row(
-                                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                                children: [
-                                                                  Icon(Icons.description, size: 14, color: theme.disabledColor),
-                                                                  const SizedBox(width: 4),
-                                                                  Expanded(
-                                                                    child: Text(
-                                                                      project['description'],
-                                                                      style: theme.textTheme.bodySmall,
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                              const SizedBox(height: 12),
-                                                            ],
-                                                            
-                                                            // Load project quotes
-                                                            FutureBuilder<List<Quote>>(
-                                                              future: _loadProjectQuotes(project['id']),
-                                                              builder: (context, snapshot) {
-                                                                if (snapshot.connectionState == ConnectionState.waiting) {
-                                                                  return const Center(
-                                                                    child: Padding(
-                                                                      padding: EdgeInsets.all(8.0),
-                                                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                                                    ),
-                                                                  );
-                                                                }
-                                                                
-                                                                final projectQuotes = snapshot.data ?? [];
-                                                                
-                                                                if (projectQuotes.isEmpty) {
-                                                                  return Container(
-                                                                    padding: const EdgeInsets.all(12),
-                                                                    decoration: BoxDecoration(
-                                                                      color: theme.disabledColor.withOpacity(0.05),
-                                                                      borderRadius: BorderRadius.circular(8),
-                                                                    ),
-                                                                    child: Row(
-                                                                      children: [
-                                                                        Icon(Icons.info_outline, size: 14, color: theme.disabledColor),
-                                                                        const SizedBox(width: 8),
-                                                                        Text(
-                                                                          'No quotes in this project yet',
-                                                                          style: TextStyle(
-                                                                            color: theme.disabledColor,
-                                                                            fontSize: 12,
-                                                                          ),
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                  );
-                                                                }
-                                                                
-                                                                return Column(
-                                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                                  children: [
-                                                                    Row(
-                                                                      children: [
-                                                                        Icon(Icons.receipt_long, size: 14, color: theme.disabledColor),
-                                                                        const SizedBox(width: 4),
-                                                                        Text(
-                                                                          '${projectQuotes.length} quote${projectQuotes.length != 1 ? 's' : ''}',
-                                                                          style: theme.textTheme.bodySmall?.copyWith(
-                                                                            fontWeight: FontWeight.w500,
-                                                                          ),
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                    const SizedBox(height: 8),
-                                                                    ...projectQuotes.map((quote) {
-                                                                      final currencyFormat = NumberFormat.currency(symbol: '\$');
-                                                                      return InkWell(
-                                                                        onTap: () {
-                                                                          context.push('/quotes/${quote.id}');
-                                                                        },
-                                                                        child: Container(
-                                                                          padding: const EdgeInsets.all(8),
-                                                                          margin: const EdgeInsets.only(bottom: 4),
-                                                                          decoration: BoxDecoration(
-                                                                            color: theme.cardColor,
-                                                                            borderRadius: BorderRadius.circular(4),
-                                                                            border: Border.all(color: theme.dividerColor),
-                                                                          ),
-                                                                          child: Row(
-                                                                            children: [
-                                                                              Expanded(
-                                                                                child: Text(
-                                                                                  '#${quote.quoteNumber ?? 'N/A'}',
-                                                                                  style: const TextStyle(
-                                                                                    fontSize: 12,
-                                                                                    fontWeight: FontWeight.w500,
-                                                                                  ),
-                                                                                ),
-                                                                              ),
-                                                                              Text(
-                                                                                currencyFormat.format(quote.totalAmount),
-                                                                                style: TextStyle(
-                                                                                  fontSize: 12,
-                                                                                  color: theme.primaryColor,
-                                                                                  fontWeight: FontWeight.bold,
-                                                                                ),
-                                                                              ),
-                                                                              const SizedBox(width: 8),
-                                                                              Icon(
-                                                                                Icons.arrow_forward_ios,
-                                                                                size: 12,
-                                                                                color: theme.disabledColor,
-                                                                              ),
-                                                                            ],
-                                                                          ),
-                                                                        ),
-                                                                      );
-                                                                    }),
-                                                                  ],
-                                                                );
-                                                              },
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ],
+                                                    ),
+                                                  )
+                                                else
+                                                  // Project Cards
+                                                  Expanded(
+                                                    child: ListView.builder(
+                                                      shrinkWrap: true,
+                                                      itemCount: projects.length,
+                                                      itemBuilder: (context, index) {
+                                                        final project = projects[index];
+                                                        return _buildProjectCard(context, theme, project, client);
+                                                      },
                                                     ),
                                                   ),
-                                                );
-                                              },
+                                              ],
                                             );
                                           },
                                           loading: () => const Center(
@@ -1935,6 +1782,555 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
           ),
         );
       }
+    }
+  }
+
+  // Build project card widget
+  Widget _buildProjectCard(BuildContext context, ThemeData theme, Map<String, dynamic> project, Client client) {
+    final dateFormat = DateFormat('MMM dd, yyyy');
+    final createdAt = project['createdAt'] != null
+        ? DateTime.fromMillisecondsSinceEpoch(project['createdAt'])
+        : DateTime.now();
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Project Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: _getProjectStatusColor(project['status']).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(
+                    Icons.folder,
+                    color: _getProjectStatusColor(project['status']),
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    project['name'] ?? 'Unnamed Project',
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                // Status Tag
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _getProjectStatusColor(project['status']).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    project['status'] ?? 'active',
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: _getProjectStatusColor(project['status']),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Action Buttons
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      onPressed: () => _showEditProjectDialog(project, client),
+                      icon: const Icon(Icons.edit, size: 16),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      tooltip: 'Edit Project',
+                    ),
+                    IconButton(
+                      onPressed: () => _deleteProject(project['id'], project['name']),
+                      icon: const Icon(Icons.delete, size: 16, color: Colors.red),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      tooltip: 'Delete Project',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            // Project Metadata
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                // Created Date Tag
+                _buildMetadataTag(
+                  icon: Icons.calendar_today,
+                  label: dateFormat.format(createdAt),
+                  color: Colors.blue,
+                ),
+
+                // Product Lines Tags
+                if (project['productLines'] != null && project['productLines'] is List && (project['productLines'] as List).isNotEmpty)
+                  ...(project['productLines'] as List).take(3).map((line) => _buildMetadataTag(
+                    icon: Icons.category,
+                    label: line.toString(),
+                    color: Colors.green,
+                  )),
+
+                // Salesman Tag
+                if (project['salesRepName'] != null && project['salesRepName'].toString().isNotEmpty)
+                  _buildMetadataTag(
+                    icon: Icons.person,
+                    label: project['salesRepName'],
+                    color: Colors.purple,
+                  ),
+
+                // Estimated Value Tag
+                if (project['estimatedValue'] != null && project['estimatedValue'] > 0)
+                  _buildMetadataTag(
+                    icon: Icons.attach_money,
+                    label: NumberFormat.currency(symbol: '\$').format(project['estimatedValue']),
+                    color: Colors.orange,
+                  ),
+              ],
+            ),
+
+            // Description if available
+            if (project['description'] != null && project['description'].toString().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.description, size: 14, color: theme.disabledColor),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      project['description'],
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontStyle: FontStyle.italic,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+
+            // Quote count
+            const SizedBox(height: 8),
+            FutureBuilder<List<Quote>>(
+              future: _loadProjectQuotes(project['id']),
+              builder: (context, snapshot) {
+                final quoteCount = snapshot.data?.length ?? 0;
+                return _buildMetadataTag(
+                  icon: Icons.receipt_long,
+                  label: '$quoteCount quote${quoteCount != 1 ? 's' : ''}',
+                  color: Colors.teal,
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetadataTag({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: color.withOpacity(0.8),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Show create project dialog
+  void _showCreateProjectDialog(Client client) {
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final productLinesController = TextEditingController();
+    final salesRepController = TextEditingController();
+    final estimatedValueController = TextEditingController();
+    String selectedStatus = 'active';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Create Project for ${client.company}'),
+        content: SizedBox(
+          width: 400,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Project Name *',
+                    prefixIcon: Icon(Icons.folder),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    prefixIcon: Icon(Icons.description),
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: productLinesController,
+                  decoration: const InputDecoration(
+                    labelText: 'Product Lines (comma separated)',
+                    prefixIcon: Icon(Icons.category),
+                    hintText: 'HVAC, Refrigeration, Ventilation',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: salesRepController,
+                  decoration: const InputDecoration(
+                    labelText: 'Salesman in Charge',
+                    prefixIcon: Icon(Icons.person),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: estimatedValueController,
+                  decoration: const InputDecoration(
+                    labelText: 'Estimated Value (\$)',
+                    prefixIcon: Icon(Icons.attach_money),
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: selectedStatus,
+                  decoration: const InputDecoration(
+                    labelText: 'Status',
+                    prefixIcon: Icon(Icons.flag),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'planning', child: Text('Planning')),
+                    DropdownMenuItem(value: 'active', child: Text('Active')),
+                    DropdownMenuItem(value: 'on-hold', child: Text('On Hold')),
+                    DropdownMenuItem(value: 'completed', child: Text('Completed')),
+                  ],
+                  onChanged: (value) => selectedStatus = value ?? 'active',
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Project name is required'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              try {
+                final dbService = ref.read(databaseServiceProvider);
+                final user = ref.read(currentUserProvider);
+
+                final productLines = productLinesController.text
+                    .split(',')
+                    .map((e) => e.trim())
+                    .where((e) => e.isNotEmpty)
+                    .toList();
+
+                final estimatedValue = estimatedValueController.text.isNotEmpty
+                    ? double.tryParse(estimatedValueController.text)
+                    : null;
+
+                await dbService.createProject(
+                  name: nameController.text.trim(),
+                  clientId: client.id!,
+                  description: descriptionController.text.trim().isEmpty
+                      ? null
+                      : descriptionController.text.trim(),
+                  status: selectedStatus,
+                );
+
+                // Update with additional fields that the createProject method doesn't support
+                final projects = await dbService.getProjects(clientId: client.id!).first;
+                if (projects.isNotEmpty) {
+                  final latestProject = projects.first;
+                  await dbService.updateProject(latestProject['id'], {
+                    'productLines': productLines,
+                    'salesRepName': salesRepController.text.trim().isEmpty
+                        ? null
+                        : salesRepController.text.trim(),
+                    'salesRepId': user?.uid,
+                    'estimatedValue': estimatedValue,
+                    'clientName': client.company,
+                    'address': client.address ?? '',
+                  });
+                }
+
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Project created successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error creating project: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Show edit project dialog
+  void _showEditProjectDialog(Map<String, dynamic> project, Client client) {
+    final nameController = TextEditingController(text: project['name'] ?? '');
+    final descriptionController = TextEditingController(text: project['description'] ?? '');
+    final productLinesController = TextEditingController(
+      text: project['productLines'] is List
+          ? (project['productLines'] as List).join(', ')
+          : '',
+    );
+    final salesRepController = TextEditingController(text: project['salesRepName'] ?? '');
+    final estimatedValueController = TextEditingController(
+      text: project['estimatedValue'] != null
+          ? project['estimatedValue'].toString()
+          : '',
+    );
+    String selectedStatus = project['status'] ?? 'active';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Project'),
+        content: SizedBox(
+          width: 400,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Project Name *',
+                    prefixIcon: Icon(Icons.folder),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    prefixIcon: Icon(Icons.description),
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: productLinesController,
+                  decoration: const InputDecoration(
+                    labelText: 'Product Lines (comma separated)',
+                    prefixIcon: Icon(Icons.category),
+                    hintText: 'HVAC, Refrigeration, Ventilation',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: salesRepController,
+                  decoration: const InputDecoration(
+                    labelText: 'Salesman in Charge',
+                    prefixIcon: Icon(Icons.person),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: estimatedValueController,
+                  decoration: const InputDecoration(
+                    labelText: 'Estimated Value (\$)',
+                    prefixIcon: Icon(Icons.attach_money),
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: selectedStatus,
+                  decoration: const InputDecoration(
+                    labelText: 'Status',
+                    prefixIcon: Icon(Icons.flag),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'planning', child: Text('Planning')),
+                    DropdownMenuItem(value: 'active', child: Text('Active')),
+                    DropdownMenuItem(value: 'on-hold', child: Text('On Hold')),
+                    DropdownMenuItem(value: 'completed', child: Text('Completed')),
+                  ],
+                  onChanged: (value) => selectedStatus = value ?? 'active',
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Project name is required'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              try {
+                final dbService = ref.read(databaseServiceProvider);
+                final user = ref.read(currentUserProvider);
+
+                final productLines = productLinesController.text
+                    .split(',')
+                    .map((e) => e.trim())
+                    .where((e) => e.isNotEmpty)
+                    .toList();
+
+                final estimatedValue = estimatedValueController.text.isNotEmpty
+                    ? double.tryParse(estimatedValueController.text)
+                    : null;
+
+                await dbService.updateProject(project['id'], {
+                  'name': nameController.text.trim(),
+                  'description': descriptionController.text.trim().isEmpty
+                      ? null
+                      : descriptionController.text.trim(),
+                  'status': selectedStatus,
+                  'productLines': productLines,
+                  'salesRepName': salesRepController.text.trim().isEmpty
+                      ? null
+                      : salesRepController.text.trim(),
+                  'salesRepId': user?.uid,
+                  'estimatedValue': estimatedValue,
+                  'clientName': client.company,
+                  'address': client.address ?? '',
+                });
+
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Project updated successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error updating project: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Delete project
+  Future<void> _deleteProject(String projectId, String? projectName) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Project'),
+        content: Text('Are you sure you want to delete "${projectName ?? 'this project'}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final dbService = ref.read(databaseServiceProvider);
+      await dbService.deleteProject(projectId);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Project deleted successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error deleting project: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

@@ -226,7 +226,6 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
         '/admin',
         '/',
         '/clients',
-        '/projects',
         '/products',
         '/cart',
         '/quotes',
@@ -238,7 +237,6 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
       return [
         '/',
         '/clients',
-        '/projects',
         '/products',
         '/cart',
         '/quotes',
@@ -360,13 +358,14 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             label: Text('Clients'),
           ));
           break;
-        case '/projects':
-          destinations.add(const NavigationRailDestination(
-            icon: Icon(Icons.folder_outlined),
-            selectedIcon: Icon(Icons.folder),
-            label: Text('Projects'),
-          ));
-          break;
+        // Projects removed from navigation - keeping route definition for future use
+        // case '/projects':
+        //   destinations.add(const NavigationRailDestination(
+        //     icon: Icon(Icons.folder_outlined),
+        //     selectedIcon: Icon(Icons.folder),
+        //     label: Text('Projects'),
+        //   ));
+        //   break;
         case '/products':
           destinations.add(const NavigationRailDestination(
             icon: Icon(Icons.inventory_2_outlined),
@@ -449,13 +448,14 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             label: 'Clients',
           ));
           break;
-        case '/projects':
-          destinations.add(const NavigationDestination(
-            icon: Icon(Icons.folder_outlined),
-            selectedIcon: Icon(Icons.folder),
-            label: 'Projects',
-          ));
-          break;
+        // Projects removed from navigation - keeping route definition for future use
+        // case '/projects':
+        //   destinations.add(const NavigationDestination(
+        //     icon: Icon(Icons.folder_outlined),
+        //     selectedIcon: Icon(Icons.folder),
+        //     label: 'Projects',
+        //   ));
+        //   break;
         case '/products':
           destinations.add(const NavigationDestination(
             icon: Icon(Icons.inventory_2_outlined),
