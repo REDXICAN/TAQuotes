@@ -56,23 +56,24 @@ class ErrorMonitoringDashboard extends ConsumerStatefulWidget {
   ConsumerState<ErrorMonitoringDashboard> createState() => _ErrorMonitoringDashboardState();
 }
 
-class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashboard>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashboard> {
   ErrorSeverity? _selectedSeverity;
   ErrorCategory? _selectedCategory;
   bool _showUnresolvedOnly = false;
   String _searchQuery = '';
   final _searchController = TextEditingController();
   bool _hasAccess = false;
-  bool _isErrorListExpanded = false;
   String _errorSortBy = 'timestamp'; // 'timestamp', 'severity', 'category'
+  int _currentPage = 0;
+  static const int _pageSize = 20;
+  bool _isLoading = false;
+  DateTime? _lastRefresh;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     _checkAdminAccess();
+    _lastRefresh = DateTime.now();
   }
 
   void _checkAdminAccess() {
@@ -103,7 +104,6 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
 
   @override
   void dispose() {
-    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -214,25 +214,16 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
         title: const Text('Error Monitoring Dashboard'),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(text: 'Overview', icon: Icon(Icons.dashboard)),
-            Tab(text: 'Errors', icon: Icon(Icons.error_outline)),
-            Tab(text: 'Analytics', icon: Icon(Icons.analytics)),
-          ],
-        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () {
-              ref.invalidate(errorStatisticsProvider);
-              ref.invalidate(errorsStreamProvider);
-            },
+            onPressed: _refreshData,
             tooltip: 'Refresh',
+          ),
+          IconButton(
+            icon: const Icon(Icons.download),
+            onPressed: () => _showExportDialog(),
+            tooltip: 'Export',
           ),
           IconButton(
             icon: const Icon(Icons.clear_all),
@@ -241,14 +232,7 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
           ),
         ],
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildOverviewTab(),
-          _buildErrorsTab(),
-          _buildAnalyticsTab(),
-        ],
-      ),
+      body: _buildSingleScreenDashboard(),
     );
   }
 
