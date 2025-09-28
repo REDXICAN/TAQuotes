@@ -45,6 +45,46 @@ final productCountProvider = FutureProvider.autoDispose<int>((ref) async {
   return data.keys.length;
 });
 
+// Provider for paginated users with caching
+final paginatedUsersProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic>>, int>((ref, page) async {
+  const pageSize = 50;
+
+  final snapshot = await FirebaseDatabase.instance
+      .ref('users')
+      .once();
+
+  if (snapshot.snapshot.value == null) return [];
+
+  final data = snapshot.snapshot.value as Map<dynamic, dynamic>;
+  final users = <Map<String, dynamic>>[];
+
+  data.forEach((key, value) {
+    final userData = Map<String, dynamic>.from(value as Map);
+    userData['uid'] = key;
+    users.add(userData);
+  });
+
+  // Sort users by email
+  users.sort((a, b) => (a['email'] as String? ?? '').compareTo(b['email'] as String? ?? ''));
+
+  // Apply pagination
+  final startIndex = page * pageSize;
+  final endIndex = (startIndex + pageSize).clamp(0, users.length);
+
+  return users.sublist(startIndex.clamp(0, users.length), endIndex);
+});
+
+// Provider for total user count
+final userCountProvider = FutureProvider.autoDispose<int>((ref) async {
+  final snapshot = await FirebaseDatabase.instance
+      .ref('users')
+      .once();
+
+  if (snapshot.snapshot.value == null) return 0;
+  final data = snapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
+  return data.keys.length;
+});
+
 class OptimizedDatabaseManagementScreen extends ConsumerStatefulWidget {
   const OptimizedDatabaseManagementScreen({super.key});
 
@@ -60,6 +100,7 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
   String _selectedCategory = 'All';
   bool _isLoading = false;
   int _currentPage = 0;
+  int _currentUserPage = 0;
   static const int _pageSize = 50;
   bool _initialLoadComplete = false;
 
@@ -810,190 +851,345 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
   }
 
   Widget _buildUsersTab() {
-    return StreamBuilder<DatabaseEvent>(
-      stream: FirebaseDatabase.instance.ref('users').onValue,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Loading users...'),
-              ],
-            ),
-          );
-        }
+    final userCountAsync = ref.watch(userCountProvider);
+    final usersAsync = ref.watch(paginatedUsersProvider(_currentUserPage));
 
-        final event = snapshot.data!;
-        if (event.snapshot.value == null) {
-          return const Center(child: Text('No users found'));
-        }
-
-        final data = event.snapshot.value as Map<dynamic, dynamic>;
-        final users = <Map<String, dynamic>>[];
-
-        data.forEach((key, value) {
-          final userData = Map<String, dynamic>.from(value as Map);
-          userData['uid'] = key;
-          users.add(userData);
-        });
-
-        // Apply search filter
-        var filteredUsers = users;
-        if (_searchQuery.isNotEmpty) {
-          final query = _searchQuery.toLowerCase();
-          filteredUsers = users.where((u) =>
-            (u['email'] as String?)?.toLowerCase().contains(query) == true ||
-            (u['displayName'] as String?)?.toLowerCase().contains(query) == true ||
-            (u['role'] as String?)?.toLowerCase().contains(query) == true
-          ).toList();
-        }
-
-        return Column(
-          children: [
-            // Search bar
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search users...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+    return Column(
+      children: [
+        // Search and filter bar
+        Container(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search users...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  onChanged: (value) {
+                    setState(() => _searchQuery = value);
+                  },
                 ),
-                onChanged: (value) {
-                  setState(() => _searchQuery = value);
-                },
               ),
-            ),
+              const SizedBox(width: 16),
+              userCountAsync.when(
+                data: (count) => Chip(
+                  label: Text('$count users'),
+                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                ),
+                loading: () => const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                error: (_, __) => const Chip(label: Text('Error')),
+              ),
+            ],
+          ),
+        ),
 
-            // Users table
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SingleChildScrollView(
-                  child: DataTable(
-                    columns: const [
-                      DataColumn(label: Text('Email')),
-                      DataColumn(label: Text('Name')),
-                      DataColumn(label: Text('Role')),
-                      DataColumn(label: Text('Created')),
-                      DataColumn(label: Text('Last Login')),
-                      DataColumn(label: Text('Status')),
-                      DataColumn(label: Text('Actions')),
+        // Users table
+        Expanded(
+          child: usersAsync.when(
+            data: (users) {
+              // Apply search filter
+              var filteredUsers = users;
+              if (_searchQuery.isNotEmpty) {
+                final query = _searchQuery.toLowerCase();
+                filteredUsers = users.where((u) =>
+                  (u['email'] as String?)?.toLowerCase().contains(query) == true ||
+                  (u['displayName'] as String?)?.toLowerCase().contains(query) == true ||
+                  (u['role'] as String?)?.toLowerCase().contains(query) == true
+                ).toList();
+              }
+
+              if (filteredUsers.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
+                      const SizedBox(height: 16),
+                      Text(
+                        _searchQuery.isEmpty ? 'No users found' : 'No users match your search',
+                        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                      ),
                     ],
-                    rows: filteredUsers.map((user) {
-                      final isEditing = _editingUsers.contains(user['uid']);
-                      final createdAt = user['createdAt'] != null
-                          ? DateTime.parse(user['createdAt'].toString())
-                          : null;
-                      final lastLogin = user['lastLoginAt'] != null
-                          ? DateTime.parse(user['lastLoginAt'].toString())
-                          : null;
-
-                      return DataRow(
-                        cells: [
-                          DataCell(Text(user['email'] ?? '')),
-                          DataCell(
-                            isEditing
-                              ? SizedBox(
-                                  width: 150,
-                                  child: TextFormField(
-                                    controller: _getUserController(
-                                      user['uid'],
-                                      'displayName',
-                                      user['displayName'] ?? '',
-                                    ),
-                                    decoration: const InputDecoration(isDense: true),
-                                  ),
-                                )
-                              : Text(user['displayName'] ?? '-'),
-                          ),
-                          DataCell(
-                            isEditing
-                              ? DropdownButton<String>(
-                                  value: user['role'] ?? 'user',
-                                  isDense: true,
-                                  items: ['superadmin', 'admin', 'sales', 'distributor', 'user']
-                                      .map((role) => DropdownMenuItem(
-                                            value: role,
-                                            child: Text(role),
-                                          ))
-                                      .toList(),
-                                  onChanged: (value) {
-                                    if (value != null) {
-                                      _getUserController(user['uid'], 'role', value);
-                                    }
-                                  },
-                                )
-                              : Chip(
-                                  label: Text(user['role'] ?? 'user'),
-                                  backgroundColor: _getRoleColor(user['role']),
-                                ),
-                          ),
-                          DataCell(Text(createdAt != null
-                              ? '${createdAt.month}/${createdAt.day}/${createdAt.year}'
-                              : '-')),
-                          DataCell(Text(lastLogin != null
-                              ? '${lastLogin.month}/${lastLogin.day}/${lastLogin.year}'
-                              : '-')),
-                          DataCell(
-                            Chip(
-                              label: Text(user['isActive'] == true ? 'Active' : 'Inactive'),
-                              backgroundColor: user['isActive'] == true ? Colors.green : Colors.grey,
-                            ),
-                          ),
-                          DataCell(
-                            Row(
-                              children: [
-                                if (!isEditing) ...[
-                                  IconButton(
-                                    icon: const Icon(Icons.edit, size: 18),
-                                    onPressed: () {
-                                      setState(() {
-                                        _editingUsers.add(user['uid']);
-                                      });
-                                    },
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete, size: 18),
-                                    onPressed: () => _deleteUser(user['uid']),
-                                    color: Colors.red,
-                                  ),
-                                ] else ...[
-                                  IconButton(
-                                    icon: const Icon(Icons.save, size: 18),
-                                    onPressed: () => _saveUser(user['uid']),
-                                    color: Colors.green,
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.cancel, size: 18),
-                                    onPressed: () {
-                                      setState(() {
-                                        _editingUsers.remove(user['uid']);
-                                      });
-                                    },
-                                    color: Colors.red,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ],
-                      );
-                    }).toList(),
                   ),
-                ),
+                );
+              }
+
+              return Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SingleChildScrollView(
+                        child: DataTable(
+                          columns: const [
+                            DataColumn(label: Text('Email')),
+                            DataColumn(label: Text('Name')),
+                            DataColumn(label: Text('Role')),
+                            DataColumn(label: Text('Created')),
+                            DataColumn(label: Text('Last Login')),
+                            DataColumn(label: Text('Status')),
+                            DataColumn(label: Text('Actions')),
+                          ],
+                          rows: filteredUsers.map((user) {
+                            final isEditing = _editingUsers.contains(user['uid']);
+                            final createdAt = user['createdAt'] != null
+                                ? DateTime.parse(user['createdAt'].toString())
+                                : null;
+                            final lastLogin = user['lastLoginAt'] != null
+                                ? DateTime.parse(user['lastLoginAt'].toString())
+                                : null;
+                            final currentRole = isEditing && _userControllers.containsKey('${user['uid']}-role')
+                                ? _userControllers['${user['uid']}-role']!.text
+                                : user['role'] ?? 'user';
+
+                            return DataRow(
+                              cells: [
+                                DataCell(Text(user['email'] ?? '', style: const TextStyle(fontSize: 13))),
+                                DataCell(
+                                  isEditing
+                                    ? SizedBox(
+                                        width: 150,
+                                        child: TextFormField(
+                                          controller: _getUserController(
+                                            user['uid'],
+                                            'displayName',
+                                            user['displayName'] ?? '',
+                                          ),
+                                          style: const TextStyle(fontSize: 14),
+                                          decoration: const InputDecoration(
+                                            isDense: true,
+                                            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          ),
+                                        ),
+                                      )
+                                    : Text(user['displayName'] ?? '-', style: const TextStyle(fontSize: 13)),
+                                ),
+                                DataCell(
+                                  isEditing
+                                    ? DropdownButton<String>(
+                                        value: currentRole,
+                                        isDense: true,
+                                        style: const TextStyle(fontSize: 13),
+                                        items: ['superadmin', 'admin', 'sales', 'distributor', 'user']
+                                            .map((role) => DropdownMenuItem(
+                                                  value: role,
+                                                  child: Text(role),
+                                                ))
+                                            .toList(),
+                                        onChanged: (value) {
+                                          if (value != null) {
+                                            final controller = _getUserController(user['uid'], 'role', value);
+                                            controller.text = value;
+                                            setState(() {});
+                                          }
+                                        },
+                                      )
+                                    : Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: _getRoleColor(user['role']).withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          user['role'] ?? 'user',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: _getRoleColor(user['role']),
+                                          ),
+                                        ),
+                                      ),
+                                ),
+                                DataCell(Text(createdAt != null
+                                    ? '${createdAt.month}/${createdAt.day}/${createdAt.year}'
+                                    : '-', style: const TextStyle(fontSize: 13))),
+                                DataCell(Text(lastLogin != null
+                                    ? '${lastLogin.month}/${lastLogin.day}/${lastLogin.year}'
+                                    : '-', style: const TextStyle(fontSize: 13))),
+                                DataCell(
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: user['isActive'] == true
+                                          ? Colors.green.withOpacity(0.2)
+                                          : Colors.grey.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      user['isActive'] == true ? 'Active' : 'Inactive',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: user['isActive'] == true ? Colors.green : Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                DataCell(
+                                  Row(
+                                    children: [
+                                      if (!isEditing) ...[
+                                        IconButton(
+                                          icon: const Icon(Icons.edit, size: 18),
+                                          onPressed: () {
+                                            setState(() {
+                                              _editingUsers.add(user['uid']);
+                                            });
+                                          },
+                                          tooltip: 'Edit',
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.delete, size: 18),
+                                          onPressed: () => _deleteUser(user['uid']),
+                                          tooltip: 'Delete',
+                                          color: Colors.red,
+                                        ),
+                                      ] else ...[
+                                        IconButton(
+                                          icon: const Icon(Icons.save, size: 18),
+                                          onPressed: () => _saveUser(user['uid']),
+                                          tooltip: 'Save',
+                                          color: Colors.green,
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.cancel, size: 18),
+                                          onPressed: () {
+                                            setState(() {
+                                              _editingUsers.remove(user['uid']);
+                                              // Clear controllers for this user
+                                              _userControllers.removeWhere((key, _) =>
+                                                  key.startsWith('${user['uid']}-'));
+                                            });
+                                          },
+                                          tooltip: 'Cancel',
+                                          color: Colors.red,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Pagination controls
+                  _buildUserPaginationControls(),
+                ],
+              );
+            },
+            loading: () => const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Loading users...'),
+                ],
               ),
             ),
-          ],
+            error: (error, stack) => Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text('Error loading users: $error'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      ref.invalidate(paginatedUsersProvider);
+                      ref.invalidate(userCountProvider);
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUserPaginationControls() {
+    final userCountAsync = ref.watch(userCountProvider);
+
+    return userCountAsync.when(
+      data: (totalCount) {
+        final totalPages = (totalCount / _pageSize).ceil();
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: Colors.grey[300]!)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.first_page),
+                onPressed: _currentUserPage > 0
+                    ? () => setState(() => _currentUserPage = 0)
+                    : null,
+                tooltip: 'First page',
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: _currentUserPage > 0
+                    ? () => setState(() => _currentUserPage--)
+                    : null,
+                tooltip: 'Previous page',
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'Page ${_currentUserPage + 1} of $totalPages',
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: _currentUserPage < totalPages - 1
+                    ? () => setState(() => _currentUserPage++)
+                    : null,
+                tooltip: 'Next page',
+              ),
+              IconButton(
+                icon: const Icon(Icons.last_page),
+                onPressed: _currentUserPage < totalPages - 1
+                    ? () => setState(() => _currentUserPage = totalPages - 1)
+                    : null,
+                tooltip: 'Last page',
+              ),
+              const SizedBox(width: 32),
+              Text(
+                'Showing ${_currentUserPage * _pageSize + 1}-${((_currentUserPage + 1) * _pageSize).clamp(0, totalCount)} of $totalCount users',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+            ],
+          ),
         );
       },
+      loading: () => Container(
+        padding: const EdgeInsets.all(8),
+        child: const LinearProgressIndicator(),
+      ),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 
@@ -1090,15 +1286,15 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
   Color _getRoleColor(String? role) {
     switch (role) {
       case 'superadmin':
-        return Colors.red.withOpacity(0.2);
+        return Colors.red;
       case 'admin':
-        return Colors.orange.withOpacity(0.2);
+        return Colors.orange;
       case 'sales':
-        return Colors.blue.withOpacity(0.2);
+        return Colors.blue;
       case 'distributor':
-        return Colors.green.withOpacity(0.2);
+        return Colors.green;
       default:
-        return Colors.grey.withOpacity(0.2);
+        return Colors.grey;
     }
   }
 
