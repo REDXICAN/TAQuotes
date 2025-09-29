@@ -195,7 +195,8 @@
       "Bash(echo:*)",
       "Read(//c/Users/andre/Desktop/**)",
       "Bash(chmod:*)",
-      "Bash(npm run setup-gcloud:*)"
+      "Bash(npm run setup-gcloud:*)",
+      "Bash(git revert:*)"
     ],
     "deny": [],
     "ask": [

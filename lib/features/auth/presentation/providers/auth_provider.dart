@@ -184,18 +184,23 @@ final signInProvider = Provider((ref) {
       );
 
       if (user != null) {
-        // Check if user account is approved
-        final dbService = ref.watch(databaseServiceProvider);
-        final userProfile = await dbService.getUserProfile(user.uid);
+        // Skip approval check for admin email
+        final isAdmin = email.trim().toLowerCase() == 'andres@turboairmexico.com';
 
-        if (userProfile != null) {
-          final status = userProfile['status'] ?? 'active';
-          final role = userProfile['role'] ?? '';
+        if (!isAdmin) {
+          // Check if user account is approved
+          final dbService = ref.watch(databaseServiceProvider);
+          final userProfile = await dbService.getUserProfile(user.uid);
 
-          // Block access for pending users
-          if (status == 'pending_approval' || role == 'pending') {
-            await authService.signOut(); // Sign them out immediately
-            return 'Your account is pending approval. You will receive an email once approved.';
+          if (userProfile != null) {
+            final status = userProfile['status'] ?? 'active';
+            final role = userProfile['role'] ?? '';
+
+            // Block access for pending users
+            if (status == 'pending_approval' || role == 'pending') {
+              await authService.signOut(); // Sign them out immediately
+              return 'Your account is pending approval. You will receive an email once approved.';
+            }
           }
         }
       }
@@ -211,6 +216,8 @@ final signInProvider = Provider((ref) {
 
       return null; // Success
     } on FirebaseAuthException catch (e) {
+      print('FIREBASE AUTH ERROR: ${e.code} - ${e.message}');
+
       switch (e.code) {
         case 'user-not-found':
           return 'No user found with this email';
@@ -224,11 +231,14 @@ final signInProvider = Provider((ref) {
           return 'Too many failed login attempts. Please try again later or reset your password';
         case 'network-request-failed':
           return 'Network error. Please check your internet connection';
+        case 'invalid-credential':
+          return 'Invalid email or password';
         default:
           return e.message ?? 'An error occurred during sign in';
       }
     } catch (e) {
-      return 'An unexpected error occurred';
+      print('UNEXPECTED ERROR: $e');
+      return 'An unexpected error occurred: $e';
     }
   };
 });
