@@ -1323,16 +1323,16 @@ Future<void> _handleExcelUpload() async {
       builder: (context, constraints) {
         final crossAxisCount = ResponsiveHelper.getGridColumns(context);
         
-        // Adjust aspect ratio based on screen size - increased values to provide more room for content
+        // Adjust aspect ratio based on screen size - optimized for proper card content containment
         double childAspectRatio;
         if (ResponsiveHelper.isVerticalDisplay(context)) {
-          childAspectRatio = 0.75;  // Increased from 0.67 to provide more room
+          childAspectRatio = 0.85;  // Increased to provide adequate room for all content
         } else if (ResponsiveHelper.isMobile(context)) {
-          childAspectRatio = 0.85;  // Increased from 0.70 to prevent text overflow
+          childAspectRatio = 0.95;  // Increased to prevent text overflow on mobile
         } else if (ResponsiveHelper.isTablet(context)) {
-          childAspectRatio = 0.82;  // Increased from 0.80 for better content fit
+          childAspectRatio = 0.92;  // Increased for better content fit on tablets
         } else {
-          childAspectRatio = 0.78;   // Increased from 0.85 to allow more space for product names
+          childAspectRatio = 0.88;  // Increased to allow more space for content on desktop
         }
         
         // Increased spacing for vertical screens to prevent overlap
@@ -1847,9 +1847,9 @@ class ProductCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product Image
+            // Product Image - reduced size to leave more room for content
             AspectRatio(
-              aspectRatio: isVertical ? 1.0 : (isMobile ? 1.3 : 1.1), // Adjusted to leave more room for text content
+              aspectRatio: isVertical ? 1.4 : (isMobile ? 1.6 : 1.5), // Increased ratios to reduce image height
               child: Container(
                 decoration: const BoxDecoration(
                   color: Color(0xFFFFFFFF), // Pure white background for images
@@ -1869,12 +1869,13 @@ class ProductCard extends ConsumerWidget {
                 ),
               ),
             ),
-            // Product Info - Extended area for vertical screens
-            Padding(
-              padding: EdgeInsets.all(isVertical ? 12 : (isMobile ? 10 : 8)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+            // Product Info - Use Expanded to fill remaining space
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.all(isVertical ? 12 : (isMobile ? 10 : 8)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
                     children: [
@@ -1957,78 +1958,83 @@ class ProductCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 6),
 
-                  // Warehouse Availability Badges (Mexican warehouses first)
+                  // Warehouse Availability Badges (Mexican warehouses first) - Make flexible to prevent overflow
                   if (product.warehouseStock != null && product.warehouseStock!.isNotEmpty)
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 2,
-                      children: () {
-                        // Sort warehouses: Mexican warehouses first (999, COCZ, COPZ, MEE, SI, ZRE), then others
-                        final sortedEntries = product.warehouseStock!.entries.toList()
-                          ..sort((a, b) {
-                            // Mexican warehouses come first
-                            final mexicanWarehouses = ['999', 'COCZ', 'COPZ', 'MEE', 'SI', 'ZRE'];
-                            final aIsMexican = mexicanWarehouses.contains(a.key);
-                            final bIsMexican = mexicanWarehouses.contains(b.key);
+                    Flexible(
+                      child: Wrap(
+                        spacing: 4,
+                        runSpacing: 2,
+                        children: () {
+                          // Sort warehouses: Mexican warehouses first (999, COCZ, COPZ, MEE, SI, ZRE), then others
+                          final sortedEntries = product.warehouseStock!.entries.toList()
+                            ..sort((a, b) {
+                              // Mexican warehouses come first
+                              final mexicanWarehouses = ['999', 'COCZ', 'COPZ', 'MEE', 'SI', 'ZRE'];
+                              final aIsMexican = mexicanWarehouses.contains(a.key);
+                              final bIsMexican = mexicanWarehouses.contains(b.key);
 
-                            if (aIsMexican && !bIsMexican) return -1;
-                            if (!aIsMexican && bIsMexican) return 1;
+                              if (aIsMexican && !bIsMexican) return -1;
+                              if (!aIsMexican && bIsMexican) return 1;
 
-                            // Then sort by available stock (highest first)
-                            final aStock = a.value.available - a.value.reserved;
-                            final bStock = b.value.available - b.value.reserved;
-                            return bStock.compareTo(aStock);
-                          });
+                              // Then sort by available stock (highest first)
+                              final aStock = a.value.available - a.value.reserved;
+                              final bStock = b.value.available - b.value.reserved;
+                              return bStock.compareTo(aStock);
+                            });
 
-                        return sortedEntries.map((entry) {
-                          final warehouse = entry.key;
-                          final stock = entry.value;
-                          final availableStock = stock.available - stock.reserved;
-                          final isMexicanWarehouse = ['999', 'COCZ', 'COPZ', 'MEE', 'SI', 'ZRE'].contains(warehouse);
+                          // Limit the number of warehouse badges shown to prevent overflow
+                          final limitedEntries = sortedEntries.take(isMobile ? 4 : 6).toList();
 
-                          Color badgeColor;
-                          if (availableStock > 50) {
-                            badgeColor = Colors.green;
-                          } else if (availableStock > 10) {
-                            badgeColor = Colors.orange;
-                          } else if (availableStock > 0) {
-                            badgeColor = Colors.red;
-                          } else {
-                            badgeColor = Colors.grey;
-                          }
+                          return limitedEntries.map((entry) {
+                            final warehouse = entry.key;
+                            final stock = entry.value;
+                            final availableStock = stock.available - stock.reserved;
+                            final isMexicanWarehouse = ['999', 'COCZ', 'COPZ', 'MEE', 'SI', 'ZRE'].contains(warehouse);
 
-                          return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: badgeColor.withOpacity(isMexicanWarehouse ? 0.15 : 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: badgeColor.withOpacity(isMexicanWarehouse ? 0.5 : 0.3),
-                                width: isMexicanWarehouse ? 1.0 : 0.5,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (isMexicanWarehouse)
-                                  Icon(
-                                    Icons.location_on,
-                                    size: 10,
-                                    color: badgeColor,
-                                  ),
-                                Text(
-                                  '${warehouse}: $availableStock',
-                                  style: TextStyle(
-                                    fontSize: isMexicanWarehouse ? 10 : 9,
-                                    color: badgeColor,
-                                    fontWeight: isMexicanWarehouse ? FontWeight.w700 : FontWeight.w600,
-                                  ),
+                            Color badgeColor;
+                            if (availableStock > 50) {
+                              badgeColor = Colors.green;
+                            } else if (availableStock > 10) {
+                              badgeColor = Colors.orange;
+                            } else if (availableStock > 0) {
+                              badgeColor = Colors.red;
+                            } else {
+                              badgeColor = Colors.grey;
+                            }
+
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: badgeColor.withOpacity(isMexicanWarehouse ? 0.15 : 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: badgeColor.withOpacity(isMexicanWarehouse ? 0.5 : 0.3),
+                                  width: isMexicanWarehouse ? 1.0 : 0.5,
                                 ),
-                              ],
-                            ),
-                          );
-                        }).toList();
-                      }(),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (isMexicanWarehouse)
+                                    Icon(
+                                      Icons.location_on,
+                                      size: 10,
+                                      color: badgeColor,
+                                    ),
+                                  Text(
+                                    '${warehouse}: $availableStock',
+                                    style: TextStyle(
+                                      fontSize: isMexicanWarehouse ? 10 : 9,
+                                      color: badgeColor,
+                                      fontWeight: isMexicanWarehouse ? FontWeight.w700 : FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList();
+                        }(),
+                      ),
                     ),
                   const SizedBox(height: 8),
                   // Price and Quantity Selector
@@ -2086,6 +2092,7 @@ class ProductCard extends ConsumerWidget {
                       ],
                     ),
                 ],
+                ),
               ),
             ),
           ],
