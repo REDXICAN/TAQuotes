@@ -47,7 +47,7 @@ class SparePart {
 final sparePartsProvider = StreamProvider.autoDispose<List<SparePart>>((ref) async* {
   final database = FirebaseDatabase.instance;
 
-  // Stream spare parts from Firebase products that have available warehouse stock
+  // Stream spare parts from Firebase products
   await for (final event in database.ref('products').onValue) {
     final List<SparePart> spareParts = [];
 
@@ -59,19 +59,40 @@ final sparePartsProvider = StreamProvider.autoDispose<List<SparePart>>((ref) asy
           try {
             final productData = Map<String, dynamic>.from(entry.value as Map);
 
-            // Check if product has warehouse stock data (making it a spare part)
-            final warehouseStock = productData['warehouse_stock'] as Map<String, dynamic>?;
+            // Extract product information
+            final name = productData['name'] ?? productData['displayName'] ?? 'Unknown Part';
+            final category = productData['category'] ?? '';
+            final sku = productData['sku'] ?? entry.key;
 
+            // Check if this is a spare part by checking:
+            // 1. Has stock available (stock > 0 OR warehouseStock data)
+            // 2. Name/category indicates it's a spare part
+            bool hasStock = false;
+            int totalStock = 0;
+            String? primaryWarehouse;
+
+            // Check simple stock field first
+            final simpleStock = productData['stock'] ?? productData['totalStock'] ?? productData['availableStock'] ?? 0;
+            if (simpleStock is int && simpleStock > 0) {
+              hasStock = true;
+              totalStock = simpleStock;
+            } else if (simpleStock is String) {
+              final parsed = int.tryParse(simpleStock) ?? 0;
+              if (parsed > 0) {
+                hasStock = true;
+                totalStock = parsed;
+              }
+            }
+
+            // Check warehouse stock data if available
+            final warehouseStock = productData['warehouseStock'] as Map<String, dynamic>?;
             if (warehouseStock != null && warehouseStock.isNotEmpty) {
-              // Calculate total stock across all warehouses
-              int totalStock = 0;
-              String? primaryWarehouse;
-
+              int warehouseTotalStock = 0;
               for (final warehouseEntry in warehouseStock.entries) {
                 final stockData = warehouseEntry.value as Map<String, dynamic>?;
                 if (stockData != null) {
                   final available = stockData['available'] as int? ?? 0;
-                  totalStock += available;
+                  warehouseTotalStock += available;
 
                   // Set primary warehouse to the one with most stock
                   if (primaryWarehouse == null || available > 0) {
@@ -80,16 +101,37 @@ final sparePartsProvider = StreamProvider.autoDispose<List<SparePart>>((ref) asy
                 }
               }
 
-              // Only include if has stock available
-              if (totalStock > 0) {
-                spareParts.add(SparePart(
-                  sku: productData['sku'] ?? entry.key,
-                  name: productData['name'] ?? 'Unknown Part',
-                  stock: totalStock,
-                  warehouse: primaryWarehouse,
-                  price: PriceFormatter.safeToDouble(productData['price']),
-                ));
+              if (warehouseTotalStock > 0) {
+                hasStock = true;
+                totalStock = warehouseTotalStock; // Use warehouse stock if available
               }
+            }
+
+            // Check if name/category indicates it's a spare part
+            final nameLower = name.toLowerCase();
+            final categoryLower = category.toLowerCase();
+            final isSparePartByName = nameLower.contains('spare') ||
+                                    nameLower.contains('part') ||
+                                    nameLower.contains('replacement') ||
+                                    nameLower.contains('repair') ||
+                                    nameLower.contains('kit') ||
+                                    nameLower.contains('component') ||
+                                    categoryLower.contains('spare') ||
+                                    categoryLower.contains('part') ||
+                                    categoryLower.contains('replacement') ||
+                                    categoryLower.contains('repair') ||
+                                    categoryLower.contains('kit') ||
+                                    categoryLower.contains('component');
+
+            // Include if it has stock AND (is named like a spare part OR has warehouse data)
+            if (hasStock && (isSparePartByName || warehouseStock != null)) {
+              spareParts.add(SparePart(
+                sku: sku,
+                name: name,
+                stock: totalStock,
+                warehouse: primaryWarehouse,
+                price: PriceFormatter.safeToDouble(productData['price']),
+              ));
             }
           } catch (e) {
             AppLogger.debug('Error processing spare part ${entry.key}', error: e);

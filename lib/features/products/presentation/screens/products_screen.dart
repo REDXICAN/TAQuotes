@@ -1323,16 +1323,16 @@ Future<void> _handleExcelUpload() async {
       builder: (context, constraints) {
         final crossAxisCount = ResponsiveHelper.getGridColumns(context);
         
-        // Adjust aspect ratio based on screen size - taller cards for vertical
+        // Adjust aspect ratio based on screen size - increased values to provide more room for content
         double childAspectRatio;
         if (ResponsiveHelper.isVerticalDisplay(context)) {
-          childAspectRatio = 0.67;  // Taller cards to prevent overlap on vertical screens
+          childAspectRatio = 0.75;  // Increased from 0.67 to provide more room
         } else if (ResponsiveHelper.isMobile(context)) {
-          childAspectRatio = 0.70;  // Taller cards for phones
+          childAspectRatio = 0.85;  // Increased from 0.70 to prevent text overflow
         } else if (ResponsiveHelper.isTablet(context)) {
-          childAspectRatio = 0.80;  // Taller cards for tablets
+          childAspectRatio = 0.82;  // Increased from 0.80 for better content fit
         } else {
-          childAspectRatio = 0.85;   // Taller cards for desktop
+          childAspectRatio = 0.78;   // Increased from 0.85 to allow more space for product names
         }
         
         // Increased spacing for vertical screens to prevent overlap
@@ -1849,7 +1849,7 @@ class ProductCard extends ConsumerWidget {
           children: [
             // Product Image
             AspectRatio(
-              aspectRatio: isVertical ? 0.9 : (isMobile ? 1.2 : 1.0), // Taller cards for vertical screens
+              aspectRatio: isVertical ? 1.0 : (isMobile ? 1.3 : 1.1), // Adjusted to leave more room for text content
               child: Container(
                 decoration: const BoxDecoration(
                   color: Color(0xFFFFFFFF), // Pure white background for images
@@ -1920,7 +1920,7 @@ class ProductCard extends ConsumerWidget {
                       fontSize: isMobile ? 14 : 12,
                       height: 1.2,
                     ),
-                    maxLines: isVertical ? 3 : (isMobile ? 2 : 1),
+                    maxLines: isVertical ? 3 : (isMobile ? 2 : 2),
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
