@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'app_logger.dart';
 import 'rate_limiter_service.dart';
-import '../config/env_config.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -71,11 +70,8 @@ class AuthService {
         password: password,
       );
 
-      // Skip approval check for super admin accounts
-      final isSuperAdmin = _isSuperAdminEmail(cleanEmail);
-
-      // Check if user is approved before allowing login (skip for super admins)
-      if (result.user != null && !isSuperAdmin) {
+      // Check if user is approved before allowing login
+      if (result.user != null) {
         final approvalStatus = await _checkUserApprovalStatus(result.user!.uid);
         if (approvalStatus != null) {
           // User is not approved, sign them out and return error
@@ -210,11 +206,6 @@ class AuthService {
   }
 
   // Check user approval status
-  // Check if email is a super admin
-  bool _isSuperAdminEmail(String email) {
-    return EnvConfig.isSuperAdminEmail(email);
-  }
-
   Future<String?> _checkUserApprovalStatus(String uid) async {
     try {
       final database = FirebaseDatabase.instance;
@@ -256,17 +247,13 @@ class AuthService {
     required String password,
   }) async {
     try {
-      final cleanEmail = email.trim().toLowerCase();
       final credential = await _auth.signInWithEmailAndPassword(
-        email: cleanEmail,
+        email: email,
         password: password,
       );
 
-      // Skip approval check for super admin accounts
-      final isSuperAdmin = _isSuperAdminEmail(cleanEmail);
-
-      // Check approval status (skip for super admins)
-      if (credential.user != null && !isSuperAdmin) {
+      // Check approval status
+      if (credential.user != null) {
         final approvalStatus = await _checkUserApprovalStatus(credential.user!.uid);
         if (approvalStatus != null) {
           // User is not approved, sign them out and throw error
