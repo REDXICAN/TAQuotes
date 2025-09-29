@@ -230,11 +230,14 @@ class Client {
 
   factory Client.fromMap(Map<String, dynamic> map) {
     // Handle both snake_case and camelCase field names
+    // Prioritize contactName/contact_name, then fall back to name for backwards compatibility
+    final contactName = map['contactName'] ?? map['contact_name'] ?? map['name'] ?? '';
+
     return Client(
       id: map['id'],
       company: map['company'] ?? '',
-      contactName: map['contact_name'] ?? map['contactName'] ?? '',
-      name: map['name'] ?? map['contact_name'] ?? '',
+      contactName: contactName,
+      name: contactName,  // Keep both fields in sync
       email: map['email'] ?? '',
       phone: map['phone'] ?? '',
       address: map['address'],
@@ -831,12 +834,12 @@ class QuoteItem {
       productId: map['productId'] ?? map['product_id'] ?? '',
       productName: map['productName'] ?? map['product_name'] ?? '',
       product: map['product'] != null ? Product.fromMap(map['product']) : null,
-      quantity: map['quantity'] ?? 1,
+      quantity: SafeConversions.toQuantity(map['quantity']),  // Use safe conversion
       unitPrice: SafeConversions.toPrice(map['unitPrice'] ?? map['unit_price']),
       total: SafeConversions.toPrice(map['total'] ?? map['total_price']),
       totalPrice: SafeConversions.toPrice(map['totalPrice'] ?? map['total_price'] ?? map['total']),
       addedAt: safeParseDateTimeWithFallback(map['addedAt'] ?? map['added_at']),
-      discount: (map['discount'] ?? 0).toDouble(),
+      discount: SafeConversions.toPercentage(map['discount']),  // Use safe conversion
       note: map['note'] ?? '',
       sequenceNumber: map['sequenceNumber'] ?? map['sequence_number'],
     );
@@ -926,17 +929,17 @@ class CartItem {
   factory CartItem.fromMap(Map<String, dynamic> map) {
     return CartItem(
       id: map['id'],
-      userId: map['userId'],
-      productId: map['productId'] ?? '',
-      productName: map['productName'] ?? '',
+      userId: map['userId'] ?? map['user_id'],  // Handle both formats
+      productId: map['productId'] ?? map['product_id'] ?? '',  // Handle both formats
+      productName: map['productName'] ?? map['product_name'] ?? '',  // Handle both formats
       product: map['product'] != null ? Product.fromMap(map['product']) : null,
-      quantity: map['quantity'] ?? 1,
-      unitPrice: (map['unitPrice'] ?? 0).toDouble(),
+      quantity: SafeConversions.toQuantity(map['quantity']),  // Use safe conversion
+      unitPrice: SafeConversions.toPrice(map['unitPrice'] ?? map['unit_price']),  // Handle both formats
       total: SafeConversions.toPrice(map['total']),
-      addedAt: safeParseDateTimeWithFallback(map['addedAt']),
-      discount: (map['discount'] ?? 0).toDouble(),
+      addedAt: safeParseDateTimeWithFallback(map['addedAt'] ?? map['added_at']),  // Handle both formats
+      discount: SafeConversions.toPercentage(map['discount']),  // Use safe conversion
       note: map['note'] ?? '',
-      sequenceNumber: map['sequenceNumber'],
+      sequenceNumber: map['sequenceNumber'] ?? map['sequence_number'],  // Handle both formats
     );
   }
 

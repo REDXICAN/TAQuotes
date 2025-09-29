@@ -77,9 +77,9 @@ class _SearchableClientDropdownState extends ConsumerState<SearchableClientDropd
         _filteredClients = widget.clients.where((client) {
           final searchLower = query.toLowerCase();
           return client.company.toLowerCase().contains(searchLower) ||
-                 (client.contactName.toLowerCase().contains(searchLower) ?? false) ||
-                 (client.email.toLowerCase().contains(searchLower) ?? false) ||
-                 (client.phone.toLowerCase().contains(searchLower) ?? false);
+                 client.contactName.toLowerCase().contains(searchLower) ||
+                 client.email.toLowerCase().contains(searchLower) ||
+                 client.phone.toLowerCase().contains(searchLower);
         }).toList();
       }
     });
@@ -91,12 +91,15 @@ class _SearchableClientDropdownState extends ConsumerState<SearchableClientDropd
 
   void _openDropdown() {
     if (_isDropdownOpen) return;
-    
+
     _overlayEntry = _createOverlayEntry();
-    Overlay.of(context).insert(_overlayEntry!);
-    setState(() {
-      _isDropdownOpen = true;
-    });
+    final overlay = Overlay.of(context);
+    if (overlay != null) {
+      overlay.insert(_overlayEntry!);
+      setState(() {
+        _isDropdownOpen = true;
+      });
+    }
   }
 
   void _closeDropdown() {

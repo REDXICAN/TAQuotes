@@ -16,6 +16,7 @@ import '../../../../core/widgets/searchable_client_dropdown.dart';
 import 'package:mailer/mailer.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/utils/price_formatter.dart';
+import '../../../../core/utils/safe_conversions.dart';
 
 // Selected client provider for cart
 final selectedClientProvider = StateProvider<Client?>((ref) => null);
@@ -47,86 +48,117 @@ final cartProvider = StreamProvider.autoDispose<List<CartItem>>((ref) {
       }
 
       final data = Map<String, dynamic>.from(event.snapshot.value as Map);
-      final items = data.entries.map((e) => {
-        ...Map<String, dynamic>.from(e.value),
-        'id': e.key,
-      }).toList();
 
-      // Fetch product details for each cart item with timeout
+      // Defensive null check for data entries
+      if (data.isEmpty) {
+        return <CartItem>[];
+      }
+
       final List<CartItem> cartItems = [];
 
-      for (final item in items) {
+      for (final entry in data.entries) {
         try {
-          final itemType = item['type'] ?? 'product';
+          // Defensive null check for entry value
+          if (entry.value == null) {
+            AppLogger.warning('Null cart item value for key: ${entry.key}');
+            continue;
+          }
+
+          // Safely convert entry to map
+          final itemMap = Map<String, dynamic>.from(entry.value as Map);
+          itemMap['id'] = entry.key;  // Add the Firebase key as id
+
+          // Validate required fields before processing
+          if (itemMap['product_id'] == null && itemMap['productId'] == null) {
+            AppLogger.warning('Cart item missing product_id/productId: ${entry.key}');
+            continue;
+          }
+
+          final itemType = itemMap['type'] ?? 'product';
           Product? product;
-          String productName = '';
-          double unitPrice = 0.0;
 
           if (itemType == 'spare_part') {
-            // Handle spare parts with timeout
-            final sparePartSnapshot = await database.ref('spareparts/${item['product_id']}')
-              .get()
-              .timeout(const Duration(seconds: 5));
-            if (sparePartSnapshot.exists && sparePartSnapshot.value != null) {
-              final sparePartData = Map<String, dynamic>.from(sparePartSnapshot.value as Map);
-              productName = item['name'] ?? sparePartData['name'] ?? '';
-              unitPrice = item['price']?.toDouble() ?? sparePartData['price']?.toDouble() ?? 0.0;
-              // Create a minimal product object for spare parts
-              product = Product(
-                id: item['product_id'],
-                sku: item['sku'] ?? item['product_id'],
-                model: item['sku'] ?? item['product_id'],
-                displayName: productName,
-                name: productName,
-                description: productName,
-                price: unitPrice,
-                category: 'Spare Parts',
-                stock: sparePartData['stock'] ?? 0,
-                createdAt: DateTime.now(),
-              );
-            } else {
-              // Use data from cart item if spare part not found
-              productName = item['name'] ?? 'Spare Part';
-              unitPrice = item['price']?.toDouble() ?? 0.0;
+            // Handle spare parts with timeout and defensive checks
+            try {
+              final productId = itemMap['product_id'] ?? itemMap['productId'];
+              if (productId != null) {
+                final sparePartSnapshot = await database.ref('spareparts/$productId')
+                  .get()
+                  .timeout(const Duration(seconds: 5));
+                if (sparePartSnapshot.exists && sparePartSnapshot.value != null) {
+                  final sparePartData = Map<String, dynamic>.from(sparePartSnapshot.value as Map);
+                  // Merge spare part data into item map for consistent processing
+                  itemMap['productName'] = itemMap['productName'] ?? itemMap['product_name'] ?? itemMap['name'] ?? sparePartData['name'] ?? '';
+                  itemMap['unitPrice'] = itemMap['unitPrice'] ?? itemMap['unit_price'] ?? itemMap['price'] ?? sparePartData['price'] ?? 0;
+
+                  // Create a minimal product object for spare parts
+                  product = Product(
+                    id: productId,
+                    sku: itemMap['sku'] ?? productId,
+                    model: itemMap['sku'] ?? productId,
+                    displayName: itemMap['productName'],
+                    name: itemMap['productName'],
+                    description: itemMap['productName'],
+                    price: SafeConversions.toPrice(itemMap['unitPrice']),
+                    category: 'Spare Parts',
+                    stock: SafeConversions.toInt(sparePartData['stock']),
+                    createdAt: DateTime.now(),
+                  );
+                }
+              }
+            } catch (e) {
+              AppLogger.warning('Failed to fetch spare part data', error: e);
             }
           } else {
             // Handle regular products with timeout
             try {
-              final productData = await Future.value(dbService.getProduct(item['product_id']))
-                .timeout(const Duration(seconds: 5));
-              product = productData != null ? Product.fromMap(productData) : null;
-              productName = product?.description ?? item['product_name'] ?? '';
-              unitPrice = product?.price ?? item['unit_price']?.toDouble() ?? 0.0;
+              final productId = itemMap['product_id'] ?? itemMap['productId'];
+              if (productId != null) {
+                final productData = await Future.value(dbService.getProduct(productId))
+                  .timeout(const Duration(seconds: 5));
+                if (productData != null) {
+                  product = Product.fromMap(productData);
+                  // Update item map with product data for consistency
+                  itemMap['productName'] = itemMap['productName'] ?? itemMap['product_name'] ?? product.description;
+                  itemMap['unitPrice'] = itemMap['unitPrice'] ?? itemMap['unit_price'] ?? product.price;
+                }
+              }
             } catch (e) {
-              // Fallback to cart item data if product fetch fails
-              productName = item['product_name'] ?? 'Product';
-              unitPrice = item['unit_price']?.toDouble() ?? 0.0;
-              AppLogger.warning('Failed to fetch product ${item['product_id']}, using cart data', error: e);
+              AppLogger.warning('Failed to fetch product data', error: e);
             }
           }
 
-          final quantity = item['quantity'] ?? 1;
+          // Add product to item map if available
+          if (product != null) {
+            itemMap['product'] = product.toMap();
+          }
+
+          // Create CartItem using direct constructor for reliable parsing
+          final quantity = SafeConversions.toQuantity(itemMap['quantity']);
+          final unitPrice = SafeConversions.toPrice(itemMap['unitPrice'] ?? itemMap['unit_price']);
+          final productName = itemMap['productName'] ?? itemMap['product_name'] ?? '';
 
           cartItems.add(CartItem(
-            id: item['id'],
-            userId: item['user_id'] ?? user.uid,
-            productId: item['product_id'],
+            id: itemMap['id'],
+            userId: itemMap['user_id'] ?? user.uid,
+            productId: itemMap['product_id'] ?? itemMap['productId'] ?? '',
             productName: productName,
             quantity: quantity,
             unitPrice: unitPrice,
             total: unitPrice * quantity,
             product: product,
-            addedAt: item['added_at'] != null
-                ? DateTime.fromMillisecondsSinceEpoch(item['added_at'])
-                : item['created_at'] != null
-                    ? DateTime.fromMillisecondsSinceEpoch(item['created_at'])
+            addedAt: itemMap['added_at'] != null
+                ? DateTime.fromMillisecondsSinceEpoch(itemMap['added_at'])
+                : itemMap['created_at'] != null
+                    ? DateTime.fromMillisecondsSinceEpoch(itemMap['created_at'])
                     : DateTime.now(),
-            discount: (item['discount'] ?? 0).toDouble(),
-            note: item['note'],
-            sequenceNumber: item['sequence_number'] ?? item['sequenceNumber'],
+            discount: SafeConversions.toPercentage(itemMap['discount']),
+            note: itemMap['note'] ?? '',
+            sequenceNumber: itemMap['sequenceNumber'] ?? itemMap['sequence_number'],
           ));
+
         } catch (e) {
-          AppLogger.warning('Failed to process cart item ${item['id']}', error: e);
+          AppLogger.warning('Failed to process cart item ${entry.key}', error: e);
           // Continue with other items instead of failing the entire cart
           continue;
         }
@@ -1873,6 +1905,16 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
     try {
       final dbService = ref.read(databaseServiceProvider);
       final user = ref.read(currentUserProvider);
+      if (user == null) {
+        AppLogger.error('User not authenticated when trying to process payment', category: LogCategory.business);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please log in to create a quote')),
+          );
+        }
+        return;
+      }
+
       final subtotal = _calculateSubtotal(items);
       final discountValue = double.tryParse(_discountController.text) ?? 0;
       final discountAmount = _isDiscountPercentage 
@@ -1890,7 +1932,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
       if (_createNewProject && _projectNameController.text.isNotEmpty) {
         // Create new project
         final database = FirebaseDatabase.instance;
-        final newProjectRef = database.ref('projects/${user?.uid}').push();
+        final newProjectRef = database.ref('projects/${user.uid}').push();
         projectId = newProjectRef.key;
         projectName = _projectNameController.text;
         
@@ -1907,7 +1949,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
       } else if (projectId != null) {
         // Get project name from existing project
         final database = FirebaseDatabase.instance;
-        final projectSnapshot = await database.ref('projects/${user?.uid}/$projectId').get();
+        final projectSnapshot = await database.ref('projects/${user.uid}/$projectId').get();
         if (projectSnapshot.exists) {
           final projectData = Map<String, dynamic>.from(projectSnapshot.value as Map);
           projectName = projectData['name'];
