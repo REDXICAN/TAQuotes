@@ -178,41 +178,24 @@ final signInProvider = Provider((ref) {
 
   return (String email, String password) async {
     try {
-      // Special handling for superadmin account from .env
-      final trimmedEmail = email.trim().toLowerCase();
-      final envAdminEmail = (dotenv.env['ADMIN_EMAIL'] ?? '').toLowerCase();
-      final envAdminPassword = dotenv.env['ADMIN_PASSWORD'] ?? '';
-
-      // Check if this is the admin account from .env
-      if (trimmedEmail == envAdminEmail && password == envAdminPassword && envAdminEmail.isNotEmpty) {
-        // Try to sign in with the .env credentials
-        AppLogger.info('Attempting superadmin login from .env', category: LogCategory.auth);
-      }
-
       final user = await authService.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
       if (user != null) {
-        // Skip approval check for superadmin emails
-        final isSuperAdmin = ['andres@turboairmexico.com', 'carlos@turboairinc.com', 'admin@turboairinc.com', 'admin@turboairmexico.com']
-            .contains(trimmedEmail);
+        // Check if user account is approved
+        final dbService = ref.watch(databaseServiceProvider);
+        final userProfile = await dbService.getUserProfile(user.uid);
 
-        if (!isSuperAdmin) {
-          // Check if user account is approved
-          final dbService = ref.watch(databaseServiceProvider);
-          final userProfile = await dbService.getUserProfile(user.uid);
+        if (userProfile != null) {
+          final status = userProfile['status'] ?? 'active';
+          final role = userProfile['role'] ?? '';
 
-          if (userProfile != null) {
-            final status = userProfile['status'] ?? 'active';
-            final role = userProfile['role'] ?? '';
-
-            // Block access for pending users
-            if (status == 'pending_approval' || role == 'pending') {
-              await authService.signOut(); // Sign them out immediately
-              return 'Your account is pending approval. You will receive an email once approved.';
-            }
+          // Block access for pending users
+          if (status == 'pending_approval' || role == 'pending') {
+            await authService.signOut(); // Sign them out immediately
+            return 'Your account is pending approval. You will receive an email once approved.';
           }
         }
       }
