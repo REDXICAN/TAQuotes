@@ -7,26 +7,26 @@ import '../../../../core/models/user_approval_request.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/responsive_helper.dart';
-import '../../../auth/presentation/providers/auth_provider.dart' hide pendingUserApprovalsProvider;
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../widgets/backup_status_widget.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/services/export_service.dart';
 import '../../../../core/utils/download_helper.dart';
 import '../../../../core/services/rbac_service.dart';
 import '../../../../core/services/app_logger.dart';
-import '../widgets/user_approvals_widget.dart';
+import '../widgets/user_approvals_widget.dart' show pendingUserApprovalsProvider;
 import '../widgets/mock_analytics_generator_widget.dart';
 import '../../../../core/services/hybrid_database_service.dart';
 import '../../../settings/presentation/screens/app_settings_screen.dart';
 
-// Database Service Provider
-final databaseServiceProvider = Provider<HybridDatabaseService>((ref) {
+// Admin Database Service Provider (HybridDatabaseService)
+final adminDatabaseServiceProvider = Provider<HybridDatabaseService>((ref) {
   return HybridDatabaseService();
 });
 
 // Admin Dashboard Providers
 final adminDashboardProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) async* {
-  final dbService = ref.watch(databaseServiceProvider);
+  final dbService = ref.watch(adminDatabaseServiceProvider);
 
   // Helper function to fetch all dashboard data
   Future<Map<String, dynamic>> fetchDashboardData() async {
@@ -1466,7 +1466,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
         return;
       }
 
-      final dbService = ref.read(databaseServiceProvider);
+      final dbService = ref.read(adminDatabaseServiceProvider);
       await dbService.approveUserRequest(
         requestId: request.id,
         approvedBy: user.uid,
@@ -1515,7 +1515,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
         return;
       }
 
-      final dbService = ref.read(databaseServiceProvider);
+      final dbService = ref.read(adminDatabaseServiceProvider);
       await dbService.rejectUserRequest(
         requestId: request.id,
         rejectedBy: user.uid,

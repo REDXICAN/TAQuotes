@@ -388,19 +388,45 @@ class HybridDatabaseService {
     }
   }
 
-  /// Approve user request (placeholder - implement based on your user approval system)
+  /// Approve user request (compatible with Realtime Database)
   Future<void> approveUserRequest({required String requestId, String? approvedBy, String? reason}) async {
     try {
       if (!isSuperAdmin) throw Exception('Only superadmin can approve user requests');
 
-      // Implementation depends on your user approval system
-      // This is a placeholder - you might store approval requests in Firestore or Realtime DB
-      await _firestore.collection('user_approval_requests').doc(requestId).update({
+      // Get the request details first
+      final snapshot = await _realtimeDb.ref('user_approval_requests/$requestId').get();
+      if (!snapshot.exists) {
+        throw Exception('User approval request not found');
+      }
+
+      final requestData = Map<String, dynamic>.from(snapshot.value as Map);
+      final userId = requestData['userId'];
+      final requestedRole = requestData['requestedRole'] ?? 'distributor';
+
+      // Update the request status in Realtime Database
+      await _realtimeDb.ref('user_approval_requests/$requestId').update({
         'status': 'approved',
-        'approvedBy': approvedBy ?? _auth.currentUser?.uid,
-        'approvedAt': FieldValue.serverTimestamp(),
+        'processedBy': approvedBy ?? _auth.currentUser?.email ?? 'superadmin',
+        'processedAt': DateTime.now().toIso8601String(),
         'reason': reason,
       });
+
+      // Update user role if needed (implementation depends on your user management system)
+      if (userId != null) {
+        await _realtimeDb.ref('users/$userId').update({
+          'role': requestedRole,
+          'approved': true,
+          'approvedAt': DateTime.now().toIso8601String(),
+          'approvedBy': approvedBy ?? _auth.currentUser?.email ?? 'superadmin',
+        });
+
+        AppLogger.info('User approved and role updated', data: {
+          'requestId': requestId,
+          'userId': userId,
+          'role': requestedRole,
+          'approvedBy': approvedBy
+        });
+      }
 
       AppLogger.info('User request approved', data: {'requestId': requestId, 'reason': reason});
     } catch (e) {
@@ -409,19 +435,98 @@ class HybridDatabaseService {
     }
   }
 
-  /// Reject user request (placeholder - implement based on your user approval system)
+  /// Get pending user approval requests (for UserApprovalsWidget compatibility)
+  Stream<List<Map<String, dynamic>>> getPendingUserApprovals() {
+    try {
+      return _realtimeDb
+          .ref('user_approval_requests')
+          .orderByChild('status')
+          .equalTo('pending')
+          .onValue
+          .map((event) {
+        final List<Map<String, dynamic>> requests = [];
+        if (event.snapshot.value != null) {
+          final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+          data.forEach((key, value) {
+            final request = Map<String, dynamic>.from(value);
+            request['id'] = key;
+            requests.add(request);
+          });
+        }
+        // Sort by request date, newest first
+        requests.sort((a, b) {
+          final dateA = _safeParseDateTime(a['requestedAt']);
+          final dateB = _safeParseDateTime(b['requestedAt']);
+          return dateB.compareTo(dateA);
+        });
+        AppLogger.info('Loaded pending user approvals', data: {'count': requests.length});
+        return requests;
+      }).handleError((error) {
+        AppLogger.error('Error loading pending user approvals', error: error);
+        return <Map<String, dynamic>>[];
+      });
+    } catch (e) {
+      AppLogger.error('Error setting up pending user approvals stream', error: e);
+      return Stream.value(<Map<String, dynamic>>[]);
+    }
+  }
+
+  /// Helper method to safely parse DateTime from various formats
+  DateTime _safeParseDateTime(dynamic dateValue) {
+    if (dateValue == null) return DateTime.now();
+
+    try {
+      if (dateValue is String) {
+        return DateTime.parse(dateValue);
+      } else if (dateValue is int || dateValue is double) {
+        return DateTime.fromMillisecondsSinceEpoch(dateValue.toInt());
+      } else {
+        return DateTime.now();
+      }
+    } catch (e) {
+      AppLogger.error('Error parsing date', error: e, data: {'dateValue': dateValue});
+      return DateTime.now();
+    }
+  }
+
+  /// Reject user request (compatible with Realtime Database)
   Future<void> rejectUserRequest({required String requestId, String? rejectedBy, String? reason}) async {
     try {
       if (!isSuperAdmin) throw Exception('Only superadmin can reject user requests');
 
-      // Implementation depends on your user approval system
-      // This is a placeholder - you might store approval requests in Firestore or Realtime DB
-      await _firestore.collection('user_approval_requests').doc(requestId).update({
+      // Get the request details first
+      final snapshot = await _realtimeDb.ref('user_approval_requests/$requestId').get();
+      if (!snapshot.exists) {
+        throw Exception('User approval request not found');
+      }
+
+      final requestData = Map<String, dynamic>.from(snapshot.value as Map);
+      final userId = requestData['userId'];
+
+      // Update the request status in Realtime Database
+      await _realtimeDb.ref('user_approval_requests/$requestId').update({
         'status': 'rejected',
-        'rejectedBy': rejectedBy ?? _auth.currentUser?.uid,
-        'rejectedAt': FieldValue.serverTimestamp(),
-        'reason': reason,
+        'processedBy': rejectedBy ?? _auth.currentUser?.email ?? 'superadmin',
+        'processedAt': DateTime.now().toIso8601String(),
+        'rejectionReason': reason,
       });
+
+      // Optionally update user status to mark as rejected
+      if (userId != null) {
+        await _realtimeDb.ref('users/$userId').update({
+          'approved': false,
+          'rejectedAt': DateTime.now().toIso8601String(),
+          'rejectedBy': rejectedBy ?? _auth.currentUser?.email ?? 'superadmin',
+          'rejectionReason': reason,
+        });
+
+        AppLogger.info('User rejected and status updated', data: {
+          'requestId': requestId,
+          'userId': userId,
+          'rejectedBy': rejectedBy,
+          'reason': reason
+        });
+      }
 
       AppLogger.info('User request rejected', data: {'requestId': requestId, 'reason': reason});
     } catch (e) {

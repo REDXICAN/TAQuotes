@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'dart:typed_data';
 import 'dart:convert';
@@ -227,10 +226,51 @@ class _OptimizedErrorMonitoringDashboardState extends ConsumerState<OptimizedErr
             onPressed: () => _showExportDialog(),
             tooltip: 'Export',
           ),
-          IconButton(
-            icon: const Icon(Icons.clear_all),
-            onPressed: () => _showClearOldErrorsDialog(),
-            tooltip: 'Clear Old Errors',
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'More options',
+            onSelected: (value) {
+              switch (value) {
+                case 'clear_old':
+                  _showClearOldErrorsDialog();
+                  break;
+                case 'populate_demo':
+                  _populateDemoErrorData();
+                  break;
+                case 'clear_demo':
+                  _showClearDemoDataDialog();
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'clear_old',
+                child: ListTile(
+                  leading: Icon(Icons.clear_all),
+                  title: Text('Clear Old Errors'),
+                  subtitle: Text('Remove errors older than 30 days'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'populate_demo',
+                child: ListTile(
+                  leading: Icon(Icons.data_saver_on),
+                  title: Text('Populate Demo Data'),
+                  subtitle: Text('Add 50 sample error reports'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'clear_demo',
+                child: ListTile(
+                  leading: Icon(Icons.delete_sweep),
+                  title: Text('Clear Demo Data'),
+                  subtitle: Text('Remove all demo error data'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -253,7 +293,7 @@ class _OptimizedErrorMonitoringDashboardState extends ConsumerState<OptimizedErr
           children: [
             // Quick Stats Row - Compact version
             statisticsAsync.when(
-              data: (stats) => _buildQuickStatsRow(stats),
+              data: (stats) => stats.totalErrors == 0 ? _buildEmptyStatsRow() : _buildQuickStatsRow(stats),
               loading: () => const SizedBox(
                 height: 100,
                 child: Center(child: CircularProgressIndicator()),
@@ -418,6 +458,34 @@ class _OptimizedErrorMonitoringDashboardState extends ConsumerState<OptimizedErr
             child: const Text('Cancel'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyStatsRow() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            Icon(
+              Icons.info_outline,
+              size: 48,
+              color: Colors.blue[400],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'No Error Statistics Available',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'No error data has been collected yet. The dashboard will show statistics once errors are recorded.',
+              style: TextStyle(color: Colors.grey[600]),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -985,7 +1053,7 @@ class _OptimizedErrorMonitoringDashboardState extends ConsumerState<OptimizedErr
               child: ListTile(
                 leading: CircleAvatar(
                   radius: 16,
-                  backgroundColor: Colors.blue.withOpacity(0.1),
+                  backgroundColor: Colors.blue.withValues(alpha: 0.1),
                   child: Text(
                     '${index + 1}',
                     style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
@@ -1108,7 +1176,7 @@ class _OptimizedErrorMonitoringDashboardState extends ConsumerState<OptimizedErr
         dense: true,
         leading: CircleAvatar(
           radius: 18,
-          backgroundColor: _getSeverityColor(error.severity).withOpacity(0.2),
+          backgroundColor: _getSeverityColor(error.severity).withValues(alpha: 0.2),
           child: Icon(
             _getSeverityIcon(error.severity),
             color: _getSeverityColor(error.severity),
@@ -1129,7 +1197,7 @@ class _OptimizedErrorMonitoringDashboardState extends ConsumerState<OptimizedErr
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: _getCategoryColor(error.category).withOpacity(0.1),
+                color: _getCategoryColor(error.category).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -1228,7 +1296,7 @@ class _OptimizedErrorMonitoringDashboardState extends ConsumerState<OptimizedErr
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
             ),
             child: SelectableText(
@@ -1543,6 +1611,85 @@ class _OptimizedErrorMonitoringDashboardState extends ConsumerState<OptimizedErr
               foregroundColor: Colors.white,
             ),
             child: const Text('Clear Old Errors'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showClearDemoDataDialog() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Demo Data'),
+        content: const Text(
+          'This will delete all demo error data from the database. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+
+              setState(() {
+                _isLoading = true;
+              });
+
+              try {
+                final demoService = ErrorDemoDataService();
+                await demoService.clearDemoErrors();
+
+                // Refresh the data to show the changes
+                ref.invalidate(errorStatisticsProvider);
+                ref.invalidate(errorsStreamProvider);
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.white),
+                          SizedBox(width: 12),
+                          Text('Demo data cleared successfully'),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.error, color: Colors.white),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text('Failed to clear demo data: $e')),
+                        ],
+                      ),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 5),
+                    ),
+                  );
+                }
+              } finally {
+                if (mounted) {
+                  setState(() {
+                    _isLoading = false;
+                  });
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Clear Demo Data'),
           ),
         ],
       ),

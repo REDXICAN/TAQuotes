@@ -3,21 +3,45 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/email_service.dart';
 import '../../../../core/models/user_approval_request.dart';
 import '../../../../core/services/app_logger.dart';
+import '../../../../core/auth/models/rbac_permissions.dart';
+import '../../../../core/auth/providers/rbac_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
-// Provider for pending user approvals with auto-refresh
-final pendingUserApprovalsProvider = StreamProvider.autoDispose<List<UserApprovalRequest>>((ref) {
-  final dbService = ref.watch(databaseServiceProvider);
+// Provider for pending user approvals with permission check and auto-refresh
+final pendingUserApprovalsProvider = StreamProvider.autoDispose<List<UserApprovalRequest>>((ref) async* {
+  try {
+    // First check if user has permission to view pending approvals
+    final hasPermission = await ref.read(hasPermissionProvider(Permission.approveUsers).future);
 
-  // Force initial data fetch
-  return dbService.getPendingUserApprovals()
-    .map((requests) {
-      return requests.map((req) => UserApprovalRequest.fromJson(req)).toList();
-    })
-    .handleError((error) {
+    if (!hasPermission) {
+      AppLogger.warning('User does not have permission to view pending approvals');
+      yield [];
+      return;
+    }
+
+    final dbService = ref.watch(databaseServiceProvider);
+
+    // Stream the approval requests with error handling
+    await for (final requests in dbService.getPendingUserApprovals()) {
+      try {
+        final approvalRequests = requests.map((req) => UserApprovalRequest.fromJson(req)).toList();
+        yield approvalRequests;
+      } catch (e) {
+        AppLogger.error('Error parsing pending approvals', error: e);
+        yield [];
+      }
+    }
+  } catch (error) {
+    // Handle permission denied or other errors gracefully
+    if (error.toString().contains('Permission denied') ||
+        error.toString().contains('permission_denied') ||
+        error.toString().contains('Forbidden')) {
+      AppLogger.warning('Permission denied accessing user approval requests', error: error);
+    } else {
       AppLogger.error('Error loading pending approvals', error: error);
-      return [];
-    });
+    }
+    yield [];
+  }
 });
 
 class UserApprovalsWidget extends ConsumerWidget {
@@ -26,8 +50,32 @@ class UserApprovalsWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final requests = ref.watch(pendingUserApprovalsProvider);
 
+    // First check if user has permission to see this widget
+    final hasPermissionAsync = ref.watch(hasPermissionProvider(Permission.approveUsers));
+
+    return hasPermissionAsync.when(
+      data: (hasPermission) {
+        if (!hasPermission) {
+          // User doesn't have permission - hide the widget completely
+          return const SizedBox.shrink();
+        }
+
+        // User has permission - show the approval requests
+        final requests = ref.watch(pendingUserApprovalsProvider);
+        return _buildApprovalRequestsWidget(context, ref, theme, requests);
+      },
+      loading: () => const SizedBox.shrink(), // Hide while checking permissions
+      error: (error, stack) => const SizedBox.shrink(), // Hide on permission check error
+    );
+  }
+
+  Widget _buildApprovalRequestsWidget(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeData theme,
+    AsyncValue<List<UserApprovalRequest>> requests,
+  ) {
     return requests.when(
       data: (data) {
         if (data.isEmpty) {
@@ -127,7 +175,97 @@ class UserApprovalsWidget extends ConsumerWidget {
       ),
       error: (error, stack) {
         AppLogger.error('Error loading user approvals', error: error);
-        return const SizedBox.shrink();
+
+        // Check if this is a permission error
+        final errorMessage = error.toString();
+        if (errorMessage.contains('Permission denied') ||
+            errorMessage.contains('permission_denied') ||
+            errorMessage.contains('Forbidden')) {
+          return Card(
+            elevation: 2,
+            margin: const EdgeInsets.all(16),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.blue.shade600),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'User Approvals Access Required',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'You need superadmin permissions to view and manage pending user approval requests.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.blue.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // For other errors, show generic error message
+        return Card(
+          elevation: 2,
+          margin: const EdgeInsets.all(16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: Colors.red.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.red.shade600),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Error Loading Approvals',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red.shade800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Unable to load pending user approval requests. Please try again later.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.red.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       },
     );
   }
@@ -260,7 +398,7 @@ class _UserApprovalCardState extends ConsumerState<_UserApprovalCard> {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       leading: CircleAvatar(
-        backgroundColor: roleColor.withOpacity(0.1),
+        backgroundColor: roleColor.withValues(alpha: 0.1),
         child: Icon(
           _getRoleIcon(request.requestedRole),
           color: roleColor,
@@ -277,9 +415,9 @@ class _UserApprovalCardState extends ConsumerState<_UserApprovalCard> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: roleColor.withOpacity(0.1),
+              color: roleColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: roleColor.withOpacity(0.3)),
+              border: Border.all(color: roleColor.withValues(alpha: 0.3)),
             ),
             child: Text(
               request.displayRole,

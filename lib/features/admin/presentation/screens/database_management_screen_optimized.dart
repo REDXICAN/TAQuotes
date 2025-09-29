@@ -49,40 +49,51 @@ final productCountProvider = FutureProvider.autoDispose<int>((ref) async {
 final paginatedUsersProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic>>, int>((ref, page) async {
   const pageSize = 50;
 
-  final snapshot = await FirebaseDatabase.instance
-      .ref('users')
-      .once();
+  try {
+    final snapshot = await FirebaseDatabase.instance
+        .ref('user_profiles')
+        .once();
 
-  if (snapshot.snapshot.value == null) return [];
+    if (snapshot.snapshot.value == null) return [];
 
-  final data = snapshot.snapshot.value as Map<dynamic, dynamic>;
-  final users = <Map<String, dynamic>>[];
+    final data = snapshot.snapshot.value as Map<dynamic, dynamic>;
+    final users = <Map<String, dynamic>>[];
 
-  data.forEach((key, value) {
-    final userData = Map<String, dynamic>.from(value as Map);
-    userData['uid'] = key;
-    users.add(userData);
-  });
+    data.forEach((key, value) {
+      final userData = Map<String, dynamic>.from(value as Map);
+      userData['uid'] = key;
+      users.add(userData);
+    });
 
-  // Sort users by email
-  users.sort((a, b) => (a['email'] as String? ?? '').compareTo(b['email'] as String? ?? ''));
+    // Sort users by email
+    users.sort((a, b) => (a['email'] as String? ?? '').compareTo(b['email'] as String? ?? ''));
 
-  // Apply pagination
-  final startIndex = page * pageSize;
-  final endIndex = (startIndex + pageSize).clamp(0, users.length);
+    // Apply pagination
+    final startIndex = page * pageSize;
+    final endIndex = (startIndex + pageSize).clamp(0, users.length);
 
-  return users.sublist(startIndex.clamp(0, users.length), endIndex);
+    return users.sublist(startIndex.clamp(0, users.length), endIndex);
+  } catch (e) {
+    AppLogger.error('Permission denied accessing user_profiles', error: e);
+    // Return empty list with permission error indicator
+    return [];
+  }
 });
 
 // Provider for total user count
 final userCountProvider = FutureProvider.autoDispose<int>((ref) async {
-  final snapshot = await FirebaseDatabase.instance
-      .ref('users')
-      .once();
+  try {
+    final snapshot = await FirebaseDatabase.instance
+        .ref('user_profiles')
+        .once();
 
-  if (snapshot.snapshot.value == null) return 0;
-  final data = snapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
-  return data.keys.length;
+    if (snapshot.snapshot.value == null) return 0;
+    final data = snapshot.snapshot.value as Map<dynamic, dynamic>? ?? {};
+    return data.keys.length;
+  } catch (e) {
+    AppLogger.error('Permission denied accessing user_profiles count', error: e);
+    return 0;
+  }
 });
 
 class OptimizedDatabaseManagementScreen extends ConsumerStatefulWidget {
@@ -906,7 +917,7 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Search users...',
+                    hintText: 'Search user profiles...',
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -921,7 +932,7 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
               const SizedBox(width: 16),
               userCountAsync.when(
                 data: (count) => Chip(
-                  label: Text('$count users'),
+                  label: Text('$count profiles'),
                   backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
                 ),
                 loading: () => const SizedBox(
@@ -958,8 +969,14 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
                       Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
                       const SizedBox(height: 16),
                       Text(
-                        _searchQuery.isEmpty ? 'No users found' : 'No users match your search',
+                        _searchQuery.isEmpty ? 'No user profiles found' : 'No user profiles match your search',
                         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Make sure you have proper permissions to view user data.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
@@ -1134,7 +1151,7 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
                 children: [
                   CircularProgressIndicator(),
                   SizedBox(height: 16),
-                  Text('Loading users...'),
+                  Text('Loading user profiles...'),
                 ],
               ),
             ),
@@ -1142,9 +1159,21 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const Icon(Icons.security, size: 48, color: Colors.orange),
                   const SizedBox(height: 16),
-                  Text('Error loading users: $error'),
+                  const Text('Permission Denied'),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Unable to access user profile data. Contact administrator.',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Error: ${error.toString().contains('permission') ? 'Database permission denied' : error}',
+                    style: const TextStyle(fontSize: 12, color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
@@ -1214,7 +1243,7 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
               ),
               const SizedBox(width: 32),
               Text(
-                'Showing ${_currentUserPage * _pageSize + 1}-${((_currentUserPage + 1) * _pageSize).clamp(0, totalCount)} of $totalCount users',
+                'Showing ${_currentUserPage * _pageSize + 1}-${((_currentUserPage + 1) * _pageSize).clamp(0, totalCount)} of $totalCount profiles',
                 style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
             ],
@@ -1262,7 +1291,7 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
       try {
         // Delete from Firebase Auth
         // Note: This requires admin SDK, for now just remove from database
-        await FirebaseDatabase.instance.ref('users/$userId').remove();
+        await FirebaseDatabase.instance.ref('user_profiles/$userId').remove();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1296,7 +1325,7 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
 
       updates['updatedAt'] = ServerValue.timestamp;
 
-      await FirebaseDatabase.instance.ref('users/$userId').update(updates);
+      await FirebaseDatabase.instance.ref('user_profiles/$userId').update(updates);
 
       setState(() {
         _editingUsers.remove(userId);

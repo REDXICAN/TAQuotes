@@ -27,7 +27,7 @@ class RealtimeDatabaseService {
       try {
         return DateTime.fromMillisecondsSinceEpoch(value);
       } catch (e) {
-        AppLogger.warning('Failed to parse timestamp int "$value"', error: e, category: LogCategory.data);
+        AppLogger.warning('Failed to parse timestamp int "$value"', error: e, category: LogCategory.database);
         return DateTime.now();
       }
     }
@@ -37,7 +37,7 @@ class RealtimeDatabaseService {
       try {
         return DateTime.fromMillisecondsSinceEpoch(value.toInt());
       } catch (e) {
-        AppLogger.warning('Failed to parse timestamp double "$value"', error: e, category: LogCategory.data);
+        AppLogger.warning('Failed to parse timestamp double "$value"', error: e, category: LogCategory.database);
         return DateTime.now();
       }
     }
@@ -54,12 +54,12 @@ class RealtimeDatabaseService {
         // Then try ISO format or other date string formats
         return DateTime.parse(value);
       } catch (e) {
-        AppLogger.warning('Failed to parse date string "$value"', error: e, category: LogCategory.data);
+        AppLogger.warning('Failed to parse date string "$value"', error: e, category: LogCategory.database);
         return DateTime.now();
       }
     }
 
-    AppLogger.warning('Unknown date format type ${value.runtimeType}: "$value"', category: LogCategory.data);
+    AppLogger.warning('Unknown date format type ${value.runtimeType}: "$value"', category: LogCategory.database);
     return DateTime.now();
   }
 
@@ -932,13 +932,25 @@ class RealtimeDatabaseService {
 
   // ============ USER PROFILES ============
   Future<Map<String, dynamic>?> getUserProfile(String uid) async {
-    final snapshot = await _db.ref('user_profiles/$uid').get();
-    if (snapshot.exists) {
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
-      data['id'] = uid;
-      return data;
+    try {
+      final snapshot = await _db.ref('user_profiles/$uid').get();
+      if (snapshot.exists) {
+        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        data['id'] = uid;
+        return data;
+      }
+      return null;
+    } catch (e) {
+      // Handle permission denied or other database errors gracefully
+      if (e.toString().contains('permission') || e.toString().contains('PERMISSION_DENIED')) {
+        AppLogger.warning('Permission denied accessing user profile for uid: $uid',
+            error: e, category: LogCategory.security);
+      } else {
+        AppLogger.error('Error fetching user profile for uid: $uid',
+            error: e, category: LogCategory.database);
+      }
+      return null;
     }
-    return null;
   }
 
   Future<void> createUserProfile({
@@ -948,41 +960,81 @@ class RealtimeDatabaseService {
     String role = 'distributor',
     String status = 'active',
   }) async {
-    // Check if this is the superadmin email
-    final isSuperAdmin = email == 'andres@turboairmexico.com';
-    final finalRole = isSuperAdmin ? 'superadmin' : role;
-    
-    await _db.ref('user_profiles/$uid').set({
-      'uid': uid,
-      'email': email,
-      'name': name,
-      'role': finalRole,
-      'status': status,
-      'isAdmin': isSuperAdmin || role == 'admin',
-      'created_at': ServerValue.timestamp,
-      'updated_at': ServerValue.timestamp,
-    });
+    try {
+      // Check if this is the superadmin email
+      final isSuperAdmin = email == 'andres@turboairmexico.com';
+      final finalRole = isSuperAdmin ? 'superadmin' : role;
+
+      await _db.ref('user_profiles/$uid').set({
+        'uid': uid,
+        'email': email,
+        'name': name,
+        'role': finalRole,
+        'status': status,
+        'isAdmin': isSuperAdmin || role == 'admin',
+        'created_at': ServerValue.timestamp,
+        'updated_at': ServerValue.timestamp,
+      });
+
+      AppLogger.info('Created user profile for uid: $uid, email: $email, role: $finalRole',
+          category: LogCategory.auth);
+    } catch (e) {
+      if (e.toString().contains('permission') || e.toString().contains('PERMISSION_DENIED')) {
+        AppLogger.error('Permission denied creating user profile for uid: $uid, email: $email',
+            error: e, category: LogCategory.security);
+      } else {
+        AppLogger.error('Error creating user profile for uid: $uid, email: $email',
+            error: e, category: LogCategory.database);
+      }
+      rethrow; // Re-throw since this is a critical operation that should fail visibly
+    }
   }
 
   Future<void> updateUserProfile(
       String uid, Map<String, dynamic> updates) async {
-    await _db.ref('user_profiles/$uid').update({
-      ...updates,
-      'updated_at': ServerValue.timestamp,
-    });
+    try {
+      await _db.ref('user_profiles/$uid').update({
+        ...updates,
+        'updated_at': ServerValue.timestamp,
+      });
+
+      AppLogger.info('Updated user profile for uid: $uid',
+          category: LogCategory.auth);
+    } catch (e) {
+      if (e.toString().contains('permission') || e.toString().contains('PERMISSION_DENIED')) {
+        AppLogger.error('Permission denied updating user profile for uid: $uid',
+            error: e, category: LogCategory.security);
+      } else {
+        AppLogger.error('Error updating user profile for uid: $uid',
+            error: e, category: LogCategory.database);
+      }
+      rethrow; // Re-throw since this is a critical operation that should fail visibly
+    }
   }
 
   Future<List<Map<String, dynamic>>> getAllUsers() async {
-    final snapshot = await _db.ref('user_profiles').once();
-    if (snapshot.snapshot.value != null) {
-      final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
-      return data.entries.map((entry) {
-        final userMap = Map<String, dynamic>.from(entry.value);
-        userMap['id'] = entry.key;
-        return userMap;
-      }).toList();
+    try {
+      final snapshot = await _db.ref('user_profiles').once();
+      if (snapshot.snapshot.value != null) {
+        final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        return data.entries.map((entry) {
+          final userMap = Map<String, dynamic>.from(entry.value);
+          userMap['id'] = entry.key;
+          return userMap;
+        }).toList();
+      }
+      return [];
+    } catch (e) {
+      // Handle permission denied or other database errors gracefully
+      if (e.toString().contains('permission') || e.toString().contains('PERMISSION_DENIED')) {
+        AppLogger.warning('Permission denied accessing user profiles - returning empty list',
+            error: e, category: LogCategory.security);
+      } else {
+        AppLogger.error('Error fetching all users - returning empty list',
+            error: e, category: LogCategory.database);
+      }
+      return [];
     }
-    return [];
   }
 
   // ============ STATISTICS ============
@@ -1054,8 +1106,14 @@ class RealtimeDatabaseService {
       AppLogger.info('User approval request created for: $email (Role: $requestedRole)');
       return requestId;
     } catch (e) {
-      AppLogger.error('Error creating admin request', error: e);
-      rethrow;
+      if (e.toString().contains('permission') || e.toString().contains('PERMISSION_DENIED')) {
+        AppLogger.error('Permission denied creating user approval request for: $email',
+            error: e, category: LogCategory.security);
+      } else {
+        AppLogger.error('Error creating user approval request for: $email',
+            error: e, category: LogCategory.database);
+      }
+      rethrow; // Re-throw since this is a critical operation that should fail visibly
     }
   }
 
@@ -1082,6 +1140,15 @@ class RealtimeDatabaseService {
         return dateB.compareTo(dateA);
       });
       return requests;
+    }).handleError((error) {
+      if (error.toString().contains('permission') || error.toString().contains('PERMISSION_DENIED')) {
+        AppLogger.warning('Permission denied accessing pending user approvals - returning empty list',
+            error: error, category: LogCategory.security);
+      } else {
+        AppLogger.error('Error streaming pending user approvals - returning empty list',
+            error: error, category: LogCategory.database);
+      }
+      return <Map<String, dynamic>>[];
     });
   }
 
@@ -1125,8 +1192,14 @@ class RealtimeDatabaseService {
 
       AppLogger.info('User request approved for: ${requestData['email']} (Role: $requestedRole)');
     } catch (e) {
-      AppLogger.error('Error approving admin request', error: e);
-      rethrow;
+      if (e.toString().contains('permission') || e.toString().contains('PERMISSION_DENIED')) {
+        AppLogger.error('Permission denied approving user request',
+            error: e, category: LogCategory.security);
+      } else {
+        AppLogger.error('Error approving user request',
+            error: e, category: LogCategory.database);
+      }
+      rethrow; // Re-throw since this is a critical operation that should fail visibly
     }
   }
 
@@ -1145,8 +1218,14 @@ class RealtimeDatabaseService {
 
       AppLogger.info('User request rejected: $requestId');
     } catch (e) {
-      AppLogger.error('Error rejecting admin request', error: e);
-      rethrow;
+      if (e.toString().contains('permission') || e.toString().contains('PERMISSION_DENIED')) {
+        AppLogger.error('Permission denied rejecting user request',
+            error: e, category: LogCategory.security);
+      } else {
+        AppLogger.error('Error rejecting user request',
+            error: e, category: LogCategory.database);
+      }
+      rethrow; // Re-throw since this is a critical operation that should fail visibly
     }
   }
 
@@ -1166,7 +1245,13 @@ class RealtimeDatabaseService {
         return request;
       }
     } catch (e) {
-      AppLogger.error('Error fetching user approval request by token', error: e);
+      if (e.toString().contains('permission') || e.toString().contains('PERMISSION_DENIED')) {
+        AppLogger.warning('Permission denied accessing user approval request by token',
+            error: e, category: LogCategory.security);
+      } else {
+        AppLogger.error('Error fetching user approval request by token',
+            error: e, category: LogCategory.database);
+      }
     }
     return null;
   }

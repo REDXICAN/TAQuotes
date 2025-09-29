@@ -42,9 +42,21 @@ Future<List<UserInfo>> _fetchAllUsers() async {
   }
 
   try {
-    // Get all users
-    final usersSnapshot = await database.ref('users').get();
+    DataSnapshot usersSnapshot;
+
+    // Try 'user_profiles' first (recommended path with simpler permissions)
+    try {
+      usersSnapshot = await database.ref('user_profiles').get();
+      AppLogger.info('Successfully accessed user_profiles path');
+    } catch (e) {
+      // If user_profiles fails, try fallback to 'users' path
+      AppLogger.warning('user_profiles path failed, trying users path', error: e);
+      usersSnapshot = await database.ref('users').get();
+      AppLogger.info('Successfully accessed users path as fallback');
+    }
+
     if (!usersSnapshot.exists) {
+      AppLogger.info('No user data found in database (checked both user_profiles and users paths)');
       return [];
     }
 
@@ -127,18 +139,19 @@ Future<List<UserInfo>> _fetchAllUsers() async {
 
       userInfoList.add(UserInfo(
         uid: userId,
-        email: userData['email'] ?? '',
-        displayName: userData['displayName'] ?? userData['name'] ?? 'Unknown',
-        role: userData['role'] ?? 'distributor',
-        createdAt: DateTime.tryParse(userData['createdAt'] ?? userData['created_at'] ?? '') ?? DateTime.now(),
-        lastLoginAt: DateTime.tryParse(userData['lastLoginAt'] ?? userData['last_login_at'] ?? '') ?? DateTime.now(),
-        isAdmin: (userData['role'] ?? '').toLowerCase() == 'admin' || (userData['role'] ?? '').toLowerCase() == 'superadmin',
+        email: userData['email'] ?? userData['emailAddress'] ?? '',
+        displayName: userData['displayName'] ?? userData['name'] ?? userData['full_name'] ?? userData['fullName'] ?? 'Unknown',
+        role: userData['role'] ?? userData['user_role'] ?? 'distributor',
+        createdAt: DateTime.tryParse(userData['createdAt'] ?? userData['created_at'] ?? userData['registrationDate'] ?? '') ?? DateTime.now(),
+        lastLoginAt: DateTime.tryParse(userData['lastLoginAt'] ?? userData['last_login_at'] ?? userData['lastLogin'] ?? '') ?? DateTime.now(),
+        isAdmin: (userData['role'] ?? userData['user_role'] ?? '').toLowerCase() == 'admin' ||
+                 (userData['role'] ?? userData['user_role'] ?? '').toLowerCase() == 'superadmin',
         quotesCount: quotesCount,
         clientsCount: clientsCount,
         totalRevenue: totalRevenue,
-        phoneNumber: userData['phoneNumber'] ?? userData['phone'] ?? '',
-        photoUrl: userData['photoUrl'] ?? userData['photo_url'] ?? '',
-        isActive: userData['isActive'] ?? userData['status'] != 'inactive',
+        phoneNumber: userData['phoneNumber'] ?? userData['phone'] ?? userData['phone_number'] ?? '',
+        photoUrl: userData['photoUrl'] ?? userData['photo_url'] ?? userData['profileImage'] ?? '',
+        isActive: userData['isActive'] ?? userData['active'] ?? userData['status'] != 'inactive',
         latestQuotes: latestQuotes,
         topProducts: formattedTopProducts,
       ));
@@ -149,7 +162,23 @@ Future<List<UserInfo>> _fetchAllUsers() async {
 
     return userInfoList;
   } catch (e) {
-    AppLogger.error('Error loading users', error: e);
+    // Handle specific Firebase permission errors
+    if (e.toString().contains('permission') ||
+        e.toString().contains('denied') ||
+        e.toString().contains('PERMISSION_DENIED')) {
+      AppLogger.error('Permission denied accessing user_profiles', error: e);
+      throw Exception('Permission denied: Unable to access user data. Check Firebase database rules.');
+    }
+
+    // Handle network or connection errors
+    if (e.toString().contains('network') ||
+        e.toString().contains('connection') ||
+        e.toString().contains('timeout')) {
+      AppLogger.error('Network error loading users', error: e);
+      throw Exception('Network error: Please check your internet connection and try again.');
+    }
+
+    AppLogger.error('Error loading users from user_profiles', error: e);
     rethrow;
   }
 }
@@ -429,18 +458,53 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Error loading users: $error'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(allUsersProvider),
-                child: const Text('Retry'),
-              ),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  error.toString().contains('Permission denied')
+                    ? Icons.security
+                    : Icons.error_outline,
+                  size: 64,
+                  color: Colors.red,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  error.toString().contains('Permission denied')
+                    ? 'Access Denied'
+                    : 'Error Loading Users',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  error.toString().contains('Permission denied')
+                    ? 'You don\'t have permission to access user data. Please contact your administrator or check Firebase database rules.'
+                    : error.toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => ref.invalidate(allUsersProvider),
+                      child: const Text('Retry'),
+                    ),
+                    const SizedBox(width: 16),
+                    OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Go Back'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -145,8 +145,8 @@ final recentQuotesProvider = StreamProvider.autoDispose<List<Quote>>((ref) {
   });
 });
 
-// Pending User Approvals Provider
-final pendingUserApprovalsProvider = StreamProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+// Legacy Pending User Approvals Provider (deprecated - use one from user_approvals_widget.dart)
+final legacyPendingUserApprovalsProvider = StreamProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
   final user = ref.watch(authStateProvider).valueOrNull;
   if (user == null) return Stream.value([]);
 
