@@ -1856,7 +1856,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
 
   Future<void> _createQuote(List<CartItem> items, Client client) async {
     // Validate client ID
-    if (client.id == null || client.id!.isEmpty) {
+    if (client.id == null || client.id?.isEmpty == true) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -2323,7 +2323,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
             ElevatedButton(
               onPressed: () async {
                       // Validate form first
-                      if (!formKey.currentState!.validate()) {
+                      if (formKey.currentState?.validate() != true) {
                         return;
                       }
                       Navigator.pop(dialogContext);
@@ -2581,14 +2581,14 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
     try {
       final selectedClient = ref.read(cartClientProvider) ?? ref.read(selectedClientProvider);
       if (selectedClient?.id == null) return [];
-      
+
       final dbService = ref.read(databaseServiceProvider);
       final user = ref.read(currentUserProvider);
       if (user == null) return [];
-      
+
       // Get projects for this client
       final database = FirebaseDatabase.instance;
-      final snapshot = await database.ref('projects/${user.uid}').orderByChild('clientId').equalTo(selectedClient!.id).get();
+      final snapshot = await database.ref('projects/${user.uid}').orderByChild('clientId').equalTo(selectedClient?.id ?? '').get();
       
       if (snapshot.exists && snapshot.value != null) {
         final projectsMap = Map<String, dynamic>.from(snapshot.value as Map);
@@ -2772,10 +2772,12 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                 onPressed: () async {
                   // Remove discount
                   final dbService = ref.read(databaseServiceProvider);
-                  await dbService.updateCartItem(
-                    item.id!,
-                    discount: 0,
-                  );
+                  if (item.id != null) {
+                    await dbService.updateCartItem(
+                      item.id!,
+                      discount: 0,
+                    );
+                  }
                   Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -2817,10 +2819,12 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                 }
                 
                 final dbService = ref.read(databaseServiceProvider);
-                await dbService.updateCartItem(
-                  item.id!,
-                  discount: finalDiscountPercentage,
-                );
+                if (item.id != null) {
+                  await dbService.updateCartItem(
+                    item.id!,
+                    discount: finalDiscountPercentage,
+                  );
+                }
                 
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -2888,10 +2892,12 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
               onPressed: () async {
                 // Remove sequence number
                 final dbService = ref.read(databaseServiceProvider);
-                await dbService.updateCartItem(
-                  item.id!,
-                  sequenceNumber: '',
-                );
+                if (item.id != null) {
+                  await dbService.updateCartItem(
+                    item.id!,
+                    sequenceNumber: '',
+                  );
+                }
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -2907,10 +2913,12 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
               final sequenceNumber = sequenceController.text.trim();
               
               final dbService = ref.read(databaseServiceProvider);
-              await dbService.updateCartItem(
-                item.id!,
-                sequenceNumber: sequenceNumber,
-              );
+              if (item.id != null) {
+                await dbService.updateCartItem(
+                  item.id!,
+                  sequenceNumber: sequenceNumber,
+                );
+              }
               
               Navigator.pop(dialogContext);
               ScaffoldMessenger.of(context).showSnackBar(
@@ -2967,10 +2975,12 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
               onPressed: () async {
                 // Remove note
                 final dbService = ref.read(databaseServiceProvider);
-                await dbService.updateCartItem(
-                  item.id!,
-                  note: null,
-                );
+                if (item.id != null) {
+                  await dbService.updateCartItem(
+                    item.id!,
+                    note: null,
+                  );
+                }
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -2986,10 +2996,12 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
               final note = noteController.text.trim();
               
               final dbService = ref.read(databaseServiceProvider);
-              await dbService.updateCartItem(
-                item.id!,
-                note: note.isEmpty ? null : note,
-              );
+              if (item.id != null) {
+                await dbService.updateCartItem(
+                  item.id!,
+                  note: note.isEmpty ? null : note,
+                );
+              }
               
               Navigator.pop(dialogContext);
               ScaffoldMessenger.of(context).showSnackBar(
@@ -3135,7 +3147,7 @@ class _ClientSelectorSheetState extends ConsumerState<ClientSelectorSheet> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                _error!,
+                                _error ?? 'Unknown error',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(color: Colors.red[700]),
                               ),
