@@ -118,8 +118,13 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    // Simulate initial loading
+    // Simulate initial loading with error handling
     Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() => _initialLoadComplete = true);
+      }
+    }).catchError((error) {
+      AppLogger.error('Error in initial load', error: error);
       if (mounted) {
         setState(() => _initialLoadComplete = true);
       }
@@ -349,35 +354,70 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
 
   @override
   Widget build(BuildContext context) {
-    // Show initial loading screen
-    if (!_initialLoadComplete) {
-      return _buildInitialLoadingScreen();
-    }
+    try {
+      // Show initial loading screen
+      if (!_initialLoadComplete) {
+        return _buildInitialLoadingScreen();
+      }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Database Management'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Products'),
-            Tab(text: 'Users'),
-          ],
-        ),
-      ),
-      body: Stack(
-        children: [
-          TabBarView(
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Database Management'),
+          bottom: TabBar(
             controller: _tabController,
-            children: [
-              _buildProductsTab(),
-              _buildUsersTab(),
+            tabs: const [
+              Tab(text: 'Products'),
+              Tab(text: 'Users'),
             ],
           ),
-          _buildLoadingOverlay(),
-        ],
-      ),
-    );
+        ),
+        body: Stack(
+          children: [
+            TabBarView(
+              controller: _tabController,
+              children: [
+                _buildProductsTab(),
+                _buildUsersTab(),
+              ],
+            ),
+            _buildLoadingOverlay(),
+          ],
+        ),
+      );
+    } catch (error, stackTrace) {
+      AppLogger.error('Error in database management build', error: error, stackTrace: stackTrace);
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Database Management'),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              const Text('An error occurred loading the database'),
+              const SizedBox(height: 8),
+              Text('Error: $error', style: const TextStyle(fontSize: 12)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _initialLoadComplete = false;
+                  });
+                  Future.delayed(const Duration(milliseconds: 500), () {
+                    if (mounted) {
+                      setState(() => _initialLoadComplete = true);
+                    }
+                  });
+                },
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildProductsTab() {
