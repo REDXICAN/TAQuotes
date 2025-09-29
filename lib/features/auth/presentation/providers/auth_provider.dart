@@ -228,36 +228,24 @@ final signInProvider = Provider((ref) {
 
       return null; // Success
     } on FirebaseAuthException catch (e) {
-      // Log the actual Firebase error for debugging
-      AppLogger.error('Firebase Auth Error', error: e, category: LogCategory.auth, data: {
-        'code': e.code,
-        'message': e.message,
-        'email': email,
-      });
-      print('FIREBASE AUTH ERROR: Code=${e.code}, Message=${e.message}');
-
       switch (e.code) {
         case 'user-not-found':
-          return 'No user found with this email. Please check the email or create a new account.';
+          return 'No user found with this email';
         case 'wrong-password':
-          return 'Wrong password provided. Please check your password.';
+          return 'Wrong password provided';
         case 'invalid-email':
-          return 'Invalid email address format';
+          return 'Invalid email address';
         case 'user-disabled':
-          return 'This user account has been disabled';
+          return 'This user has been disabled';
         case 'too-many-requests':
           return 'Too many failed login attempts. Please try again later or reset your password';
         case 'network-request-failed':
           return 'Network error. Please check your internet connection';
-        case 'invalid-credential':
-          return 'Invalid credentials. Please check your email and password.';
         default:
-          return 'Firebase error (${e.code}): ${e.message ?? "Unknown error"}';
+          return e.message ?? 'An error occurred during sign in';
       }
     } catch (e) {
-      print('UNEXPECTED AUTH ERROR: $e');
-      AppLogger.error('Unexpected auth error', error: e, category: LogCategory.auth);
-      return 'Unexpected error: ${e.toString()}';
+      return 'An unexpected error occurred';
     }
   };
 });

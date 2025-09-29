@@ -51,15 +51,12 @@ void main() {
         id: 'test-id',
         sku: 'TEST-SKU',
         model: 'TEST-MODEL',
-        displayName: 'TEST-SKU - Test Product',
         name: 'Test Product',
         description: 'Test Description',
         price: 1500.50,
         category: 'Test Category',
         productType: 'Test Type',
         isTopSeller: false,
-        stock: 10,
-        createdAt: DateTime.now(),
       );
 
       final map = product.toMap();
@@ -77,39 +74,30 @@ void main() {
         id: '1',
         sku: 'SKU-123',
         model: 'MODEL-456',
-        displayName: 'SKU-123 - Product Name',
         name: 'Product Name',
         description: 'Description',
         price: 100.0,
         category: 'Category',
-        stock: 5,
-        createdAt: DateTime.now(),
       );
 
       final product2 = Product(
         id: '2',
         sku: null,
         model: 'MODEL-789',
-        displayName: 'MODEL-789 - Product Name 2',
         name: 'Product Name 2',
         description: 'Description',
         price: 200.0,
         category: 'Category',
-        stock: 3,
-        createdAt: DateTime.now(),
       );
 
       final product3 = Product(
         id: '3',
         sku: null,
-        model: 'MODEL-XYZ',
-        displayName: 'Product Name 3',
+        model: null,
         name: 'Product Name 3',
         description: 'Description',
         price: 300.0,
         category: 'Category',
-        stock: 8,
-        createdAt: DateTime.now(),
       );
 
       expect(product1.displayName, 'SKU-123 - Product Name');

@@ -85,13 +85,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
 
       if (error != null && mounted) {
-        // Show detailed error for debugging
-        print('LOGIN ERROR: $error');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(error.isEmpty ? 'Authentication failed. Check console for details.' : error),
+            content: Text(error),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 5),
           ),
         );
       }

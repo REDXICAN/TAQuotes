@@ -177,43 +177,23 @@ final firebaseReadyProvider = FutureProvider<bool>((ref) async {
 final smartProductsProvider = StreamProvider.autoDispose.family<List<Product>, String?>((ref, category) async* {
   // Wait for Firebase to be ready
   final firebaseReady = await ref.watch(firebaseReadyProvider.future);
-
+  
   if (!firebaseReady) {
     // Try enhanced provider anyway, it has retry logic
-    final asyncValue = ref.watch(enhancedProductsProvider(category));
-    yield asyncValue.when(
-      data: (data) => data,
-      loading: () => <Product>[],
-      error: (error, stack) => <Product>[],
-    );
+    yield* ref.watch(enhancedProductsProvider(category).stream);
   } else {
-    final asyncValue = ref.watch(enhancedProductsProvider(category));
-    yield asyncValue.when(
-      data: (data) => data,
-      loading: () => <Product>[],
-      error: (error, stack) => <Product>[],
-    );
+    yield* ref.watch(enhancedProductsProvider(category).stream);
   }
 });
 
 final smartClientsProvider = StreamProvider.autoDispose<List<Client>>((ref) async* {
   // Wait for Firebase to be ready
   final firebaseReady = await ref.watch(firebaseReadyProvider.future);
-
+  
   if (!firebaseReady) {
     // Try enhanced provider anyway, it has retry logic
-    final asyncValue = ref.watch(enhancedClientsProvider);
-    yield asyncValue.when(
-      data: (data) => data,
-      loading: () => <Client>[],
-      error: (error, stack) => <Client>[],
-    );
+    yield* ref.watch(enhancedClientsProvider.stream);
   } else {
-    final asyncValue = ref.watch(enhancedClientsProvider);
-    yield asyncValue.when(
-      data: (data) => data,
-      loading: () => <Client>[],
-      error: (error, stack) => <Client>[],
-    );
+    yield* ref.watch(enhancedClientsProvider.stream);
   }
 });

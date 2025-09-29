@@ -48,7 +48,6 @@ scripts/*.dart
 populate_stock*.dart
 populate_stock*.js
 populate_stock*.html
-fix_superadmin_auth.dart
 update_stock*.js
 create_firebase*.js
 *firebase_import*.json

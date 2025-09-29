@@ -81,8 +81,11 @@ class PlatformEmailService {
           recipientEmail: recipientEmail,
           recipientName: recipientName,
           quoteNumber: quoteNumber,
+          totalAmount: totalAmount,
           pdfBytes: pdfBytes,
-          userInfo: userInfo ?? {},
+          htmlContent: htmlContent,
+          userInfo: userInfo,
+          products: products,
         );
       }
     } catch (e) {
