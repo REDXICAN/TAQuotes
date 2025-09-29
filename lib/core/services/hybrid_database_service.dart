@@ -371,7 +371,7 @@ class HybridDatabaseService {
     }
   }
 
-  /// Get all users (Firestore) - returns List<Map<String, dynamic>>
+  /// Get all users (Firestore) - returns List of Map String dynamic
   Future<List<Map<String, dynamic>>> getAllUsersOnce() async {
     try {
       if (!isSuperAdmin) return [];
@@ -384,6 +384,113 @@ class HybridDatabaseService {
       }).toList();
     } catch (e) {
       AppLogger.error('Error getting all users', error: e);
+      return [];
+    }
+  }
+
+  /// Get all products once (Realtime Database) - returns List of Map String dynamic
+  Future<List<Map<String, dynamic>>> getAllProductsOnce() async {
+    try {
+      final snapshot = await _realtimeDb.ref('products').get();
+      final List<Map<String, dynamic>> products = [];
+
+      if (snapshot.exists && snapshot.value != null) {
+        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        data.forEach((key, value) {
+          final product = Map<String, dynamic>.from(value);
+          product['id'] = key;
+          products.add(product);
+        });
+      }
+
+      return products;
+    } catch (e) {
+      AppLogger.error('Error getting all products', error: e);
+      return [];
+    }
+  }
+
+  /// Get all clients once (Realtime Database) - returns List of Map String dynamic
+  Future<List<Map<String, dynamic>>> getAllClientsOnce() async {
+    try {
+      final path = isSuperAdmin ? 'clients' : 'clients/$userId';
+      final snapshot = await _realtimeDb.ref(path).get();
+      final List<Map<String, dynamic>> clients = [];
+
+      if (snapshot.exists && snapshot.value != null) {
+        final data = Map<String, dynamic>.from(snapshot.value as Map);
+
+        if (isSuperAdmin) {
+          // For superadmin, iterate through all user clients
+          data.forEach((userId, userClients) {
+            if (userClients is Map) {
+              Map<String, dynamic>.from(userClients).forEach((key, value) {
+                final client = Map<String, dynamic>.from(value);
+                client['id'] = key;
+                client['userId'] = userId;
+                clients.add(client);
+              });
+            }
+          });
+        } else {
+          // For regular users, just their clients
+          data.forEach((key, value) {
+            final client = Map<String, dynamic>.from(value);
+            client['id'] = key;
+            clients.add(client);
+          });
+        }
+      }
+
+      return clients;
+    } catch (e) {
+      AppLogger.error('Error getting all clients', error: e);
+      return [];
+    }
+  }
+
+  /// Get all quotes once (Realtime Database) - returns List of Map String dynamic
+  Future<List<Map<String, dynamic>>> getAllQuotesOnce() async {
+    try {
+      final path = isSuperAdmin ? 'quotes' : 'quotes/$userId';
+      final snapshot = await _realtimeDb.ref(path).get();
+      final List<Map<String, dynamic>> quotes = [];
+
+      if (snapshot.exists && snapshot.value != null) {
+        final data = Map<String, dynamic>.from(snapshot.value as Map);
+
+        if (isSuperAdmin) {
+          // For superadmin, iterate through all user quotes
+          data.forEach((userId, userQuotes) {
+            if (userQuotes is Map) {
+              Map<String, dynamic>.from(userQuotes).forEach((key, value) {
+                final quote = Map<String, dynamic>.from(value);
+                quote['id'] = key;
+                quote['userId'] = userId;
+                quotes.add(quote);
+              });
+            }
+          });
+        } else {
+          // For regular users, just their quotes
+          data.forEach((key, value) {
+            final quote = Map<String, dynamic>.from(value);
+            quote['id'] = key;
+            quotes.add(quote);
+          });
+        }
+      }
+
+      // Sort by created_at descending
+      quotes.sort((a, b) {
+        final aTime = a['created_at'] ?? 0;
+        final bTime = b['created_at'] ?? 0;
+        return bTime.compareTo(aTime);
+      });
+
+      return quotes;
+    } catch (e) {
+      AppLogger.error('Error getting all quotes', error: e);
       return [];
     }
   }

@@ -15,6 +15,7 @@ import '../../../../core/services/excel_upload_service.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/services/rbac_service.dart';
 import '../../../../core/utils/warehouse_utils.dart';
+import '../../../../core/providers/providers.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../widgets/excel_preview_dialog.dart';
 import '../../widgets/import_progress_dialog.dart';
@@ -133,8 +134,7 @@ class ProductQuantitiesNotifier extends StateNotifier<Map<String, int>> {
   }
 }
 
-// Search provider
-final searchQueryProvider = StateProvider<String>((ref) => '');
+// Search and selection providers (searchQueryProvider is imported from providers.dart)
 final selectedCategoryProvider = StateProvider<String?>((ref) => null);
 final selectedWarehouseProvider = StateProvider<String?>((ref) => null);
 

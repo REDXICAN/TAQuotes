@@ -21,19 +21,28 @@ import '../../../cart/presentation/screens/cart_screen.dart'; // For cartClientP
 
 // Clients provider using StreamProvider for real-time updates
 final clientsProvider = StreamProvider.autoDispose<List<Client>>((ref) {
-  // Use currentUserProvider instead of authStateProvider to avoid loading states
+  // Use currentUserProvider directly - simpler and avoids auth state race conditions
   final user = ref.watch(currentUserProvider);
 
   if (user == null) {
-    // Not logged in
+    // Not logged in - return empty stream
     return Stream.value([]);
   }
 
+  // Create and return the clients stream with error handling
+  return _createClientsStream(user.uid).handleError((error, stack) {
+    AppLogger.error('Error in clients stream', error: error);
+    return <Client>[];
+  });
+});
+
+// Helper function to create the clients stream
+Stream<List<Client>> _createClientsStream(String userId) {
   try {
     final database = FirebaseDatabase.instance;
 
     // Return a stream that listens to clients changes
-    return database.ref('clients/${user.uid}').onValue.map((event) {
+    return database.ref('clients/$userId').onValue.map((event) {
       final List<Client> clients = [];
 
       if (event.snapshot.exists && event.snapshot.value != null) {
@@ -61,21 +70,31 @@ final clientsProvider = StreamProvider.autoDispose<List<Client>>((ref) {
     AppLogger.error('Error setting up clients stream', error: e);
     return Stream.value([]);
   }
-});
+}
 
 // Selected client provider
 final selectedClientProvider = StateProvider<Client?>((ref) => null);
 
 // Provider to fetch quotes for a specific client - StreamProvider.autoDispose.family for real-time updates
 final clientQuotesProvider = StreamProvider.autoDispose.family<List<Quote>, String>((ref, clientId) {
+  // Use currentUserProvider directly - simpler pattern
   final user = ref.watch(currentUserProvider);
+
   if (user == null) {
     return Stream.value([]);
   }
 
+  return _createClientQuotesStream(user.uid, clientId).handleError((error, stack) {
+    AppLogger.error('Error in client quotes stream', error: error);
+    return <Quote>[];
+  });
+});
+
+// Helper function to create client quotes stream
+Stream<List<Quote>> _createClientQuotesStream(String userId, String clientId) {
   // Use Firebase real-time listener for automatic updates
   final database = FirebaseDatabase.instance;
-  return database.ref('quotes/${user.uid}').onValue.map((event) {
+  return database.ref('quotes/$userId').onValue.map((event) {
     try {
       if (!event.snapshot.exists || event.snapshot.value == null) {
         return <Quote>[];
@@ -110,20 +129,30 @@ final clientQuotesProvider = StreamProvider.autoDispose.family<List<Quote>, Stri
     AppLogger.error('Client quotes stream error', error: error);
     return <Quote>[];
   });
-});
+}
 
 // Provider to fetch projects for a specific client - StreamProvider.autoDispose.family for real-time updates
 final clientProjectsProvider = StreamProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, clientId) {
+  // Use currentUserProvider directly - simpler pattern
   final user = ref.watch(currentUserProvider);
+
   if (user == null) {
     return Stream.value([]);
   }
 
+  return _createClientProjectsStream(user.uid, clientId).handleError((error, stack) {
+    AppLogger.error('Error in client projects stream', error: error);
+    return <Map<String, dynamic>>[];
+  });
+});
+
+// Helper function to create client projects stream
+Stream<List<Map<String, dynamic>>> _createClientProjectsStream(String userId, String clientId) {
   // Since Firebase doesn't support real-time listeners with orderByChild + equalTo,
   // use periodic refresh with Firebase listener on all projects and filter client-side
   final database = FirebaseDatabase.instance;
 
-  return database.ref('projects/${user.uid}').onValue.map((event) {
+  return database.ref('projects/$userId').onValue.map((event) {
     try {
       if (!event.snapshot.exists || event.snapshot.value == null) {
         return <Map<String, dynamic>>[];
@@ -162,7 +191,7 @@ final clientProjectsProvider = StreamProvider.autoDispose.family<List<Map<String
     AppLogger.error('Client projects stream error', error: error);
     return <Map<String, dynamic>>[];
   });
-});
+}
 
 class ClientsScreen extends ConsumerStatefulWidget {
   const ClientsScreen({super.key});
@@ -171,7 +200,7 @@ class ClientsScreen extends ConsumerStatefulWidget {
   ConsumerState<ClientsScreen> createState() => _ClientsScreenState();
 }
 
-class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTickerProviderStateMixin {
   bool _showAddForm = false;
   String? _editingClientId;
   String _searchQuery = '';
@@ -187,9 +216,6 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
   final _stateController = TextEditingController();
   final _zipCodeController = TextEditingController();
   final _notesController = TextEditingController();
-
-  @override
-  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -217,7 +243,6 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final clientsAsync = ref.watch(clientsProvider);
     final selectedClient = ref.watch(selectedClientProvider);
     final theme = Theme.of(context);

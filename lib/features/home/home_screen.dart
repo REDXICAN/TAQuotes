@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/services/offline_service.dart';
@@ -14,8 +13,7 @@ import '../../core/models/models.dart';
 import '../../core/widgets/simple_image_widget.dart';
 import '../../core/utils/price_formatter.dart';
 import '../../core/widgets/app_bar_with_client.dart';
-import '../auth/presentation/providers/auth_provider.dart';
-import '../products/presentation/screens/products_screen.dart';
+import '../../core/providers/providers.dart';
 import '../../core/widgets/recent_searches_widget.dart';
 import '../admin/presentation/widgets/user_approvals_widget.dart';
 import 'widgets/projects_dashboard_widget.dart';
@@ -82,13 +80,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _syncQueueCount = 0;
   // Note: OfflineService is not supported on web platform
 
-  // Statistics
-  int _totalClients = 0;
-  int _totalQuotes = 0;
-  int _cartItems = 0;
-  int _totalProducts = 0;
-  int _totalSpareParts = 0;
-
   @override
   void initState() {
     super.initState();
@@ -103,9 +94,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     
     // Then load data
     _checkConnectivity();
-    _loadStatistics();
     _listenToSyncStatus();
-    _loadRealtimeData();
   }
 
   Future<void> _initializeServices() async {
@@ -114,7 +103,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       await CacheManager.initialize();
 
       final connectivityResult = await Connectivity().checkConnectivity();
-      if (connectivityResult != ConnectivityResult.none) {
+      if (!connectivityResult.contains(ConnectivityResult.none)) {
         OfflineService.syncPendingChanges();
       }
     } catch (e) {
@@ -148,106 +137,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
-  Future<void> _loadStatistics() async {
-    try {
-      // Ensure cache manager is initialized before accessing
-      if (!CacheManager.isInitialized) {
-        await CacheManager.initialize();
-      }
-      
-      // Firebase handles caching, return empty lists
-      final clients = [];
-      final quotes = [];
-      final products = [];
-      
-      // Use OfflineService static method instead of instance
-      final cart = OfflineService.getStaticCart();
 
-      if (mounted) {
-        setState(() {
-          _totalClients = clients.length;
-          _totalQuotes = quotes.length;
-          _totalProducts = products.length;
-          _cartItems = cart.length;
-        });
-      }
-    } catch (e) {
-      AppLogger.error('Error loading statistics', error: e, category: LogCategory.database);
-      // Set default values on error
-      if (mounted) {
-        setState(() {
-          _totalClients = 0;
-          _totalQuotes = 0;
-          _totalProducts = 0;
-          _cartItems = 0;
-        });
-      }
-    }
-  }
-
-  void _loadRealtimeData() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final database = FirebaseDatabase.instance;
-
-    // Listen to products
-    database.ref('products').onValue.listen((event) {
-      if (event.snapshot.value != null && mounted) {
-        final data = event.snapshot.value as Map;
-        setState(() {
-          _totalProducts = data.length;
-        });
-      }
-    });
-
-    // Listen to clients
-    database.ref('clients/${ user.uid}').onValue.listen((event) {
-      if (event.snapshot.value != null && mounted) {
-        final data = event.snapshot.value as Map;
-        setState(() {
-          _totalClients = data.length;
-        });
-      }
-    });
-
-    // Listen to quotes
-    database.ref('quotes/${user.uid}').onValue.listen((event) {
-      if (event.snapshot.value != null && mounted) {
-        final data = event.snapshot.value as Map;
-        setState(() {
-          _totalQuotes = data.length;
-        });
-      }
-    });
-
-    // Listen to cart
-    database.ref('cart_items/${user.uid}').onValue.listen((event) {
-      if (event.snapshot.value != null && mounted) {
-        final data = event.snapshot.value as Map;
-        setState(() {
-          _cartItems = data.length;
-        });
-      }
-    });
-
-    // Listen to spare parts
-    database.ref('spareparts').onValue.listen((event) {
-      if (event.snapshot.value != null && mounted) {
-        final data = event.snapshot.value as Map;
-        setState(() {
-          _totalSpareParts = data.length;
-        });
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     final userAsync = ref.watch(currentUserProfileProvider);
     final user = ref.watch(currentUserProvider);
     final userProfile = userAsync.valueOrNull;
-    final userEmail = user?.email ?? '';
 
     return Scaffold(
       appBar: const AppBarWithClient(
@@ -255,7 +151,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          await _loadStatistics();
+          // Invalidate providers to refresh data
+          ref.invalidate(totalProductsProvider);
+          ref.invalidate(totalClientsProvider);
+          ref.invalidate(totalQuotesProvider);
+          ref.invalidate(cartItemCountProvider);
+          ref.invalidate(sparePartsProvider);
+
           if (_isOnline) {
             await OfflineService.syncPendingChanges();
           }
@@ -417,40 +319,150 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   desktop: 1.2,
                 ),
                 children: [
-                  _buildStatCard(
-                    'Products',
-                    _totalProducts.toString(),
-                    Icons.inventory_2,
-                    Colors.blue,
-                    () => context.go('/products'),
+                  // Products Card
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final productsAsync = ref.watch(totalProductsProvider);
+                      return productsAsync.when(
+                        data: (count) => _buildStatCard(
+                          'Products',
+                          count.toString(),
+                          Icons.inventory_2,
+                          Colors.blue,
+                          () => context.go('/products'),
+                        ),
+                        loading: () => _buildStatCard(
+                          'Products',
+                          '...',
+                          Icons.inventory_2,
+                          Colors.blue,
+                          () => context.go('/products'),
+                        ),
+                        error: (_, __) => _buildStatCard(
+                          'Products',
+                          '0',
+                          Icons.inventory_2,
+                          Colors.blue,
+                          () => context.go('/products'),
+                        ),
+                      );
+                    },
                   ),
-                  _buildStatCard(
-                    'Clients',
-                    _totalClients.toString(),
-                    Icons.people,
-                    Colors.green,
-                    () => context.go('/clients'),
+                  // Clients Card
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final clientsAsync = ref.watch(totalClientsProvider);
+                      return clientsAsync.when(
+                        data: (count) => _buildStatCard(
+                          'Clients',
+                          count.toString(),
+                          Icons.people,
+                          Colors.green,
+                          () => context.go('/clients'),
+                        ),
+                        loading: () => _buildStatCard(
+                          'Clients',
+                          '...',
+                          Icons.people,
+                          Colors.green,
+                          () => context.go('/clients'),
+                        ),
+                        error: (_, __) => _buildStatCard(
+                          'Clients',
+                          '0',
+                          Icons.people,
+                          Colors.green,
+                          () => context.go('/clients'),
+                        ),
+                      );
+                    },
                   ),
-                  _buildStatCard(
-                    'Quotes',
-                    _totalQuotes.toString(),
-                    Icons.description,
-                    Colors.orange,
-                    () => context.go('/quotes'),
+                  // Quotes Card
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final quotesAsync = ref.watch(totalQuotesProvider);
+                      return quotesAsync.when(
+                        data: (count) => _buildStatCard(
+                          'Quotes',
+                          count.toString(),
+                          Icons.description,
+                          Colors.orange,
+                          () => context.go('/quotes'),
+                        ),
+                        loading: () => _buildStatCard(
+                          'Quotes',
+                          '...',
+                          Icons.description,
+                          Colors.orange,
+                          () => context.go('/quotes'),
+                        ),
+                        error: (_, __) => _buildStatCard(
+                          'Quotes',
+                          '0',
+                          Icons.description,
+                          Colors.orange,
+                          () => context.go('/quotes'),
+                        ),
+                      );
+                    },
                   ),
-                  _buildStatCard(
-                    'Cart Items',
-                    _cartItems.toString(),
-                    Icons.shopping_cart,
-                    Colors.purple,
-                    () => context.go('/cart'),
+                  // Cart Items Card
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final cartAsync = ref.watch(cartItemCountProvider);
+                      return cartAsync.when(
+                        data: (count) => _buildStatCard(
+                          'Cart Items',
+                          count.toString(),
+                          Icons.shopping_cart,
+                          Colors.purple,
+                          () => context.go('/cart'),
+                        ),
+                        loading: () => _buildStatCard(
+                          'Cart Items',
+                          '...',
+                          Icons.shopping_cart,
+                          Colors.purple,
+                          () => context.go('/cart'),
+                        ),
+                        error: (_, __) => _buildStatCard(
+                          'Cart Items',
+                          '0',
+                          Icons.shopping_cart,
+                          Colors.purple,
+                          () => context.go('/cart'),
+                        ),
+                      );
+                    },
                   ),
-                  _buildStatCard(
-                    'Spare Parts',
-                    _totalSpareParts.toString(),
-                    Icons.build,
-                    Colors.teal,
-                    () => context.go('/spareparts'),
+                  // Spare Parts Card
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final sparePartsAsync = ref.watch(sparePartsProvider);
+                      return sparePartsAsync.when(
+                        data: (spareParts) => _buildStatCard(
+                          'Spare Parts',
+                          spareParts.length.toString(),
+                          Icons.build,
+                          Colors.teal,
+                          () => context.go('/spareparts'),
+                        ),
+                        loading: () => _buildStatCard(
+                          'Spare Parts',
+                          '...',
+                          Icons.build,
+                          Colors.teal,
+                          () => context.go('/spareparts'),
+                        ),
+                        error: (_, __) => _buildStatCard(
+                          'Spare Parts',
+                          '0',
+                          Icons.build,
+                          Colors.teal,
+                          () => context.go('/spareparts'),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

@@ -44,12 +44,12 @@ final adminDashboardProvider = StreamProvider.autoDispose<Map<String, dynamic>>(
       final totalQuotes = results[2] as int;
       final users = (results[3] as List<Map<String, dynamic>>).map((userData) => UserProfile.fromJson(userData)).toList();
 
-      // Firebase handles caching, return empty lists for now
-      final quotesData = [];
-      final productsData = [];
+      // Fetch real data from Firebase
+      final quotesData = await dbService.getAllQuotesOnce();
+      final productsData = await dbService.getAllProductsOnce();
 
-      final quotes = <Quote>[];
-      final products = <Product>[];
+      final quotes = quotesData.map((q) => Quote.fromMap(Map<String, dynamic>.from(q))).toList();
+      final products = productsData.map((p) => Product.fromMap(Map<String, dynamic>.from(p))).toList();
 
       double totalRevenue = 0.0;
       final categoryRevenue = <String, double>{};
@@ -95,6 +95,8 @@ final adminDashboardProvider = StreamProvider.autoDispose<Map<String, dynamic>>(
         'totalQuotes': totalQuotes,
         'totalRevenue': totalRevenue,
         'users': users,
+        'products': products,
+        'quotes': quotes,
         'recentQuotes': recentQuotes.take(10).toList(),
         'categoryRevenue': categoryRevenue,
         'monthlyQuotes': monthlyQuotes,
@@ -1067,7 +1069,9 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                     );
 
                     // Fetch all products first
-                    final products = <Map<String, dynamic>>[]
+                    final dbService = ref.read(adminDatabaseServiceProvider);
+                    final productsData = await dbService.getAllProductsOnce();
+                    final products = productsData
                         .map((p) => Product.fromMap(Map<String, dynamic>.from(p)))
                         .toList();
 
@@ -1130,7 +1134,9 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                     );
 
                     // Fetch all clients first
-                    final clients = <Map<String, dynamic>>[]
+                    final dbService = ref.read(adminDatabaseServiceProvider);
+                    final clientsData = await dbService.getAllClientsOnce();
+                    final clients = clientsData
                         .map((c) => Client.fromMap(Map<String, dynamic>.from(c)))
                         .toList();
 
@@ -1193,9 +1199,8 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                     );
 
                     // Fetch all quotes first
-                    final quotesData = <Map<String, dynamic>>[]
-                        .map((q) => Map<String, dynamic>.from(q))
-                        .toList();
+                    final dbService = ref.read(adminDatabaseServiceProvider);
+                    final quotesData = await dbService.getAllQuotesOnce();
 
                     // Generate Excel file
                     final bytes = await ExportService.generateQuotesExcel(quotesData);
@@ -1536,8 +1541,12 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
   }
 
   Widget _buildCategoryProductsTable() {
-    final products = <Map<String, dynamic>>[]
-        .where((p) => p['category'] == _selectedCategory)
+    // Fetch real products data for category table
+    final dashboardData = ref.read(adminDashboardProvider).value ?? {};
+    final allProducts = dashboardData['products'] as List<Product>? ?? [];
+    final products = allProducts
+        .where((p) => p.category == _selectedCategory)
+        .map((p) => p.toMap())
         .toList();
     
     if (products.isEmpty) {
