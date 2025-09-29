@@ -700,24 +700,24 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                     margin: const EdgeInsets.only(right: 8),
                                     decoration: BoxDecoration(
-                                      color: (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty)
+                                      color: (item.sequenceNumber?.isNotEmpty == true)
                                           ? theme.primaryColor.withOpacity(0.1)
                                           : theme.cardColor,
                                       borderRadius: BorderRadius.circular(4),
                                       border: Border.all(
-                                        color: (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty)
+                                        color: (item.sequenceNumber?.isNotEmpty == true)
                                             ? theme.primaryColor.withOpacity(0.3)
                                             : theme.cardColor,
                                       ),
                                     ),
                                     child: Text(
-                                      item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty
+                                      (item.sequenceNumber?.isNotEmpty == true)
                                           ? '#${item.sequenceNumber}'
                                           : '#${(index + 1).toString().padLeft(3, '0')}',
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
-                                        color: (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty)
+                                        color: (item.sequenceNumber?.isNotEmpty == true)
                                             ? theme.primaryColor
                                             : Colors.grey,
                                       ),
@@ -816,7 +816,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                     ),
                                   ),
                                   // Show note if exists
-                                  if (item.note != null && item.note!.isNotEmpty)
+                                  if (item.note?.isNotEmpty == true)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 4),
                                       child: Row(
@@ -827,7 +827,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                           const SizedBox(width: 4),
                                           Expanded(
                                             child: Text(
-                                              item.note!,
+                                              item.note ?? '',
                                               style: TextStyle(
                                                 fontSize: ResponsiveHelper.getValue(
                                                   context,
@@ -855,8 +855,8 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                         // Numbering button
                                         TextButton.icon(
                                           icon: const Icon(Icons.tag, size: 16),
-                                          label: Text(item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty 
-                                            ? 'Edit #${item.sequenceNumber}' 
+                                          label: Text((item.sequenceNumber?.isNotEmpty == true)
+                                            ? 'Edit #${item.sequenceNumber}'
                                             : 'Set #${(index + 1).toString().padLeft(3, '0')}'),
                                           style: TextButton.styleFrom(
                                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -877,7 +877,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                         // Note button
                                         TextButton.icon(
                                           icon: const Icon(Icons.note_add, size: 16),
-                                          label: Text(item.note != null && item.note!.isNotEmpty ? 'Edit Note' : 'Add Note'),
+                                          label: Text((item.note?.isNotEmpty == true) ? 'Edit Note' : 'Add Note'),
                                           style: TextButton.styleFrom(
                                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                             textStyle: const TextStyle(fontSize: 12),
@@ -1088,7 +1088,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                               final basePrice = (item.product?.price ?? 0) * item.quantity;
                               final itemDiscount = item.discount > 0 ? basePrice * (item.discount / 100) : 0;
                               final itemTotal = basePrice - itemDiscount;
-                              final hasNote = item.note != null && item.note!.isNotEmpty;
+                              final hasNote = item.note?.isNotEmpty == true;
                               
                               return Column(
                                 children: [
@@ -1103,7 +1103,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                             children: [
                                               Row(
                                                 children: [
-                                                  if (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty)
+                                                  if (item.sequenceNumber?.isNotEmpty == true)
                                                     Container(
                                                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                                                       margin: const EdgeInsets.only(right: 4),
@@ -1170,7 +1170,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                                               const SizedBox(width: 4),
                                                               Expanded(
                                                                 child: Text(
-                                                                  item.note!,
+                                                                  item.note ?? '',
                                                                   style: TextStyle(
                                                                     fontSize: 10,
                                                                     color: theme.textTheme.bodySmall?.color,
@@ -1768,45 +1768,45 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                         _buildSpecRow('SKU', product.sku ?? product.model, theme),
                         _buildSpecRow('Price', _formatPrice(product.price), theme),
                         _buildSpecRow('Category', product.category, theme),
-                        if (product.subcategory != null && product.subcategory!.isNotEmpty)
-                          _buildSpecRow('Subcategory', product.subcategory!, theme),
+                        if (product.subcategory?.isNotEmpty == true)
+                          _buildSpecRow('Subcategory', product.subcategory ?? '', theme),
                         _buildSpecRow('Description', product.description, theme),
-                        if (product.dimensions != null && product.dimensions!.isNotEmpty)
-                          _buildSpecRow('Dimensions', product.dimensions!, theme),
-                        if (product.weight != null && product.weight!.isNotEmpty)
-                          _buildSpecRow('Weight', product.weight!, theme),
-                        if (product.voltage != null && product.voltage!.isNotEmpty)
-                          _buildSpecRow('Voltage', product.voltage!, theme),
-                        if (product.amperage != null && product.amperage!.isNotEmpty)
-                          _buildSpecRow('Amperage', product.amperage!, theme),
-                        if (product.phase != null && product.phase!.isNotEmpty)
-                          _buildSpecRow('Phase', product.phase!, theme),
-                        if (product.frequency != null && product.frequency!.isNotEmpty)
-                          _buildSpecRow('Frequency', product.frequency!, theme),
-                        if (product.plugType != null && product.plugType!.isNotEmpty)
-                          _buildSpecRow('Plug Type', product.plugType!, theme),
-                        if (product.temperatureRange != null && product.temperatureRange!.isNotEmpty)
-                          _buildSpecRow('Temperature Range', product.temperatureRange!, theme),
-                        if (product.refrigerant != null && product.refrigerant!.isNotEmpty)
-                          _buildSpecRow('Refrigerant', product.refrigerant!, theme),
-                        if (product.compressor != null && product.compressor!.isNotEmpty)
-                          _buildSpecRow('Compressor', product.compressor!, theme),
-                        if (product.capacity != null && product.capacity!.isNotEmpty)
-                          _buildSpecRow('Capacity', product.capacity!, theme),
-                        if (product.doors != null && product.doors! > 0)
+                        if (product.dimensions?.isNotEmpty == true)
+                          _buildSpecRow('Dimensions', product.dimensions ?? '', theme),
+                        if (product.weight?.isNotEmpty == true)
+                          _buildSpecRow('Weight', product.weight ?? '', theme),
+                        if (product.voltage?.isNotEmpty == true)
+                          _buildSpecRow('Voltage', product.voltage ?? '', theme),
+                        if (product.amperage?.isNotEmpty == true)
+                          _buildSpecRow('Amperage', product.amperage ?? '', theme),
+                        if (product.phase?.isNotEmpty == true)
+                          _buildSpecRow('Phase', product.phase ?? '', theme),
+                        if (product.frequency?.isNotEmpty == true)
+                          _buildSpecRow('Frequency', product.frequency ?? '', theme),
+                        if (product.plugType?.isNotEmpty == true)
+                          _buildSpecRow('Plug Type', product.plugType ?? '', theme),
+                        if (product.temperatureRange?.isNotEmpty == true)
+                          _buildSpecRow('Temperature Range', product.temperatureRange ?? '', theme),
+                        if (product.refrigerant?.isNotEmpty == true)
+                          _buildSpecRow('Refrigerant', product.refrigerant ?? '', theme),
+                        if (product.compressor?.isNotEmpty == true)
+                          _buildSpecRow('Compressor', product.compressor ?? '', theme),
+                        if (product.capacity?.isNotEmpty == true)
+                          _buildSpecRow('Capacity', product.capacity ?? '', theme),
+                        if ((product.doors ?? 0) > 0)
                           _buildSpecRow('Doors', product.doors.toString(), theme),
-                        if (product.shelves != null && product.shelves! > 0)
+                        if ((product.shelves ?? 0) > 0)
                           _buildSpecRow('Shelves', product.shelves.toString(), theme),
-                        if (product.dimensionsMetric != null && product.dimensionsMetric!.isNotEmpty)
-                          _buildSpecRow('Dimensions (Metric)', product.dimensionsMetric!, theme),
-                        if (product.weightMetric != null && product.weightMetric!.isNotEmpty)
-                          _buildSpecRow('Weight (Metric)', product.weightMetric!, theme),
-                        if (product.temperatureRangeMetric != null && product.temperatureRangeMetric!.isNotEmpty)
-                          _buildSpecRow('Temp Range (Metric)', product.temperatureRangeMetric!, theme),
-                        if (product.features != null && product.features!.isNotEmpty)
-                          _buildSpecRow('Features', product.features!, theme),
-                        if (product.certifications != null && product.certifications!.isNotEmpty)
-                          _buildSpecRow('Certifications', product.certifications!, theme),
+                        if (product.dimensionsMetric?.isNotEmpty == true)
+                          _buildSpecRow('Dimensions (Metric)', product.dimensionsMetric ?? '', theme),
+                        if (product.weightMetric?.isNotEmpty == true)
+                          _buildSpecRow('Weight (Metric)', product.weightMetric ?? '', theme),
+                        if (product.temperatureRangeMetric?.isNotEmpty == true)
+                          _buildSpecRow('Temp Range (Metric)', product.temperatureRangeMetric ?? '', theme),
+                        if (product.features?.isNotEmpty == true)
+                          _buildSpecRow('Features', product.features ?? '', theme),
+                        if (product.certifications?.isNotEmpty == true)
+                          _buildSpecRow('Certifications', product.certifications ?? '', theme),
                       ],
                     ),
                   ),
@@ -1929,7 +1929,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
 
       // Create quote with discount, comments, and project info
       final quoteId = await dbService.createQuote(
-        clientId: client.id!,  // Now we know it's not null
+        clientId: client.id ?? '',  // Safe null check with empty string fallback
         items: quoteItems,
         subtotal: subtotal,
         taxRate: taxRate,
@@ -2053,8 +2053,8 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
               _buildDetailRow('Email', client.email),
             if (client.phone.isNotEmpty)
               _buildDetailRow('Phone', client.phone),
-            if (client.address != null && client.address!.isNotEmpty)
-              _buildDetailRow('Address', client.address!),
+            if (client.address?.isNotEmpty == true)
+              _buildDetailRow('Address', client.address ?? ''),
           ],
         ),
         actions: [
@@ -2774,7 +2774,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                   final dbService = ref.read(databaseServiceProvider);
                   if (item.id != null) {
                     await dbService.updateCartItem(
-                      item.id!,
+                      item.id ?? '',
                       discount: 0,
                     );
                   }
@@ -2821,7 +2821,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                 final dbService = ref.read(databaseServiceProvider);
                 if (item.id != null) {
                   await dbService.updateCartItem(
-                    item.id!,
+                    item.id ?? '',
                     discount: finalDiscountPercentage,
                   );
                 }
@@ -2887,14 +2887,14 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
-          if (item.sequenceNumber != null && item.sequenceNumber!.isNotEmpty)
+          if (item.sequenceNumber?.isNotEmpty == true)
             TextButton(
               onPressed: () async {
                 // Remove sequence number
                 final dbService = ref.read(databaseServiceProvider);
                 if (item.id != null) {
                   await dbService.updateCartItem(
-                    item.id!,
+                    item.id ?? '',
                     sequenceNumber: '',
                   );
                 }
@@ -2915,7 +2915,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
               final dbService = ref.read(databaseServiceProvider);
               if (item.id != null) {
                 await dbService.updateCartItem(
-                  item.id!,
+                  item.id ?? '',
                   sequenceNumber: sequenceNumber,
                 );
               }
@@ -2970,14 +2970,14 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
-          if (item.note != null && item.note!.isNotEmpty)
+          if (item.note?.isNotEmpty == true)
             TextButton(
               onPressed: () async {
                 // Remove note
                 final dbService = ref.read(databaseServiceProvider);
                 if (item.id != null) {
                   await dbService.updateCartItem(
-                    item.id!,
+                    item.id ?? '',
                     note: null,
                   );
                 }
@@ -2998,7 +2998,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
               final dbService = ref.read(databaseServiceProvider);
               if (item.id != null) {
                 await dbService.updateCartItem(
-                  item.id!,
+                  item.id ?? '',
                   note: note.isEmpty ? null : note,
                 );
               }
