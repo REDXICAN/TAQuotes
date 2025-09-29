@@ -272,7 +272,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Warehouse Distribution Chart
+                  // Warehouse Distribution Chart (Horizontal Bar Chart)
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -285,94 +285,64 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
                           ),
                           const SizedBox(height: 16),
                           SizedBox(
-                            height: 300,
-                            child: BarChart(
-                              BarChartData(
-                                alignment: BarChartAlignment.spaceAround,
-                                maxY: stockByWarehouse.values.isEmpty
-                                    ? 100
-                                    : stockByWarehouse.values.reduce((a, b) => a > b ? a : b).toDouble() * 1.2,
-                                barTouchData: BarTouchData(
-                                  enabled: true,
-                                  touchTooltipData: BarTouchTooltipData(
-                                    tooltipRoundedRadius: 8,
-                                    tooltipPadding: const EdgeInsets.all(8),
-                                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                                      final warehouse = stockByWarehouse.keys.elementAt(groupIndex);
-                                      final stock = rod.toY.toInt();
-                                      return BarTooltipItem(
-                                        '$warehouse\n$stock units',
-                                        const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
+                            height: 500, // Height for all 16 warehouses
+                            child: SingleChildScrollView(
+                              child: Column(
+                                children: stockByWarehouse.entries.map((entry) {
+                                  final maxStock = stockByWarehouse.values.isEmpty
+                                      ? 1
+                                      : stockByWarehouse.values.reduce((a, b) => a > b ? a : b);
+                                  final percentage = maxStock > 0 ? (entry.value / maxStock) : 0.0;
+
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    child: Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 60,
+                                          child: Text(
+                                            entry.key,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                         ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                titlesData: FlTitlesData(
-                                  show: true,
-                                  rightTitles: const AxisTitles(
-                                    sideTitles: SideTitles(showTitles: false),
-                                  ),
-                                  topTitles: const AxisTitles(
-                                    sideTitles: SideTitles(showTitles: false),
-                                  ),
-                                  bottomTitles: AxisTitles(
-                                    sideTitles: SideTitles(
-                                      showTitles: true,
-                                      getTitlesWidget: (value, meta) {
-                                        final index = value.toInt();
-                                        if (index < stockByWarehouse.keys.length) {
-                                          final warehouse = stockByWarehouse.keys.elementAt(index);
-                                          return Padding(
-                                            padding: const EdgeInsets.only(top: 8),
-                                            child: Text(
-                                              warehouse,
-                                              style: const TextStyle(
-                                                color: Colors.black,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 12,
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Container(
+                                            height: 25,
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[200],
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: FractionallySizedBox(
+                                              alignment: Alignment.centerLeft,
+                                              widthFactor: percentage.clamp(0.0, 1.0),
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  color: _getWarehouseColor(entry.key),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
                                               ),
                                             ),
-                                          );
-                                        }
-                                        return const SizedBox();
-                                      },
-                                    ),
-                                  ),
-                                  leftTitles: AxisTitles(
-                                    sideTitles: SideTitles(
-                                      showTitles: true,
-                                      reservedSize: 40,
-                                      getTitlesWidget: (value, meta) {
-                                        return Text(
-                                          value.toInt().toString(),
-                                          style: const TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 10,
                                           ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                                borderData: FlBorderData(show: false),
-                                barGroups: stockByWarehouse.entries.map((entry) {
-                                  final index = stockByWarehouse.keys.toList().indexOf(entry.key);
-                                  return BarChartGroupData(
-                                    x: index,
-                                    barRods: [
-                                      BarChartRodData(
-                                        toY: entry.value.toDouble(),
-                                        color: _getWarehouseColor(entry.key),
-                                        width: 40,
-                                        borderRadius: const BorderRadius.only(
-                                          topLeft: Radius.circular(4),
-                                          topRight: Radius.circular(4),
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 8),
+                                        SizedBox(
+                                          width: 60,
+                                          child: Text(
+                                            '${entry.value}',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.blue,
+                                            ),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   );
                                 }).toList(),
                               ),
@@ -385,7 +355,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Category Distribution Chart
+                  // Category Distribution Table
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -405,55 +375,62 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
                               ),
                             )
                           else
-                            SizedBox(
-                              height: 300,
-                              child: PieChart(
-                                PieChartData(
-                                  sectionsSpace: 2,
-                                  centerSpaceRadius: 40,
-                                  sections: stockByCategory.entries.map((entry) {
-                                    final percentage = (entry.value / totalStock * 100);
-                                    return PieChartSectionData(
-                                      value: entry.value.toDouble(),
-                                      title: '${percentage.toStringAsFixed(1)}%',
-                                      color: _getCategoryColor(entry.key),
-                                      radius: 100,
-                                      titleStyle: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+                            Column(
+                              children: stockByCategory.entries.map((entry) {
+                                final percentage = totalStock > 0 ? (entry.value / totalStock * 100) : 0.0;
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.grey[300]!),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 20,
+                                        height: 20,
+                                        decoration: BoxDecoration(
+                                          color: _getCategoryColor(entry.key),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
                                       ),
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Text(
+                                          entry.key,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            '${entry.value} units',
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.blue,
+                                            ),
+                                          ),
+                                          Text(
+                                            '${percentage.toStringAsFixed(1)}%',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
                             ),
-                          const SizedBox(height: 16),
-                          // Legend
-                          Wrap(
-                            spacing: 16,
-                            runSpacing: 8,
-                            children: stockByCategory.entries.map((entry) {
-                              return Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 16,
-                                    height: 16,
-                                    decoration: BoxDecoration(
-                                      color: _getCategoryColor(entry.key),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${entry.key}: ${entry.value}',
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                ],
-                              );
-                            }).toList(),
-                          ),
                         ],
                       ),
                     ),
@@ -634,6 +611,12 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
 
   Map<String, int> _calculateStockByWarehouse(Map<String, dynamic> stockData) {
     final stockByWarehouse = <String, int>{};
+
+    // Initialize all warehouses with 0 to ensure they all show up
+    final allWarehouses = ['999', 'CA', 'CA1', 'CA2', 'CA3', 'CA4', 'COCZ', 'COPZ', 'INT', 'MEE', 'PU', 'SI', 'XCA', 'XPU', 'XZRE', 'ZRE'];
+    for (final warehouse in allWarehouses) {
+      stockByWarehouse[warehouse] = 0;
+    }
 
     stockData.forEach((key, value) {
       if (value is Map) {
