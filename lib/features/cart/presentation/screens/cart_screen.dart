@@ -220,23 +220,30 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
-    final cartAsync = ref.watch(cartProvider);
-    // Watch both providers and sync them
-    final cartClient = ref.watch(cartClientProvider);
-    final clientsScreenClient = ref.watch(selectedClientProvider);
-    
-    // Sync if they're different (but only if cart client is null to prevent loops)
-    if (clientsScreenClient != null && cartClient == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ref.read(cartClientProvider.notifier).state = clientsScreenClient;
-        }
-      });
-    }
-    
-    final selectedClient = cartClient ?? clientsScreenClient;
-    final activeClient = selectedClient; // Alias for header display
-    final theme = Theme.of(context);
+
+    // Add comprehensive error handling to catch grey screen issues
+    try {
+      AppLogger.info('Cart screen build started', category: LogCategory.business);
+      final cartAsync = ref.watch(cartProvider);
+      AppLogger.info('Cart provider watched successfully', category: LogCategory.business);
+
+      // Watch both providers and sync them
+      final cartClient = ref.watch(cartClientProvider);
+      final clientsScreenClient = ref.watch(selectedClientProvider);
+      AppLogger.info('Client providers watched successfully', category: LogCategory.business);
+
+      // Sync if they're different (but only if cart client is null to prevent loops)
+      if (clientsScreenClient != null && cartClient == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ref.read(cartClientProvider.notifier).state = clientsScreenClient;
+          }
+        });
+      }
+
+      final selectedClient = cartClient ?? clientsScreenClient;
+      final activeClient = selectedClient; // Alias for header display
+      final theme = Theme.of(context);
 
     return Scaffold(
       body: Column(
@@ -1537,6 +1544,68 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
         ],
       ),
     );
+
+    } catch (error, stackTrace) {
+      // Comprehensive error handling to prevent grey screen
+      AppLogger.error('Cart screen build error', error: error, stackTrace: stackTrace, category: LogCategory.business);
+
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Cart Error'),
+          backgroundColor: Colors.red,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Colors.red,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Cart Error',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'An error occurred while loading the cart: ${error.toString()}',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  // Invalidate providers to force refresh
+                  ref.invalidate(cartProvider);
+                  ref.invalidate(currentUserProvider);
+                  ref.invalidate(cartClientProvider);
+                  ref.invalidate(selectedClientProvider);
+                },
+                child: const Text('Retry'),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey,
+                ),
+                child: const Text('Go Back'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 
   double _calculateSubtotal(List<CartItem> items) {
