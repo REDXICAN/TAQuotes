@@ -16,6 +16,7 @@ import '../../../../core/services/rbac_service.dart';
 import '../../../../core/services/app_logger.dart';
 import '../widgets/user_approvals_widget.dart' show pendingUserApprovalsProvider;
 import '../widgets/mock_analytics_generator_widget.dart';
+import '../widgets/spare_parts_import_widget.dart';
 import '../../../../core/services/hybrid_database_service.dart';
 import '../../../settings/presentation/screens/app_settings_screen.dart';
 
@@ -1048,6 +1049,10 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
 
           // Mock Analytics Data Generator
           const MockAnalyticsGeneratorWidget(),
+          const SizedBox(height: 24),
+
+          // Spare Parts Import
+          const SparePartsImportWidget(),
           const SizedBox(height: 24),
 
           // Export data
