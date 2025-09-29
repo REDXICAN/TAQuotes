@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'dart:typed_data';
 import 'dart:convert';
 import '../../../../core/services/error_monitoring_service.dart';
+import '../../../../core/services/error_demo_data_service.dart';
 import '../../../../core/auth/providers/rbac_provider.dart';
 import '../../../../core/auth/models/rbac_permissions.dart';
 import '../../../../core/utils/download_helper.dart';
@@ -67,6 +68,7 @@ class _OptimizedErrorMonitoringDashboardState extends ConsumerState<OptimizedErr
   int _currentPage = 0;
   static const int _pageSize = 20;
   bool _isLoading = false;
+  bool _isPopulatingDemoData = false;
   DateTime? _lastRefresh;
 
   @override
@@ -326,6 +328,59 @@ class _OptimizedErrorMonitoringDashboardState extends ConsumerState<OptimizedErr
 
     if (mounted) {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _populateDemoErrorData() async {
+    setState(() {
+      _isPopulatingDemoData = true;
+    });
+
+    try {
+      final demoService = ErrorDemoDataService();
+      await demoService.populateDemoErrors(numberOfErrors: 50);
+
+      // Refresh the data to show the new demo errors
+      ref.invalidate(errorStatisticsProvider);
+      ref.invalidate(errorsStreamProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Text('Demo error data populated successfully!'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Failed to populate demo data: $e')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPopulatingDemoData = false;
+        });
+      }
     }
   }
 
@@ -717,17 +772,54 @@ class _OptimizedErrorMonitoringDashboardState extends ConsumerState<OptimizedErr
           padding: const EdgeInsets.all(32),
           child: Column(
             children: [
-              Icon(Icons.check_circle_outline, size: 48, color: Colors.green),
+              Icon(
+                errors.isEmpty ? Icons.info_outline : Icons.check_circle_outline,
+                size: 48,
+                color: errors.isEmpty ? Colors.blue : Colors.green,
+              ),
               const SizedBox(height: 16),
-              const Text(
-                'No errors found',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              Text(
+                errors.isEmpty ? 'No error data available' : 'No errors found',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
-                'Great! Your application is running smoothly.',
+                errors.isEmpty
+                    ? 'No error data has been collected yet. You can populate demo data to see how the dashboard works.'
+                    : 'Great! Your application is running smoothly.',
                 style: TextStyle(color: Colors.grey[600]),
+                textAlign: TextAlign.center,
               ),
+              if (errors.isEmpty) ...[
+                const SizedBox(height: 24),
+                _isPopulatingDemoData
+                    ? const Column(
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 12),
+                          Text('Populating demo data...', style: TextStyle(fontSize: 14)),
+                        ],
+                      )
+                    : ElevatedButton.icon(
+                        onPressed: _populateDemoErrorData,
+                        icon: const Icon(Icons.data_saver_on),
+                        label: const Text('Populate Demo Data'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).primaryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                      ),
+                const SizedBox(height: 12),
+                Text(
+                  'This will create 50 sample error reports for demonstration purposes.',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ],
           ),
         ),

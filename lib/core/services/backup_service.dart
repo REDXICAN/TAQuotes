@@ -243,7 +243,6 @@ class BackupService {
         throw Exception('Invalid backup file structure');
       }
 
-      final metadata = backupData['metadata'];
       final data = backupData['data'] as Map<String, dynamic>;
 
       // Check if user is admin

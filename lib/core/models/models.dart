@@ -615,7 +615,7 @@ class Product {
     }
     
     // Parse individual warehouse columns (from Excel import)
-    final warehouses = ['CA1', '999', 'CA', 'CA2', 'CA3', 'CA4', 'COCZ', 'COPZ', 'INT', 'MEE', 'PU', 'SI', 'XCA', 'XPU'];
+    final warehouses = ['CA1', '999', 'CA', 'CA2', 'CA3', 'CA4', 'COCZ', 'COPZ', 'INT', 'MEE', 'PU', 'SI', 'XCA', 'XPU', 'XZRE', 'ZRE'];
     for (final warehouse in warehouses) {
       final stockValue = map[warehouse];
       if (stockValue != null) {

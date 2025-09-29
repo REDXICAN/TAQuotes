@@ -7,7 +7,9 @@ import '../../../../core/auth/providers/rbac_provider.dart';
 import '../../../../core/models/user_role.dart';
 import '../../../auth/presentation/providers/auth_provider.dart' hide currentUserRoleProvider;
 import '../../../../core/services/app_logger.dart';
+import '../../../../core/services/error_demo_data_service.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 
 // Provider for app settings
 final appSettingsProvider = StreamProvider<Map<String, dynamic>>((ref) {
@@ -211,6 +213,98 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  void _showSuccess(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  Future<void> _populateDemoErrors() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final demoService = ErrorDemoDataService();
+      await demoService.populateDemoErrors(numberOfErrors: 50);
+
+      _showSuccess('Successfully generated 50 demo error reports');
+      AppLogger.info('Demo error data populated from settings screen', category: LogCategory.system);
+
+    } catch (e) {
+      _showError('Failed to populate demo errors: $e');
+      AppLogger.error('Failed to populate demo errors from settings', error: e, category: LogCategory.system);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _generateTestError() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final demoService = ErrorDemoDataService();
+      await demoService.generateTestError(
+        customMessage: 'Test error generated from Settings panel at ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}',
+      );
+
+      _showSuccess('Test error generated successfully');
+      AppLogger.info('Test error generated from settings screen', category: LogCategory.system);
+
+    } catch (e) {
+      _showError('Failed to generate test error: $e');
+      AppLogger.error('Failed to generate test error from settings', error: e, category: LogCategory.system);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _clearDemoErrors() async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Demo Error Data'),
+        content: const Text(
+          'This will permanently delete all demo error reports from the database. '
+          'This action cannot be undone. Are you sure you want to continue?'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Clear All', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final demoService = ErrorDemoDataService();
+      await demoService.clearDemoErrors();
+
+      _showSuccess('Demo error data cleared successfully');
+      AppLogger.info('Demo error data cleared from settings screen', category: LogCategory.system);
+
+    } catch (e) {
+      _showError('Failed to clear demo errors: $e');
+      AppLogger.error('Failed to clear demo errors from settings', error: e, category: LogCategory.system);
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -478,6 +572,94 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
               error: (e, s) => const SizedBox.shrink(),
             ),
 
+            // Error Demo Data Section (Admin only)
+            hasSystemPermission.when(
+              data: (hasPermission) {
+                if (!hasPermission) {
+                  return const SizedBox.shrink();
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Error Analytics Demo Data',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Text(
+                      'Generate sample error data for testing the error monitoring dashboard',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.bug_report, color: Colors.orange),
+                              title: const Text('Generate Demo Errors'),
+                              subtitle: const Text('Create 50 realistic error reports for testing'),
+                              trailing: ElevatedButton.icon(
+                                onPressed: _isLoading ? null : _populateDemoErrors,
+                                icon: const Icon(Icons.add_circle_outline),
+                                label: const Text('Populate'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ),
+
+                            const Divider(height: 24),
+
+                            ListTile(
+                              leading: const Icon(Icons.error_outline, color: Colors.red),
+                              title: const Text('Generate Test Error'),
+                              subtitle: const Text('Create one test error immediately'),
+                              trailing: ElevatedButton.icon(
+                                onPressed: _isLoading ? null : _generateTestError,
+                                icon: const Icon(Icons.warning),
+                                label: const Text('Test'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ),
+
+                            const Divider(height: 24),
+
+                            ListTile(
+                              leading: const Icon(Icons.clear_all, color: Colors.grey),
+                              title: const Text('Clear Demo Data'),
+                              subtitle: const Text('Remove all demo error reports'),
+                              trailing: ElevatedButton.icon(
+                                onPressed: _isLoading ? null : _clearDemoErrors,
+                                icon: const Icon(Icons.delete_forever),
+                                label: const Text('Clear'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.grey,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                );
+              },
+              loading: () => const SizedBox.shrink(),
+              error: (e, s) => const SizedBox.shrink(),
+            ),
+
             // User Preferences
             const Text(
               'Personal Preferences',
@@ -610,6 +792,10 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
               ),
             ),
 
+            const SizedBox(height: 24),
+
+            // Backup Management Section (All Users)
+            _buildBackupManagementSection(),
             const SizedBox(height: 24),
 
             // Permission Details Section
@@ -753,6 +939,117 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
       case UserRole.distributor:
         return 'Basic access for distribution operations';
     }
+  }
+
+  Widget _buildBackupManagementSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Data Management',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const Text(
+          'Backup and restore your data',
+          style: TextStyle(color: Colors.grey),
+        ),
+        const SizedBox(height: 16),
+
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.backup, color: Colors.blue),
+                  title: const Text('Backup Management'),
+                  subtitle: const Text('Create, download, and restore data backups'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.security,
+                        size: 16,
+                        color: Colors.green,
+                      ),
+                      const SizedBox(width: 4),
+                      const Text(
+                        'Secure',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          context.go('/settings/backup');
+                        },
+                        icon: const Icon(Icons.open_in_new, size: 16),
+                        label: const Text('Open'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const Divider(height: 24),
+
+                // Backup Info
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'What gets backed up?',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              '• Your quotes and client data (always included)',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            Text(
+                              '• Product catalog (admins only)',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            Text(
+                              '• User accounts and system data (superadmin only)',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override

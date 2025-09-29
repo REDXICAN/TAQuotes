@@ -26,6 +26,8 @@ import '../../features/admin/presentation/screens/database_management_screen_opt
 import '../../features/stock/presentation/screens/stock_dashboard_screen.dart';
 import '../../features/spareparts/presentation/screens/spareparts_screen.dart';
 import '../../features/projects/presentation/screens/projects_screen.dart';
+import '../../features/settings/presentation/screens/app_settings_screen.dart';
+import '../../features/settings/presentation/screens/backup_management_screen.dart';
 
 // Router provider
 final routerProvider = Provider<GoRouter>((ref) {
@@ -162,6 +164,18 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const ProjectsScreen(),
           ),
 
+          // Settings
+          GoRoute(
+            path: '/settings',
+            builder: (context, state) => const AppSettingsScreen(),
+            routes: [
+              GoRoute(
+                path: 'backup',
+                builder: (context, state) => const BackupManagementScreen(),
+              ),
+            ],
+          ),
+
           // Admin
           GoRoute(
             path: '/admin',
@@ -231,6 +245,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
         '/quotes',
         '/stock',
         '/spareparts',
+        '/settings',
         '/profile',
       ];
     } else {
@@ -242,6 +257,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
         '/quotes',
         '/stock',
         '/spareparts',
+        '/settings',
         '/profile',
       ];
     }
@@ -409,6 +425,13 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             label: Text('Spare Parts'),
           ));
           break;
+        case '/settings':
+          destinations.add(const NavigationRailDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: Text('Settings'),
+          ));
+          break;
         case '/profile':
           destinations.add(const NavigationRailDestination(
             icon: Icon(Icons.person_outline),
@@ -497,6 +520,13 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             icon: Icon(Icons.build_outlined),
             selectedIcon: Icon(Icons.build),
             label: 'Spare Parts',
+          ));
+          break;
+        case '/settings':
+          destinations.add(const NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: 'Settings',
           ));
           break;
         case '/profile':

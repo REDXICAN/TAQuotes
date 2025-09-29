@@ -68,6 +68,7 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
   static const int _pageSize = 20;
   bool _isLoading = false;
   DateTime? _lastRefresh;
+  bool _isErrorListExpanded = true;
 
   @override
   void initState() {
@@ -198,6 +199,64 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
     }
   }
 
+  void _refreshData() {
+    setState(() {
+      _lastRefresh = DateTime.now();
+    });
+
+    // Invalidate all providers to force refresh
+    ref.invalidate(errorStatisticsProvider);
+    ref.invalidate(errorsStreamProvider);
+    ref.invalidate(unresolvedErrorsStreamProvider);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error data refreshed'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _showExportDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Export Error Data'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.table_chart),
+              title: const Text('Export as CSV'),
+              subtitle: const Text('Spreadsheet format'),
+              onTap: () {
+                Navigator.pop(context);
+                _exportErrorsToCSV();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.code),
+              title: const Text('Export as JSON'),
+              subtitle: const Text('Developer format'),
+              onTap: () {
+                Navigator.pop(context);
+                _exportErrorsToJSON();
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Show loading while checking access
@@ -233,6 +292,29 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
         ],
       ),
       body: _buildSingleScreenDashboard(),
+    );
+  }
+
+  Widget _buildSingleScreenDashboard() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Overview Section
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: _buildOverviewTab(),
+          ),
+
+          // Divider
+          const Divider(thickness: 2),
+
+          // Errors Section
+          Container(
+            constraints: const BoxConstraints(minHeight: 600),
+            child: _buildErrorsTab(),
+          ),
+        ],
+      ),
     );
   }
 
