@@ -198,7 +198,8 @@
       "Bash(npm run setup-gcloud:*)",
       "Bash(git revert:*)",
       "Bash(del test_date_parsing.dart)",
-      "Bash(del simple_date_test.dart)"
+      "Bash(del simple_date_test.dart)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": [
