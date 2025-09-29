@@ -61,12 +61,9 @@ final sparePartsProvider = StreamProvider.autoDispose<List<SparePart>>((ref) asy
 
             // Extract product information
             final name = productData['name'] ?? productData['displayName'] ?? 'Unknown Part';
-            final category = productData['category'] ?? '';
             final sku = productData['sku'] ?? entry.key;
 
-            // Check if this is a spare part by checking:
-            // 1. Has stock available (stock > 0 OR warehouseStock data)
-            // 2. Name/category indicates it's a spare part
+            // Check if product has warehouse stock available
             bool hasStock = false;
             int totalStock = 0;
             String? primaryWarehouse;
@@ -107,24 +104,9 @@ final sparePartsProvider = StreamProvider.autoDispose<List<SparePart>>((ref) asy
               }
             }
 
-            // Check if name/category indicates it's a spare part
-            final nameLower = name.toLowerCase();
-            final categoryLower = category.toLowerCase();
-            final isSparePartByName = nameLower.contains('spare') ||
-                                    nameLower.contains('part') ||
-                                    nameLower.contains('replacement') ||
-                                    nameLower.contains('repair') ||
-                                    nameLower.contains('kit') ||
-                                    nameLower.contains('component') ||
-                                    categoryLower.contains('spare') ||
-                                    categoryLower.contains('part') ||
-                                    categoryLower.contains('replacement') ||
-                                    categoryLower.contains('repair') ||
-                                    categoryLower.contains('kit') ||
-                                    categoryLower.contains('component');
-
-            // Include if it has stock AND (is named like a spare part OR has warehouse data)
-            if (hasStock && (isSparePartByName || warehouseStock != null)) {
+            // Include any product that has warehouse stock available
+            // This represents spare parts/components that are available in warehouses
+            if (hasStock && warehouseStock != null) {
               spareParts.add(SparePart(
                 sku: sku,
                 name: name,

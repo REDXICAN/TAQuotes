@@ -5,130 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/utils/price_formatter.dart';
-
-// Spare part model
-class SparePart {
-  final String sku;
-  final String name;
-  final int stock;
-  final String? warehouse;
-  final double price;
-
-  SparePart({
-    required this.sku,
-    required this.name,
-    required this.stock,
-    this.warehouse,
-    required this.price,
-  });
-
-  factory SparePart.fromMap(String key, Map<String, dynamic> map) {
-    return SparePart(
-      sku: map['sku'] ?? key,
-      name: map['name'] ?? '',
-      stock: map['stock'] ?? 0,
-      warehouse: map['warehouse'],
-      price: PriceFormatter.safeToDouble(map['price']),
-    );
-  }
-}
-
-// Provider for spare parts from Firebase
-final sparePartsProvider = StreamProvider.autoDispose<List<SparePart>>((ref) {
-  try {
-    final database = FirebaseDatabase.instance;
-
-    // Stream spare parts directly from Firebase products that have available warehouse stock
-    return database.ref('products').onValue.map((event) {
-      final List<SparePart> spareParts = [];
-
-      if (event.snapshot.exists && event.snapshot.value != null) {
-        final productsMap = Map<String, dynamic>.from(event.snapshot.value as Map);
-
-        for (final entry in productsMap.entries) {
-          final productData = Map<String, dynamic>.from(entry.value as Map);
-
-          // Check for warehouse stock data
-          final warehouseStock = productData['warehouse_stock'] as Map<dynamic, dynamic>?;
-
-          if (warehouseStock != null) {
-            // First, check warehouse 999 (reserved/potentially available)
-            final warehouse999Stock = warehouseStock['999'] as Map<dynamic, dynamic>?;
-            if (warehouse999Stock != null) {
-              final available999 = warehouse999Stock['available'] ?? 0;
-              final available999Int = (available999 is int ? available999 : 0);
-
-              if (available999Int > 0) {
-                spareParts.add(SparePart(
-                  sku: productData['sku'] ?? entry.key,
-                  name: productData['name'] ?? productData['model'] ?? '',
-                  stock: available999Int,
-                  warehouse: '999', // Reserved but potentially available
-                  price: PriceFormatter.safeToDouble(productData['price']),
-                ));
-              }
-            }
-
-            // Then calculate total available stock across other warehouses
-            int totalAvailableStock = 0;
-            String primaryWarehouse = '';
-
-            for (final warehouseEntry in warehouseStock.entries) {
-              final warehouseId = warehouseEntry.key.toString();
-
-              // Skip warehouse 999 as we handled it separately
-              if (warehouseId == '999') continue;
-
-              final stockData = warehouseEntry.value as Map<dynamic, dynamic>?;
-              if (stockData != null) {
-                final available = stockData['available'] ?? 0;
-                final availableInt = (available is int ? available : 0);
-
-                if (availableInt > 0) {
-                  totalAvailableStock += availableInt;
-                  // Track the warehouse with most stock as primary
-                  if (primaryWarehouse.isEmpty || availableInt > totalAvailableStock / 2) {
-                    primaryWarehouse = warehouseId;
-                  }
-                }
-              }
-            }
-
-            // Add entry for available stock from other warehouses
-            if (totalAvailableStock > 0) {
-              // Check if we already added this SKU from warehouse 999
-              final existing999 = spareParts.any((part) =>
-                part.sku == (productData['sku'] ?? entry.key) && part.warehouse == '999');
-
-              // If product exists in 999, add as separate entry to show both
-              // If not, add as normal available stock
-              spareParts.add(SparePart(
-                sku: productData['sku'] ?? entry.key,
-                name: productData['name'] ?? productData['model'] ?? '',
-                stock: totalAvailableStock,
-                warehouse: primaryWarehouse, // Show primary warehouse
-                price: PriceFormatter.safeToDouble(productData['price']),
-              ));
-            }
-          }
-        }
-      }
-
-      // Sort by stock quantity (highest first)
-      spareParts.sort((a, b) => b.stock.compareTo(a.stock));
-
-      AppLogger.info('Loaded ${spareParts.length} spare parts with available stock from Firebase');
-      return spareParts;
-    }).handleError((error) {
-      AppLogger.error('Error streaming spare parts from Firebase', error: error);
-      return <SparePart>[];
-    });
-  } catch (e) {
-    AppLogger.error('Error setting up spare parts provider', error: e);
-    // Return an empty stream on error
-    return Stream.value(<SparePart>[]);
-  }
-});
+import '../../../../core/providers/providers.dart';
 
 // Spare parts screen
 class SparePartsScreen extends ConsumerStatefulWidget {
@@ -255,7 +132,7 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
               color: theme.cardColor,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -438,12 +315,11 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '${filteredParts.length} spare parts' +
-                            (_selectedWarehouse == '999'
+                            '${filteredParts.length} spare parts${_selectedWarehouse == '999'
                                 ? ' (Reserved - Pending Deals)'
                                 : _selectedWarehouse != null
                                     ? ' (Warehouse $_selectedWarehouse)'
-                                    : ' (All Warehouses)'),
+                                    : ' (All Warehouses)'}',
                             style: theme.textTheme.titleMedium,
                           ),
                           Text(
