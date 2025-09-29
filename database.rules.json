@@ -5,23 +5,23 @@
 
     "products": {
       ".read": true,
-      ".write": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin')",
+      ".write": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
       ".indexOn": ["sku", "category", "subcategory"]
     },
 
     "clients": {
-      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin')",
+      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
       "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin')",
-        ".write": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin')"
+        ".read": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
+        ".write": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')"
       }
     },
 
     "quotes": {
-      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin')",
+      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
       "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin')",
-        ".write": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin')",
+        ".read": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
+        ".write": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
         ".indexOn": ["project_id", "client_id", "created_at"]
       }
     },
@@ -29,16 +29,16 @@
     "projects": {
       ".read": "auth != null",
       "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin')",
-        ".write": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin')",
+        ".read": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
+        ".write": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
         ".indexOn": ["clientId", "status", "createdAt"]
       }
     },
 
     "quote_items": {
       "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin')",
-        ".write": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin')"
+        ".read": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
+        ".write": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')"
       }
     },
 
@@ -57,74 +57,74 @@
     },
 
     "user_profiles": {
-      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin')",
+      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
       "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin')",
-        ".write": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin')"
+        ".read": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
+        ".write": "auth != null && (auth.uid == $uid || auth.token.role == 'superadmin' || auth.token.email == 'andres@turboairmexico.com')"
       }
     },
 
     "users": {
-      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'superadmin' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'superadmin' || root.child('users').child(auth.uid).child('role').val() == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
       "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'superadmin' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
-        ".write": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'superadmin')"
+        ".read": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'superadmin' || root.child('users').child(auth.uid).child('role').val() == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
+        ".write": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'superadmin' || auth.token.email == 'andres@turboairmexico.com')"
       }
     },
 
     "search_history": {
-      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin')",
+      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
       ".write": "auth != null"
     },
 
     "app_settings": {
       ".read": true,
-      ".write": "auth != null && auth.token.role == 'superadmin'"
+      ".write": "auth != null && (auth.token.role == 'superadmin' || auth.token.email == 'andres@turboairmexico.com')"
     },
 
     "spareparts": {
       ".read": "auth != null",
-      ".write": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin')",
+      ".write": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
       ".indexOn": ["sku", "warehouse", "stock"]
     },
 
     "user_approval_requests": {
-      ".read": "auth != null && auth.token.role == 'superadmin'",
+      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.email == 'andres@turboairmexico.com')",
       ".write": "auth != null",
       ".indexOn": ["status", "requestedAt"]
     },
 
     "warehouse_stock": {
       ".read": "auth != null",
-      ".write": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin')",
+      ".write": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
       ".indexOn": ["sku", "warehouse", "available", "reserved"]
     },
 
     "performance_metrics": {
-      ".read": "auth != null && auth.token.role == 'superadmin'",
-      ".write": "auth != null && auth.token.role == 'superadmin'"
+      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.email == 'andres@turboairmexico.com')",
+      ".write": "auth != null && (auth.token.role == 'superadmin' || auth.token.email == 'andres@turboairmexico.com')"
     },
 
     "errors": {
-      ".read": "auth != null && auth.token.role == 'superadmin'",
+      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.email == 'andres@turboairmexico.com')",
       ".write": "auth != null",
       ".indexOn": ["resolved", "severity", "category", "timestamp"]
     },
 
     "backups": {
-      ".read": "auth != null && auth.token.role == 'superadmin'",
-      ".write": "auth != null && auth.token.role == 'superadmin'",
+      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.email == 'andres@turboairmexico.com')",
+      ".write": "auth != null && (auth.token.role == 'superadmin' || auth.token.email == 'andres@turboairmexico.com')",
       ".indexOn": ["timestamp", "type"]
     },
 
     "backup_metadata": {
-      ".read": "auth != null && auth.token.role == 'superadmin'",
-      ".write": "auth != null && auth.token.role == 'superadmin'"
+      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.email == 'andres@turboairmexico.com')",
+      ".write": "auth != null && (auth.token.role == 'superadmin' || auth.token.email == 'andres@turboairmexico.com')"
     },
 
     "backup_history": {
-      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin')",
-      ".write": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin')",
+      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
+      ".write": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
       ".indexOn": ["userId", "createdAt", "status", "type"]
     }
   }
