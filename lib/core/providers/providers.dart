@@ -156,4 +156,4 @@ final searchQueryProvider = StateProvider<String>((ref) => '');
 final isOnlineProvider = StateProvider<bool>((ref) => true);
 
 // Currently selected client provider (used across app)
-final selectedClientProvider = StateProvider<Map<String, dynamic>?>((ref) => null);
+final globalSelectedClientProvider = StateProvider<Map<String, dynamic>?>((ref) => null);

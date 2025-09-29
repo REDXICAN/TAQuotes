@@ -17,6 +17,7 @@ import '../../../../core/services/export_service.dart';
 import '../../../../core/utils/download_helper.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/responsive_helper.dart';
+import '../../../../core/providers/client_providers.dart'; // For selectedClientProvider
 import '../../../cart/presentation/screens/cart_screen.dart'; // For cartClientProvider
 
 // Clients provider using StreamProvider for real-time updates
@@ -71,9 +72,6 @@ Stream<List<Client>> _createClientsStream(String userId) {
     return Stream.value([]);
   }
 }
-
-// Selected client provider
-final selectedClientProvider = StateProvider<Client?>((ref) => null);
 
 // Provider to fetch quotes for a specific client - StreamProvider.autoDispose.family for real-time updates
 final clientQuotesProvider = StreamProvider.autoDispose.family<List<Quote>, String>((ref, clientId) {

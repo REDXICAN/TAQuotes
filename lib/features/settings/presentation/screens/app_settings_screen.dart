@@ -8,6 +8,7 @@ import '../../../../core/models/user_role.dart';
 import '../../../auth/presentation/providers/auth_provider.dart' hide currentUserRoleProvider;
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/services/error_demo_data_service.dart';
+import '../../../../core/services/spare_parts_demo_service.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 
@@ -260,6 +261,85 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
     } catch (e) {
       _showError('Failed to generate test error: $e');
       AppLogger.error('Failed to generate test error from settings', error: e, category: LogCategory.system);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _populateSparePartsData() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final sparePartsService = SparePartsDemoService();
+      await sparePartsService.populateSparePartsData(numberOfParts: 25);
+
+      _showSuccess('Successfully generated 25 spare parts with stock data');
+      AppLogger.info('Spare parts demo data populated from settings screen', category: LogCategory.system);
+
+    } catch (e) {
+      _showError('Failed to populate spare parts data: $e');
+      AppLogger.error('Failed to populate spare parts from settings', error: e, category: LogCategory.system);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _addStockToSpareParts() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final sparePartsService = SparePartsDemoService();
+      await sparePartsService.addStockToExistingSpareParts();
+
+      _showSuccess('Successfully added stock data to existing spare parts');
+      AppLogger.info('Stock added to spare parts from settings screen', category: LogCategory.system);
+
+    } catch (e) {
+      _showError('Failed to add stock to spare parts: $e');
+      AppLogger.error('Failed to add stock to spare parts from settings', error: e, category: LogCategory.system);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _clearSparePartsData() async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Spare Parts Data'),
+        content: const Text(
+          'This will permanently delete all spare parts and their stock data from the database. '
+          'This action cannot be undone. Are you sure you want to continue?'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final sparePartsService = SparePartsDemoService();
+      await sparePartsService.clearSparePartsData();
+
+      _showSuccess('Spare parts demo data cleared successfully');
+      AppLogger.info('Spare parts demo data cleared from settings screen', category: LogCategory.system);
+
+    } catch (e) {
+      _showError('Failed to clear spare parts data: $e');
+      AppLogger.error('Failed to clear spare parts data from settings', error: e, category: LogCategory.system);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -644,6 +724,81 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                 label: const Text('Clear'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.grey,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Spare Parts Management Section
+                    Card(
+                      elevation: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Spare Parts Data Management',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Text(
+                              'Generate and manage spare parts demo data for testing stock management features',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                            const SizedBox(height: 16),
+
+                            ListTile(
+                              leading: const Icon(Icons.settings, color: Colors.blue),
+                              title: const Text('Generate Spare Parts'),
+                              subtitle: const Text('Create 25 spare parts with warehouse stock data'),
+                              trailing: ElevatedButton.icon(
+                                onPressed: _isLoading ? null : _populateSparePartsData,
+                                icon: const Icon(Icons.add_circle_outline),
+                                label: const Text('Populate'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ),
+
+                            const Divider(height: 24),
+
+                            ListTile(
+                              leading: const Icon(Icons.inventory, color: Colors.green),
+                              title: const Text('Add Stock Data'),
+                              subtitle: const Text('Add warehouse stock to existing spare parts'),
+                              trailing: ElevatedButton.icon(
+                                onPressed: _isLoading ? null : _addStockToSpareParts,
+                                icon: const Icon(Icons.add_box),
+                                label: const Text('Add Stock'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ),
+
+                            const Divider(height: 24),
+
+                            ListTile(
+                              leading: const Icon(Icons.clear_all, color: Colors.red),
+                              title: const Text('Clear Spare Parts'),
+                              subtitle: const Text('Remove all spare parts and stock data'),
+                              trailing: ElevatedButton.icon(
+                                onPressed: _isLoading ? null : _clearSparePartsData,
+                                icon: const Icon(Icons.delete_forever),
+                                label: const Text('Clear'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
                                   foregroundColor: Colors.white,
                                 ),
                               ),
