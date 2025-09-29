@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/models/models.dart';
 
@@ -59,7 +58,6 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
   String selectedCategory = 'All';
   String searchQuery = '';
 
-  final warehouses = ['All', '999', 'CA', 'CA1', 'CA2', 'CA3', 'CA4', 'COCZ', 'COPZ', 'INT', 'MEE', 'PU', 'SI', 'XCA', 'XPU', 'XZRE', 'ZRE'];
   final categories = ['All', 'Refrigeration', 'Freezers', 'Prep Tables', 'Display Cases', 'Ice Machines'];
 
   @override
@@ -109,9 +107,6 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
               }
               return false;
             }).length;
-
-            // Calculate warehouse distribution
-            final stockByWarehouse = _calculateStockByWarehouse(stockData);
 
             // Calculate category distribution
             final stockByCategory = _calculateStockByCategory(stockData, products);
@@ -272,89 +267,6 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
 
                   const SizedBox(height: 24),
 
-                  // Warehouse Distribution Chart (Horizontal Bar Chart)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Stock by Warehouse',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            height: 500, // Height for all 16 warehouses
-                            child: SingleChildScrollView(
-                              child: Column(
-                                children: stockByWarehouse.entries.map((entry) {
-                                  final maxStock = stockByWarehouse.values.isEmpty
-                                      ? 1
-                                      : stockByWarehouse.values.reduce((a, b) => a > b ? a : b);
-                                  final percentage = maxStock > 0 ? (entry.value / maxStock) : 0.0;
-
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    child: Row(
-                                      children: [
-                                        SizedBox(
-                                          width: 60,
-                                          child: Text(
-                                            entry.key,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Container(
-                                            height: 25,
-                                            decoration: BoxDecoration(
-                                              color: Colors.grey[200],
-                                              borderRadius: BorderRadius.circular(4),
-                                            ),
-                                            child: FractionallySizedBox(
-                                              alignment: Alignment.centerLeft,
-                                              widthFactor: percentage.clamp(0.0, 1.0),
-                                              child: Container(
-                                                decoration: BoxDecoration(
-                                                  color: _getWarehouseColor(entry.key),
-                                                  borderRadius: BorderRadius.circular(4),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        SizedBox(
-                                          width: 60,
-                                          child: Text(
-                                            '${entry.value}',
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.blue,
-                                            ),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
                   // Category Distribution Table
                   Card(
                     child: Padding(
@@ -403,6 +315,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
                                           style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w500,
+                                            color: Colors.black87,
                                           ),
                                         ),
                                       ),
@@ -421,7 +334,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
                                             '${percentage.toStringAsFixed(1)}%',
                                             style: const TextStyle(
                                               fontSize: 12,
-                                              color: Colors.grey,
+                                              color: Colors.black87,
                                             ),
                                           ),
                                         ],
@@ -609,25 +522,6 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
     );
   }
 
-  Map<String, int> _calculateStockByWarehouse(Map<String, dynamic> stockData) {
-    final stockByWarehouse = <String, int>{};
-
-    // Initialize all warehouses with 0 to ensure they all show up
-    final allWarehouses = ['999', 'CA', 'CA1', 'CA2', 'CA3', 'CA4', 'COCZ', 'COPZ', 'INT', 'MEE', 'PU', 'SI', 'XCA', 'XPU', 'XZRE', 'ZRE'];
-    for (final warehouse in allWarehouses) {
-      stockByWarehouse[warehouse] = 0;
-    }
-
-    stockData.forEach((key, value) {
-      if (value is Map) {
-        final warehouse = value['warehouse'] ?? '999';
-        final stock = value['available'] as int? ?? 0;
-        stockByWarehouse[warehouse] = (stockByWarehouse[warehouse] ?? 0) + stock;
-      }
-    });
-
-    return stockByWarehouse;
-  }
 
   Map<String, int> _calculateStockByCategory(Map<String, dynamic> stockData, List<Product> products) {
     final stockByCategory = <String, int>{};
@@ -668,44 +562,6 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
     return outOfStock;
   }
 
-  Color _getWarehouseColor(String warehouse) {
-    switch (warehouse) {
-      case '999':
-        return Colors.blue;
-      case 'CA':
-        return Colors.purple;
-      case 'CA1':
-        return Colors.red;
-      case 'CA2':
-        return Colors.orange;
-      case 'CA3':
-        return Colors.green;
-      case 'CA4':
-        return Colors.teal;
-      case 'COCZ':
-        return Colors.indigo;
-      case 'COPZ':
-        return Colors.pink;
-      case 'INT':
-        return Colors.amber;
-      case 'MEE':
-        return Colors.cyan;
-      case 'PU':
-        return Colors.lime;
-      case 'SI':
-        return Colors.brown;
-      case 'XCA':
-        return Colors.deepOrange;
-      case 'XPU':
-        return Colors.deepPurple;
-      case 'XZRE':
-        return Colors.lightBlue;
-      case 'ZRE':
-        return Colors.lightGreen;
-      default:
-        return Colors.grey;
-    }
-  }
 
   Color _getCategoryColor(String category) {
     switch (category) {
