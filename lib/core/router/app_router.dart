@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../utils/responsive_helper.dart';
 import '../config/env_config.dart';
+import '../providers/providers.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
@@ -237,26 +238,24 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   List<String> _getRoutes(bool isAdmin) {
     if (isAdmin) {
       return [
-        '/admin',
         '/',
+        '/stock',
         '/clients',
         '/products',
-        '/cart',
-        '/quotes',
-        '/stock',
         '/spareparts',
+        '/cart',
         '/settings',
+        '/admin',
         '/profile',
       ];
     } else {
       return [
         '/',
+        '/stock',
         '/clients',
         '/products',
-        '/cart',
-        '/quotes',
-        '/stock',
         '/spareparts',
+        '/cart',
         '/settings',
         '/profile',
       ];
