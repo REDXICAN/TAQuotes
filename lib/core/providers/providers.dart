@@ -104,14 +104,17 @@ final sparePartsProvider = StreamProvider.autoDispose<List<SparePart>>((ref) asy
               }
             }
 
-            // Include any product that has warehouse stock available
-            // This represents spare parts/components that are available in warehouses
-            if (hasStock && warehouseStock != null) {
+            // Include any product that has stock available
+            // This represents spare parts/components that are available
+            if (hasStock) {
+              // Use warehouse from warehouseStock if available, otherwise use basic warehouse field or default
+              String? warehouse = primaryWarehouse ?? productData['warehouse']?.toString() ?? '999';
+
               spareParts.add(SparePart(
                 sku: sku,
                 name: name,
                 stock: totalStock,
-                warehouse: primaryWarehouse,
+                warehouse: warehouse,
                 price: PriceFormatter.safeToDouble(productData['price']),
               ));
             }
