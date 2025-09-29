@@ -1347,7 +1347,7 @@ class ExportService {
         // Add data row
         final rowData = [
           quoteData['quote_number'] ?? quoteId,
-          _dateFormat.format(DateTime.parse(quoteData['created_at'] ?? DateTime.now().toIso8601String())),
+          _dateFormat.format(safeParseDateTimeWithFallback(quoteData['created_at'] ?? quoteData['createdAt'])),
           quoteData['status'] ?? 'draft',
           clientCompany,
           contactName,

@@ -56,7 +56,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   bool _emailNotifications = true;
   bool _darkModeEnabled = false;
   bool _compactView = false;
-  String _defaultWarehouse = 'TX';
+  String _defaultWarehouse = '999';
   String _defaultCurrency = 'USD';
   int _itemsPerPage = 50;
 
@@ -104,7 +104,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
           setState(() {
             _darkModeEnabled = userData['dark_mode'] ?? false;
             _compactView = userData['compact_view'] ?? false;
-            _defaultWarehouse = userData['default_warehouse'] ?? 'TX';
+            _defaultWarehouse = userData['default_warehouse'] ?? '999';
             _defaultCurrency = userData['default_currency'] ?? 'USD';
             _itemsPerPage = userData['items_per_page'] ?? 50;
           });
@@ -533,15 +533,25 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                         border: OutlineInputBorder(),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'TX', child: Text('Texas')),
-                        DropdownMenuItem(value: 'KR', child: Text('Korea')),
-                        DropdownMenuItem(value: 'VN', child: Text('Vietnam')),
-                        DropdownMenuItem(value: 'CN', child: Text('China')),
-                        DropdownMenuItem(value: 'CUN', child: Text('Cancun')),
-                        DropdownMenuItem(value: 'CDMX', child: Text('Mexico City')),
+                        DropdownMenuItem(value: '999', child: Text('999 - Reserved (Pending Deals)')),
+                        DropdownMenuItem(value: 'CA', child: Text('CA - California')),
+                        DropdownMenuItem(value: 'CA1', child: Text('CA1 - California 1')),
+                        DropdownMenuItem(value: 'CA2', child: Text('CA2 - California 2')),
+                        DropdownMenuItem(value: 'CA3', child: Text('CA3 - California 3')),
+                        DropdownMenuItem(value: 'CA4', child: Text('CA4 - California 4')),
+                        DropdownMenuItem(value: 'COCZ', child: Text('COCZ - Coahuila')),
+                        DropdownMenuItem(value: 'COPZ', child: Text('COPZ - Copilco')),
+                        DropdownMenuItem(value: 'INT', child: Text('INT - International')),
+                        DropdownMenuItem(value: 'MEE', child: Text('MEE - Mexico East')),
+                        DropdownMenuItem(value: 'PU', child: Text('PU - Puebla')),
+                        DropdownMenuItem(value: 'SI', child: Text('SI - Sinaloa')),
+                        DropdownMenuItem(value: 'XCA', child: Text('XCA - Xcaret')),
+                        DropdownMenuItem(value: 'XPU', child: Text('XPU - Xpujil')),
+                        DropdownMenuItem(value: 'XZRE', child: Text('XZRE - Xochimilco')),
+                        DropdownMenuItem(value: 'ZRE', child: Text('ZRE - Zacatecas')),
                       ],
                       onChanged: (value) {
-                        setState(() => _defaultWarehouse = value ?? 'TX');
+                        setState(() => _defaultWarehouse = value ?? '999');
                       },
                     ),
 

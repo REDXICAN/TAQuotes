@@ -17,7 +17,7 @@ final stockDataProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref)
         if (stock > 0) {
           stockData[key] = {
             'available': stock,
-            'warehouse': product['warehouse'] ?? 'Main',
+            'warehouse': product['warehouse'] ?? '999',
           };
         }
       }
@@ -59,7 +59,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
   String selectedCategory = 'All';
   String searchQuery = '';
 
-  final warehouses = ['All', 'Main'];
+  final warehouses = ['All', '999', 'CA', 'CA1', 'CA2', 'CA3', 'CA4', 'COCZ', 'COPZ', 'INT', 'MEE', 'PU', 'SI', 'XCA', 'XPU', 'XZRE', 'ZRE'];
   final categories = ['All', 'Refrigeration', 'Freezers', 'Prep Tables', 'Display Cases', 'Ice Machines'];
 
   @override
@@ -633,11 +633,11 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
   }
 
   Map<String, int> _calculateStockByWarehouse(Map<String, dynamic> stockData) {
-    final stockByWarehouse = <String, int>{'Main': 0};
+    final stockByWarehouse = <String, int>{};
 
     stockData.forEach((key, value) {
       if (value is Map) {
-        final warehouse = value['warehouse'] ?? 'Main';
+        final warehouse = value['warehouse'] ?? '999';
         final stock = value['available'] as int? ?? 0;
         stockByWarehouse[warehouse] = (stockByWarehouse[warehouse] ?? 0) + stock;
       }
@@ -687,10 +687,38 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
 
   Color _getWarehouseColor(String warehouse) {
     switch (warehouse) {
-      case 'Main':
-        return Colors.blue;
       case '999':
+        return Colors.blue;
+      case 'CA':
         return Colors.purple;
+      case 'CA1':
+        return Colors.red;
+      case 'CA2':
+        return Colors.orange;
+      case 'CA3':
+        return Colors.green;
+      case 'CA4':
+        return Colors.teal;
+      case 'COCZ':
+        return Colors.indigo;
+      case 'COPZ':
+        return Colors.pink;
+      case 'INT':
+        return Colors.amber;
+      case 'MEE':
+        return Colors.cyan;
+      case 'PU':
+        return Colors.lime;
+      case 'SI':
+        return Colors.brown;
+      case 'XCA':
+        return Colors.deepOrange;
+      case 'XPU':
+        return Colors.deepPurple;
+      case 'XZRE':
+        return Colors.lightBlue;
+      case 'ZRE':
+        return Colors.lightGreen;
       default:
         return Colors.grey;
     }

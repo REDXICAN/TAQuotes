@@ -1,6 +1,6 @@
 // lib/core/models/user_profile.dart
 
-import 'user_role.dart';
+import 'models.dart';
 
 class UserProfile {
   final String id;
@@ -24,38 +24,14 @@ class UserProfile {
   }) : _isAdminField = isAdminField;
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
-    // Parse timestamps - check both camelCase and snake_case
-    DateTime parseTimestamp(dynamic value, String altKey) {
-      // Try the primary key
-      if (value != null) {
-        if (value is DateTime) return value;
-        if (value is String) return DateTime.parse(value);
-        if (value is int || value is double) return DateTime.fromMillisecondsSinceEpoch(value.toInt());
-        if (value.runtimeType.toString().contains('Timestamp')) {
-          return (value.toDate());
-        }
-      }
-      // Try alternative key
-      final altValue = json[altKey];
-      if (altValue != null) {
-        if (altValue is DateTime) return altValue;
-        if (altValue is String) return DateTime.parse(altValue);
-        if (altValue is int || altValue is double) return DateTime.fromMillisecondsSinceEpoch(altValue.toInt());
-        if (altValue.runtimeType.toString().contains('Timestamp')) {
-          return (altValue.toDate());
-        }
-      }
-      return DateTime.now();
-    }
-    
     return UserProfile(
       id: json['id'] ?? json['uid'] ?? '',
       email: json['email'] ?? '',
       role: json['role'] ?? 'distributor',
       company: json['company'],
       phone: json['phone'] ?? json['phoneNumber'],
-      createdAt: parseTimestamp(json['created_at'], 'createdAt'),
-      updatedAt: parseTimestamp(json['updated_at'], 'updatedAt'),
+      createdAt: safeParseDateTimeWithFallback(json['created_at'] ?? json['createdAt']),
+      updatedAt: safeParseDateTimeWithFallback(json['updated_at'] ?? json['updatedAt']),
       isAdminField: json['isAdmin'] == true,
     );
   }

@@ -236,18 +236,36 @@ class ExcelInventoryService {
     switch (code) {
       case '999':
         return 'MERCANCIA APARTADA';
-      case 'KR':
-        return 'KOREA';
-      case 'VN':
-        return 'VIETNAM';
-      case 'CN':
-        return 'CHINA';
-      case 'TX':
-        return 'TEXAS';
-      case 'CUN':
+      case 'CA':
+        return 'CALIFORNIA';
+      case 'CA1':
+        return 'CALIFORNIA 1';
+      case 'CA2':
+        return 'CALIFORNIA 2';
+      case 'CA3':
+        return 'CALIFORNIA 3';
+      case 'CA4':
+        return 'CALIFORNIA 4';
+      case 'COCZ':
+        return 'COZUMEL';
+      case 'COPZ':
+        return 'PLAYA DEL CARMEN';
+      case 'INT':
+        return 'INTERNATIONAL';
+      case 'MEE':
+        return 'MERIDA';
+      case 'PU':
+        return 'PUERTO';
+      case 'SI':
+        return 'SISTEMA INTEGRAL';
+      case 'XCA':
         return 'CANCUN';
-      case 'CDMX':
-        return 'CIUDAD DE MEXICO';
+      case 'XPU':
+        return 'PLAYA DEL CARMEN';
+      case 'XZRE':
+        return 'ZONA RURAL ESTE';
+      case 'ZRE':
+        return 'ZONA RURAL ESTE';
       default:
         return code.toUpperCase();
     }

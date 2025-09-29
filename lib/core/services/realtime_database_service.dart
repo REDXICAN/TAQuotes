@@ -10,12 +10,58 @@ class RealtimeDatabaseService {
   final FirebaseDatabase _db = FirebaseDatabase.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final RateLimiterService _rateLimiter = RateLimiterService();
-  
+
   // OPTIMIZATION: Add caching for frequently accessed data
   static final Map<String, dynamic> _productCache = {};
   static final Map<String, DateTime> _cacheTimestamps = {};
   static const Duration _cacheExpiry = Duration(minutes: 10);
   static const int _maxCacheSize = 1000;
+
+  // Safe date parsing helper
+  DateTime _safeParseDateTime(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is DateTime) return value;
+
+    // Handle integer timestamps (Firebase ServerValue.timestamp)
+    if (value is int) {
+      try {
+        return DateTime.fromMillisecondsSinceEpoch(value);
+      } catch (e) {
+        AppLogger.warning('Failed to parse timestamp int "$value"', error: e, category: LogCategory.data);
+        return DateTime.now();
+      }
+    }
+
+    // Handle double timestamps (converted from int)
+    if (value is double) {
+      try {
+        return DateTime.fromMillisecondsSinceEpoch(value.toInt());
+      } catch (e) {
+        AppLogger.warning('Failed to parse timestamp double "$value"', error: e, category: LogCategory.data);
+        return DateTime.now();
+      }
+    }
+
+    // Handle string dates
+    if (value is String) {
+      try {
+        // First try to parse as a timestamp integer string
+        final timestampInt = int.tryParse(value);
+        if (timestampInt != null) {
+          return DateTime.fromMillisecondsSinceEpoch(timestampInt);
+        }
+
+        // Then try ISO format or other date string formats
+        return DateTime.parse(value);
+      } catch (e) {
+        AppLogger.warning('Failed to parse date string "$value"', error: e, category: LogCategory.data);
+        return DateTime.now();
+      }
+    }
+
+    AppLogger.warning('Unknown date format type ${value.runtimeType}: "$value"', category: LogCategory.data);
+    return DateTime.now();
+  }
 
   // Enable offline persistence
   Future<void> enableOfflinePersistence() async {
@@ -729,8 +775,8 @@ class RealtimeDatabaseService {
 
         // Sort by created date (most recent first)
         projects.sort((a, b) {
-          final dateA = DateTime.parse(a['createdAt'] ?? DateTime.now().toIso8601String());
-          final dateB = DateTime.parse(b['createdAt'] ?? DateTime.now().toIso8601String());
+          final dateA = _safeParseDateTime(a['createdAt']);
+          final dateB = _safeParseDateTime(b['createdAt']);
           return dateB.compareTo(dateA);
         });
       }
@@ -875,8 +921,8 @@ class RealtimeDatabaseService {
 
       // Sort by createdAt descending
       projects.sort((a, b) {
-        final dateA = DateTime.parse(a['createdAt'] ?? DateTime.now().toIso8601String());
-        final dateB = DateTime.parse(b['createdAt'] ?? DateTime.now().toIso8601String());
+        final dateA = _safeParseDateTime(a['createdAt']);
+        final dateB = _safeParseDateTime(b['createdAt']);
         return dateB.compareTo(dateA);
       });
 
@@ -1031,8 +1077,8 @@ class RealtimeDatabaseService {
       }
       // Sort by request date, newest first
       requests.sort((a, b) {
-        final dateA = DateTime.parse(a['requestedAt'] ?? DateTime.now().toIso8601String());
-        final dateB = DateTime.parse(b['requestedAt'] ?? DateTime.now().toIso8601String());
+        final dateA = _safeParseDateTime(a['requestedAt']);
+        final dateB = _safeParseDateTime(b['requestedAt']);
         return dateB.compareTo(dateA);
       });
       return requests;

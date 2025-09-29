@@ -2,9 +2,101 @@
 import '../services/app_logger.dart';
 import '../utils/safe_conversions.dart';
 
-// Export UserRole enum
+// Export UserRole enum and Project model
 export 'user_role.dart';
 export 'project.dart';
+
+// Global safe date parsing helper function
+DateTime safeParseDateTimeWithFallback(dynamic value, {DateTime? fallback}) {
+  if (value == null) return fallback ?? DateTime.now();
+  if (value is DateTime) return value;
+
+  // Handle integer timestamps (Firebase ServerValue.timestamp)
+  if (value is int) {
+    try {
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    } catch (e) {
+      AppLogger.warning('Failed to parse timestamp int "$value"', error: e, category: LogCategory.data);
+      return fallback ?? DateTime.now();
+    }
+  }
+
+  // Handle double timestamps (converted from int)
+  if (value is double) {
+    try {
+      return DateTime.fromMillisecondsSinceEpoch(value.toInt());
+    } catch (e) {
+      AppLogger.warning('Failed to parse timestamp double "$value"', error: e, category: LogCategory.data);
+      return fallback ?? DateTime.now();
+    }
+  }
+
+  // Handle string dates
+  if (value is String) {
+    try {
+      // First try to parse as a timestamp integer string
+      final timestampInt = int.tryParse(value);
+      if (timestampInt != null) {
+        return DateTime.fromMillisecondsSinceEpoch(timestampInt);
+      }
+
+      // Then try ISO format or other date string formats
+      return DateTime.parse(value);
+    } catch (e) {
+      AppLogger.warning('Failed to parse date string "$value"', error: e, category: LogCategory.data);
+      return fallback ?? DateTime.now();
+    }
+  }
+
+  AppLogger.warning('Unknown date format type ${value.runtimeType}: "$value"', category: LogCategory.data);
+  return fallback ?? DateTime.now();
+}
+
+// Global safe date parsing helper function that can return null
+DateTime? safeParseDateTimeOrNull(dynamic value) {
+  if (value == null) return null;
+  if (value is DateTime) return value;
+
+  // Handle integer timestamps (Firebase ServerValue.timestamp)
+  if (value is int) {
+    try {
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    } catch (e) {
+      AppLogger.warning('Failed to parse timestamp int "$value"', error: e, category: LogCategory.data);
+      return null;
+    }
+  }
+
+  // Handle double timestamps (converted from int)
+  if (value is double) {
+    try {
+      return DateTime.fromMillisecondsSinceEpoch(value.toInt());
+    } catch (e) {
+      AppLogger.warning('Failed to parse timestamp double "$value"', error: e, category: LogCategory.data);
+      return null;
+    }
+  }
+
+  // Handle string dates
+  if (value is String) {
+    try {
+      // First try to parse as a timestamp integer string
+      final timestampInt = int.tryParse(value);
+      if (timestampInt != null) {
+        return DateTime.fromMillisecondsSinceEpoch(timestampInt);
+      }
+
+      // Then try ISO format or other date string formats
+      return DateTime.parse(value);
+    } catch (e) {
+      AppLogger.warning('Failed to parse date string "$value"', error: e, category: LogCategory.data);
+      return null;
+    }
+  }
+
+  AppLogger.warning('Unknown date format type ${value.runtimeType}: "$value"', category: LogCategory.data);
+  return null;
+}
 
 // UserProfile Model
 class UserProfile {
@@ -152,16 +244,8 @@ class Client {
       country: map['country'],
       notes: map['notes'],
       profilePictureUrl: map['profile_picture_url'] ?? map['profilePictureUrl'],
-      createdAt: map['created_at'] != null 
-          ? (map['created_at'] is int 
-              ? DateTime.fromMillisecondsSinceEpoch(map['created_at'])
-              : DateTime.parse(map['created_at']))
-          : DateTime.now(),
-      updatedAt: map['updated_at'] != null 
-          ? (map['updated_at'] is int
-              ? DateTime.fromMillisecondsSinceEpoch(map['updated_at'])
-              : DateTime.parse(map['updated_at']))
-          : null,
+      createdAt: safeParseDateTimeWithFallback(map['created_at'] ?? map['createdAt']),
+      updatedAt: safeParseDateTimeOrNull(map['updated_at'] ?? map['updatedAt']),
     );
   }
 
@@ -206,9 +290,7 @@ class WarehouseStock {
     return WarehouseStock(
       available: map['available'] ?? 0,
       reserved: map['reserved'] ?? 0,
-      lastUpdate: map['lastUpdate'] != null 
-          ? DateTime.parse(map['lastUpdate']) 
-          : DateTime.now(),
+      lastUpdate: safeParseDateTimeWithFallback(map['lastUpdate']),
       minStock: map['minStock'],
       location: map['location'],
     );
@@ -473,25 +555,7 @@ class Product {
       return parseIntSafely(value) ?? defaultValue;
     }
 
-    // Helper function to parse DateTime from various formats
-    DateTime parseDateTime(dynamic value) {
-      if (value == null) return DateTime.now();
-      if (value is DateTime) return value;
-      if (value is String) {
-        try {
-          return DateTime.parse(value);
-        } catch (e) {
-          // Log parsing error and return current time as fallback
-          AppLogger.warning('Failed to parse date string "$value"', error: e, category: LogCategory.data);
-          return DateTime.now();
-        }
-      }
-      if (value is int) {
-        // Assume it's a timestamp in milliseconds
-        return DateTime.fromMillisecondsSinceEpoch(value);
-      }
-      return DateTime.now();
-    }
+    // Use global safe date parsing function
 
     return Product(
       id: map['id'],
@@ -528,10 +592,8 @@ class Product {
       weightMetric: map['weightMetric'] ?? map['weight_metric'] ?? map['Weight (Metric)'],
       features: map['features'] ?? map['Features'],
       certifications: map['certifications'] ?? map['Certifications'],
-      createdAt: parseDateTime(map['createdAt'] ?? map['created_at']),  // Handle both formats
-      updatedAt: map['updatedAt'] ?? map['updated_at'] != null 
-          ? parseDateTime(map['updatedAt'] ?? map['updated_at']) 
-          : null,
+      createdAt: safeParseDateTimeWithFallback(map['createdAt'] ?? map['created_at']),  // Handle both formats
+      updatedAt: safeParseDateTimeOrNull(map['updatedAt'] ?? map['updated_at']),
       isTopSeller: map['isTopSeller'] ?? map['is_top_seller'] ?? false,
       warehouseStock: _parseWarehouseStock(map),
     );
@@ -707,10 +769,8 @@ class Quote {
       notes: map['notes'],
       comments: map['comments'],
       includeCommentInEmail: map['includeCommentInEmail'] ?? map['include_comment_in_email'] ?? false,
-      createdAt:
-          DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
-      expiresAt:
-          map['expiresAt'] != null ? DateTime.parse(map['expiresAt']) : null,
+      createdAt: safeParseDateTimeWithFallback(map['createdAt']),
+      expiresAt: safeParseDateTimeOrNull(map['expiresAt']),
       createdBy: map['createdBy'] ?? '',
       projectId: map['projectId'] ?? map['project_id'],
       projectName: map['projectName'] ?? map['project_name'],
@@ -775,8 +835,7 @@ class QuoteItem {
       unitPrice: SafeConversions.toPrice(map['unitPrice'] ?? map['unit_price']),
       total: SafeConversions.toPrice(map['total'] ?? map['total_price']),
       totalPrice: SafeConversions.toPrice(map['totalPrice'] ?? map['total_price'] ?? map['total']),
-      addedAt:
-          DateTime.parse(map['addedAt'] ?? map['added_at'] ?? DateTime.now().toIso8601String()),
+      addedAt: safeParseDateTimeWithFallback(map['addedAt'] ?? map['added_at']),
       discount: (map['discount'] ?? 0).toDouble(),
       note: map['note'] ?? '',
       sequenceNumber: map['sequenceNumber'] ?? map['sequence_number'],
@@ -874,8 +933,7 @@ class CartItem {
       quantity: map['quantity'] ?? 1,
       unitPrice: (map['unitPrice'] ?? 0).toDouble(),
       total: SafeConversions.toPrice(map['total']),
-      addedAt:
-          DateTime.parse(map['addedAt'] ?? DateTime.now().toIso8601String()),
+      addedAt: safeParseDateTimeWithFallback(map['addedAt']),
       discount: (map['discount'] ?? 0).toDouble(),
       note: map['note'] ?? '',
       sequenceNumber: map['sequenceNumber'],

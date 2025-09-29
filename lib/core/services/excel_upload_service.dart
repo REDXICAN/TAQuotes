@@ -126,12 +126,22 @@ class ExcelUploadService {
               'image_url': 'assets/screenshots/$sku/P.1.png',
               'row_number': i + 1,
               // Add warehouse stock data
-              'KR': _parseStock(_getCellValue(row, headerIndex['KR'])),
-              'VN': _parseStock(_getCellValue(row, headerIndex['VN'])),
-              'CN': _parseStock(_getCellValue(row, headerIndex['CN'])),
-              'TX': _parseStock(_getCellValue(row, headerIndex['TX'])),
-              'CUN': _parseStock(_getCellValue(row, headerIndex['CUN'])),
-              'CDMX': _parseStock(_getCellValue(row, headerIndex['CDMX'])),
+              '999': _parseStock(_getCellValue(row, headerIndex['999'])),
+              'CA': _parseStock(_getCellValue(row, headerIndex['CA'])),
+              'CA1': _parseStock(_getCellValue(row, headerIndex['CA1'])),
+              'CA2': _parseStock(_getCellValue(row, headerIndex['CA2'])),
+              'CA3': _parseStock(_getCellValue(row, headerIndex['CA3'])),
+              'CA4': _parseStock(_getCellValue(row, headerIndex['CA4'])),
+              'COCZ': _parseStock(_getCellValue(row, headerIndex['COCZ'])),
+              'COPZ': _parseStock(_getCellValue(row, headerIndex['COPZ'])),
+              'INT': _parseStock(_getCellValue(row, headerIndex['INT'])),
+              'MEE': _parseStock(_getCellValue(row, headerIndex['MEE'])),
+              'PU': _parseStock(_getCellValue(row, headerIndex['PU'])),
+              'SI': _parseStock(_getCellValue(row, headerIndex['SI'])),
+              'XCA': _parseStock(_getCellValue(row, headerIndex['XCA'])),
+              'XPU': _parseStock(_getCellValue(row, headerIndex['XPU'])),
+              'XZRE': _parseStock(_getCellValue(row, headerIndex['XZRE'])),
+              'ZRE': _parseStock(_getCellValue(row, headerIndex['ZRE'])),
             };
 
             // Remove empty fields
@@ -240,12 +250,22 @@ class ExcelUploadService {
               'updated_at': ServerValue.timestamp,
               'uploaded_by': _auth.currentUser?.email,
               // Add warehouse stock data
-              'KR': _parseStock(_getCellValue(row, headerIndex['KR'])),
-              'VN': _parseStock(_getCellValue(row, headerIndex['VN'])),
-              'CN': _parseStock(_getCellValue(row, headerIndex['CN'])),
-              'TX': _parseStock(_getCellValue(row, headerIndex['TX'])),
-              'CUN': _parseStock(_getCellValue(row, headerIndex['CUN'])),
-              'CDMX': _parseStock(_getCellValue(row, headerIndex['CDMX'])),
+              '999': _parseStock(_getCellValue(row, headerIndex['999'])),
+              'CA': _parseStock(_getCellValue(row, headerIndex['CA'])),
+              'CA1': _parseStock(_getCellValue(row, headerIndex['CA1'])),
+              'CA2': _parseStock(_getCellValue(row, headerIndex['CA2'])),
+              'CA3': _parseStock(_getCellValue(row, headerIndex['CA3'])),
+              'CA4': _parseStock(_getCellValue(row, headerIndex['CA4'])),
+              'COCZ': _parseStock(_getCellValue(row, headerIndex['COCZ'])),
+              'COPZ': _parseStock(_getCellValue(row, headerIndex['COPZ'])),
+              'INT': _parseStock(_getCellValue(row, headerIndex['INT'])),
+              'MEE': _parseStock(_getCellValue(row, headerIndex['MEE'])),
+              'PU': _parseStock(_getCellValue(row, headerIndex['PU'])),
+              'SI': _parseStock(_getCellValue(row, headerIndex['SI'])),
+              'XCA': _parseStock(_getCellValue(row, headerIndex['XCA'])),
+              'XPU': _parseStock(_getCellValue(row, headerIndex['XPU'])),
+              'XZRE': _parseStock(_getCellValue(row, headerIndex['XZRE'])),
+              'ZRE': _parseStock(_getCellValue(row, headerIndex['ZRE'])),
             };
 
             // Remove empty fields
@@ -652,7 +672,7 @@ class ExcelUploadService {
     }
 
     // Stock validation
-    for (final warehouse in ['KR', 'VN', 'CN', 'TX', 'CUN', 'CDMX']) {
+    for (final warehouse in ['999', 'CA', 'CA1', 'CA2', 'CA3', 'CA4', 'COCZ', 'COPZ', 'INT', 'MEE', 'PU', 'SI', 'XCA', 'XPU', 'XZRE', 'ZRE']) {
       if (product[warehouse] != null) {
         final stockStr = product[warehouse].toString();
         final stock = _parseStock(stockStr);

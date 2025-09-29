@@ -300,32 +300,68 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                           child: Text('All Warehouses'),
                         ),
                         const DropdownMenuItem(
-                          value: 'KR',
-                          child: Text('KR - Korea'),
-                        ),
-                        const DropdownMenuItem(
-                          value: 'VN',
-                          child: Text('VN - Vietnam'),
-                        ),
-                        const DropdownMenuItem(
-                          value: 'CN',
-                          child: Text('CN - China'),
-                        ),
-                        const DropdownMenuItem(
-                          value: 'TX',
-                          child: Text('TX - Texas'),
-                        ),
-                        const DropdownMenuItem(
-                          value: 'CUN',
-                          child: Text('CUN - Cancun'),
-                        ),
-                        const DropdownMenuItem(
-                          value: 'CDMX',
-                          child: Text('CDMX - Mexico City'),
-                        ),
-                        const DropdownMenuItem(
                           value: '999',
                           child: Text('999 - Reserved (Pending Deals)'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'CA',
+                          child: Text('CA - California'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'CA1',
+                          child: Text('CA1 - California 1'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'CA2',
+                          child: Text('CA2 - California 2'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'CA3',
+                          child: Text('CA3 - California 3'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'CA4',
+                          child: Text('CA4 - California 4'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'COCZ',
+                          child: Text('COCZ - Coahuila'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'COPZ',
+                          child: Text('COPZ - Copilco'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'INT',
+                          child: Text('INT - International'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'MEE',
+                          child: Text('MEE - Mexico East'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'PU',
+                          child: Text('PU - Puebla'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'SI',
+                          child: Text('SI - Sinaloa'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'XCA',
+                          child: Text('XCA - Xcaret'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'XPU',
+                          child: Text('XPU - Xpujil'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'XZRE',
+                          child: Text('XZRE - Xochimilco'),
+                        ),
+                        const DropdownMenuItem(
+                          value: 'ZRE',
+                          child: Text('ZRE - Zacatecas'),
                         ),
                       ],
                       onChanged: (value) {

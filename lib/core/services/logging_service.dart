@@ -75,7 +75,7 @@ class LogEntry {
     level: LogLevel.values.firstWhere((e) => e.name == json['level']),
     category: LogCategory.values.firstWhere((e) => e.name == json['category']),
     message: json['message'],
-    timestamp: DateTime.parse(json['timestamp']),
+    timestamp: safeParseDateTimeWithFallback(json['timestamp']),
     userId: json['userId'],
     userEmail: json['userEmail'],
     metadata: json['metadata'],

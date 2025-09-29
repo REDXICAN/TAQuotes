@@ -1963,11 +1963,11 @@ class ProductCard extends ConsumerWidget {
                       spacing: 4,
                       runSpacing: 2,
                       children: () {
-                        // Sort warehouses: Mexican warehouses first (CDMX, CUN), then others
+                        // Sort warehouses: Mexican warehouses first (999, COCZ, COPZ, MEE, SI, ZRE), then others
                         final sortedEntries = product.warehouseStock!.entries.toList()
                           ..sort((a, b) {
                             // Mexican warehouses come first
-                            final mexicanWarehouses = ['CDMX', 'CUN'];
+                            final mexicanWarehouses = ['999', 'COCZ', 'COPZ', 'MEE', 'SI', 'ZRE'];
                             final aIsMexican = mexicanWarehouses.contains(a.key);
                             final bIsMexican = mexicanWarehouses.contains(b.key);
 
@@ -1984,7 +1984,7 @@ class ProductCard extends ConsumerWidget {
                           final warehouse = entry.key;
                           final stock = entry.value;
                           final availableStock = stock.available - stock.reserved;
-                          final isMexicanWarehouse = ['CDMX', 'CUN'].contains(warehouse);
+                          final isMexicanWarehouse = ['999', 'COCZ', 'COPZ', 'MEE', 'SI', 'ZRE'].contains(warehouse);
 
                           Color badgeColor;
                           if (availableStock > 50) {

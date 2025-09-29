@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'models.dart';
 
 @immutable
 class AdminRequest {
@@ -35,16 +36,12 @@ class AdminRequest {
       email: json['email'] ?? '',
       name: json['name'] ?? '',
       requestedRole: json['requestedRole'] ?? 'admin',
-      requestedAt: json['requestedAt'] != null
-          ? DateTime.parse(json['requestedAt'])
-          : DateTime.now(),
+      requestedAt: safeParseDateTimeWithFallback(json['requestedAt'] ?? json['requested_at']),
       status: json['status'] ?? 'pending',
-      processedBy: json['processedBy'],
-      processedAt: json['processedAt'] != null
-          ? DateTime.parse(json['processedAt'])
-          : null,
-      rejectionReason: json['rejectionReason'],
-      approvalToken: json['approvalToken'],
+      processedBy: json['processedBy'] ?? json['processed_by'],
+      processedAt: safeParseDateTimeOrNull(json['processedAt'] ?? json['processed_at']),
+      rejectionReason: json['rejectionReason'] ?? json['rejection_reason'],
+      approvalToken: json['approvalToken'] ?? json['approval_token'],
     );
   }
 

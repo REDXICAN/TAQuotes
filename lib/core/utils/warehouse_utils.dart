@@ -10,11 +10,11 @@ class WarehouseUtils {
   /// Map of warehouse codes to their full descriptions
   static const Map<String, String> warehouseDescriptions = {
     '999': 'MERCANCIA APARTADA (Reserved Merchandise)',
+    'CA': 'California Main Warehouse',
     'CA1': 'California Warehouse 1',
     'CA2': 'California Warehouse 2',
     'CA3': 'California Warehouse 3',
     'CA4': 'California Warehouse 4',
-    'CA': 'California Main Warehouse',
     'COCZ': 'Coahuila Cool Zone',
     'COPZ': 'Coahuila Parts Zone',
     'INT': 'International Warehouse',
@@ -23,16 +23,18 @@ class WarehouseUtils {
     'SI': 'Special Inventory',
     'XCA': 'Export California',
     'XPU': 'Export Pick Up',
+    'XZRE': 'Export Zone Reserve',
+    'ZRE': 'Zone Reserve',
   };
 
   /// Map of warehouse codes to their short display names
   static const Map<String, String> warehouseShortNames = {
     '999': 'Reserved Merch.',
+    'CA': 'CA Main',
     'CA1': 'CA1',
     'CA2': 'CA2',
     'CA3': 'CA3',
     'CA4': 'CA4',
-    'CA': 'CA Main',
     'COCZ': 'Coahuila CZ',
     'COPZ': 'Coahuila PZ',
     'INT': 'International',
@@ -41,16 +43,18 @@ class WarehouseUtils {
     'SI': 'Special Inv.',
     'XCA': 'Export CA',
     'XPU': 'Export PU',
+    'XZRE': 'Export ZRE',
+    'ZRE': 'Zone Reserve',
   };
 
   /// Map of warehouse codes to their locations/regions
   static const Map<String, String> warehouseLocations = {
     '999': 'Mexico (Reserved)',
+    'CA': 'California, USA',
     'CA1': 'California, USA',
     'CA2': 'California, USA',
     'CA3': 'California, USA',
     'CA4': 'California, USA',
-    'CA': 'California, USA',
     'COCZ': 'Coahuila, Mexico',
     'COPZ': 'Coahuila, Mexico',
     'INT': 'International',
@@ -59,16 +63,21 @@ class WarehouseUtils {
     'SI': 'Special Location',
     'XCA': 'Export - California',
     'XPU': 'Export - Pick Up',
+    'XZRE': 'Export - Zone Reserve',
+    'ZRE': 'Zone Reserve Location',
   };
 
   /// Mexican warehouses (priority display)
-  static const List<String> mexicanWarehouses = ['999', 'COCZ', 'COPZ', 'MEE'];
+  static const List<String> mexicanWarehouses = ['999', 'COCZ', 'COPZ', 'MEE', 'PU', 'SI', 'ZRE'];
 
   /// US warehouses
-  static const List<String> usWarehouses = ['CA1', 'CA2', 'CA3', 'CA4', 'CA'];
+  static const List<String> usWarehouses = ['CA', 'CA1', 'CA2', 'CA3', 'CA4'];
 
   /// Export warehouses
-  static const List<String> exportWarehouses = ['XCA', 'XPU'];
+  static const List<String> exportWarehouses = ['XCA', 'XPU', 'XZRE'];
+
+  /// International/Special warehouses
+  static const List<String> internationalWarehouses = ['INT'];
 
   /// Get the full description for a warehouse code
   static String getDescription(String warehouseCode) {
@@ -100,16 +109,23 @@ class WarehouseUtils {
     return exportWarehouses.contains(warehouseCode);
   }
 
+  /// Check if a warehouse is international/special
+  static bool isInternationalWarehouse(String warehouseCode) {
+    return internationalWarehouses.contains(warehouseCode);
+  }
+
   /// Get color for warehouse display based on type
   static Color getWarehouseColor(String warehouseCode) {
     if (warehouseCode == '999') {
-      return Colors.amber; // Special color for main warehouse
+      return Colors.amber; // Special color for reserved merchandise
     } else if (isMexicanWarehouse(warehouseCode)) {
       return Colors.green;
     } else if (isUSWarehouse(warehouseCode)) {
       return Colors.blue;
     } else if (isExportWarehouse(warehouseCode)) {
       return Colors.purple;
+    } else if (isInternationalWarehouse(warehouseCode)) {
+      return Colors.orange;
     } else {
       return Colors.grey;
     }
@@ -125,6 +141,8 @@ class WarehouseUtils {
       return Icons.warehouse; // US warehouse
     } else if (isExportWarehouse(warehouseCode)) {
       return Icons.flight_takeoff; // Export
+    } else if (isInternationalWarehouse(warehouseCode)) {
+      return Icons.public; // International
     } else {
       return Icons.storage;
     }
@@ -161,11 +179,19 @@ class WarehouseUtils {
     }
     buffer.writeln();
 
+    // International warehouses
+    buffer.writeln('International Warehouses:');
+    for (final warehouse in internationalWarehouses) {
+      buffer.writeln('$warehouse - ${getDescription(warehouse)}');
+    }
+    buffer.writeln();
+
     // Other warehouses
     final otherWarehouses = warehouseDescriptions.keys
         .where((w) => !mexicanWarehouses.contains(w) &&
                      !usWarehouses.contains(w) &&
-                     !exportWarehouses.contains(w))
+                     !exportWarehouses.contains(w) &&
+                     !internationalWarehouses.contains(w))
         .toList();
 
     if (otherWarehouses.isNotEmpty) {
@@ -193,17 +219,22 @@ class WarehouseUtils {
         return exportWarehouses
             .map((w) => '$w - ${getDescription(w)}')
             .join('\n');
+      case 'international':
+        return internationalWarehouses
+            .map((w) => '$w - ${getDescription(w)}')
+            .join('\n');
       default:
         return getComprehensiveTooltip();
     }
   }
 
-  /// Get all warehouse codes sorted by priority (Mexican first, then US, then export)
+  /// Get all warehouse codes sorted by priority (Mexican first, then US, then export, then international)
   static List<String> getAllWarehouseCodesSorted() {
     final sorted = <String>[];
     sorted.addAll(mexicanWarehouses);
     sorted.addAll(usWarehouses);
     sorted.addAll(exportWarehouses);
+    sorted.addAll(internationalWarehouses);
 
     // Add any remaining warehouses
     final remaining = warehouseDescriptions.keys
@@ -260,7 +291,7 @@ class WarehouseUtils {
       child: Icon(
         Icons.info_outline,
         size: 16,
-        color: Theme.of(context).primaryColor.withOpacity(0.7),
+        color: Theme.of(context).primaryColor.withValues(alpha: 0.7),
       ),
     );
   }

@@ -163,7 +163,7 @@ Future<List<UserPerformanceMetrics>> _fetchUserPerformanceMetrics() async {
         
         for (final clientEntry in clientsData.values) {
           final clientData = Map<String, dynamic>.from(clientEntry as Map);
-          final createdAt = DateTime.parse(clientData['created_at'] ?? DateTime.now().toIso8601String());
+          final createdAt = safeParseDateTimeWithFallback(clientData['created_at'] ?? clientData['createdAt']);
           if (createdAt.isAfter(monthAgo)) {
             newClientsThisMonth++;
           }
@@ -270,9 +270,7 @@ Future<List<UserPerformanceMetrics>> _fetchUserPerformanceMetrics() async {
         conversionRate: conversionRate,
         totalClients: totalClients,
         newClientsThisMonth: newClientsThisMonth,
-        lastActivity: userData['lastLoginAt'] != null 
-            ? DateTime.parse(userData['lastLoginAt']) 
-            : null,
+        lastActivity: safeParseDateTimeOrNull(userData['lastLoginAt']),
         quotesThisWeek: quotesThisWeek,
         quotesThisMonth: quotesThisMonth,
         revenueThisMonth: revenueThisMonth,

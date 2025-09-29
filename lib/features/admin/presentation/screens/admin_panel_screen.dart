@@ -1425,14 +1425,37 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
     );
   }
 
-  String _formatDate(String? dateString) {
-    if (dateString == null) return 'N/A';
+  String _formatDate(dynamic dateValue) {
+    if (dateValue == null) return 'N/A';
     try {
-      final date = DateTime.parse(dateString);
-      return DateFormat('MM/dd/yyyy HH:mm').format(date);
+      DateTime? date;
+
+      // Handle Firebase timestamp integers
+      if (dateValue is int) {
+        date = DateTime.fromMillisecondsSinceEpoch(dateValue);
+      } else if (dateValue is double) {
+        date = DateTime.fromMillisecondsSinceEpoch(dateValue.toInt());
+      } else if (dateValue is String) {
+        // Try parsing as timestamp integer first
+        final timestampInt = int.tryParse(dateValue);
+        if (timestampInt != null) {
+          date = DateTime.fromMillisecondsSinceEpoch(timestampInt);
+        } else {
+          // Try ISO format or other date string formats
+          date = DateTime.parse(dateValue);
+        }
+      } else if (dateValue is DateTime) {
+        date = dateValue;
+      }
+
+      if (date != null) {
+        return DateFormat('MM/dd/yyyy HH:mm').format(date);
+      }
     } catch (e) {
-      return 'Invalid Date';
+      // Log the error for debugging
+      AppLogger.warning('Failed to format date "$dateValue"', error: e, category: LogCategory.data);
     }
+    return 'Invalid Date';
   }
 
   Future<void> _approveUser(UserApprovalRequest request) async {

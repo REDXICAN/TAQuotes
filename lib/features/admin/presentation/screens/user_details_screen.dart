@@ -30,9 +30,7 @@ final userDetailsProvider = StreamProvider.autoDispose.family<UserDetailedStats,
         final userData = Map<String, dynamic>.from(userSnapshot.value as Map);
         stats.email = userData['email'] ?? 'Unknown';
         stats.displayName = userData['displayName'] ?? userData['email'] ?? 'User';
-        stats.lastLoginAt = userData['lastLoginAt'] != null
-            ? DateTime.parse(userData['lastLoginAt'])
-            : null;
+        stats.lastLoginAt = safeParseDateTimeOrNull(userData['lastLoginAt']);
       }
 
       // Fetch quotes

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'models.dart';
 
 @immutable
 class Project {
@@ -40,8 +41,8 @@ class Project {
     return Project(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
-      clientId: json['clientId'],
-      clientName: json['clientName'],
+      clientId: json['clientId'] ?? json['client_id'],
+      clientName: json['clientName'] ?? json['client_name'],
       address: json['address'] ?? '',
       productLines: (json['productLines'] as List<dynamic>?)
               ?.map((e) => e.toString())
@@ -50,17 +51,11 @@ class Project {
       status: json['status'] ?? 'planning',
       description: json['description'],
       estimatedValue: (json['estimatedValue'] as num?)?.toDouble(),
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
-          : DateTime.now(),
-      startDate: json['startDate'] != null
-          ? DateTime.parse(json['startDate'])
-          : null,
-      completionDate: json['completionDate'] != null
-          ? DateTime.parse(json['completionDate'])
-          : null,
-      salesRepId: json['salesRepId'],
-      salesRepName: json['salesRepName'],
+      createdAt: safeParseDateTimeWithFallback(json['createdAt'] ?? json['created_at']),
+      startDate: safeParseDateTimeOrNull(json['startDate'] ?? json['start_date']),
+      completionDate: safeParseDateTimeOrNull(json['completionDate'] ?? json['completion_date']),
+      salesRepId: json['salesRepId'] ?? json['sales_rep_id'],
+      salesRepName: json['salesRepName'] ?? json['sales_rep_name'],
       additionalInfo: json['additionalInfo'] as Map<String, dynamic>?,
     );
   }

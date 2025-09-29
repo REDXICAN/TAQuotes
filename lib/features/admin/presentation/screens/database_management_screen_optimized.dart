@@ -984,12 +984,8 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
                           ],
                           rows: filteredUsers.map((user) {
                             final isEditing = _editingUsers.contains(user['uid']);
-                            final createdAt = user['createdAt'] != null
-                                ? DateTime.parse(user['createdAt'].toString())
-                                : null;
-                            final lastLogin = user['lastLoginAt'] != null
-                                ? DateTime.parse(user['lastLoginAt'].toString())
-                                : null;
+                            final createdAt = _parseDateTime(user['createdAt']);
+                            final lastLogin = _parseDateTime(user['lastLoginAt']);
                             final currentRole = isEditing && _userControllers.containsKey('${user['uid']}-role')
                                 ? _userControllers['${user['uid']}-role']!.text
                                 : user['role'] ?? 'user';
@@ -1341,6 +1337,52 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
   String _truncateText(String text, int maxLength) {
     if (text.length <= maxLength) return text;
     return '${text.substring(0, maxLength)}...';
+  }
+
+  // Helper function to safely parse DateTime from various formats (Firebase timestamps)
+  DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+
+    // Handle integer timestamps (Firebase ServerValue.timestamp)
+    if (value is int) {
+      try {
+        return DateTime.fromMillisecondsSinceEpoch(value);
+      } catch (e) {
+        AppLogger.warning('Failed to parse timestamp int "$value"', error: e, category: LogCategory.data);
+        return null;
+      }
+    }
+
+    // Handle double timestamps (converted from int)
+    if (value is double) {
+      try {
+        return DateTime.fromMillisecondsSinceEpoch(value.toInt());
+      } catch (e) {
+        AppLogger.warning('Failed to parse timestamp double "$value"', error: e, category: LogCategory.data);
+        return null;
+      }
+    }
+
+    // Handle string dates
+    if (value is String) {
+      try {
+        // First try to parse as a timestamp integer string
+        final timestampInt = int.tryParse(value);
+        if (timestampInt != null) {
+          return DateTime.fromMillisecondsSinceEpoch(timestampInt);
+        }
+
+        // Then try ISO format or other date string formats
+        return DateTime.parse(value);
+      } catch (e) {
+        AppLogger.warning('Failed to parse date string "$value"', error: e, category: LogCategory.data);
+        return null;
+      }
+    }
+
+    AppLogger.warning('Unknown date format type ${value.runtimeType}: "$value"', category: LogCategory.data);
+    return null;
   }
 }
 
