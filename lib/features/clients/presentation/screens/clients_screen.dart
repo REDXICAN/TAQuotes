@@ -17,8 +17,7 @@ import '../../../../core/services/export_service.dart';
 import '../../../../core/utils/download_helper.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/responsive_helper.dart';
-import '../../../../core/providers/client_providers.dart'; // For selectedClientProvider
-import '../../../cart/presentation/screens/cart_screen.dart'; // For cartClientProvider
+import '../../../../core/providers/client_providers.dart'; // For selectedClientProvider and cartClientProvider
 
 // Clients provider using StreamProvider for real-time updates
 final clientsProvider = StreamProvider.autoDispose<List<Client>>((ref) {
