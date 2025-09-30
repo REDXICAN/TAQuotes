@@ -9,6 +9,8 @@ import '../../../auth/presentation/providers/auth_provider.dart' hide currentUse
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/services/error_demo_data_service.dart';
 import '../../../../core/services/spare_parts_demo_service.dart';
+import '../../../../core/services/client_demo_data_service.dart';
+import '../../../../core/utils/admin_client_checker.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 
@@ -388,6 +390,113 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
     }
   }
 
+  // Client Demo Data Methods
+  Future<void> _populateClientDemoData() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await AdminClientChecker.forcePopulateDemoClients();
+
+      if (result['success']) {
+        final clientCount = result['clientCount'] as int;
+        final companies = result['companies'] as List<String>;
+
+        _showSuccess('Demo client data populated successfully! Created $clientCount clients.');
+        AppLogger.info('Client demo data populated from settings screen',
+                       category: LogCategory.system,
+                       data: {'clientCount': clientCount, 'companies': companies});
+      } else {
+        _showError('Failed to populate demo clients: ${result['message']}');
+      }
+
+    } catch (e) {
+      _showError('Failed to populate demo clients: $e');
+      AppLogger.error('Failed to populate demo clients from settings', error: e, category: LogCategory.system);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _clearClientDemoData() async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Demo Client Data'),
+        content: const Text(
+          'This will permanently delete all demo client data from the database. '
+          'This action cannot be undone. Are you sure you want to continue?'
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Clear All', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await AdminClientChecker.clearAdminClients();
+
+      if (result['success']) {
+        _showSuccess('Demo client data cleared successfully');
+        AppLogger.info('Client demo data cleared from settings screen', category: LogCategory.system);
+      } else {
+        _showError('Failed to clear demo clients: ${result['message']}');
+      }
+
+    } catch (e) {
+      _showError('Failed to clear demo clients: $e');
+      AppLogger.error('Failed to clear demo clients from settings', error: e, category: LogCategory.system);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _checkClientStatus() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final status = await AdminClientChecker.getAdminClientStatus();
+
+      if (status['success']) {
+        final isAdmin = status['isAdmin'] as bool;
+        final hasClients = status['hasClients'] as bool? ?? false;
+        final clientCount = status['clientCount'] as int? ?? 0;
+
+        if (!isAdmin) {
+          _showError('Only admin user can check client status');
+          return;
+        }
+
+        if (hasClients) {
+          _showSuccess('Admin user has $clientCount clients in the database');
+        } else {
+          _showSuccess('Admin user has no clients. You can populate demo data if needed.');
+        }
+
+      } else {
+        _showError('Failed to check client status: ${status['message']}');
+      }
+
+    } catch (e) {
+      _showError('Error checking client status: $e');
+      AppLogger.error('Error checking client status from settings', error: e, category: LogCategory.system);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasSystemPermission = ref.watch(
@@ -724,6 +833,81 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                 label: const Text('Clear'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.grey,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Client Demo Data Section
+                    Card(
+                      elevation: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Client Demo Data Management',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Text(
+                              'Generate and manage demo client data for TurboAir equipment company',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                            const SizedBox(height: 16),
+
+                            ListTile(
+                              leading: const Icon(Icons.people, color: Colors.blue),
+                              title: const Text('Check Client Status'),
+                              subtitle: const Text('Check if admin user has existing clients'),
+                              trailing: ElevatedButton.icon(
+                                onPressed: _isLoading ? null : _checkClientStatus,
+                                icon: const Icon(Icons.search),
+                                label: const Text('Check'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.purple,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ),
+
+                            const Divider(height: 24),
+
+                            ListTile(
+                              leading: const Icon(Icons.add_business, color: Colors.green),
+                              title: const Text('Generate Demo Clients'),
+                              subtitle: const Text('Create 10 realistic TurboAir equipment company clients'),
+                              trailing: ElevatedButton.icon(
+                                onPressed: _isLoading ? null : _populateClientDemoData,
+                                icon: const Icon(Icons.add_circle_outline),
+                                label: const Text('Populate'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ),
+
+                            const Divider(height: 24),
+
+                            ListTile(
+                              leading: const Icon(Icons.clear_all, color: Colors.red),
+                              title: const Text('Clear Client Data'),
+                              subtitle: const Text('Remove all client data for admin user'),
+                              trailing: ElevatedButton.icon(
+                                onPressed: _isLoading ? null : _clearClientDemoData,
+                                icon: const Icon(Icons.delete_forever),
+                                label: const Text('Clear'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
                                   foregroundColor: Colors.white,
                                 ),
                               ),
