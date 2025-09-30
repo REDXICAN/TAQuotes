@@ -91,6 +91,7 @@ List<Product> _generateDemoProducts() {
       id: 'demo-$i',
       sku: 'DEMO-SKU-${i.toString().padLeft(3, '0')}',
       model: 'DEMO-MODEL-${i + 1}',
+      displayName: 'Demo Product ${i + 1}',
       name: 'Demo Product ${i + 1}',
       description: 'This is a demo product for testing purposes',
       price: 1000 + (i * 50).toDouble(),

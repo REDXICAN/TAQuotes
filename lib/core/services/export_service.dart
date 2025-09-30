@@ -68,7 +68,7 @@ class ExportService {
       
       // Fetch client data using SafeTypeConverter
       Map<String, dynamic>? clientData;
-      final clientId = SafeTypeConverter.toString(quoteData['client_id']);
+      final clientId = SafeTypeConverter.toStr(quoteData['client_id']);
       if (clientId.isNotEmpty) {
         final clientSnapshot = await _database.ref('clients/$userId/$clientId').get();
         if (clientSnapshot.exists) {
@@ -92,7 +92,7 @@ class ExportService {
 
           // Fetch product details for each item
           for (var item in items) {
-            final productId = SafeTypeConverter.toString(item['product_id']);
+            final productId = SafeTypeConverter.toStr(item['product_id']);
             if (productId.isNotEmpty) {
               final productSnapshot = await _database.ref('products/$productId').get();
               if (productSnapshot.exists) {
@@ -108,7 +108,7 @@ class ExportService {
               final item = SafeTypeConverter.toMap(entry.value);
 
               // Fetch product details
-              final productId = SafeTypeConverter.toString(item['product_id']);
+              final productId = SafeTypeConverter.toStr(item['product_id']);
               if (productId.isNotEmpty) {
                 final productSnapshot = await _database.ref('products/$productId').get();
                 if (productSnapshot.exists) {
