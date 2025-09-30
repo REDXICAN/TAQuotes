@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'app_logger.dart';
 import 'rate_limiter_service.dart';
+import '../utils/safe_type_converter.dart';
 
 class RealtimeDatabaseService {
   final FirebaseDatabase _db = FirebaseDatabase.instance;
@@ -82,9 +83,9 @@ class RealtimeDatabaseService {
     return query.onValue.map((event) {
       final List<Map<String, dynamic>> products = [];
       if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(event.snapshot.value);
         data.forEach((key, value) {
-          final product = Map<String, dynamic>.from(value);
+          final product = SafeTypeConverter.toMap(value);
           product['id'] = key;
 
           // Filter by category if provided
@@ -112,7 +113,7 @@ class RealtimeDatabaseService {
     try {
       final snapshot = await _db.ref('products/$productId').get();
       if (snapshot.exists) {
-        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.value);
         data['id'] = productId;
         
         // OPTIMIZATION: Cache the result
@@ -161,11 +162,11 @@ class RealtimeDatabaseService {
       try {
         final snapshot = await _db.ref('products').get();
         if (snapshot.exists && snapshot.value != null) {
-          final data = Map<String, dynamic>.from(snapshot.value as Map);
+          final data = SafeTypeConverter.toMap(snapshot.value);
           
           for (final id in uncachedIds) {
             if (data.containsKey(id)) {
-              final productData = Map<String, dynamic>.from(data[id]);
+              final productData = SafeTypeConverter.toMap(data[id]);
               productData['id'] = id;
               results[id] = productData;
               
@@ -219,9 +220,9 @@ class RealtimeDatabaseService {
     final List<Map<String, dynamic>> results = [];
 
     if (snapshot.exists) {
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value);
       data.forEach((key, value) {
-        final product = Map<String, dynamic>.from(value);
+        final product = SafeTypeConverter.toMap(value);
         product['id'] = key;
 
         final searchText = query.toLowerCase();
@@ -251,9 +252,9 @@ class RealtimeDatabaseService {
         .map((event) {
       final List<Map<String, dynamic>> clients = [];
       if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(event.snapshot.value);
         data.forEach((key, value) {
-          final client = Map<String, dynamic>.from(value);
+          final client = SafeTypeConverter.toMap(value);
           client['id'] = key;
           clients.add(client);
         });
@@ -266,7 +267,7 @@ class RealtimeDatabaseService {
     if (userId == null) return null;
     final snapshot = await _db.ref('clients/$userId/$clientId').get();
     if (snapshot.exists) {
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value);
       data['id'] = clientId;
       return data;
     }
@@ -329,9 +330,9 @@ class RealtimeDatabaseService {
         .map((event) {
       final List<Map<String, dynamic>> items = [];
       if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(event.snapshot.value);
         data.forEach((key, value) {
-          final item = Map<String, dynamic>.from(value);
+          final item = SafeTypeConverter.toMap(value);
           item['id'] = key;
           items.add(item);
         });
@@ -356,9 +357,9 @@ class RealtimeDatabaseService {
 
     if (existingSnapshot.snapshot.value != null) {
       final data =
-          Map<String, dynamic>.from(existingSnapshot.snapshot.value as Map);
+          SafeTypeConverter.toMap(existingSnapshot.snapshot.value);
       for (var entry in data.entries) {
-        final item = Map<String, dynamic>.from(entry.value);
+        final item = SafeTypeConverter.toMap(entry.value);
         if (item['product_id'] == productId) {
           // Set the absolute quantity (not add to existing)
           await _db.ref('cart_items/$userId/${entry.key}').update({
@@ -391,9 +392,9 @@ class RealtimeDatabaseService {
 
     if (existingSnapshot.snapshot.value != null) {
       final data =
-          Map<String, dynamic>.from(existingSnapshot.snapshot.value as Map);
+          SafeTypeConverter.toMap(existingSnapshot.snapshot.value);
       for (var entry in data.entries) {
-        final item = Map<String, dynamic>.from(entry.value);
+        final item = SafeTypeConverter.toMap(entry.value);
         if (item['product_id'] == productId) {
           await _db.ref('cart_items/$userId/${entry.key}').remove();
           return;
@@ -458,9 +459,9 @@ class RealtimeDatabaseService {
         .map((event) {
       final List<Map<String, dynamic>> quotes = [];
       if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(event.snapshot.value);
         data.forEach((key, value) {
-          final quote = Map<String, dynamic>.from(value);
+          final quote = SafeTypeConverter.toMap(value);
           quote['id'] = key;
           quotes.add(quote);
         });
@@ -479,7 +480,7 @@ class RealtimeDatabaseService {
     if (userId == null) return null;
     final snapshot = await _db.ref('quotes/$userId/$quoteId').get();
     if (snapshot.exists) {
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value);
       data['id'] = quoteId;
       return data;
     }
@@ -658,7 +659,7 @@ class RealtimeDatabaseService {
     try {
       final snapshot = await _db.ref('preserved_comments/$userId/$productId').get();
       if (snapshot.exists) {
-        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.value);
         return data['comment'] as String?;
       }
       return null;
@@ -728,7 +729,7 @@ class RealtimeDatabaseService {
     try {
       final snapshot = await _db.ref('projects/$userId/$projectId').get();
       if (snapshot.exists) {
-        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.value);
         data['id'] = projectId;
         return data;
       }
@@ -753,18 +754,18 @@ class RealtimeDatabaseService {
       final projects = <Map<String, dynamic>>[];
 
       if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(event.snapshot.value);
 
         // Process each project and add client names
         data.forEach((key, value) async {
-          final project = Map<String, dynamic>.from(value);
+          final project = SafeTypeConverter.toMap(value);
           project['id'] = key;
 
           // Get client name if available
           if (project['clientId'] != null) {
             _db.ref('clients/$userId/${project['clientId']}').get().then((clientSnapshot) {
               if (clientSnapshot.exists && clientSnapshot.value != null) {
-                final client = Map<String, dynamic>.from(clientSnapshot.value as Map);
+                final client = SafeTypeConverter.toMap(clientSnapshot.value);
                 project['clientName'] = client['company'] ?? client['contactName'] ?? '';
               }
             });
@@ -834,11 +835,11 @@ class RealtimeDatabaseService {
       
       if (!snapshot.exists || snapshot.value == null) return [];
       
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value);
       final quotes = <Map<String, dynamic>>[];
       
       data.forEach((key, value) {
-        final quote = Map<String, dynamic>.from(value);
+        final quote = SafeTypeConverter.toMap(value);
         quote['id'] = key;
         quotes.add(quote);
       });
@@ -881,14 +882,14 @@ class RealtimeDatabaseService {
 
       if (!snapshot.exists || snapshot.value == null) return null;
 
-      final project = Map<String, dynamic>.from(snapshot.value as Map);
+      final project = SafeTypeConverter.toMap(snapshot.value);
       project['id'] = projectId;
 
       // Get client name if available
       if (project['clientId'] != null) {
         final clientSnapshot = await _db.ref('clients/$userId/${project['clientId']}').get();
         if (clientSnapshot.exists && clientSnapshot.value != null) {
-          final client = Map<String, dynamic>.from(clientSnapshot.value as Map);
+          final client = SafeTypeConverter.toMap(clientSnapshot.value);
           project['clientName'] = client['company'] ?? client['contactName'] ?? '';
         }
       }
@@ -911,9 +912,9 @@ class RealtimeDatabaseService {
       final projects = <Map<String, dynamic>>[];
 
       if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(event.snapshot.value);
         data.forEach((key, value) {
-          final project = Map<String, dynamic>.from(value);
+          final project = SafeTypeConverter.toMap(value);
           project['id'] = key;
           projects.add(project);
         });
@@ -935,7 +936,7 @@ class RealtimeDatabaseService {
     try {
       final snapshot = await _db.ref('user_profiles/$uid').get();
       if (snapshot.exists) {
-        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.value);
         data['id'] = uid;
         return data;
       }
@@ -961,9 +962,9 @@ class RealtimeDatabaseService {
     String status = 'active',
   }) async {
     try {
-      // Check if this is the superadmin email
-      final isSuperAdmin = email == 'andres@turboairmexico.com';
-      final finalRole = isSuperAdmin ? 'superadmin' : role;
+      // Use the provided role (no email-based override)
+      // Super admin role should be assigned via RBAC, not hardcoded email checks
+      final finalRole = role;
 
       await _db.ref('user_profiles/$uid').set({
         'uid': uid,
@@ -971,7 +972,7 @@ class RealtimeDatabaseService {
         'name': name,
         'role': finalRole,
         'status': status,
-        'isAdmin': isSuperAdmin || role == 'admin',
+        'isAdmin': role == 'admin' || role == 'superadmin',
         'created_at': ServerValue.timestamp,
         'updated_at': ServerValue.timestamp,
       });
@@ -1016,9 +1017,9 @@ class RealtimeDatabaseService {
     try {
       final snapshot = await _db.ref('user_profiles').once();
       if (snapshot.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.snapshot.value);
         return data.entries.map((entry) {
-          final userMap = Map<String, dynamic>.from(entry.value);
+          final userMap = SafeTypeConverter.toMap(entry.value);
           userMap['id'] = entry.key;
           return userMap;
         }).toList();
@@ -1046,7 +1047,7 @@ class RealtimeDatabaseService {
         .once();
 
     if (snapshot.snapshot.value != null) {
-      final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.snapshot.value);
       return data.length;
     }
     return 0;
@@ -1058,7 +1059,7 @@ class RealtimeDatabaseService {
     final snapshot = await _db.ref('quotes/$userId').once();
 
     if (snapshot.snapshot.value != null) {
-      final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.snapshot.value);
       return data.length;
     }
     return 0;
@@ -1068,7 +1069,7 @@ class RealtimeDatabaseService {
     final snapshot = await _db.ref('products').once();
 
     if (snapshot.snapshot.value != null) {
-      final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.snapshot.value);
       return data.length;
     }
     return 0;
@@ -1126,9 +1127,9 @@ class RealtimeDatabaseService {
         .map((event) {
       final List<Map<String, dynamic>> requests = [];
       if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(event.snapshot.value);
         data.forEach((key, value) {
-          final request = Map<String, dynamic>.from(value);
+          final request = SafeTypeConverter.toMap(value);
           request['id'] = key;
           requests.add(request);
         });
@@ -1163,7 +1164,7 @@ class RealtimeDatabaseService {
         throw Exception('User approval request not found');
       }
 
-      final requestData = Map<String, dynamic>.from(snapshot.value as Map);
+      final requestData = SafeTypeConverter.toMap(snapshot.value);
       final userId = requestData['userId'];
       final requestedRole = requestData['requestedRole'] ?? 'distributor';
       final isAdminRole = requestedRole.toLowerCase() == 'admin' || requestedRole.toLowerCase() == 'administrator';
@@ -1238,9 +1239,9 @@ class RealtimeDatabaseService {
           .once();
 
       if (snapshot.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.snapshot.value);
         final entry = data.entries.first;
-        final request = Map<String, dynamic>.from(entry.value);
+        final request = SafeTypeConverter.toMap(entry.value);
         request['id'] = entry.key;
         return request;
       }

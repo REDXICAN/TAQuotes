@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'app_logger.dart';
 import 'rbac_service.dart';
 import '../utils/download_helper.dart';
+import '../utils/safe_type_converter.dart';
 
 /// Service for handling database backups
 class BackupService {
@@ -243,7 +244,7 @@ class BackupService {
         throw Exception('Invalid backup file structure');
       }
 
-      final data = backupData['data'] as Map<String, dynamic>;
+      final data = SafeTypeConverter.toMap(backupData['data']) ?? {};
 
       // Check if user is admin
       final canManageBackups = await RBACService.hasPermission('manage_backups');
@@ -257,7 +258,7 @@ class BackupService {
         try {
           await _db.ref('products').set(data['products']);
           restoredSections.add('products');
-          itemsRestored += (data['products'] as Map).length;
+          itemsRestored += SafeTypeConverter.toMap(data['products']).length;
         } catch (e) {
           errors.add('Failed to restore products: $e');
         }
@@ -268,7 +269,7 @@ class BackupService {
         try {
           await _db.ref('spareparts').set(data['spareparts']);
           restoredSections.add('spareparts');
-          itemsRestored += (data['spareparts'] as Map).length;
+          itemsRestored += SafeTypeConverter.toMap(data['spareparts']).length;
         } catch (e) {
           errors.add('Failed to restore spare parts: $e');
         }
@@ -280,13 +281,13 @@ class BackupService {
           if (canManageBackups) {
             // Admin can restore all clients
             await _db.ref('clients').set(data['clients']);
-            itemsRestored += _countNestedItems(data['clients'] as Map);
+            itemsRestored += _countNestedItems(SafeTypeConverter.toMap(data['clients']));
           } else {
             // Regular user can only restore their own clients
-            final userClients = (data['clients'] as Map)[user.uid];
+            final userClients = SafeTypeConverter.toMap(data['clients'])[user.uid];
             if (userClients != null) {
               await _db.ref('clients/${user.uid}').set(userClients);
-              itemsRestored += (userClients as Map).length;
+              itemsRestored += SafeTypeConverter.toMap(userClients).length;
             }
           }
           restoredSections.add('clients');
@@ -301,13 +302,13 @@ class BackupService {
           if (canManageBackups) {
             // Admin can restore all quotes
             await _db.ref('quotes').set(data['quotes']);
-            itemsRestored += _countNestedItems(data['quotes'] as Map);
+            itemsRestored += _countNestedItems(SafeTypeConverter.toMap(data['quotes']));
           } else {
             // Regular user can only restore their own quotes
-            final userQuotes = (data['quotes'] as Map)[user.uid];
+            final userQuotes = SafeTypeConverter.toMap(data['quotes'])[user.uid];
             if (userQuotes != null) {
               await _db.ref('quotes/${user.uid}').set(userQuotes);
-              itemsRestored += (userQuotes as Map).length;
+              itemsRestored += SafeTypeConverter.toMap(userQuotes).length;
             }
           }
           restoredSections.add('quotes');
@@ -321,7 +322,7 @@ class BackupService {
         try {
           await _db.ref('users').set(data['users']);
           restoredSections.add('users');
-          itemsRestored += (data['users'] as Map).length;
+          itemsRestored += SafeTypeConverter.toMap(data['users']).length;
         } catch (e) {
           errors.add('Failed to restore users: $e');
         }
@@ -331,7 +332,7 @@ class BackupService {
         try {
           await _db.ref('user_profiles').set(data['user_profiles']);
           restoredSections.add('user_profiles');
-          itemsRestored += (data['user_profiles'] as Map).length;
+          itemsRestored += SafeTypeConverter.toMap(data['user_profiles']).length;
         } catch (e) {
           errors.add('Failed to restore user profiles: $e');
         }
@@ -342,7 +343,7 @@ class BackupService {
         try {
           await _db.ref('warehouse_stock').set(data['warehouse_stock']);
           restoredSections.add('warehouse_stock');
-          itemsRestored += _countNestedItems(data['warehouse_stock'] as Map);
+          itemsRestored += _countNestedItems(SafeTypeConverter.toMap(data['warehouse_stock']));
         } catch (e) {
           errors.add('Failed to restore warehouse stock: $e');
         }
@@ -376,7 +377,7 @@ class BackupService {
       if (value is Map) {
         // For nested structures (like clients/userId/items)
         if (key == 'clients' || key == 'quotes') {
-          counts[key] = _countNestedItems(value);
+          counts[key] = _countNestedItems(SafeTypeConverter.toMap(value));
         } else {
           counts[key] = value.length;
         }
@@ -387,7 +388,7 @@ class BackupService {
   }
 
   /// Count items in nested map structure
-  int _countNestedItems(Map items) {
+  int _countNestedItems(Map<String, dynamic> items) {
     int count = 0;
     items.forEach((key, value) {
       if (value is Map) {
@@ -419,12 +420,12 @@ class BackupService {
         continue;
       }
 
-      final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(event.snapshot.value);
       final entries = <BackupEntry>[];
 
       data.forEach((key, value) {
         try {
-          final entry = BackupEntry.fromMap(Map<String, dynamic>.from(value), key);
+          final entry = BackupEntry.fromMap(SafeTypeConverter.toMap(value), key);
           entries.add(entry);
         } catch (e) {
           AppLogger.error('Error parsing backup entry', error: e);
@@ -532,14 +533,14 @@ class BackupService {
         };
       }
 
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value);
       int totalBackups = 0;
       int completedBackups = 0;
       int failedBackups = 0;
       int totalSize = 0;
 
       data.forEach((key, value) {
-        final entry = Map<String, dynamic>.from(value);
+        final entry = SafeTypeConverter.toMap(value);
         totalBackups++;
 
         final status = entry['status'];
@@ -703,7 +704,7 @@ class BackupEntry {
       downloadUrl: map['downloadUrl'],
       error: map['error'],
       metadata: map['metadata'] != null
-          ? Map<String, dynamic>.from(map['metadata'])
+          ? SafeTypeConverter.toMap(map['metadata'])
           : null,
     );
   }

@@ -184,10 +184,10 @@ final signInProvider = Provider((ref) {
       );
 
       if (user != null) {
-        // Skip approval check for admin email
-        final isAdmin = email.trim().toLowerCase() == 'andres@turboairmexico.com';
+        // Check user role for approval bypass
+        final isSuperAdmin = await RBACService.isSuperAdmin();
 
-        if (!isAdmin) {
+        if (!isSuperAdmin) {
           // Check if user account is approved
           final dbService = ref.watch(databaseServiceProvider);
           final userProfile = await dbService.getUserProfile(user.uid);
@@ -216,7 +216,11 @@ final signInProvider = Provider((ref) {
 
       return null; // Success
     } on FirebaseAuthException catch (e) {
-      print('FIREBASE AUTH ERROR: ${e.code} - ${e.message}');
+      AppLogger.warning(
+        'Firebase authentication error: ${e.code}',
+        category: LogCategory.auth,
+        error: e,
+      );
 
       switch (e.code) {
         case 'user-not-found':
@@ -237,7 +241,11 @@ final signInProvider = Provider((ref) {
           return e.message ?? 'An error occurred during sign in';
       }
     } catch (e) {
-      print('UNEXPECTED ERROR: $e');
+      AppLogger.error(
+        'Unexpected error during sign in',
+        category: LogCategory.auth,
+        error: e,
+      );
       return 'An unexpected error occurred: $e';
     }
   };

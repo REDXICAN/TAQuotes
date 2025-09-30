@@ -6,6 +6,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'app_logger.dart';
 import '../config/env_config.dart';
+import '../utils/safe_type_converter.dart';
 
 // Import progress tracking class
 class ImportProgress {
@@ -402,11 +403,11 @@ class ExcelUploadService {
       if (!clearExisting && duplicateHandling != 'error') {
         final existingSnapshot = await _db.ref('products').once();
         if (existingSnapshot.snapshot.exists) {
-          final existingData = Map<String, dynamic>.from(
+          final existingData = SafeTypeConverter.toMap(
             existingSnapshot.snapshot.value as Map
           );
           existingData.forEach((key, value) {
-            final productData = Map<String, dynamic>.from(value);
+            final productData = SafeTypeConverter.toMap(value);
             if (productData['sku'] != null) {
               existingSkus[productData['sku']] = key;
             }
@@ -604,9 +605,9 @@ class ExcelUploadService {
       final snapshot = await _db.ref('upload_history').orderByChild('timestamp').limitToLast(10).once();
       
       if (snapshot.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.snapshot.value as Map);
         return data.entries.map((entry) {
-          final item = Map<String, dynamic>.from(entry.value);
+          final item = SafeTypeConverter.toMap(entry.value);
           item['id'] = entry.key;
           return item;
         }).toList()
@@ -696,7 +697,7 @@ class ExcelUploadService {
   }
 
   static Map<String, dynamic> _prepareProductData(Map<String, dynamic> product) {
-    final productData = Map<String, dynamic>.from(product);
+    final productData = SafeTypeConverter.toMap(product);
     productData.remove('row_number');
     productData['uploaded_by'] = _auth.currentUser?.email;
 
@@ -762,7 +763,7 @@ class ExcelUploadService {
     try {
       final snapshot = await _db.ref('products').once();
       if (snapshot.snapshot.exists && snapshot.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.snapshot.value as Map);
         final rollbackData = <String, String>{};
 
         // Store JSON representation of each product

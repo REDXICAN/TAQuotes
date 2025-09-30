@@ -5,6 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import '../models/user_role.dart';
 import '../auth/models/rbac_permissions.dart';
 import 'app_logger.dart';
+import '../utils/safe_type_converter.dart';
 
 class RBACService {
   static final RBACService _instance = RBACService._internal();
@@ -27,7 +28,7 @@ class RBACService {
       final snapshot = await database.ref('users/$userId').once();
 
       if (snapshot.snapshot.exists && snapshot.snapshot.value != null) {
-        final userData = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        final userData = SafeTypeConverter.toMap(snapshot.snapshot.value);
         final roleString = userData['role'] as String? ?? 'distributor';
         final role = UserRole.fromString(roleString);
 
@@ -323,11 +324,11 @@ class RBACService {
       };
 
       if (snapshot.snapshot.exists && snapshot.snapshot.value != null) {
-        final usersData = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        final usersData = SafeTypeConverter.toMap(snapshot.snapshot.value);
 
         for (final userData in usersData.values) {
           if (userData is Map) {
-            final userMap = Map<String, dynamic>.from(userData);
+            final userMap = SafeTypeConverter.toMap(userData);
             final roleString = userMap['role'] as String? ?? 'distributor';
             final role = UserRole.fromString(roleString);
 

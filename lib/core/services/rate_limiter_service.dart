@@ -47,6 +47,36 @@ class RateLimiterService {
       windowDuration: const Duration(hours: 1),
       blockDuration: const Duration(minutes: 30),
     ),
+    RateLimitType.clientCreation: RateLimitConfig(
+      maxAttempts: 30,
+      windowDuration: const Duration(hours: 1),
+      blockDuration: const Duration(minutes: 30),
+    ),
+    RateLimitType.productSearch: RateLimitConfig(
+      maxAttempts: 100,
+      windowDuration: const Duration(minutes: 1),
+      blockDuration: const Duration(minutes: 5),
+    ),
+    RateLimitType.excelImport: RateLimitConfig(
+      maxAttempts: 5,
+      windowDuration: const Duration(hours: 1),
+      blockDuration: const Duration(hours: 2),
+    ),
+    RateLimitType.excelExport: RateLimitConfig(
+      maxAttempts: 10,
+      windowDuration: const Duration(hours: 1),
+      blockDuration: const Duration(minutes: 30),
+    ),
+    RateLimitType.databaseWrite: RateLimitConfig(
+      maxAttempts: 50,
+      windowDuration: const Duration(minutes: 1),
+      blockDuration: const Duration(minutes: 10),
+    ),
+    RateLimitType.adminOperation: RateLimitConfig(
+      maxAttempts: 20,
+      windowDuration: const Duration(minutes: 10),
+      blockDuration: const Duration(minutes: 30),
+    ),
   };
 
   /// Check if an action is allowed based on rate limiting rules
@@ -319,6 +349,12 @@ enum RateLimitType {
   apiCall,
   registration,
   quoteCreation,
+  clientCreation,
+  productSearch,
+  excelImport,
+  excelExport,
+  databaseWrite,
+  adminOperation,
 }
 
 class RateLimitConfig {

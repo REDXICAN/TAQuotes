@@ -4,6 +4,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'app_logger.dart';
 import 'rate_limiter_service.dart';
 import 'email_service.dart';
+import '../utils/safe_type_converter.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -214,7 +215,7 @@ class AuthService {
       final userProfileSnapshot = await database.ref('user_profiles/$uid').get();
 
       if (userProfileSnapshot.exists && userProfileSnapshot.value != null) {
-        final profileData = Map<String, dynamic>.from(userProfileSnapshot.value as Map);
+        final profileData = SafeTypeConverter.toMap(userProfileSnapshot.value);
         final status = profileData['status'] ?? 'active';
         final role = profileData['role'] ?? '';
 
@@ -373,7 +374,7 @@ class AuthService {
     try {
       final snapshot = await _database.ref('user_profiles/$uid').get();
       if (snapshot.exists) {
-        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.value);
         data['id'] = uid;
         return data;
       }

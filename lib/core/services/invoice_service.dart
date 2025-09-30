@@ -8,6 +8,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mailer/mailer.dart' show Attachment, StreamAttachment;
 import 'email_service.dart';
+import '../utils/safe_type_converter.dart';
 import 'app_logger.dart';
 
 enum InvoiceStatus { draft, sent, paid, overdue, cancelled }
@@ -114,9 +115,9 @@ class Invoice {
       userId: map['userId'] ?? '',
       userEmail: map['userEmail'] ?? '',
       items: (map['items'] as List<dynamic>? ?? [])
-          .map((item) => InvoiceItem.fromMap(Map<String, dynamic>.from(item)))
+          .map((item) => InvoiceItem.fromMap(SafeTypeConverter.toMap(item)))
           .toList(),
-      clientInfo: Map<String, dynamic>.from(map['clientInfo'] ?? {}),
+      clientInfo: SafeTypeConverter.toMap(map['clientInfo'] ?? {}),
       notes: map['notes'],
       sentAt: map['sentAt'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['sentAt'])
@@ -124,7 +125,7 @@ class Invoice {
       paidAt: map['paidAt'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['paidAt'])
           : null,
-      metadata: Map<String, dynamic>.from(map['metadata'] ?? {}),
+      metadata: SafeTypeConverter.toMap(map['metadata'] ?? {}),
     );
   }
 }
@@ -215,7 +216,7 @@ class InvoiceService {
         throw Exception('Quote not found');
       }
 
-      final quoteData = Map<String, dynamic>.from(quoteSnapshot.value as Map);
+      final quoteData = SafeTypeConverter.toMap(quoteSnapshot.value as Map);
 
       // Get client data
       final clientId = quoteData['client_id'] ?? '';
@@ -224,7 +225,7 @@ class InvoiceService {
         throw Exception('Client not found');
       }
 
-      final clientData = Map<String, dynamic>.from(clientSnapshot.value as Map);
+      final clientData = SafeTypeConverter.toMap(clientSnapshot.value as Map);
 
       // Generate invoice number
       final invoiceNumber = await _generateInvoiceNumber();
@@ -235,7 +236,7 @@ class InvoiceService {
       // Convert quote items to invoice items
       final quoteItems = quoteData['quote_items'] as List<dynamic>? ?? [];
       final invoiceItems = quoteItems.map((item) {
-        final itemData = Map<String, dynamic>.from(item);
+        final itemData = SafeTypeConverter.toMap(item);
         return InvoiceItem(
           sku: itemData['sku'] ?? '',
           description: itemData['description'] ?? itemData['model'] ?? '',
@@ -307,7 +308,7 @@ class InvoiceService {
         throw Exception('Invoice not found');
       }
 
-      final invoice = Invoice.fromMap(Map<String, dynamic>.from(snapshot.value as Map));
+      final invoice = Invoice.fromMap(SafeTypeConverter.toMap(snapshot.value as Map));
 
       final pdf = pw.Document();
 
@@ -356,7 +357,7 @@ class InvoiceService {
         throw Exception('Invoice not found');
       }
 
-      final invoice = Invoice.fromMap(Map<String, dynamic>.from(snapshot.value as Map));
+      final invoice = Invoice.fromMap(SafeTypeConverter.toMap(snapshot.value as Map));
 
       final excel = Excel.createExcel();
       final sheet = excel['Invoice'];
@@ -471,7 +472,7 @@ class InvoiceService {
         throw Exception('Invoice not found');
       }
 
-      final invoice = Invoice.fromMap(Map<String, dynamic>.from(snapshot.value as Map));
+      final invoice = Invoice.fromMap(SafeTypeConverter.toMap(snapshot.value as Map));
 
       // Generate attachments
       Uint8List? pdfBytes;
@@ -587,11 +588,11 @@ class InvoiceService {
       final List<Invoice> invoices = [];
 
       if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(event.snapshot.value as Map);
 
         for (final entry in data.entries) {
           try {
-            final invoice = Invoice.fromMap(Map<String, dynamic>.from(entry.value));
+            final invoice = Invoice.fromMap(SafeTypeConverter.toMap(entry.value));
 
             // Apply filters
             if (status != null && invoice.status != status) continue;
@@ -619,7 +620,7 @@ class InvoiceService {
     try {
       final snapshot = await _db.ref('invoices/$userId/$invoiceId').get();
       if (snapshot.exists && snapshot.value != null) {
-        return Invoice.fromMap(Map<String, dynamic>.from(snapshot.value as Map));
+        return Invoice.fromMap(SafeTypeConverter.toMap(snapshot.value as Map));
       }
       return null;
     } catch (e) {
@@ -657,7 +658,7 @@ class InvoiceService {
 
     int maxNumber = 0;
     if (snapshot.exists && snapshot.value != null) {
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value as Map);
       for (final entry in data.values) {
         final invoiceNumber = (entry as Map)['invoiceNumber'] as String? ?? '';
         final numberPart = invoiceNumber.split('-').last;

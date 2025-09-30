@@ -9,6 +9,8 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:excel/excel.dart';
 import 'app_logger.dart';
 import '../models/models.dart';
+import 'rbac_service.dart';
+import '../utils/safe_type_converter.dart';
 
 class ExportService {
   static final _database = FirebaseDatabase.instance;
@@ -43,7 +45,7 @@ class ExportService {
       } else {
         // If not found in user's quotes, check if user is admin
         final userEmail = currentUser.email;
-        if (userEmail == 'andres@turboairmexico.com') {
+        if (await RBACService.isAdminOrAbove()) {
           // Admin can search all quotes
           final usersSnapshot = await _database.ref('quotes').get();
           if (usersSnapshot.exists) {
@@ -64,52 +66,56 @@ class ExportService {
         throw Exception('Quote not found');
       }
       
-      // Fetch client data
+      // Fetch client data using SafeTypeConverter
       Map<String, dynamic>? clientData;
-      if (quoteData['client_id'] != null) {
-        final clientSnapshot = await _database.ref('clients/$userId/${quoteData['client_id']}').get();
+      final clientId = SafeTypeConverter.toString(quoteData['client_id']);
+      if (clientId.isNotEmpty) {
+        final clientSnapshot = await _database.ref('clients/$userId/$clientId').get();
         if (clientSnapshot.exists) {
-          clientData = Map<String, dynamic>.from(clientSnapshot.value as Map);
+          clientData = SafeTypeConverter.toMap(clientSnapshot.value);
         }
       }
       
       // Get quote items from the quote data itself
       List<Map<String, dynamic>> items = [];
       
-      // Handle both array and map structures for quote_items
+      // Handle both array and map structures for quote_items using SafeTypeConverter
       if (quoteData['quote_items'] != null) {
         if (quoteData['quote_items'] is List) {
           // Items stored as array
-          for (var itemData in quoteData['quote_items']) {
-            if (itemData != null) {
-              final item = Map<String, dynamic>.from(itemData);
-              
-              // Fetch product details
-              if (item['product_id'] != null) {
-                final productSnapshot = await _database.ref('products/${item['product_id']}').get();
-                if (productSnapshot.exists) {
-                  item['product'] = Map<String, dynamic>.from(productSnapshot.value as Map);
-                }
+          items = SafeTypeConverter.toList<Map<String, dynamic>>(
+            quoteData['quote_items'],
+            itemConverter: (itemData) {
+              return SafeTypeConverter.toMap(itemData);
+            },
+          );
+
+          // Fetch product details for each item
+          for (var item in items) {
+            final productId = SafeTypeConverter.toString(item['product_id']);
+            if (productId.isNotEmpty) {
+              final productSnapshot = await _database.ref('products/$productId').get();
+              if (productSnapshot.exists) {
+                item['product'] = SafeTypeConverter.toMap(productSnapshot.value);
               }
-              
-              items.add(item);
             }
           }
         } else if (quoteData['quote_items'] is Map) {
           // Items stored as map
-          final itemsMap = Map<String, dynamic>.from(quoteData['quote_items']);
+          final itemsMap = SafeTypeConverter.toMap(quoteData['quote_items']);
           for (var entry in itemsMap.entries) {
             if (entry.value != null) {
-              final item = Map<String, dynamic>.from(entry.value);
-              
+              final item = SafeTypeConverter.toMap(entry.value);
+
               // Fetch product details
-              if (item['product_id'] != null) {
-                final productSnapshot = await _database.ref('products/${item['product_id']}').get();
+              final productId = SafeTypeConverter.toString(item['product_id']);
+              if (productId.isNotEmpty) {
+                final productSnapshot = await _database.ref('products/$productId').get();
                 if (productSnapshot.exists) {
-                  item['product'] = Map<String, dynamic>.from(productSnapshot.value as Map);
+                  item['product'] = SafeTypeConverter.toMap(productSnapshot.value);
                 }
               }
-              
+
               items.add(item);
             }
           }
@@ -595,7 +601,7 @@ class ExportService {
       } else {
         // If not found in user's quotes, check if user is admin
         final userEmail = currentUser.email;
-        if (userEmail == 'andres@turboairmexico.com') {
+        if (await RBACService.isAdminOrAbove()) {
           // Admin can search all quotes
           final usersSnapshot = await _database.ref('quotes').get();
           if (usersSnapshot.exists) {
@@ -1268,9 +1274,8 @@ class ExportService {
 
       // Fetch quotes based on user role
       Map<String, dynamic> quotesData = {};
-      final userEmail = currentUser.email;
 
-      if (userEmail == 'andres@turboairmexico.com') {
+      if (await RBACService.isAdminOrAbove()) {
         // Admin can export all quotes
         final allQuotesSnapshot = await _database.ref('quotes').get();
         if (allQuotesSnapshot.exists) {

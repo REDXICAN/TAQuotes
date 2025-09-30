@@ -2,9 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/models/models.dart';
+import '../../../../core/providers/test_mode_provider.dart';
+import '../../../../core/services/spare_parts_demo_service.dart';
 
-// Provider for stock data from Firebase
+// Provider for stock data - uses test data if test mode is enabled
 final stockDataProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) {
+  final isTestMode = ref.watch(testModeProvider);
+
+  if (isTestMode) {
+    // Use demo data in test mode
+    return Stream.value(_generateDemoStockData());
+  }
+
+  // Use real Firebase data in production
   return FirebaseDatabase.instance.ref('products').onValue.map((event) {
     final data = event.snapshot.value as Map<dynamic, dynamic>? ?? {};
     final stockData = <String, dynamic>{};
@@ -26,8 +36,33 @@ final stockDataProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref)
   });
 });
 
-// Provider for products from Firebase (sorted by stock volume)
+// Generate demo stock data for test mode
+Map<String, dynamic> _generateDemoStockData() {
+  final demoService = SparePartsDemoService();
+  final stockData = <String, dynamic>{};
+
+  // Generate 50 demo stock entries
+  for (int i = 0; i < 50; i++) {
+    final sku = 'DEMO-SKU-${i.toString().padLeft(3, '0')}';
+    stockData[sku] = {
+      'available': (i * 10) % 100 + 5,  // Varying stock levels
+      'warehouse': ['999', 'KR', 'VN', 'CN', 'TX'][i % 5],  // Rotate through warehouses
+    };
+  }
+
+  return stockData;
+}
+
+// Provider for products - uses test data if test mode is enabled
 final productsForStockProvider = StreamProvider.autoDispose<List<Product>>((ref) {
+  final isTestMode = ref.watch(testModeProvider);
+
+  if (isTestMode) {
+    // Use demo products in test mode
+    return Stream.value(_generateDemoProducts());
+  }
+
+  // Use real Firebase data in production
   return FirebaseDatabase.instance.ref('products').onValue.map((event) {
     final data = event.snapshot.value as Map<dynamic, dynamic>? ?? {};
     final products = <Product>[];
@@ -45,6 +80,29 @@ final productsForStockProvider = StreamProvider.autoDispose<List<Product>>((ref)
     return products;
   });
 });
+
+// Generate demo products for test mode
+List<Product> _generateDemoProducts() {
+  final products = <Product>[];
+  final categories = ['Refrigeration', 'Freezers', 'Prep Tables', 'Display Cases', 'Parts'];
+
+  for (int i = 0; i < 50; i++) {
+    products.add(Product(
+      id: 'demo-$i',
+      sku: 'DEMO-SKU-${i.toString().padLeft(3, '0')}',
+      name: 'Demo Product ${i + 1}',
+      description: 'This is a demo product for testing purposes',
+      price: 1000 + (i * 50).toDouble(),
+      category: categories[i % categories.length],
+      stock: (i * 10) % 100 + 5,
+      warehouse: ['999', 'KR', 'VN', 'CN', 'TX'][i % 5],
+    ));
+  }
+
+  // Sort by stock volume descending
+  products.sort((a, b) => (b.stock ?? 0).compareTo(a.stock ?? 0));
+  return products;
+}
 
 class StockDashboardScreen extends ConsumerStatefulWidget {
   const StockDashboardScreen({super.key});
@@ -64,10 +122,32 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
   Widget build(BuildContext context) {
     final stockAsync = ref.watch(stockDataProvider);
     final productsAsync = ref.watch(productsForStockProvider);
+    final isTestMode = ref.watch(testModeProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Stock Management Dashboard'),
+        title: Row(
+          children: [
+            const Text('Stock Management Dashboard'),
+            if (isTestMode) ...[
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.orange,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'TEST MODE',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
         backgroundColor: Theme.of(context).primaryColor,
       ),
       body: stockAsync.when(

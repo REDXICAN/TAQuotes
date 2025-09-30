@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'app_logger.dart';
+import 'rbac_service.dart';
+import '../utils/safe_type_converter.dart';
 
 enum ActionType { create, update, delete, view, export, import_data }
 enum EntityType { client, quote, product, user, cart_item, project }
@@ -70,17 +72,17 @@ class HistoryEntry {
       ),
       entityId: map['entityId'] ?? '',
       beforeData: map['beforeData'] != null
-          ? Map<String, dynamic>.from(map['beforeData'])
+          ? SafeTypeConverter.toMap(map['beforeData'])
           : null,
       afterData: map['afterData'] != null
-          ? Map<String, dynamic>.from(map['afterData'])
+          ? SafeTypeConverter.toMap(map['afterData'])
           : null,
       timestamp: map['timestamp'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['timestamp'])
           : DateTime.now(),
       description: map['description'],
       metadata: map['metadata'] != null
-          ? Map<String, dynamic>.from(map['metadata'])
+          ? SafeTypeConverter.toMap(map['metadata'])
           : null,
     );
   }
@@ -266,12 +268,12 @@ class HistoricalTrackingService {
       final List<HistoryEntry> entries = [];
 
       if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(event.snapshot.value as Map);
 
         for (final entry in data.entries) {
           try {
             final historyEntry = HistoryEntry.fromMap(
-              Map<String, dynamic>.from(entry.value),
+              SafeTypeConverter.toMap(entry.value),
             );
 
             // Apply filters
@@ -315,12 +317,12 @@ class HistoricalTrackingService {
       final List<HistoryEntry> entries = [];
 
       if (snapshot.exists && snapshot.value != null) {
-        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.value as Map);
 
         for (final entry in data.entries) {
           try {
             final historyEntry = HistoryEntry.fromMap(
-              Map<String, dynamic>.from(entry.value),
+              SafeTypeConverter.toMap(entry.value),
             );
 
             // Filter by entity type
@@ -357,25 +359,26 @@ class HistoricalTrackingService {
     DateTime? startDate,
     DateTime? endDate,
   }) {
-    // Check if current user is admin
-    if (!_isCurrentUserAdmin()) {
-      AppLogger.warning('Unauthorized access to global history', category: LogCategory.audit);
-      return Stream.value([]);
-    }
+    // Create stream controller to handle async check
+    return Stream.fromFuture(_isCurrentUserAdmin()).asyncExpand((isAdmin) {
+      if (!isAdmin) {
+        AppLogger.warning('Unauthorized access to global history', category: LogCategory.audit);
+        return Stream.value([]);
+      }
 
-    Query query = _db.ref('global_history');
-    query = query.orderByChild('timestamp');
+      Query query = _db.ref('global_history');
+      query = query.orderByChild('timestamp');
 
-    return query.onValue.map((event) {
+      return query.onValue.map((event) {
       final List<HistoryEntry> entries = [];
 
       if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(event.snapshot.value as Map);
 
         for (final entry in data.entries) {
           try {
             final historyEntry = HistoryEntry.fromMap(
-              Map<String, dynamic>.from(entry.value),
+              SafeTypeConverter.toMap(entry.value),
             );
 
             // Apply filters
@@ -400,6 +403,7 @@ class HistoricalTrackingService {
       }
 
       return entries;
+      });
     });
   }
 
@@ -417,7 +421,7 @@ class HistoricalTrackingService {
       }
 
       final historyEntry = HistoryEntry.fromMap(
-        Map<String, dynamic>.from(snapshot.value as Map),
+        SafeTypeConverter.toMap(snapshot.value as Map),
       );
 
       // Generate rollback instructions based on action type
@@ -479,7 +483,7 @@ class HistoricalTrackingService {
     DateTime? endDate,
   }) async {
     try {
-      final isAdmin = _isCurrentUserAdmin();
+      final isAdmin = await _isCurrentUserAdmin();
       final searchUserId = isAdmin ? (targetUserId ?? userId) : userId;
 
       if (searchUserId == null) {
@@ -497,13 +501,13 @@ class HistoricalTrackingService {
         };
       }
 
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value as Map);
       final entries = <HistoryEntry>[];
 
       for (final entry in data.entries) {
         try {
           final historyEntry = HistoryEntry.fromMap(
-            Map<String, dynamic>.from(entry.value),
+            SafeTypeConverter.toMap(entry.value),
           );
 
           // Apply date filters
@@ -570,7 +574,7 @@ class HistoricalTrackingService {
 
       if (!snapshot.exists) return;
 
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value as Map);
       final entries = data.entries.toList();
 
       // Sort by timestamp (oldest first)
@@ -627,7 +631,7 @@ class HistoricalTrackingService {
 
       final snapshot = await _db.ref('history/$userId').get();
       if (snapshot.exists && snapshot.value != null) {
-        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.value as Map);
         return data.length;
       }
       return 0;
@@ -637,10 +641,9 @@ class HistoricalTrackingService {
   }
 
   /// Check if current user is admin
-  bool _isCurrentUserAdmin() {
-    // This would check user role from database or auth claims
-    // For now, we'll check if email is the admin email
-    return userEmail == 'andres@turboairmexico.com';
+  Future<bool> _isCurrentUserAdmin() async {
+    // Check user role using RBAC service
+    return await RBACService.isAdminOrAbove();
   }
 
   /// Generate description for operation
@@ -679,13 +682,13 @@ class HistoricalTrackingService {
       final snapshot = await _db.ref('history/$userId').get();
       if (!snapshot.exists) return [];
 
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value as Map);
       final exportData = <Map<String, dynamic>>[];
 
       for (final entry in data.entries) {
         try {
           final historyEntry = HistoryEntry.fromMap(
-            Map<String, dynamic>.from(entry.value),
+            SafeTypeConverter.toMap(entry.value),
           );
 
           // Apply filters

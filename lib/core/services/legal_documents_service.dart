@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'app_logger.dart';
+import 'rbac_service.dart';
+import '../utils/safe_type_converter.dart';
 
 enum DocumentType { terms_of_service, privacy_policy, user_agreement, data_processing, cookie_policy }
 enum DocumentStatus { draft, published, archived, expired }
@@ -89,7 +91,7 @@ class LegalDocument {
           ? DateTime.fromMillisecondsSinceEpoch(map['updatedAt'])
           : null,
       metadata: map['metadata'] != null
-          ? Map<String, dynamic>.from(map['metadata'])
+          ? SafeTypeConverter.toMap(map['metadata'])
           : {},
     );
   }
@@ -153,7 +155,7 @@ class UserAcceptance {
       ipAddress: map['ipAddress'] ?? '',
       userAgent: map['userAgent'] ?? '',
       metadata: map['metadata'] != null
-          ? Map<String, dynamic>.from(map['metadata'])
+          ? SafeTypeConverter.toMap(map['metadata'])
           : {},
     );
   }
@@ -294,11 +296,11 @@ class LegalDocumentsService {
           .get();
 
       if (snapshot.exists && snapshot.value != null) {
-        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.value as Map);
         final updates = <String, dynamic>{};
 
         for (final entry in data.entries) {
-          final doc = LegalDocument.fromMap(Map<String, dynamic>.from(entry.value));
+          final doc = LegalDocument.fromMap(SafeTypeConverter.toMap(entry.value));
           if (doc.status == DocumentStatus.published) {
             updates['legal_documents/${entry.key}/status'] = DocumentStatus.archived.toString().split('.').last;
             updates['legal_documents/${entry.key}/updatedAt'] = DateTime.now().millisecondsSinceEpoch;
@@ -322,7 +324,7 @@ class LegalDocumentsService {
       final snapshot = await _db.ref('legal_documents/$documentId').get();
 
       if (snapshot.exists && snapshot.value != null) {
-        return LegalDocument.fromMap(Map<String, dynamic>.from(snapshot.value as Map));
+        return LegalDocument.fromMap(SafeTypeConverter.toMap(snapshot.value as Map));
       }
 
       return null;
@@ -354,12 +356,12 @@ class LegalDocumentsService {
       final List<LegalDocument> documents = [];
 
       if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(event.snapshot.value as Map);
 
         for (final entry in data.entries) {
           try {
             final document = LegalDocument.fromMap(
-              Map<String, dynamic>.from(entry.value),
+              SafeTypeConverter.toMap(entry.value),
             );
 
             // Apply additional filters
@@ -394,11 +396,11 @@ class LegalDocumentsService {
           .get();
 
       if (snapshot.exists && snapshot.value != null) {
-        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.value as Map);
 
         // Find the published document
         for (final entry in data.entries) {
-          final doc = LegalDocument.fromMap(Map<String, dynamic>.from(entry.value));
+          final doc = LegalDocument.fromMap(SafeTypeConverter.toMap(entry.value));
           if (doc.status == DocumentStatus.published) {
             return doc;
           }
@@ -472,14 +474,14 @@ class LegalDocumentsService {
       final snapshot = await _db.ref('user_acceptances/$userId').get();
 
       if (snapshot.exists && snapshot.value != null) {
-        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.value as Map);
 
         // Find the most recent acceptance for this document type
         UserAcceptance? latestAcceptance;
 
         for (final entry in data.entries) {
           final acceptance = UserAcceptance.fromMap(
-            Map<String, dynamic>.from(entry.value),
+            SafeTypeConverter.toMap(entry.value),
           );
 
           if (acceptance.documentType == type) {
@@ -550,12 +552,12 @@ class LegalDocumentsService {
       final List<UserAcceptance> acceptances = [];
 
       if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(event.snapshot.value as Map);
 
         for (final entry in data.entries) {
           try {
             final acceptance = UserAcceptance.fromMap(
-              Map<String, dynamic>.from(entry.value),
+              SafeTypeConverter.toMap(entry.value),
             );
 
             // Apply filters
@@ -657,14 +659,14 @@ class LegalDocumentsService {
         };
       }
 
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value as Map);
       final documentTypeBreakdown = <String, int>{};
       final dailyAcceptances = <String, int>{};
       final uniqueUsers = <String>{};
 
       for (final entry in data.values) {
         final acceptance = UserAcceptance.fromMap(
-          Map<String, dynamic>.from(entry),
+          SafeTypeConverter.toMap(entry),
         );
 
         // Document type breakdown
@@ -693,8 +695,8 @@ class LegalDocumentsService {
   }
 
   /// Helper methods
-  bool _isCurrentUserAdminOrSuperAdmin() {
-    return userEmail == 'andres@turboairmexico.com';
+  Future<bool> _isCurrentUserAdminOrSuperAdmin() async {
+    return await RBACService.isAdminOrAbove();
   }
 
   bool _isVersionNewer(String currentVersion, String acceptedVersion) {

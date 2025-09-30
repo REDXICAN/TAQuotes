@@ -26,6 +26,26 @@
           {
             "key": "Cross-Origin-Opener-Policy",
             "value": "same-origin"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "SAMEORIGIN"
+          },
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "X-XSS-Protection",
+            "value": "1; mode=block"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
+          },
+          {
+            "key": "Permissions-Policy",
+            "value": "camera=(), microphone=(), geolocation=(), payment=()"
           }
         ]
       },
@@ -61,6 +81,14 @@
           {
             "key": "Expires",
             "value": "0"
+          },
+          {
+            "key": "Content-Security-Policy",
+            "value": "default-src 'self' https://*.firebaseapp.com https://*.firebaseio.com https://*.googleapis.com https://*.gstatic.com https://storage.googleapis.com https://*.firebasestorage.app; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://*.firebaseapp.com https://*.googleapis.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https: blob: https://storage.googleapis.com https://*.firebasestorage.app; connect-src 'self' https://*.firebaseapp.com https://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com https://fonts.gstatic.com wss://*.firebaseio.com https://identitytoolkit.googleapis.com https://storage.googleapis.com https://*.firebasestorage.app; frame-src 'self' https://*.firebaseapp.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';"
+          },
+          {
+            "key": "Strict-Transport-Security",
+            "value": "max-age=31536000; includeSubDomains; preload"
           }
         ]
       },

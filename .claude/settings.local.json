@@ -202,7 +202,10 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:mermaid.js.org)",
       "WebFetch(domain:mermaid.live)",
-      "Bash(jq:*)"
+      "Bash(jq:*)",
+      "Bash(java:*)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(do echo \"Processing $file\")"
     ],
     "deny": [],
     "ask": [

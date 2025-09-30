@@ -4,6 +4,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'app_logger.dart';
+import '../utils/safe_type_converter.dart';
 
 enum ErrorSeverity {
   low,
@@ -102,7 +103,7 @@ class ErrorReport {
       userId: map['userId'],
       userEmail: map['userEmail'],
       context: map['context'] != null
-          ? Map<String, dynamic>.from(map['context'])
+          ? SafeTypeConverter.toMap(map['context'])
           : {},
       screen: map['screen'],
       action: map['action'],
@@ -112,7 +113,7 @@ class ErrorReport {
           ? DateTime.fromMillisecondsSinceEpoch(map['resolvedAt'])
           : null,
       metadata: map['metadata'] != null
-          ? Map<String, dynamic>.from(map['metadata'])
+          ? SafeTypeConverter.toMap(map['metadata'])
           : null,
     );
   }
@@ -368,10 +369,10 @@ class ErrorMonitoringService {
       }
 
       final errors = <ErrorReport>[];
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value);
 
       for (final entry in data.entries) {
-        final error = ErrorReport.fromMap(Map<String, dynamic>.from(entry.value));
+        final error = ErrorReport.fromMap(SafeTypeConverter.toMap(entry.value));
 
         // Apply date filters
         if (startDate != null && error.timestamp.isBefore(startDate)) continue;
@@ -475,10 +476,10 @@ class ErrorMonitoringService {
       final errors = <ErrorReport>[];
 
       if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(event.snapshot.value);
 
         for (final entry in data.entries) {
-          final error = ErrorReport.fromMap(Map<String, dynamic>.from(entry.value));
+          final error = ErrorReport.fromMap(SafeTypeConverter.toMap(entry.value));
 
           // Apply filters
           if (severity != null && error.severity != severity) continue;
@@ -526,11 +527,11 @@ class ErrorMonitoringService {
 
       if (!snapshot.exists) return;
 
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value);
       final idsToDelete = <String>[];
 
       for (final entry in data.entries) {
-        final error = ErrorReport.fromMap(Map<String, dynamic>.from(entry.value));
+        final error = ErrorReport.fromMap(SafeTypeConverter.toMap(entry.value));
         if (error.resolved) {
           idsToDelete.add(entry.key);
         }
@@ -571,11 +572,11 @@ class ErrorMonitoringService {
 
       if (!snapshot.exists) return;
 
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value);
       final idsToDelete = <String>[];
 
       for (final entry in data.entries) {
-        final error = ErrorReport.fromMap(Map<String, dynamic>.from(entry.value));
+        final error = ErrorReport.fromMap(SafeTypeConverter.toMap(entry.value));
         if (error.timestamp.isBefore(cutoffDate)) {
           idsToDelete.add(entry.key);
         }
@@ -735,10 +736,10 @@ class ErrorMonitoringService {
       }
 
       final errors = <Map<String, dynamic>>[];
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value);
 
       for (final entry in data.entries) {
-        final error = ErrorReport.fromMap(Map<String, dynamic>.from(entry.value));
+        final error = ErrorReport.fromMap(SafeTypeConverter.toMap(entry.value));
 
         // Apply date filters
         if (startDate != null && error.timestamp.isBefore(startDate)) continue;

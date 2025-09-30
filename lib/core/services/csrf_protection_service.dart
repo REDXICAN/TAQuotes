@@ -15,39 +15,78 @@ class CsrfProtectionService {
   static const int _tokenLength = 32;
   static const Duration _tokenExpiration = Duration(hours: 4);
 
+  // Token storage - per form type for better security
+  final Map<String, String> _formTokens = {};
+  final Map<String, DateTime> _tokenTimestamps = {};
+  String? _sessionToken;
   String? _currentToken;
   DateTime? _tokenGeneratedAt;
 
   /// Initialize the CSRF protection service
   Future<void> initialize() async {
-    // Generate new token for this session
+    // Generate new session token
+    _sessionToken = _generateRandomToken();
     _currentToken = _generateRandomToken();
     _tokenGeneratedAt = DateTime.now();
+    _clearExpiredTokens();
+
+    AppLogger.info('CSRF protection initialized', category: LogCategory.security);
   }
 
-  /// Get the current CSRF token
-  String? get currentToken => _currentToken;
+  /// Get or create token for specific form
+  String getTokenForForm(String formId) {
+    _clearExpiredTokens();
 
-  /// Generate a new CSRF token
-  Future<String> generateNewToken() async {
-    _currentToken = _generateRandomToken();
-    _tokenGeneratedAt = DateTime.now();
-    return _currentToken!;
+    // Check if we have a valid token for this form
+    if (_formTokens.containsKey(formId)) {
+      final timestamp = _tokenTimestamps[formId];
+      if (timestamp != null &&
+          DateTime.now().difference(timestamp) < _tokenExpiration) {
+        return _formTokens[formId]!;
+      }
+    }
+
+    // Generate new token for this form
+    final token = _generateRandomToken();
+    _formTokens[formId] = token;
+    _tokenTimestamps[formId] = DateTime.now();
+
+    return token;
   }
 
-  /// Verify a CSRF token
-  bool verifyToken(String? token) {
-    if (token == null || _currentToken == null) {
+  /// Verify a CSRF token for a specific form
+  bool verifyFormToken(String formId, String? token) {
+    if (token == null || token.isEmpty) {
+      AppLogger.warning('CSRF token missing for form: $formId',
+        category: LogCategory.security);
       return false;
     }
-    
-    // Check if token is expired
-    if (_isTokenExpired()) {
+
+    final expectedToken = _formTokens[formId];
+    if (expectedToken == null) {
+      AppLogger.warning('No CSRF token found for form: $formId',
+        category: LogCategory.security);
       return false;
     }
-    
+
+    final timestamp = _tokenTimestamps[formId];
+    if (timestamp == null ||
+        DateTime.now().difference(timestamp) > _tokenExpiration) {
+      AppLogger.warning('CSRF token expired for form: $formId',
+        category: LogCategory.security);
+      return false;
+    }
+
     // Constant-time comparison to prevent timing attacks
-    return _constantTimeCompare(token, _currentToken!);
+    final isValid = _constantTimeCompare(token, expectedToken);
+
+    if (isValid) {
+      // Invalidate token after successful use (one-time use)
+      _formTokens.remove(formId);
+      _tokenTimestamps.remove(formId);
+    }
+
+    return isValid;
   }
 
   /// Validate a request with CSRF token
@@ -155,6 +194,36 @@ class CsrfProtectionService {
   Future<void> clearToken() async {
     _currentToken = null;
     _tokenGeneratedAt = null;
+  }
+
+  /// Generate new CSRF token
+  Future<String> generateNewToken() async {
+    _currentToken = _generateRandomToken();
+    _tokenGeneratedAt = DateTime.now();
+    return _currentToken!;
+  }
+
+  /// Verify token directly
+  bool verifyToken(String? token) {
+    if (token == null || _currentToken == null) return false;
+    return _constantTimeCompare(token, _currentToken!);
+  }
+
+  /// Clear expired tokens from forms
+  void _clearExpiredTokens() {
+    final now = DateTime.now();
+    final expiredKeys = <String>[];
+
+    _tokenTimestamps.forEach((key, timestamp) {
+      if (now.difference(timestamp) > _tokenExpiration) {
+        expiredKeys.add(key);
+      }
+    });
+
+    for (final key in expiredKeys) {
+      _formTokens.remove(key);
+      _tokenTimestamps.remove(key);
+    }
   }
 
   // Private helper methods

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/app_logger.dart';
 
 enum ImageType {
   thumbnail,
@@ -59,9 +60,12 @@ class _SimpleImageWidgetState extends State<SimpleImageWidget> {
       return _buildPlaceholder();
     }
 
-    // DEBUG: Log image URL data for cart images
+    // Log image URL data for debugging image loading issues
     if (widget.sku.isNotEmpty) {
-      print('SimpleImageWidget DEBUG: sku=${widget.sku}, imageUrl=${widget.imageUrl}, useThumbnail=${widget.useThumbnail}');
+      AppLogger.debug(
+        'Image widget loading: sku=${widget.sku}, useThumbnail=${widget.useThumbnail}',
+        data: {'imageUrl': widget.imageUrl},
+      );
     }
 
     // Check if we have a valid Firebase Storage URL

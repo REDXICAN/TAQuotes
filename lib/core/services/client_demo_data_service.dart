@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'app_logger.dart';
+import '../utils/safe_type_converter.dart';
 
 class ClientDemoDataService {
   static final ClientDemoDataService _instance = ClientDemoDataService._internal();
@@ -145,7 +146,7 @@ class ClientDemoDataService {
       final snapshot = await _db.ref('clients/$adminUserId').get();
 
       if (snapshot.exists && snapshot.value != null) {
-        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.value as Map);
         return data.isNotEmpty;
       }
 
@@ -162,7 +163,7 @@ class ClientDemoDataService {
       final snapshot = await _db.ref('clients/$adminUserId').get();
 
       if (snapshot.exists && snapshot.value != null) {
-        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.value as Map);
         return data.length;
       }
 
@@ -188,7 +189,7 @@ class ClientDemoDataService {
           final newClientRef = _db.ref('clients/$adminUserId').push();
 
           // Prepare client data with timestamps
-          final clientWithTimestamps = Map<String, dynamic>.from(clientData)
+          final clientWithTimestamps = SafeTypeConverter.toMap(clientData)
             ..addAll({
               'id': newClientRef.key,
               'created_at': ServerValue.timestamp,
@@ -238,7 +239,7 @@ class ClientDemoDataService {
         return;
       }
 
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value as Map);
       int deleteCount = 0;
 
       // Delete each client individually to avoid affecting other data

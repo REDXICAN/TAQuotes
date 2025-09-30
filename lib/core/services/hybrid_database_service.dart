@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../config/env_config.dart';
 import 'app_logger.dart';
 import 'rate_limiter_service.dart';
+import 'rbac_service.dart';
+import '../utils/safe_type_converter.dart';
 
 /// Service that handles both Realtime Database (products) and Firestore (users)
 class HybridDatabaseService {
@@ -14,7 +16,9 @@ class HybridDatabaseService {
   final RateLimiterService _rateLimiter = RateLimiterService();
 
   String? get userId => _auth.currentUser?.uid;
-  bool get isSuperAdmin => _auth.currentUser?.email == EnvConfig.adminEmail;
+
+  // Use RBACService for role checking instead of email comparison
+  Future<bool> get isSuperAdmin async => await RBACService.isSuperAdmin();
 
   // ============ PRODUCTS (Realtime Database) ============
   Stream<List<Map<String, dynamic>>> getProducts({String? category}) {
@@ -23,9 +27,9 @@ class HybridDatabaseService {
     return query.onValue.map((event) {
       final List<Map<String, dynamic>> products = [];
       if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(event.snapshot.value);
         data.forEach((key, value) {
-          final product = Map<String, dynamic>.from(value);
+          final product = SafeTypeConverter.toMap(value);
           product['id'] = key;
           
           if (category == null || product['category'] == category) {
@@ -40,7 +44,7 @@ class HybridDatabaseService {
   Future<Map<String, dynamic>?> getProduct(String productId) async {
     final snapshot = await _realtimeDb.ref('products/$productId').get();
     if (snapshot.exists) {
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value);
       data['id'] = productId;
       return data;
     }
@@ -91,14 +95,14 @@ class HybridDatabaseService {
     return _realtimeDb.ref(path).onValue.map((event) {
       final List<Map<String, dynamic>> clients = [];
       if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(event.snapshot.value);
         
         if (isSuperAdmin) {
           // For superadmin, iterate through all user clients
           data.forEach((userId, userClients) {
             if (userClients is Map) {
-              Map<String, dynamic>.from(userClients).forEach((key, value) {
-                final client = Map<String, dynamic>.from(value);
+              SafeTypeConverter.toMap(userClients).forEach((key, value) {
+                final client = SafeTypeConverter.toMap(value);
                 client['id'] = key;
                 client['userId'] = userId;
                 clients.add(client);
@@ -108,7 +112,7 @@ class HybridDatabaseService {
         } else {
           // For regular users, just their clients
           data.forEach((key, value) {
-            final client = Map<String, dynamic>.from(value);
+            final client = SafeTypeConverter.toMap(value);
             client['id'] = key;
             clients.add(client);
           });
@@ -157,9 +161,9 @@ class HybridDatabaseService {
     return _realtimeDb.ref('cart_items/$userId').onValue.map((event) {
       final List<Map<String, dynamic>> items = [];
       if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(event.snapshot.value);
         data.forEach((key, value) {
-          final item = Map<String, dynamic>.from(value);
+          final item = SafeTypeConverter.toMap(value);
           item['id'] = key;
           items.add(item);
         });
@@ -175,9 +179,9 @@ class HybridDatabaseService {
     final snapshot = await cartRef.once();
     
     if (snapshot.snapshot.value != null) {
-      final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.snapshot.value);
       for (var entry in data.entries) {
-        final item = Map<String, dynamic>.from(entry.value);
+        final item = SafeTypeConverter.toMap(entry.value);
         if (item['product_id'] == productId) {
           // Update existing
           await cartRef.child(entry.key).update({
@@ -212,14 +216,14 @@ class HybridDatabaseService {
     return _realtimeDb.ref(path).onValue.map((event) {
       final List<Map<String, dynamic>> quotes = [];
       if (event.snapshot.value != null) {
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(event.snapshot.value);
         
         if (isSuperAdmin) {
           // For superadmin, iterate through all user quotes
           data.forEach((userId, userQuotes) {
             if (userQuotes is Map) {
-              Map<String, dynamic>.from(userQuotes).forEach((key, value) {
-                final quote = Map<String, dynamic>.from(value);
+              SafeTypeConverter.toMap(userQuotes).forEach((key, value) {
+                final quote = SafeTypeConverter.toMap(value);
                 quote['id'] = key;
                 quote['userId'] = userId;
                 quotes.add(quote);
@@ -229,7 +233,7 @@ class HybridDatabaseService {
         } else {
           // For regular users, just their quotes
           data.forEach((key, value) {
-            final quote = Map<String, dynamic>.from(value);
+            final quote = SafeTypeConverter.toMap(value);
             quote['id'] = key;
             quotes.add(quote);
           });
@@ -303,7 +307,7 @@ class HybridDatabaseService {
     try {
       final snapshot = await _realtimeDb.ref('products').get();
       if (snapshot.exists && snapshot.value != null) {
-        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.value);
         return data.length;
       }
       return 0;
@@ -321,14 +325,14 @@ class HybridDatabaseService {
 
       if (!snapshot.exists || snapshot.value == null) return 0;
 
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value);
 
       if (isSuperAdmin) {
         // Count all clients across all users
         int totalClients = 0;
         data.forEach((userId, userClients) {
           if (userClients is Map) {
-            totalClients += Map<String, dynamic>.from(userClients).length;
+            totalClients += SafeTypeConverter.toMap(userClients).length;
           }
         });
         return totalClients;
@@ -350,14 +354,14 @@ class HybridDatabaseService {
 
       if (!snapshot.exists || snapshot.value == null) return 0;
 
-      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final data = SafeTypeConverter.toMap(snapshot.value);
 
       if (isSuperAdmin) {
         // Count all quotes across all users
         int totalQuotes = 0;
         data.forEach((userId, userQuotes) {
           if (userQuotes is Map) {
-            totalQuotes += Map<String, dynamic>.from(userQuotes).length;
+            totalQuotes += SafeTypeConverter.toMap(userQuotes).length;
           }
         });
         return totalQuotes;
@@ -395,9 +399,9 @@ class HybridDatabaseService {
       final List<Map<String, dynamic>> products = [];
 
       if (snapshot.exists && snapshot.value != null) {
-        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.value);
         data.forEach((key, value) {
-          final product = Map<String, dynamic>.from(value);
+          final product = SafeTypeConverter.toMap(value);
           product['id'] = key;
           products.add(product);
         });
@@ -418,14 +422,14 @@ class HybridDatabaseService {
       final List<Map<String, dynamic>> clients = [];
 
       if (snapshot.exists && snapshot.value != null) {
-        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.value);
 
         if (isSuperAdmin) {
           // For superadmin, iterate through all user clients
           data.forEach((userId, userClients) {
             if (userClients is Map) {
-              Map<String, dynamic>.from(userClients).forEach((key, value) {
-                final client = Map<String, dynamic>.from(value);
+              SafeTypeConverter.toMap(userClients).forEach((key, value) {
+                final client = SafeTypeConverter.toMap(value);
                 client['id'] = key;
                 client['userId'] = userId;
                 clients.add(client);
@@ -435,7 +439,7 @@ class HybridDatabaseService {
         } else {
           // For regular users, just their clients
           data.forEach((key, value) {
-            final client = Map<String, dynamic>.from(value);
+            final client = SafeTypeConverter.toMap(value);
             client['id'] = key;
             clients.add(client);
           });
@@ -457,14 +461,14 @@ class HybridDatabaseService {
       final List<Map<String, dynamic>> quotes = [];
 
       if (snapshot.exists && snapshot.value != null) {
-        final data = Map<String, dynamic>.from(snapshot.value as Map);
+        final data = SafeTypeConverter.toMap(snapshot.value);
 
         if (isSuperAdmin) {
           // For superadmin, iterate through all user quotes
           data.forEach((userId, userQuotes) {
             if (userQuotes is Map) {
-              Map<String, dynamic>.from(userQuotes).forEach((key, value) {
-                final quote = Map<String, dynamic>.from(value);
+              SafeTypeConverter.toMap(userQuotes).forEach((key, value) {
+                final quote = SafeTypeConverter.toMap(value);
                 quote['id'] = key;
                 quote['userId'] = userId;
                 quotes.add(quote);
@@ -474,7 +478,7 @@ class HybridDatabaseService {
         } else {
           // For regular users, just their quotes
           data.forEach((key, value) {
-            final quote = Map<String, dynamic>.from(value);
+            final quote = SafeTypeConverter.toMap(value);
             quote['id'] = key;
             quotes.add(quote);
           });
@@ -506,7 +510,7 @@ class HybridDatabaseService {
         throw Exception('User approval request not found');
       }
 
-      final requestData = Map<String, dynamic>.from(snapshot.value as Map);
+      final requestData = SafeTypeConverter.toMap(snapshot.value);
       final userId = requestData['userId'];
       final requestedRole = requestData['requestedRole'] ?? 'distributor';
 
@@ -553,9 +557,9 @@ class HybridDatabaseService {
           .map((event) {
         final List<Map<String, dynamic>> requests = [];
         if (event.snapshot.value != null) {
-          final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+          final data = SafeTypeConverter.toMap(event.snapshot.value);
           data.forEach((key, value) {
-            final request = Map<String, dynamic>.from(value);
+            final request = SafeTypeConverter.toMap(value);
             request['id'] = key;
             requests.add(request);
           });
@@ -607,7 +611,7 @@ class HybridDatabaseService {
         throw Exception('User approval request not found');
       }
 
-      final requestData = Map<String, dynamic>.from(snapshot.value as Map);
+      final requestData = SafeTypeConverter.toMap(snapshot.value);
       final userId = requestData['userId'];
 
       // Update the request status in Realtime Database
