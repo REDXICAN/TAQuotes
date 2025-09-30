@@ -335,3 +335,9 @@ init*.bat
 *backup*.json
 *import*.py
 generate*.py
+emergency_*.html
+emergency_*.js
+emergency_*.py
+emergency_*.dart
+*_emergency_*
+*emergency*
