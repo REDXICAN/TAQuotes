@@ -98,6 +98,7 @@ List<Product> _generateDemoProducts() {
       category: categories[i % categories.length],
       stock: (i * 10) % 100 + 5,
       warehouse: ['999', 'KR', 'VN', 'CN', 'TX'][i % 5],
+      createdAt: DateTime.now().subtract(Duration(days: i)),
     ));
   }
 
