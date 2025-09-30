@@ -43,55 +43,15 @@ class SparePart {
   }
 }
 
-// Spare Parts Provider - Auto-refreshing with Firebase stream
+// Spare Parts Provider - Real-time streaming with immediate data loading
 final sparePartsProvider = StreamProvider.autoDispose<List<SparePart>>((ref) async* {
   final database = FirebaseDatabase.instance;
 
-  try {
-    // Get spare parts from the dedicated /spareparts path
-    final sparePartsSnapshot = await database.ref('spareparts').get();
+  AppLogger.info('Spare parts provider starting real-time stream', category: LogCategory.system);
 
-    if (sparePartsSnapshot.exists && sparePartsSnapshot.value != null) {
-      final sparePartsMap = Map<String, dynamic>.from(sparePartsSnapshot.value as Map);
-      final List<SparePart> spareParts = [];
-
-      for (final entry in sparePartsMap.entries) {
-        try {
-          final sparePartData = Map<String, dynamic>.from(entry.value as Map);
-
-          spareParts.add(SparePart(
-            sku: sparePartData['sku'] ?? entry.key,
-            name: sparePartData['name'] ?? 'Unknown Part',
-            stock: sparePartData['stock'] ?? 0,
-            warehouse: sparePartData['warehouse'],
-            price: PriceFormatter.safeToDouble(sparePartData['price']),
-          ));
-        } catch (e) {
-          AppLogger.debug('Error processing spare part ${entry.key}', error: e);
-        }
-      }
-
-      // Sort by SKU for consistent ordering
-      spareParts.sort((a, b) => a.sku.compareTo(b.sku));
-
-      AppLogger.info('Spare parts provider found ${spareParts.length} spare parts', category: LogCategory.system);
-
-      // Yield initial results
-      yield spareParts;
-    } else {
-      // No spare parts data found
-      AppLogger.info('No spare parts data found in Firebase', category: LogCategory.system);
-      yield <SparePart>[];
-    }
-
-  } catch (e) {
-    AppLogger.error('Error loading spare parts data', error: e, category: LogCategory.system);
-    yield <SparePart>[];
-  }
-
-  // Continue streaming updates from the /spareparts path
+  // Use only the stream approach for immediate real-time data loading
   await for (final event in database.ref('spareparts').onValue) {
-    final List<SparePart> updatedSpareParts = [];
+    final List<SparePart> spareParts = [];
 
     try {
       if (event.snapshot.exists && event.snapshot.value != null) {
@@ -101,7 +61,7 @@ final sparePartsProvider = StreamProvider.autoDispose<List<SparePart>>((ref) asy
           try {
             final sparePartData = Map<String, dynamic>.from(entry.value as Map);
 
-            updatedSpareParts.add(SparePart(
+            spareParts.add(SparePart(
               sku: sparePartData['sku'] ?? entry.key,
               name: sparePartData['name'] ?? 'Unknown Part',
               stock: sparePartData['stock'] ?? 0,
@@ -112,14 +72,20 @@ final sparePartsProvider = StreamProvider.autoDispose<List<SparePart>>((ref) asy
             AppLogger.debug('Error processing spare part ${entry.key}', error: e);
           }
         }
+
+        // Sort by SKU for consistent ordering
+        spareParts.sort((a, b) => a.sku.compareTo(b.sku));
+
+        AppLogger.info('Spare parts provider found ${spareParts.length} spare parts', category: LogCategory.system);
+      } else {
+        AppLogger.info('No spare parts data found in Firebase', category: LogCategory.system);
       }
 
-      // Sort and yield updated results
-      updatedSpareParts.sort((a, b) => a.sku.compareTo(b.sku));
-      yield updatedSpareParts;
+      // Yield results (empty list if no data)
+      yield spareParts;
 
     } catch (e) {
-      AppLogger.error('Error processing spare parts updates', error: e, category: LogCategory.system);
+      AppLogger.error('Error processing spare parts stream', error: e, category: LogCategory.system);
       yield <SparePart>[];
     }
   }
