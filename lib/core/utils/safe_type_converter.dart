@@ -21,7 +21,7 @@ class SafeTypeConverter {
   }
 
   /// Safely convert dynamic value to String with default
-  static String toString(dynamic value, {String defaultValue = ''}) {
+  static String toStr(dynamic value, {String defaultValue = ''}) {
     return toStringOrNull(value) ?? defaultValue;
   }
 

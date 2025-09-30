@@ -176,7 +176,7 @@ class LegalDocumentsService {
     String? version,
     Map<String, dynamic>? metadata,
   }) async {
-    if (!_isCurrentUserAdminOrSuperAdmin()) {
+    if (!(await _isCurrentUserAdminOrSuperAdmin())) {
       throw Exception('Only admin users can create legal documents');
     }
 
@@ -221,7 +221,7 @@ class LegalDocumentsService {
     DateTime? expiresAt,
     Map<String, dynamic>? metadata,
   }) async {
-    if (!_isCurrentUserAdminOrSuperAdmin()) {
+    if (!(await _isCurrentUserAdminOrSuperAdmin())) {
       throw Exception('Only admin users can update legal documents');
     }
 
@@ -262,7 +262,7 @@ class LegalDocumentsService {
 
   /// Publish a document (admin only)
   Future<void> publishDocument(String documentId) async {
-    if (!_isCurrentUserAdminOrSuperAdmin()) {
+    if (!(await _isCurrentUserAdminOrSuperAdmin())) {
       throw Exception('Only admin users can publish legal documents');
     }
 
@@ -541,11 +541,12 @@ class LegalDocumentsService {
     DateTime? startDate,
     DateTime? endDate,
   }) {
-    if (!_isCurrentUserAdminOrSuperAdmin()) {
-      return Stream.value([]);
-    }
+    return Stream.fromFuture(_isCurrentUserAdminOrSuperAdmin()).asyncExpand((isAdmin) {
+      if (!isAdmin) {
+        return Stream.value([]);
+      }
 
-    Query query = _db.ref('global_acceptances');
+      Query query = _db.ref('global_acceptances');
     query = query.orderByChild('acceptedAt');
 
     return query.onValue.map((event) {
@@ -577,12 +578,13 @@ class LegalDocumentsService {
       acceptances.sort((a, b) => b.acceptedAt.compareTo(a.acceptedAt));
 
       return acceptances;
+      });
     });
   }
 
   /// Delete a document (admin only)
   Future<void> deleteDocument(String documentId) async {
-    if (!_isCurrentUserAdminOrSuperAdmin()) {
+    if (!(await _isCurrentUserAdminOrSuperAdmin())) {
       throw Exception('Only admin users can delete legal documents');
     }
 
@@ -599,7 +601,7 @@ class LegalDocumentsService {
 
   /// Create default legal documents
   Future<void> createDefaultDocuments() async {
-    if (!_isCurrentUserAdminOrSuperAdmin()) {
+    if (!(await _isCurrentUserAdminOrSuperAdmin())) {
       throw Exception('Only admin users can create default documents');
     }
 
@@ -643,7 +645,7 @@ class LegalDocumentsService {
 
   /// Get acceptance statistics (admin only)
   Future<Map<String, dynamic>> getAcceptanceStats() async {
-    if (!_isCurrentUserAdminOrSuperAdmin()) {
+    if (!(await _isCurrentUserAdminOrSuperAdmin())) {
       throw Exception('Only admin users can view acceptance statistics');
     }
 

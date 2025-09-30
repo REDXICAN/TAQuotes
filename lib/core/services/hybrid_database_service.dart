@@ -80,24 +80,27 @@ class HybridDatabaseService {
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getAllUsers() {
-    if (!isSuperAdmin) {
-      return const Stream.empty();
-    }
-    return _firestore.collection('users').snapshots();
+    return Stream.fromFuture(isSuperAdmin).asyncExpand((isAdmin) {
+      if (!isAdmin) {
+        return const Stream.empty();
+      }
+      return _firestore.collection('users').snapshots();
+    });
   }
 
   // ============ CLIENTS (Realtime Database) ============
   Stream<List<Map<String, dynamic>>> getClients() {
     if (userId == null) return Stream.value([]);
-    
-    final path = isSuperAdmin ? 'clients' : 'clients/$userId';
-    
-    return _realtimeDb.ref(path).onValue.map((event) {
-      final List<Map<String, dynamic>> clients = [];
-      if (event.snapshot.value != null) {
-        final data = SafeTypeConverter.toMap(event.snapshot.value);
-        
-        if (isSuperAdmin) {
+
+    return Stream.fromFuture(isSuperAdmin).asyncExpand((isAdmin) {
+      final path = isAdmin ? 'clients' : 'clients/$userId';
+
+      return _realtimeDb.ref(path).onValue.map((event) {
+        final List<Map<String, dynamic>> clients = [];
+        if (event.snapshot.value != null) {
+          final data = SafeTypeConverter.toMap(event.snapshot.value);
+
+          if (isAdmin) {
           // For superadmin, iterate through all user clients
           data.forEach((userId, userClients) {
             if (userClients is Map) {
@@ -119,6 +122,7 @@ class HybridDatabaseService {
         }
       }
       return clients;
+      });
     });
   }
 
@@ -210,15 +214,16 @@ class HybridDatabaseService {
   // ============ QUOTES (Realtime Database) ============
   Stream<List<Map<String, dynamic>>> getQuotes() {
     if (userId == null) return Stream.value([]);
-    
-    final path = isSuperAdmin ? 'quotes' : 'quotes/$userId';
-    
-    return _realtimeDb.ref(path).onValue.map((event) {
-      final List<Map<String, dynamic>> quotes = [];
-      if (event.snapshot.value != null) {
-        final data = SafeTypeConverter.toMap(event.snapshot.value);
-        
-        if (isSuperAdmin) {
+
+    return Stream.fromFuture(isSuperAdmin).asyncExpand((isAdmin) {
+      final path = isAdmin ? 'quotes' : 'quotes/$userId';
+
+      return _realtimeDb.ref(path).onValue.map((event) {
+        final List<Map<String, dynamic>> quotes = [];
+        if (event.snapshot.value != null) {
+          final data = SafeTypeConverter.toMap(event.snapshot.value);
+
+          if (isAdmin) {
           // For superadmin, iterate through all user quotes
           data.forEach((userId, userQuotes) {
             if (userQuotes is Map) {
@@ -248,6 +253,7 @@ class HybridDatabaseService {
       });
       
       return quotes;
+      });
     });
   }
 
@@ -320,14 +326,15 @@ class HybridDatabaseService {
   /// Get total number of clients (for superadmin: all clients, for users: their clients)
   Future<int> getTotalClients() async {
     try {
-      final path = isSuperAdmin ? 'clients' : 'clients/$userId';
+      final isAdmin = await isSuperAdmin;
+      final path = isAdmin ? 'clients' : 'clients/$userId';
       final snapshot = await _realtimeDb.ref(path).get();
 
       if (!snapshot.exists || snapshot.value == null) return 0;
 
       final data = SafeTypeConverter.toMap(snapshot.value);
 
-      if (isSuperAdmin) {
+      if (isAdmin) {
         // Count all clients across all users
         int totalClients = 0;
         data.forEach((userId, userClients) {
@@ -349,14 +356,15 @@ class HybridDatabaseService {
   /// Get total number of quotes (for superadmin: all quotes, for users: their quotes)
   Future<int> getTotalQuotes() async {
     try {
-      final path = isSuperAdmin ? 'quotes' : 'quotes/$userId';
+      final isAdmin = await isSuperAdmin;
+      final path = isAdmin ? 'quotes' : 'quotes/$userId';
       final snapshot = await _realtimeDb.ref(path).get();
 
       if (!snapshot.exists || snapshot.value == null) return 0;
 
       final data = SafeTypeConverter.toMap(snapshot.value);
 
-      if (isSuperAdmin) {
+      if (isAdmin) {
         // Count all quotes across all users
         int totalQuotes = 0;
         data.forEach((userId, userQuotes) {
@@ -378,7 +386,7 @@ class HybridDatabaseService {
   /// Get all users (Firestore) - returns List of Map String dynamic
   Future<List<Map<String, dynamic>>> getAllUsersOnce() async {
     try {
-      if (!isSuperAdmin) return [];
+      if (!(await isSuperAdmin)) return [];
 
       final querySnapshot = await _firestore.collection('users').get();
       return querySnapshot.docs.map((doc) {
@@ -417,14 +425,15 @@ class HybridDatabaseService {
   /// Get all clients once (Realtime Database) - returns List of Map String dynamic
   Future<List<Map<String, dynamic>>> getAllClientsOnce() async {
     try {
-      final path = isSuperAdmin ? 'clients' : 'clients/$userId';
+      final isAdmin = await isSuperAdmin;
+      final path = isAdmin ? 'clients' : 'clients/$userId';
       final snapshot = await _realtimeDb.ref(path).get();
       final List<Map<String, dynamic>> clients = [];
 
       if (snapshot.exists && snapshot.value != null) {
         final data = SafeTypeConverter.toMap(snapshot.value);
 
-        if (isSuperAdmin) {
+        if (isAdmin) {
           // For superadmin, iterate through all user clients
           data.forEach((userId, userClients) {
             if (userClients is Map) {
@@ -456,14 +465,15 @@ class HybridDatabaseService {
   /// Get all quotes once (Realtime Database) - returns List of Map String dynamic
   Future<List<Map<String, dynamic>>> getAllQuotesOnce() async {
     try {
-      final path = isSuperAdmin ? 'quotes' : 'quotes/$userId';
+      final isAdmin = await isSuperAdmin;
+      final path = isAdmin ? 'quotes' : 'quotes/$userId';
       final snapshot = await _realtimeDb.ref(path).get();
       final List<Map<String, dynamic>> quotes = [];
 
       if (snapshot.exists && snapshot.value != null) {
         final data = SafeTypeConverter.toMap(snapshot.value);
 
-        if (isSuperAdmin) {
+        if (isAdmin) {
           // For superadmin, iterate through all user quotes
           data.forEach((userId, userQuotes) {
             if (userQuotes is Map) {
@@ -502,7 +512,7 @@ class HybridDatabaseService {
   /// Approve user request (compatible with Realtime Database)
   Future<void> approveUserRequest({required String requestId, String? approvedBy, String? reason}) async {
     try {
-      if (!isSuperAdmin) throw Exception('Only superadmin can approve user requests');
+      if (!(await isSuperAdmin)) throw Exception('Only superadmin can approve user requests');
 
       // Get the request details first
       final snapshot = await _realtimeDb.ref('user_approval_requests/$requestId').get();
@@ -603,7 +613,7 @@ class HybridDatabaseService {
   /// Reject user request (compatible with Realtime Database)
   Future<void> rejectUserRequest({required String requestId, String? rejectedBy, String? reason}) async {
     try {
-      if (!isSuperAdmin) throw Exception('Only superadmin can reject user requests');
+      if (!(await isSuperAdmin)) throw Exception('Only superadmin can reject user requests');
 
       // Get the request details first
       final snapshot = await _realtimeDb.ref('user_approval_requests/$requestId').get();
