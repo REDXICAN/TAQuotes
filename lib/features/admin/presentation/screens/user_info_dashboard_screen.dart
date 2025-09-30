@@ -227,17 +227,25 @@ class UserInfoDashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<UserInfoDashboardScreen> createState() => _UserInfoDashboardScreenState();
 }
 
-class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScreen> {
+class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScreen> with TickerProviderStateMixin {
   String _searchQuery = '';
   String _selectedRole = 'all';
   String _sortBy = 'lastLogin';
   int? _selectedUserId; // For showing user details
   bool _hasAccess = false;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
     _checkAdminAccess();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkAdminAccess() async {
@@ -317,6 +325,14 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
       appBar: AppBar(
         title: const Text('User Information Dashboard'),
         centerTitle: true,
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(icon: Icon(Icons.analytics), text: 'Analytics'),
+            Tab(icon: Icon(Icons.receipt), text: 'Quotes'),
+            Tab(icon: Icon(Icons.people), text: 'Users'),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -328,7 +344,23 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
           const SizedBox(width: 8),
         ],
       ),
-      body: usersAsync.when(
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // Analytics Tab
+          usersAsync.when(
+            data: (users) => _buildAnalyticsTab(users, theme, currencyFormat, dateFormat),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => _buildErrorWidget(error, ref),
+          ),
+          // Quotes Tab
+          usersAsync.when(
+            data: (users) => _buildQuotesTab(users, theme, currencyFormat, dateFormat),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => _buildErrorWidget(error, ref),
+          ),
+          // Users Tab
+          usersAsync.when(
         data: (users) {
           if (users.isEmpty) {
             return const Center(
@@ -391,8 +423,279 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
               break;
           }
 
-          // Tile-based layout instead of tabs
-          return SingleChildScrollView(
+          return _buildUsersTab(filteredUsers, theme, currencyFormat, dateFormat);
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => _buildErrorWidget(error, ref),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsTab(
+    List<UserInfo> users,
+    ThemeData theme,
+    NumberFormat currencyFormat,
+    DateFormat dateFormat,
+  ) {
+    // Calculate overall metrics
+    final totalUsers = users.length;
+    final totalQuotes = users.fold<int>(0, (sum, user) => sum + user.quotesCount);
+    final totalRevenue = users.fold<double>(0, (sum, user) => sum + user.totalRevenue);
+    final totalClients = users.fold<int>(0, (sum, user) => sum + user.clientsCount);
+    final avgQuotesPerUser = totalUsers > 0 ? (totalQuotes / totalUsers).toStringAsFixed(1) : '0';
+    final avgRevenuePerUser = totalUsers > 0 ? currencyFormat.format(totalRevenue / totalUsers) : '\$0';
+
+    // Get top performers
+    final topPerformers = List<UserInfo>.from(users)
+      ..sort((a, b) => b.totalRevenue.compareTo(a.totalRevenue));
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Overall Statistics Cards
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: ResponsiveHelper.isMobile(context) ? 2 : 4,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: 1.5,
+            children: [
+              _buildMetricCard(
+                'Total Revenue',
+                currencyFormat.format(totalRevenue),
+                Icons.attach_money,
+                Colors.green,
+              ),
+              _buildMetricCard(
+                'Total Quotes',
+                totalQuotes.toString(),
+                Icons.receipt_long,
+                Colors.blue,
+              ),
+              _buildMetricCard(
+                'Total Users',
+                totalUsers.toString(),
+                Icons.people,
+                Colors.purple,
+              ),
+              _buildMetricCard(
+                'Total Clients',
+                totalClients.toString(),
+                Icons.business,
+                Colors.orange,
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Average Metrics
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Average Performance',
+                    style: theme.textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildAverageMetric(
+                          'Avg Quotes/User',
+                          avgQuotesPerUser,
+                          Icons.person,
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildAverageMetric(
+                          'Avg Revenue/User',
+                          avgRevenuePerUser,
+                          Icons.trending_up,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Top Performers
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Top Performers',
+                    style: theme.textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 16),
+                  ...topPerformers.take(5).map((user) => ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: _getRoleColor(user.role).withOpacity(0.2),
+                      child: Text(
+                        user.displayName.substring(0, 1).toUpperCase(),
+                        style: TextStyle(
+                          color: _getRoleColor(user.role),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    title: Text(user.displayName),
+                    subtitle: Text('${user.quotesCount} quotes • ${user.clientsCount} clients'),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          currencyFormat.format(user.totalRevenue),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          user.role,
+                          style: TextStyle(
+                            color: _getRoleColor(user.role),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuotesTab(
+    List<UserInfo> users,
+    ThemeData theme,
+    NumberFormat currencyFormat,
+    DateFormat dateFormat,
+  ) {
+    // Gather all quotes from all users
+    final allQuotes = <Map<String, dynamic>>[];
+    for (final user in users) {
+      if (user.latestQuotes != null) {
+        for (final quote in user.latestQuotes!) {
+          allQuotes.add({
+            ...quote,
+            'userName': user.displayName,
+            'userEmail': user.email,
+            'userId': user.uid,
+          });
+        }
+      }
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Recent Quotes Overview',
+            style: theme.textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 16),
+
+          if (allQuotes.isEmpty)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(
+                  child: Text('No quotes available'),
+                ),
+              ),
+            )
+          else
+            Card(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  columns: const [
+                    DataColumn(label: Text('Quote #')),
+                    DataColumn(label: Text('User')),
+                    DataColumn(label: Text('Client')),
+                    DataColumn(label: Text('Amount')),
+                  ],
+                  rows: allQuotes.take(20).map((quote) => DataRow(
+                    cells: [
+                      DataCell(Text(quote['number'] ?? '')),
+                      DataCell(Text(quote['userName'] ?? '')),
+                      DataCell(Text(quote['client'] ?? '')),
+                      DataCell(Text('\$${quote['amount'] ?? '0'}')),
+                    ],
+                  )).toList(),
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 24),
+
+          // User Quotes Summary
+          Text(
+            'Quotes by User',
+            style: theme.textTheme.titleLarge,
+          ),
+          const SizedBox(height: 16),
+
+          ...users.where((u) => u.quotesCount > 0).map((user) => Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: _getRoleColor(user.role).withOpacity(0.2),
+                child: Text(
+                  user.quotesCount.toString(),
+                  style: TextStyle(
+                    color: _getRoleColor(user.role),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              title: Text(user.displayName),
+              subtitle: Text(user.email),
+              trailing: Text(
+                currencyFormat.format(user.totalRevenue),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              onTap: () => _showUserDetailsDialog(user, theme, currencyFormat, dateFormat),
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUsersTab(
+    List<UserInfo> filteredUsers,
+    ThemeData theme,
+    NumberFormat currencyFormat,
+    DateFormat dateFormat,
+  ) {
+    final isMobile = ResponsiveHelper.isMobile(context);
+
+    return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -455,60 +758,6 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
               ],
             ),
           );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  error.toString().contains('Permission denied')
-                    ? Icons.security
-                    : Icons.error_outline,
-                  size: 64,
-                  color: Colors.red,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  error.toString().contains('Permission denied')
-                    ? 'Access Denied'
-                    : 'Error Loading Users',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  error.toString().contains('Permission denied')
-                    ? 'You don\'t have permission to access user data. Please contact your administrator or check Firebase database rules.'
-                    : error.toString(),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () => ref.invalidate(allUsersProvider),
-                      child: const Text('Retry'),
-                    ),
-                    const SizedBox(width: 16),
-                    OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Go Back'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   Widget _buildUserTile(
@@ -776,6 +1025,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
   Color _getRoleColor(String role) {
     switch (role.toLowerCase()) {
       case 'admin':
+      case 'superadmin':
         return Colors.purple;
       case 'sales':
         return Colors.blue;
@@ -784,5 +1034,115 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
       default:
         return Colors.grey;
     }
+  }
+
+  Widget _buildMetricCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    final theme = Theme.of(context);
+
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 32),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: theme.textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAverageMetric(
+    String label,
+    String value,
+    IconData icon,
+  ) {
+    final theme = Theme.of(context);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, color: theme.primaryColor, size: 24),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              value,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              label,
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorWidget(Object error, WidgetRef ref) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              error.toString().contains('Permission denied')
+                ? Icons.security
+                : Icons.error_outline,
+              size: 64,
+              color: Colors.red,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              error.toString().contains('Permission denied')
+                ? 'Access Denied'
+                : 'Error Loading Users',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error.toString().contains('Permission denied')
+                ? 'You don\'t have permission to access user data.'
+                : error.toString(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => ref.invalidate(allUsersProvider),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

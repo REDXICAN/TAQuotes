@@ -118,6 +118,8 @@ final cartProvider = StreamProvider.autoDispose<List<CartItem>>((ref) {
                   .timeout(const Duration(seconds: 5));
                 if (productData != null) {
                   product = Product.fromMap(productData);
+                  // DEBUG: Log image URLs to identify issue
+                  AppLogger.info('Cart product image data: productId=$productId, thumbnailUrl=${product.thumbnailUrl}, imageUrl=${product.imageUrl}', category: LogCategory.business);
                   // Update item map with product data for consistency
                   itemMap['productName'] = itemMap['productName'] ?? itemMap['product_name'] ?? product.description;
                   itemMap['unitPrice'] = itemMap['unitPrice'] ?? itemMap['unit_price'] ?? product.price;
@@ -513,12 +515,9 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
               ),
 
               // Cart Items
-              Container(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.5, // Take up to 50% of screen height
-                ),
-                child: ListView.builder(
+              ListView.builder(
                   shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(), // Disable inner scroll since parent handles it
                   padding: ResponsiveHelper.getScreenPadding(context),
                   itemCount: items.length,
                   itemBuilder: (context, index) {
@@ -574,7 +573,9 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                               sku: product.sku ?? product.model ?? '',
                                               useThumbnail: true,
                                               fit: BoxFit.contain,
-                                              imageUrl: product.thumbnailUrl ?? product.imageUrl,
+                                              imageUrl: product.thumbnailUrl ?? product.imageUrl ?? '',
+                                              width: double.infinity,
+                                              height: double.infinity,
                                             ),
                                           ),
                                         )
@@ -705,7 +706,9 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                           sku: product.sku ?? product.model ?? '',
                                           useThumbnail: true,
                                           fit: BoxFit.contain,
-                                          imageUrl: product.thumbnailUrl ?? product.imageUrl,
+                                          imageUrl: product.thumbnailUrl ?? product.imageUrl ?? '',
+                                          width: double.infinity,
+                                          height: double.infinity,
                                         ),
                                       ),
                                     )
@@ -992,7 +995,6 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                     );
                   },
                 ),
-              ),
 
               // Summary and Actions
               Container(

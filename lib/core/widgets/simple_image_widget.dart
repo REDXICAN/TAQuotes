@@ -59,6 +59,11 @@ class _SimpleImageWidgetState extends State<SimpleImageWidget> {
       return _buildPlaceholder();
     }
 
+    // DEBUG: Log image URL data for cart images
+    if (widget.sku.isNotEmpty) {
+      print('SimpleImageWidget DEBUG: sku=${widget.sku}, imageUrl=${widget.imageUrl}, useThumbnail=${widget.useThumbnail}');
+    }
+
     // Check if we have a valid Firebase Storage URL
     final hasValidFirebaseUrl = widget.imageUrl != null &&
                                 widget.imageUrl!.isNotEmpty &&
