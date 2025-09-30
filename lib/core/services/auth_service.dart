@@ -3,11 +3,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'app_logger.dart';
 import 'rate_limiter_service.dart';
+import 'email_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final RateLimiterService _rateLimiter = RateLimiterService();
+  final EmailService _emailService = EmailService();
 
   // Get current user
   User? get currentUser => _auth.currentUser;
@@ -278,6 +280,7 @@ class AuthService {
     required String email,
     required String password,
     required String name,
+    String? requestedRole,
   }) async {
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
@@ -289,11 +292,12 @@ class AuthService {
         // Update display name
         await credential.user!.updateDisplayName(name);
 
-        // Create user profile in Realtime Database
+        // Create user profile in Realtime Database with pending status
         await _createUserProfile(
           uid: credential.user!.uid,
           email: email,
           name: name,
+          requestedRole: requestedRole ?? 'distributor',
         );
       }
 
@@ -310,15 +314,58 @@ class AuthService {
     required String uid,
     required String email,
     required String name,
+    String? requestedRole,
   }) async {
+    // All new registrations start as pending
     await _database.ref('user_profiles/$uid').set({
       'uid': uid,
       'email': email,
       'name': name,
-      'role': 'distributor',
+      'role': 'pending',  // Changed from 'distributor' to 'pending'
+      'requested_role': requestedRole ?? 'distributor',
+      'status': 'pending_approval',  // Added status field
       'created_at': ServerValue.timestamp,
       'updated_at': ServerValue.timestamp,
     });
+
+    // Create approval request
+    final requestId = _database.ref('user_approval_requests').push().key;
+    if (requestId != null) {
+      await _database.ref('user_approval_requests/$requestId').set({
+        'user_id': uid,
+        'email': email,
+        'name': name,
+        'requested_role': requestedRole ?? 'distributor',
+        'status': 'pending',
+        'created_at': ServerValue.timestamp,
+      });
+
+      // Send email notifications
+      try {
+        // Send email to admin for approval
+        // Generate a simple approval token
+        final approvalToken = DateTime.now().millisecondsSinceEpoch.toString();
+
+        await _emailService.sendUserApprovalEmail(
+          requestId: requestId,
+          userEmail: email,
+          userName: name,
+          requestedRole: requestedRole ?? 'distributor',
+          approvalToken: approvalToken,
+        );
+
+        // Send welcome/pending email to user
+        await _emailService.sendUserPendingNotification(
+          userEmail: email,
+          userName: name,
+          requestedRole: requestedRole ?? 'distributor',
+        );
+
+        AppLogger.info('Approval request emails sent successfully', category: LogCategory.auth);
+      } catch (e) {
+        AppLogger.error('Failed to send approval emails', error: e, category: LogCategory.auth);
+      }
+    }
   }
 
   // Get user profile from Realtime Database

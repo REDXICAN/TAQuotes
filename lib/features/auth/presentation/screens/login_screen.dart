@@ -55,21 +55,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
 
         if (error == null && mounted) {
-          // ALL new accounts now require approval
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Account created! Your registration is pending approval. You\'ll receive an email once approved.'),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 6),
-            ),
-          );
-          // Clear form and switch to login mode
-          _emailController.clear();
-          _passwordController.clear();
-          _confirmPasswordController.clear();
-          _nameController.clear();
-          setState(() {
-            _isSignUp = false;
+          // Navigate to pending approval screen
+          context.go('/auth/pending-approval', extra: {
+            'email': _emailController.text.trim(),
+            'name': _nameController.text.trim(),
           });
         }
       } else {
@@ -85,12 +74,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
 
       if (error != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error),
-            backgroundColor: Colors.red,
-          ),
-        );
+        // Check if this is a pending approval error
+        if (error.contains('pending approval')) {
+          // Extract email from the error message if available
+          context.go('/auth/pending-approval', extra: {
+            'email': _emailController.text.trim(),
+            'name': '', // We don't have the name during login
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(error),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } finally {
       if (mounted) {

@@ -9,6 +9,7 @@ import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
+import '../../features/auth/presentation/screens/pending_approval_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/products/presentation/screens/products_screen.dart';
 import '../../features/products/presentation/screens/product_detail_screen.dart';
@@ -83,6 +84,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/auth/forgot-password',
         builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/auth/pending-approval',
+        builder: (context, state) {
+          final extras = state.extra as Map<String, String>?;
+          return PendingApprovalScreen(
+            userEmail: extras?['email'] ?? '',
+            userName: extras?['name'] ?? '',
+          );
+        },
       ),
 
       // Main app shell
