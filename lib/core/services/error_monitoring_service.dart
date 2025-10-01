@@ -459,9 +459,73 @@ class ErrorMonitoringService {
     }
   }
 
-  // Get recent errors
+  // Get recent errors from memory cache
   List<ErrorReport> getRecentErrors({int limit = 50}) {
     return _recentErrors.take(limit).toList();
+  }
+
+  // Get recent errors from Firebase with limit (optimized)
+  Future<List<ErrorReport>> getRecentErrorsFromFirebase({int limit = 100}) async {
+    try {
+      // Fetch limited errors ordered by timestamp
+      final snapshot = await _db.ref('errors')
+          .orderByChild('timestamp')
+          .limitToLast(limit)
+          .get();
+
+      final errors = <ErrorReport>[];
+
+      if (snapshot.value != null) {
+        final data = SafeTypeConverter.toMap(snapshot.value);
+
+        for (final entry in data.entries) {
+          final error = ErrorReport.fromMap(SafeTypeConverter.toMap(entry.value));
+          errors.add(error);
+        }
+      }
+
+      // Sort by timestamp (newest first)
+      errors.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+      return errors;
+    } catch (e) {
+      AppLogger.error('Failed to fetch recent errors', error: e, category: LogCategory.system);
+      return [];
+    }
+  }
+
+  // Get unresolved errors only (optimized)
+  Future<List<ErrorReport>> getUnresolvedErrors({int limit = 100}) async {
+    try {
+      // Fetch errors and filter unresolved
+      final snapshot = await _db.ref('errors')
+          .orderByChild('timestamp')
+          .limitToLast(limit)
+          .get();
+
+      final errors = <ErrorReport>[];
+
+      if (snapshot.value != null) {
+        final data = SafeTypeConverter.toMap(snapshot.value);
+
+        for (final entry in data.entries) {
+          final error = ErrorReport.fromMap(SafeTypeConverter.toMap(entry.value));
+
+          // Only add unresolved errors
+          if (!error.resolved) {
+            errors.add(error);
+          }
+        }
+      }
+
+      // Sort by timestamp (newest first)
+      errors.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+      return errors;
+    } catch (e) {
+      AppLogger.error('Failed to fetch unresolved errors', error: e, category: LogCategory.system);
+      return [];
+    }
   }
 
   // Stream errors from Firebase

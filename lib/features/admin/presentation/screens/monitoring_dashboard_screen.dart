@@ -260,8 +260,8 @@ final monitoringMetricsProvider = StreamProvider.autoDispose<MonitoringMetrics>(
       final status = quote.status.toLowerCase();
       quotesByStatus[status] = (quotesByStatus[status] ?? 0) + 1;
 
-      // Revenue calculation
-      if (status == 'accepted' || status == 'closed' || status == 'sold') {
+      // Revenue calculation - Only count 'closed' status as sales
+      if (status == 'closed') {
         totalRevenue += quote.total;
         acceptedQuotes++;
 
@@ -359,7 +359,8 @@ final monitoringMetricsProvider = StreamProvider.autoDispose<MonitoringMetrics>(
 
       for (final quote in userQuotes) {
         final status = quote.status.toLowerCase();
-        if (status == 'accepted' || status == 'closed' || status == 'sold') {
+        // Only count 'closed' status as sales
+        if (status == 'closed') {
           userRevenue += quote.total;
           userAccepted++;
         }

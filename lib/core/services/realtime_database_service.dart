@@ -1271,8 +1271,8 @@ class RealtimeDatabaseService {
               final quote = SafeTypeConverter.toMap(quoteData);
               final status = (quote['status'] as String?)?.toLowerCase();
 
-              // Only count accepted, closed, or sold quotes
-              if (status == 'accepted' || status == 'closed' || status == 'sold') {
+              // Only count 'closed' status as sales
+              if (status == 'closed') {
                 final quoteItems = quote['quote_items'];
 
                 if (quoteItems is List) {
@@ -1343,7 +1343,8 @@ class RealtimeDatabaseService {
               final quote = SafeTypeConverter.toMap(quoteData);
               final status = (quote['status'] as String?)?.toLowerCase();
 
-              if (status == 'accepted' || status == 'closed' || status == 'sold') {
+              // Only count 'closed' status as sales
+              if (status == 'closed') {
                 final clientId = quote['client_id'] as String?;
                 final totalAmount = (quote['total_amount'] as num?)?.toDouble() ?? 0.0;
 
@@ -1430,7 +1431,8 @@ class RealtimeDatabaseService {
               final quote = SafeTypeConverter.toMap(quoteData);
               final status = (quote['status'] as String?)?.toLowerCase();
 
-              if (status == 'accepted' || status == 'closed' || status == 'sold') {
+              // Only count 'closed' status as sales
+              if (status == 'closed') {
                 final quoteItems = quote['quote_items'];
 
                 if (quoteItems is List) {

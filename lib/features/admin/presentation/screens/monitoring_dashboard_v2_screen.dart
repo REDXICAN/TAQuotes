@@ -10,6 +10,7 @@ import '../../../../core/models/models.dart';
 import '../../../../core/auth/models/rbac_permissions.dart';
 import '../../../../core/auth/providers/rbac_provider.dart';
 import '../../../../core/utils/responsive_helper.dart';
+import '../../../../core/utils/warehouse_utils.dart';
 import '../../../../core/widgets/kpi_card.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -67,7 +68,8 @@ final fastKPIsProvider = FutureProvider.autoDispose.family<Map<String, dynamic>,
                 // Current period
                 if (createdAt != null && createdAt.isAfter(periodStart)) {
                   currentQuotes++;
-                  if (status == 'accepted' || status == 'closed' || status == 'sold') {
+                  // Only count 'closed' status as sales
+                  if (status == 'closed') {
                     currentRevenue += total;
                     currentAccepted++;
                   }
@@ -78,7 +80,8 @@ final fastKPIsProvider = FutureProvider.autoDispose.family<Map<String, dynamic>,
                     createdAt.isAfter(lastPeriodStart) &&
                     createdAt.isBefore(periodStart)) {
                   lastPeriodQuotes++;
-                  if (status == 'accepted' || status == 'closed' || status == 'sold') {
+                  // Only count 'closed' status as sales
+                  if (status == 'closed') {
                     lastPeriodRevenue += total;
                     lastPeriodAccepted++;
                   }
@@ -176,7 +179,8 @@ final top10ProductsByRevenueProvider = FutureProvider.autoDispose<List<Map<Strin
           userQuotesData.forEach((quoteId, quoteData) {
             if (quoteData is Map) {
               final status = (quoteData['status'] ?? '').toString().toLowerCase();
-              if (status == 'accepted' || status == 'closed' || status == 'sold') {
+              // Only count 'closed' status as sales
+              if (status == 'closed') {
                 final items = quoteData['quote_items'] ?? quoteData['items'];
                 if (items is List) {
                   for (var item in items) {
@@ -241,7 +245,8 @@ final top10SalesRepsProvider = FutureProvider.autoDispose<List<Map<String, dynam
           userQuotesData.forEach((quoteId, quoteData) {
             if (quoteData is Map) {
               final status = (quoteData['status'] ?? '').toString().toLowerCase();
-              if (status == 'accepted' || status == 'closed' || status == 'sold') {
+              // Only count 'closed' status as sales
+              if (status == 'closed') {
                 final total = (quoteData['total_amount'] ?? 0).toDouble();
                 userRevenue[userId.toString()] = (userRevenue[userId.toString()] ?? 0) + total;
                 userQuoteCount[userId.toString()] = (userQuoteCount[userId.toString()] ?? 0) + 1;
@@ -348,7 +353,8 @@ final revenueByCategoryProvider = FutureProvider.autoDispose<Map<String, double>
           userQuotesData.forEach((quoteId, quoteData) {
             if (quoteData is Map) {
               final status = (quoteData['status'] ?? '').toString().toLowerCase();
-              if (status == 'accepted' || status == 'closed' || status == 'sold') {
+              // Only count 'closed' status as sales
+              if (status == 'closed') {
                 final items = quoteData['quote_items'] ?? quoteData['items'];
                 if (items is List) {
                   for (var item in items) {
@@ -400,7 +406,8 @@ final lowPerformingProductsProvider = FutureProvider.autoDispose<List<Map<String
                       quotedSkus.add(sku.toString());
 
                       final status = (quoteData['status'] ?? '').toString().toLowerCase();
-                      if (status == 'accepted' || status == 'closed' || status == 'sold') {
+                      // Only count 'closed' status as sales
+                      if (status == 'closed') {
                         final total = (item['total'] ?? 0).toDouble();
                         productRevenue[sku.toString()] =
                             (productRevenue[sku.toString()] ?? 0) + total;
@@ -451,7 +458,7 @@ final lowPerformingProductsProvider = FutureProvider.autoDispose<List<Map<String
   }
 });
 
-/// Stock alerts (low and critical)
+/// Stock alerts (low and critical) - prioritized by warehouse importance
 final stockAlertsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   try {
     final db = FirebaseDatabase.instance;
@@ -468,42 +475,72 @@ final stockAlertsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>
           final name = value['name'] ?? sku;
           final warehouse = value['warehouse'] ?? 'Unknown';
 
-          if (stock == 0) {
+          // Determine warehouse priority for scoring
+          final isHighPriority = warehouse == '999' ||
+                                 WarehouseUtils.isCancunWarehouse(warehouse) ||
+                                 WarehouseUtils.isPueblaWarehouse(warehouse) ||
+                                 WarehouseUtils.isConsignacionWarehouse(warehouse) ||
+                                 WarehouseUtils.isSparePartsWarehouse(warehouse) ||
+                                 warehouse == 'SI' || warehouse == 'MEE';
+
+          // Adjust thresholds based on warehouse priority
+          // High priority warehouses: stricter thresholds (0, 10, 20)
+          // Lower priority warehouses: relaxed thresholds (0, 5, 10)
+          final criticalThreshold = 0;
+          final warningThreshold = isHighPriority ? 10 : 5;
+          final infoThreshold = isHighPriority ? 20 : 10;
+
+          String? severity;
+          String? message;
+
+          if (stock <= criticalThreshold) {
+            severity = 'critical';
+            message = isHighPriority ? 'OUT OF STOCK - High Priority Warehouse' : 'Out of stock';
+          } else if (stock < warningThreshold) {
+            severity = 'warning';
+            message = isHighPriority ? 'LOW STOCK - High Priority ($stock units)' : 'Low stock ($stock units)';
+          } else if (stock < infoThreshold) {
+            severity = 'info';
+            message = isHighPriority ? 'Monitor stock - High Priority ($stock units)' : 'Monitor stock ($stock units)';
+          }
+
+          if (severity != null) {
             alerts.add({
               'sku': sku,
               'name': name,
               'stock': stock,
               'warehouse': warehouse,
-              'severity': 'critical',
-              'message': 'Out of stock',
-            });
-          } else if (stock < 5) {
-            alerts.add({
-              'sku': sku,
-              'name': name,
-              'stock': stock,
-              'warehouse': warehouse,
-              'severity': 'warning',
-              'message': 'Low stock ($stock units)',
-            });
-          } else if (stock < 10) {
-            alerts.add({
-              'sku': sku,
-              'name': name,
-              'stock': stock,
-              'warehouse': warehouse,
-              'severity': 'info',
-              'message': 'Monitor stock ($stock units)',
+              'warehouseCategory': WarehouseUtils.getCategoryName(warehouse),
+              'isHighPriority': isHighPriority,
+              'severity': severity,
+              'message': message,
             });
           }
         }
       });
     }
 
-    // Sort: critical first, then warning, then info
+    // Sort: Priority order: severity first, then high-priority warehouses, then stock level
     alerts.sort((a, b) {
+      // 1. Sort by severity
       final severityOrder = {'critical': 0, 'warning': 1, 'info': 2};
-      return (severityOrder[a['severity']] ?? 3).compareTo(severityOrder[b['severity']] ?? 3);
+      final severityA = severityOrder[a['severity']] ?? 3;
+      final severityB = severityOrder[b['severity']] ?? 3;
+
+      if (severityA != severityB) {
+        return severityA.compareTo(severityB);
+      }
+
+      // 2. Within same severity, prioritize high-priority warehouses
+      final priorityA = a['isHighPriority'] == true ? 0 : 1;
+      final priorityB = b['isHighPriority'] == true ? 0 : 1;
+
+      if (priorityA != priorityB) {
+        return priorityA.compareTo(priorityB);
+      }
+
+      // 3. Within same severity and priority, sort by stock level (lowest first)
+      return (a['stock'] as int).compareTo(b['stock'] as int);
     });
 
     return alerts;
@@ -1413,14 +1450,38 @@ class _MonitoringDashboardV2ScreenState extends ConsumerState<MonitoringDashboar
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        'SKU: ${alert['sku']} • ${alert['warehouse']}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[600],
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'SKU: ${alert['sku']} • ${alert['warehouse']}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[600],
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (alert['isHighPriority'] == true) ...[
+                            const SizedBox(width: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                              child: Text(
+                                'PRIORITY',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange[800],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),

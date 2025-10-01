@@ -14,39 +14,47 @@ final errorMonitoringProvider = Provider<ErrorMonitoringService>((ref) {
   return ErrorMonitoringService();
 });
 
-// Provider for error stream
-final errorsStreamProvider = StreamProvider.autoDispose<List<ErrorReport>>((ref) {
+// Provider for recent errors (limited to 100 most recent)
+final recentErrorsProvider = FutureProvider.autoDispose<List<ErrorReport>>((ref) async {
   final service = ref.watch(errorMonitoringProvider);
-  return service.streamErrors();
+  try {
+    // Fetch only recent errors with limit
+    return await service.getRecentErrorsFromFirebase(limit: 100);
+  } catch (e) {
+    return [];
+  }
 });
 
-// Provider for unresolved errors
-final unresolvedErrorsStreamProvider = StreamProvider.autoDispose<List<ErrorReport>>((ref) {
+// Provider for unresolved errors only
+final unresolvedErrorsProvider = FutureProvider.autoDispose<List<ErrorReport>>((ref) async {
   final service = ref.watch(errorMonitoringProvider);
-  return service.streamErrors(unresolvedOnly: true);
+  try {
+    return await service.getUnresolvedErrors(limit: 100);
+  } catch (e) {
+    return [];
+  }
 });
 
-// Provider for error statistics with auto-refresh
-final errorStatisticsProvider = StreamProvider.autoDispose<ErrorStatistics>((ref) {
+// Provider for error statistics (cached, fast)
+final errorStatisticsProvider = FutureProvider.autoDispose<ErrorStatistics>((ref) async {
   final service = ref.watch(errorMonitoringProvider);
-  // Refresh statistics every 30 seconds
-  return Stream.periodic(const Duration(seconds: 30), (_) => null)
-      .asyncMap((_) async => await service.getStatistics())
-      .handleError((error) {
-        // Return empty statistics on error
-        return ErrorStatistics(
-          totalErrors: 0,
-          criticalErrors: 0,
-          highErrors: 0,
-          mediumErrors: 0,
-          lowErrors: 0,
-          unresolvedErrors: 0,
-          errorsByCategory: {},
-          errorsByScreen: {},
-          topErrorMessages: [],
-          errorRate: 0.0,
-        );
-      });
+  try {
+    // Use cached statistics for faster load
+    return await service.getStatistics();
+  } catch (e) {
+    return ErrorStatistics(
+      totalErrors: 0,
+      criticalErrors: 0,
+      highErrors: 0,
+      mediumErrors: 0,
+      lowErrors: 0,
+      unresolvedErrors: 0,
+      errorsByCategory: {},
+      errorsByScreen: {},
+      topErrorMessages: [],
+      errorRate: 0.0,
+    );
+  }
 });
 
 class ErrorMonitoringDashboard extends ConsumerStatefulWidget {
@@ -206,8 +214,8 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
 
     // Invalidate all providers to force refresh
     ref.invalidate(errorStatisticsProvider);
-    ref.invalidate(errorsStreamProvider);
-    ref.invalidate(unresolvedErrorsStreamProvider);
+    ref.invalidate(recentErrorsProvider);
+    ref.invalidate(unresolvedErrorsProvider);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -465,8 +473,8 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
 
   Widget _buildErrorsTab() {
     final errorsAsync = _showUnresolvedOnly
-        ? ref.watch(unresolvedErrorsStreamProvider)
-        : ref.watch(errorsStreamProvider);
+        ? ref.watch(unresolvedErrorsProvider)
+        : ref.watch(recentErrorsProvider);
 
     return Column(
       children: [
@@ -918,7 +926,7 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
       }
 
       // Get errors from the provider
-      final errorsAsync = ref.read(errorsStreamProvider);
+      final errorsAsync = ref.read(recentErrorsProvider);
 
       List<ErrorReport> errors = [];
       errorsAsync.when(
@@ -1030,7 +1038,7 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
       }
 
       // Get errors from the provider
-      final errorsAsync = ref.read(errorsStreamProvider);
+      final errorsAsync = ref.read(recentErrorsProvider);
 
       List<ErrorReport> errors = [];
       errorsAsync.when(
@@ -1631,7 +1639,7 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
                     ),
                   );
                   ref.invalidate(errorStatisticsProvider);
-                  ref.invalidate(errorsStreamProvider);
+                  ref.invalidate(recentErrorsProvider);
                 }
               } catch (e) {
                 if (mounted) {

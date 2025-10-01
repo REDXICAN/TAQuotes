@@ -178,67 +178,67 @@ class _SparePartsScreenState extends ConsumerState<SparePartsScreen> {
                         ),
                         const DropdownMenuItem(
                           value: '999',
-                          child: Text('999 - Reserved (Pending Deals)'),
+                          child: Text('999 - MERCANCIA APARTADA'),
                         ),
                         const DropdownMenuItem(
                           value: 'CA',
-                          child: Text('CA - California'),
+                          child: Text('CA - CANCUN'),
                         ),
                         const DropdownMenuItem(
                           value: 'CA1',
-                          child: Text('CA1 - California 1'),
+                          child: Text('CA1 - CANCUN EXHIBICION'),
                         ),
                         const DropdownMenuItem(
                           value: 'CA2',
-                          child: Text('CA2 - California 2'),
+                          child: Text('CA2 - CANCUN EQUIPOS A PRUEBA'),
                         ),
                         const DropdownMenuItem(
                           value: 'CA3',
-                          child: Text('CA3 - California 3'),
+                          child: Text('CA3 - CANCUN LABORATORIO'),
                         ),
                         const DropdownMenuItem(
                           value: 'CA4',
-                          child: Text('CA4 - California 4'),
+                          child: Text('CA4 - CANCUN AREA DE AJUSTE'),
                         ),
                         const DropdownMenuItem(
                           value: 'COCZ',
-                          child: Text('COCZ - Coahuila'),
+                          child: Text('COCZ - CONSIGNACION CANCUN ZICOR'),
                         ),
                         const DropdownMenuItem(
                           value: 'COPZ',
-                          child: Text('COPZ - Copilco'),
+                          child: Text('COPZ - CONSIGNACION PUEBLA ZICOR'),
                         ),
                         const DropdownMenuItem(
                           value: 'INT',
-                          child: Text('INT - International'),
+                          child: Text('INT - INTERNACIONAL'),
                         ),
                         const DropdownMenuItem(
                           value: 'MEE',
-                          child: Text('MEE - Mexico East'),
+                          child: Text('MEE - MEXICO PROYECTOS ESPECIALES'),
                         ),
                         const DropdownMenuItem(
                           value: 'PU',
-                          child: Text('PU - Puebla'),
+                          child: Text('PU - PUEBLA BINEX'),
                         ),
                         const DropdownMenuItem(
                           value: 'SI',
-                          child: Text('SI - Sinaloa'),
+                          child: Text('SI - SILAO BINEX'),
                         ),
                         const DropdownMenuItem(
                           value: 'XCA',
-                          child: Text('XCA - Xcaret'),
+                          child: Text('XCA - REFRIGERATION X CANCUN'),
                         ),
                         const DropdownMenuItem(
                           value: 'XPU',
-                          child: Text('XPU - Xpujil'),
+                          child: Text('XPU - REFRIGERATION X PUEBLA'),
                         ),
                         const DropdownMenuItem(
                           value: 'XZRE',
-                          child: Text('XZRE - Xochimilco'),
+                          child: Text('XZRE - REFACCIONES REFRIGERATION X'),
                         ),
                         const DropdownMenuItem(
                           value: 'ZRE',
-                          child: Text('ZRE - Zacatecas'),
+                          child: Text('ZRE - REFACCIONES'),
                         ),
                       ],
                       onChanged: (value) {

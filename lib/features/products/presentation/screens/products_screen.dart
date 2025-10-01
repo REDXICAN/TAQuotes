@@ -1322,21 +1322,22 @@ Future<void> _handleExcelUpload() async {
     return LayoutBuilder(
       builder: (context, constraints) {
         final crossAxisCount = ResponsiveHelper.getGridColumns(context);
-        
+
         // Adjust aspect ratio based on screen size - optimized for proper card content containment
+        // Lower values = taller cards with more room for content
         double childAspectRatio;
         if (ResponsiveHelper.isVerticalDisplay(context)) {
-          childAspectRatio = 0.85;  // Increased to provide adequate room for all content
+          childAspectRatio = 0.70;  // Taller cards for vertical displays to fit all content
         } else if (ResponsiveHelper.isMobile(context)) {
-          childAspectRatio = 0.95;  // Increased to prevent text overflow on mobile
+          childAspectRatio = 0.75;  // Significantly taller cards on mobile to prevent overflow
         } else if (ResponsiveHelper.isTablet(context)) {
-          childAspectRatio = 0.92;  // Increased for better content fit on tablets
+          childAspectRatio = 0.78;  // Taller cards on tablets for better content containment
         } else {
-          childAspectRatio = 0.88;  // Increased to allow more space for content on desktop
+          childAspectRatio = 0.80;  // Taller cards on desktop to accommodate all elements
         }
-        
+
         // Increased spacing for vertical screens to prevent overlap
-        final spacing = ResponsiveHelper.isVerticalDisplay(context) 
+        final spacing = ResponsiveHelper.isVerticalDisplay(context)
             ? 20.0  // More space between rows for vertical screens
             : ResponsiveHelper.getValue(
                 context,
@@ -1344,9 +1345,9 @@ Future<void> _handleExcelUpload() async {
                 tablet: 10.0,
                 desktop: 12.0,
               );
-        
+
         // Limit visible items for better performance
-        final itemsToShow = products.length > _visibleItemCount 
+        final itemsToShow = products.length > _visibleItemCount
             ? products.sublist(0, _visibleItemCount.clamp(0, products.length))
             : products;
         
@@ -1839,43 +1840,53 @@ class ProductCard extends ConsumerWidget {
 
     return Card(
       elevation: ResponsiveHelper.getValue(context, mobile: 1, tablet: 2, desktop: 2),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
           context.push('/products/${product.id}');
         },
         borderRadius: BorderRadius.circular(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Product Image - reduced size to leave more room for content
-            AspectRatio(
-              aspectRatio: isVertical ? 1.4 : (isMobile ? 1.6 : 1.5), // Increased ratios to reduce image height
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFFFFFF), // Pure white background for images
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(8),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Calculate available height for dynamic sizing
+            final cardHeight = constraints.maxHeight;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Product Image - responsive height based on card size
+                SizedBox(
+                  height: cardHeight * 0.40, // 40% of card height for image
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFFFFFF), // Pure white background for images
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: SimpleImageWidget(
+                        sku: product.sku ?? product.model ?? '',
+                        useThumbnail: true,
+                        fit: BoxFit.contain,
+                        width: double.infinity,
+                        imageUrl: product.thumbnailUrl ?? product.imageUrl,
+                      ),
+                    ),
                   ),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: SimpleImageWidget(
-                    sku: product.sku ?? product.model ?? '',
-                    useThumbnail: true,
-                    fit: BoxFit.contain,
-                    width: double.infinity,
-                    imageUrl: product.thumbnailUrl ?? product.imageUrl,
-                  ),
-                ),
-              ),
-            ),
-            // Product Info - Use Expanded to fill remaining space
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.all(isVertical ? 12 : (isMobile ? 10 : 8)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+                // Product Info - Use Expanded to fill remaining 60% of space
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.all(
+                      ResponsiveHelper.getValue(
+                        context,
+                        mobile: 8,
+                        tablet: 10,
+                        desktop: 12,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
                     children: [
@@ -1883,7 +1894,12 @@ class ProductCard extends ConsumerWidget {
                         child: Text(
                           product.sku ?? product.model ?? '',
                           style: TextStyle(
-                            fontSize: isVertical ? 18 : (isMobile ? 16 : 14),
+                            fontSize: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              baseFontSize: 14,
+                              minFontSize: 13,
+                              maxFontSize: 16,
+                            ),
                             fontWeight: FontWeight.bold,
                             color: theme.primaryColor,
                           ),
@@ -1900,34 +1916,42 @@ class ProductCard extends ConsumerWidget {
                           child: Icon(
                             Icons.build,
                             color: theme.primaryColor,
-                            size: 16,
+                            size: ResponsiveHelper.getValue(context, mobile: 14, tablet: 15, desktop: 16),
                           ),
                         ),
                       if (product.isTopSeller)
-                        const Padding(
-                          padding: EdgeInsets.only(left: 4),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4),
                           child: Icon(
                             Icons.star,
                             color: Colors.amber,
-                            size: 16,
+                            size: ResponsiveHelper.getValue(context, mobile: 14, tablet: 15, desktop: 16),
                           ),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: ResponsiveHelper.getValue(context, mobile: 2, tablet: 3, desktop: 4)),
                   Text(
                     product.displayName,
                     style: TextStyle(
-                      fontSize: isMobile ? 14 : 12,
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(
+                        context,
+                        baseFontSize: 12,
+                        minFontSize: 11,
+                        maxFontSize: 13,
+                      ),
                       height: 1.2,
                     ),
-                    maxLines: isVertical ? 3 : (isMobile ? 2 : 2),
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 6),
-                  // Stock Status Badge
+                  SizedBox(height: ResponsiveHelper.getValue(context, mobile: 4, tablet: 5, desktop: 6)),
+                  // Stock Status Badge - more compact
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: ResponsiveHelper.getValue(context, mobile: 4, tablet: 5, desktop: 6),
+                      vertical: ResponsiveHelper.getValue(context, mobile: 2, tablet: 2, desktop: 3),
+                    ),
                     decoration: BoxDecoration(
                       color: stockColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(4),
@@ -1941,40 +1965,54 @@ class ProductCard extends ConsumerWidget {
                       children: [
                         Icon(
                           stockIcon,
-                          size: 12,
+                          size: ResponsiveHelper.getValue(context, mobile: 10, tablet: 11, desktop: 12),
                           color: stockColor,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          stockText,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: stockColor,
-                            fontWeight: FontWeight.w600,
+                        SizedBox(width: ResponsiveHelper.getValue(context, mobile: 2, tablet: 3, desktop: 4)),
+                        Flexible(
+                          child: Text(
+                            stockText,
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                context,
+                                baseFontSize: 10,
+                                minFontSize: 9,
+                                maxFontSize: 11,
+                              ),
+                              color: stockColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: ResponsiveHelper.getValue(context, mobile: 4, tablet: 5, desktop: 6)),
 
-                  // Warehouse Availability Badges (Mexican warehouses first) - Make flexible to prevent overflow
+                  // Warehouse Availability Badges - compact and responsive
                   if (product.warehouseStock != null && product.warehouseStock!.isNotEmpty)
                     Flexible(
                       child: Wrap(
-                        spacing: 4,
-                        runSpacing: 2,
+                        spacing: ResponsiveHelper.getValue(context, mobile: 2, tablet: 3, desktop: 4),
+                        runSpacing: ResponsiveHelper.getValue(context, mobile: 2, tablet: 2, desktop: 3),
                         children: () {
-                          // Sort warehouses: Mexican warehouses first (999, COCZ, COPZ, MEE, SI, ZRE), then others
+                          // Sort warehouses: Priority order (999, Cancún, Puebla, Consignación, Spare Parts, Other)
                           final sortedEntries = product.warehouseStock!.entries.toList()
                             ..sort((a, b) {
-                              // Mexican warehouses come first
-                              final mexicanWarehouses = ['999', 'COCZ', 'COPZ', 'MEE', 'SI', 'ZRE'];
-                              final aIsMexican = mexicanWarehouses.contains(a.key);
-                              final bIsMexican = mexicanWarehouses.contains(b.key);
+                              // Get priority for each warehouse using WarehouseUtils
+                              final priorityA = WarehouseUtils.getAllWarehouseCodesSorted().indexOf(a.key);
+                              final priorityB = WarehouseUtils.getAllWarehouseCodesSorted().indexOf(b.key);
 
-                              if (aIsMexican && !bIsMexican) return -1;
-                              if (!aIsMexican && bIsMexican) return 1;
+                              // If found in sorted list, use that priority
+                              if (priorityA != -1 && priorityB != -1) {
+                                if (priorityA != priorityB) return priorityA.compareTo(priorityB);
+                              } else if (priorityA != -1) {
+                                return -1; // A has priority
+                              } else if (priorityB != -1) {
+                                return 1; // B has priority
+                              }
 
                               // Then sort by available stock (highest first)
                               final aStock = a.value.available - a.value.reserved;
@@ -1982,14 +2020,26 @@ class ProductCard extends ConsumerWidget {
                               return bStock.compareTo(aStock);
                             });
 
-                          // Limit the number of warehouse badges shown to prevent overflow
-                          final limitedEntries = sortedEntries.take(isMobile ? 4 : 6).toList();
+                          // Limit the number of warehouse badges - more restrictive on mobile
+                          final maxBadges = ResponsiveHelper.getValue(
+                            context,
+                            mobile: 3,
+                            tablet: 5,
+                            desktop: 6,
+                          );
+                          final limitedEntries = sortedEntries.take(maxBadges).toList();
 
                           return limitedEntries.map((entry) {
                             final warehouse = entry.key;
                             final stock = entry.value;
                             final availableStock = stock.available - stock.reserved;
-                            final isMexicanWarehouse = ['999', 'COCZ', 'COPZ', 'MEE', 'SI', 'ZRE'].contains(warehouse);
+                            // Check if warehouse is high priority (Mexican warehouses)
+                            final isHighPriority = warehouse == '999' ||
+                                                   WarehouseUtils.isCancunWarehouse(warehouse) ||
+                                                   WarehouseUtils.isPueblaWarehouse(warehouse) ||
+                                                   WarehouseUtils.isConsignacionWarehouse(warehouse) ||
+                                                   WarehouseUtils.isSparePartsWarehouse(warehouse) ||
+                                                   warehouse == 'SI' || warehouse == 'MEE';
 
                             Color badgeColor;
                             if (availableStock > 50) {
@@ -2003,30 +2053,45 @@ class ProductCard extends ConsumerWidget {
                             }
 
                             return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: ResponsiveHelper.getValue(context, mobile: 3, tablet: 4, desktop: 4),
+                                vertical: ResponsiveHelper.getValue(context, mobile: 1, tablet: 1, desktop: 2),
+                              ),
                               decoration: BoxDecoration(
-                                color: badgeColor.withOpacity(isMexicanWarehouse ? 0.15 : 0.1),
-                                borderRadius: BorderRadius.circular(8),
+                                color: badgeColor.withOpacity(isHighPriority ? 0.15 : 0.1),
+                                borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
-                                  color: badgeColor.withOpacity(isMexicanWarehouse ? 0.5 : 0.3),
-                                  width: isMexicanWarehouse ? 1.0 : 0.5,
+                                  color: badgeColor.withOpacity(isHighPriority ? 0.5 : 0.3),
+                                  width: isHighPriority ? 1.0 : 0.5,
                                 ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  if (isMexicanWarehouse)
-                                    Icon(
-                                      Icons.location_on,
-                                      size: 10,
-                                      color: badgeColor,
+                                  if (isHighPriority)
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 2),
+                                      child: Icon(
+                                        WarehouseUtils.getWarehouseIcon(warehouse),
+                                        size: ResponsiveHelper.getValue(context, mobile: 8, tablet: 9, desktop: 10),
+                                        color: badgeColor,
+                                      ),
                                     ),
-                                  Text(
-                                    '${warehouse}: $availableStock',
-                                    style: TextStyle(
-                                      fontSize: isMexicanWarehouse ? 10 : 9,
-                                      color: badgeColor,
-                                      fontWeight: isMexicanWarehouse ? FontWeight.w700 : FontWeight.w600,
+                                  Flexible(
+                                    child: Text(
+                                      '${warehouse}: $availableStock',
+                                      style: TextStyle(
+                                        fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                          context,
+                                          baseFontSize: isHighPriority ? 9 : 8,
+                                          minFontSize: 8,
+                                          maxFontSize: 10,
+                                        ),
+                                        color: badgeColor,
+                                        fontWeight: isHighPriority ? FontWeight.w700 : FontWeight.w600,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
                                     ),
                                   ),
                                 ],
@@ -2036,26 +2101,34 @@ class ProductCard extends ConsumerWidget {
                         }(),
                       ),
                     ),
-                  const SizedBox(height: 8),
+                  // Spacer to push price/quantity to bottom
+                  const Spacer(),
                   // Price and Quantity Selector
                   if (isMobile || isVertical)
                     // Mobile/Vertical layout - stacked for better visibility
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           formatPrice(product.price),
                           style: TextStyle(
-                            fontSize: isVertical ? 22 : 20,
+                            fontSize: ResponsiveHelper.getResponsiveFontSize(
+                              context,
+                              baseFontSize: 18,
+                              minFontSize: 16,
+                              maxFontSize: 20,
+                            ),
                             color: theme.primaryColor,
                             fontWeight: FontWeight.bold,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: ResponsiveHelper.getValue(context, mobile: 6, tablet: 7, desktop: 8)),
                         SizedBox(
                           width: double.infinity,
+                          height: ResponsiveHelper.getValue(context, mobile: 36, tablet: 38, desktop: 40),
                           child: _buildQuantitySelector(product, ref, context, theme, dbService),
                         ),
                       ],
@@ -2073,9 +2146,9 @@ class ProductCard extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: ResponsiveHelper.getResponsiveFontSize(
                                 context,
-                                baseFontSize: 16,
-                                minFontSize: 14,
-                                maxFontSize: 18,
+                                baseFontSize: 14,
+                                minFontSize: 13,
+                                maxFontSize: 16,
                               ),
                               color: theme.primaryColor,
                               fontWeight: FontWeight.bold,
@@ -2084,10 +2157,13 @@ class ProductCard extends ConsumerWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: ResponsiveHelper.getValue(context, mobile: 6, tablet: 7, desktop: 8)),
                         Flexible(
                           flex: 1,
-                          child: _buildQuantitySelector(product, ref, context, theme, dbService),
+                          child: SizedBox(
+                            height: ResponsiveHelper.getValue(context, mobile: 32, tablet: 34, desktop: 36),
+                            child: _buildQuantitySelector(product, ref, context, theme, dbService),
+                          ),
                         ),
                       ],
                     ),
@@ -2096,6 +2172,8 @@ class ProductCard extends ConsumerWidget {
               ),
             ),
           ],
+        );
+          },
         ),
       ),
     );

@@ -45,7 +45,7 @@ Map<String, dynamic> _generateDemoStockData() {
     final sku = 'DEMO-SKU-${i.toString().padLeft(3, '0')}';
     stockData[sku] = {
       'available': (i * 10) % 100 + 5,  // Varying stock levels
-      'warehouse': ['999', 'KR', 'VN', 'CN', 'TX'][i % 5],  // Rotate through warehouses
+      'warehouse': ['999', 'CA', 'PU', 'SI', 'XCA'][i % 5],  // Rotate through warehouses
     };
   }
 
@@ -96,7 +96,7 @@ List<Product> _generateDemoProducts() {
       price: 1000 + (i * 50).toDouble(),
       category: categories[i % categories.length],
       stock: (i * 10) % 100 + 5,
-      warehouse: ['999', 'KR', 'VN', 'CN', 'TX'][i % 5],
+      warehouse: ['999', 'CA', 'PU', 'SI', 'XCA'][i % 5],
       createdAt: DateTime.now().subtract(Duration(days: i)),
     ));
   }

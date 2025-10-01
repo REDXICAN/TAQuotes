@@ -9,72 +9,78 @@ class WarehouseUtils {
 
   /// Map of warehouse codes to their full descriptions
   static const Map<String, String> warehouseDescriptions = {
-    '999': 'MERCANCIA APARTADA (Reserved Merchandise)',
-    'CA': 'California Main Warehouse',
-    'CA1': 'California Warehouse 1',
-    'CA2': 'California Warehouse 2',
-    'CA3': 'California Warehouse 3',
-    'CA4': 'California Warehouse 4',
-    'COCZ': 'Coahuila Cool Zone',
-    'COPZ': 'Coahuila Parts Zone',
-    'INT': 'International Warehouse',
-    'MEE': 'Mexico Export Warehouse',
-    'PU': 'Pick Up Location',
-    'SI': 'Special Inventory',
-    'XCA': 'Export California',
-    'XPU': 'Export Pick Up',
-    'XZRE': 'Export Zone Reserve',
-    'ZRE': 'Zone Reserve',
+    '999': 'MERCANCIA APARTADA',
+    'CA': 'CANCUN',
+    'CA1': 'CANCUN EXHIBICION',
+    'CA2': 'CANCUN EQUIPOS A PRUEBA',
+    'CA3': 'CANCUN LABORATORIO',
+    'CA4': 'CANCUN AREA DE AJUSTE',
+    'COCZ': 'CONSIGNACION CANCUN ZICOR',
+    'COPZ': 'CONSIGNACION PUEBLA ZICOR',
+    'INT': 'INTERNACIONAL',
+    'MEE': 'MEXICO PROYECTOS ESPECIALES',
+    'PU': 'PUEBLA BINEX',
+    'SI': 'SILAO BINEX',
+    'XCA': 'REFRIGERATION X CANCUN',
+    'XPU': 'REFRIGERATION X PUEBLA',
+    'XZRE': 'REFACCIONES REFRIGERATION X',
+    'ZRE': 'REFACCIONES',
   };
 
   /// Map of warehouse codes to their short display names
   static const Map<String, String> warehouseShortNames = {
-    '999': 'Reserved Merch.',
-    'CA': 'CA Main',
-    'CA1': 'CA1',
-    'CA2': 'CA2',
-    'CA3': 'CA3',
-    'CA4': 'CA4',
-    'COCZ': 'Coahuila CZ',
-    'COPZ': 'Coahuila PZ',
-    'INT': 'International',
-    'MEE': 'Mexico Export',
-    'PU': 'Pick Up',
-    'SI': 'Special Inv.',
-    'XCA': 'Export CA',
-    'XPU': 'Export PU',
-    'XZRE': 'Export ZRE',
-    'ZRE': 'Zone Reserve',
+    '999': 'Apartada',
+    'CA': 'Cancún',
+    'CA1': 'Cancún Exhib.',
+    'CA2': 'Cancún Prueba',
+    'CA3': 'Cancún Lab.',
+    'CA4': 'Cancún Ajuste',
+    'COCZ': 'Cons. CUN Zicor',
+    'COPZ': 'Cons. PU Zicor',
+    'INT': 'Internacional',
+    'MEE': 'MX Proy. Esp.',
+    'PU': 'Puebla',
+    'SI': 'Silao',
+    'XCA': 'Refrig. X CUN',
+    'XPU': 'Refrig. X PU',
+    'XZRE': 'Refacc. Refrig. X',
+    'ZRE': 'Refacciones',
   };
 
   /// Map of warehouse codes to their locations/regions
   static const Map<String, String> warehouseLocations = {
-    '999': 'Mexico (Reserved)',
-    'CA': 'California, USA',
-    'CA1': 'California, USA',
-    'CA2': 'California, USA',
-    'CA3': 'California, USA',
-    'CA4': 'California, USA',
-    'COCZ': 'Coahuila, Mexico',
-    'COPZ': 'Coahuila, Mexico',
-    'INT': 'International',
-    'MEE': 'Mexico',
-    'PU': 'Multiple Locations',
-    'SI': 'Special Location',
-    'XCA': 'Export - California',
-    'XPU': 'Export - Pick Up',
-    'XZRE': 'Export - Zone Reserve',
-    'ZRE': 'Zone Reserve Location',
+    '999': 'Mexico (Mercancia Apartada)',
+    'CA': 'Cancún, Quintana Roo',
+    'CA1': 'Cancún, Quintana Roo (Exhibición)',
+    'CA2': 'Cancún, Quintana Roo (Equipos a Prueba)',
+    'CA3': 'Cancún, Quintana Roo (Laboratorio)',
+    'CA4': 'Cancún, Quintana Roo (Área de Ajuste)',
+    'COCZ': 'Consignación Cancún - Zicor',
+    'COPZ': 'Consignación Puebla - Zicor',
+    'INT': 'Internacional',
+    'MEE': 'México (Proyectos Especiales)',
+    'PU': 'Puebla - Binex',
+    'SI': 'Silao, Guanajuato - Binex',
+    'XCA': 'Refrigeration X - Cancún',
+    'XPU': 'Refrigeration X - Puebla',
+    'XZRE': 'Refacciones Refrigeration X',
+    'ZRE': 'Refacciones',
   };
 
-  /// Mexican warehouses (priority display)
-  static const List<String> mexicanWarehouses = ['999', 'COCZ', 'COPZ', 'MEE', 'PU', 'SI', 'ZRE'];
+  /// Cancún warehouses (main Cancún operations)
+  static const List<String> cancunWarehouses = ['CA', 'CA1', 'CA2', 'CA3', 'CA4', 'XCA'];
 
-  /// US warehouses
-  static const List<String> usWarehouses = ['CA', 'CA1', 'CA2', 'CA3', 'CA4'];
+  /// Puebla warehouses
+  static const List<String> pueblaWarehouses = ['PU', 'XPU'];
 
-  /// Export warehouses
-  static const List<String> exportWarehouses = ['XCA', 'XPU', 'XZRE'];
+  /// Consignación warehouses (Zicor)
+  static const List<String> consignacionWarehouses = ['COCZ', 'COPZ'];
+
+  /// Spare parts/refacciones warehouses
+  static const List<String> sparePartsWarehouses = ['ZRE', 'XZRE'];
+
+  /// Other Mexican warehouses
+  static const List<String> otherMexicanWarehouses = ['999', 'SI', 'MEE'];
 
   /// International/Special warehouses
   static const List<String> internationalWarehouses = ['INT'];
@@ -94,19 +100,24 @@ class WarehouseUtils {
     return warehouseLocations[warehouseCode] ?? 'Unknown Location';
   }
 
-  /// Check if a warehouse is in Mexico
-  static bool isMexicanWarehouse(String warehouseCode) {
-    return mexicanWarehouses.contains(warehouseCode);
+  /// Check if a warehouse is in Cancún region
+  static bool isCancunWarehouse(String warehouseCode) {
+    return cancunWarehouses.contains(warehouseCode);
   }
 
-  /// Check if a warehouse is in the US
-  static bool isUSWarehouse(String warehouseCode) {
-    return usWarehouses.contains(warehouseCode);
+  /// Check if a warehouse is in Puebla region
+  static bool isPueblaWarehouse(String warehouseCode) {
+    return pueblaWarehouses.contains(warehouseCode);
   }
 
-  /// Check if a warehouse is for export
-  static bool isExportWarehouse(String warehouseCode) {
-    return exportWarehouses.contains(warehouseCode);
+  /// Check if a warehouse is a consignación warehouse
+  static bool isConsignacionWarehouse(String warehouseCode) {
+    return consignacionWarehouses.contains(warehouseCode);
+  }
+
+  /// Check if a warehouse is for spare parts
+  static bool isSparePartsWarehouse(String warehouseCode) {
+    return sparePartsWarehouses.contains(warehouseCode);
   }
 
   /// Check if a warehouse is international/special
@@ -118,14 +129,16 @@ class WarehouseUtils {
   static Color getWarehouseColor(String warehouseCode) {
     if (warehouseCode == '999') {
       return Colors.amber; // Special color for reserved merchandise
-    } else if (isMexicanWarehouse(warehouseCode)) {
-      return Colors.green;
-    } else if (isUSWarehouse(warehouseCode)) {
-      return Colors.blue;
-    } else if (isExportWarehouse(warehouseCode)) {
-      return Colors.purple;
+    } else if (isCancunWarehouse(warehouseCode)) {
+      return Colors.blue; // Cancún - blue
+    } else if (isPueblaWarehouse(warehouseCode)) {
+      return Colors.green; // Puebla - green
+    } else if (isConsignacionWarehouse(warehouseCode)) {
+      return Colors.purple; // Consignación - purple
+    } else if (isSparePartsWarehouse(warehouseCode)) {
+      return Colors.orange; // Spare parts - orange
     } else if (isInternationalWarehouse(warehouseCode)) {
-      return Colors.orange;
+      return Colors.teal; // International - teal
     } else {
       return Colors.grey;
     }
@@ -135,12 +148,14 @@ class WarehouseUtils {
   static IconData getWarehouseIcon(String warehouseCode) {
     if (warehouseCode == '999') {
       return Icons.inventory_2; // Reserved merchandise
-    } else if (isMexicanWarehouse(warehouseCode)) {
-      return Icons.location_on; // Mexican location
-    } else if (isUSWarehouse(warehouseCode)) {
-      return Icons.warehouse; // US warehouse
-    } else if (isExportWarehouse(warehouseCode)) {
-      return Icons.flight_takeoff; // Export
+    } else if (isCancunWarehouse(warehouseCode)) {
+      return Icons.warehouse; // Cancún warehouses
+    } else if (isPueblaWarehouse(warehouseCode)) {
+      return Icons.business; // Puebla warehouses
+    } else if (isConsignacionWarehouse(warehouseCode)) {
+      return Icons.handshake; // Consignación
+    } else if (isSparePartsWarehouse(warehouseCode)) {
+      return Icons.construction; // Spare parts
     } else if (isInternationalWarehouse(warehouseCode)) {
       return Icons.public; // International
     } else {
@@ -154,27 +169,41 @@ class WarehouseUtils {
     buffer.writeln('Warehouse Codes:');
     buffer.writeln();
 
-    // Main warehouse first
+    // Reserved merchandise first
     buffer.writeln('999 - ${getDescription('999')}');
     buffer.writeln();
 
-    // Mexican warehouses
-    buffer.writeln('Mexican Warehouses:');
-    for (final warehouse in mexicanWarehouses.where((w) => w != '999')) {
+    // Cancún warehouses
+    buffer.writeln('Cancún Warehouses:');
+    for (final warehouse in cancunWarehouses) {
       buffer.writeln('$warehouse - ${getDescription(warehouse)}');
     }
     buffer.writeln();
 
-    // US warehouses
-    buffer.writeln('US Warehouses:');
-    for (final warehouse in usWarehouses) {
+    // Puebla warehouses
+    buffer.writeln('Puebla Warehouses:');
+    for (final warehouse in pueblaWarehouses) {
       buffer.writeln('$warehouse - ${getDescription(warehouse)}');
     }
     buffer.writeln();
 
-    // Export warehouses
-    buffer.writeln('Export Warehouses:');
-    for (final warehouse in exportWarehouses) {
+    // Consignación warehouses
+    buffer.writeln('Consignación Warehouses:');
+    for (final warehouse in consignacionWarehouses) {
+      buffer.writeln('$warehouse - ${getDescription(warehouse)}');
+    }
+    buffer.writeln();
+
+    // Spare parts warehouses
+    buffer.writeln('Spare Parts Warehouses:');
+    for (final warehouse in sparePartsWarehouses) {
+      buffer.writeln('$warehouse - ${getDescription(warehouse)}');
+    }
+    buffer.writeln();
+
+    // Other Mexican warehouses
+    buffer.writeln('Other Mexican Warehouses:');
+    for (final warehouse in otherMexicanWarehouses.where((w) => w != '999')) {
       buffer.writeln('$warehouse - ${getDescription(warehouse)}');
     }
     buffer.writeln();
@@ -184,22 +213,6 @@ class WarehouseUtils {
     for (final warehouse in internationalWarehouses) {
       buffer.writeln('$warehouse - ${getDescription(warehouse)}');
     }
-    buffer.writeln();
-
-    // Other warehouses
-    final otherWarehouses = warehouseDescriptions.keys
-        .where((w) => !mexicanWarehouses.contains(w) &&
-                     !usWarehouses.contains(w) &&
-                     !exportWarehouses.contains(w) &&
-                     !internationalWarehouses.contains(w))
-        .toList();
-
-    if (otherWarehouses.isNotEmpty) {
-      buffer.writeln('Other Warehouses:');
-      for (final warehouse in otherWarehouses) {
-        buffer.writeln('$warehouse - ${getDescription(warehouse)}');
-      }
-    }
 
     return buffer.toString().trim();
   }
@@ -207,16 +220,20 @@ class WarehouseUtils {
   /// Generate tooltip for specific warehouse category
   static String getCategoryTooltip(String category) {
     switch (category.toLowerCase()) {
-      case 'mexican':
-        return mexicanWarehouses
+      case 'cancun':
+        return cancunWarehouses
             .map((w) => '$w - ${getDescription(w)}')
             .join('\n');
-      case 'us':
-        return usWarehouses
+      case 'puebla':
+        return pueblaWarehouses
             .map((w) => '$w - ${getDescription(w)}')
             .join('\n');
-      case 'export':
-        return exportWarehouses
+      case 'consignacion':
+        return consignacionWarehouses
+            .map((w) => '$w - ${getDescription(w)}')
+            .join('\n');
+      case 'spareparts':
+        return sparePartsWarehouses
             .map((w) => '$w - ${getDescription(w)}')
             .join('\n');
       case 'international':
@@ -228,12 +245,15 @@ class WarehouseUtils {
     }
   }
 
-  /// Get all warehouse codes sorted by priority (Mexican first, then US, then export, then international)
+  /// Get all warehouse codes sorted by priority (Cancún, Puebla, Consignación, Spare Parts, Other, International)
   static List<String> getAllWarehouseCodesSorted() {
     final sorted = <String>[];
-    sorted.addAll(mexicanWarehouses);
-    sorted.addAll(usWarehouses);
-    sorted.addAll(exportWarehouses);
+    sorted.add('999'); // Reserved merchandise first
+    sorted.addAll(cancunWarehouses);
+    sorted.addAll(pueblaWarehouses);
+    sorted.addAll(consignacionWarehouses);
+    sorted.addAll(sparePartsWarehouses);
+    sorted.addAll(otherMexicanWarehouses.where((w) => w != '999'));
     sorted.addAll(internationalWarehouses);
 
     // Add any remaining warehouses
@@ -294,5 +314,18 @@ class WarehouseUtils {
         color: Theme.of(context).primaryColor.withValues(alpha: 0.7),
       ),
     );
+  }
+
+  /// Get warehouse category name for display
+  static String getCategoryName(String warehouseCode) {
+    if (warehouseCode == '999') return 'Apartada';
+    if (isCancunWarehouse(warehouseCode)) return 'Cancún';
+    if (isPueblaWarehouse(warehouseCode)) return 'Puebla';
+    if (isConsignacionWarehouse(warehouseCode)) return 'Consignación';
+    if (isSparePartsWarehouse(warehouseCode)) return 'Refacciones';
+    if (isInternationalWarehouse(warehouseCode)) return 'Internacional';
+    if (warehouseCode == 'SI') return 'Silao';
+    if (warehouseCode == 'MEE') return 'Proyectos Especiales';
+    return 'Otro';
   }
 }

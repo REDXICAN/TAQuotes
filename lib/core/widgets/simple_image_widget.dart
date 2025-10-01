@@ -181,37 +181,47 @@ class _SimpleImageWidgetState extends State<SimpleImageWidget> {
   }
   
   Widget _buildPlaceholder() {
-    return Container(
+    // Try to use default product icon as fallback
+    return Image.asset(
+      'assets/icons/default_product.png',
       width: widget.width,
       height: widget.height,
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        border: Border.all(color: Colors.grey[300]!, width: 1),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.image_not_supported_outlined,
-            size: (widget.width ?? 100) * 0.3,
-            color: Colors.grey[400],
+      fit: widget.fit,
+      errorBuilder: (context, error, stackTrace) {
+        // If default icon fails, show original placeholder
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            border: Border.all(color: Colors.grey[300]!, width: 1),
           ),
-          if (widget.width != null && widget.width! > 100) ...[
-            const SizedBox(height: 8),
-            Text(
-              widget.sku.isNotEmpty ? widget.sku : 'No Image',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.image_not_supported_outlined,
+                size: (widget.width ?? 100) * 0.3,
+                color: Colors.grey[400],
               ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ],
-      ),
+              if (widget.width != null && widget.width! > 100) ...[
+                const SizedBox(height: 8),
+                Text(
+                  widget.sku.isNotEmpty ? widget.sku : 'No Image',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }
