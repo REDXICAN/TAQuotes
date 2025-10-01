@@ -422,37 +422,47 @@ exports.testEmail = functions.https.onRequest((req, res) => {
 const axios = require('axios');
 const XLSX = require('xlsx');
 
-// Helper function to get Microsoft Graph API access token
-async function getMicrosoftAccessToken() {
+// Helper function to download Excel directly from public OneDrive share link
+// No authentication needed for publicly shared files
+async function downloadExcelFromPublicLink(shareLink) {
   try {
-    const tokenEndpoint = 'https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token';
-    const tenantId = process.env.MICROSOFT_TENANT_ID || functions.config().microsoft?.tenant_id;
-    const clientId = process.env.MICROSOFT_CLIENT_ID || functions.config().microsoft?.client_id;
-    const clientSecret = process.env.MICROSOFT_CLIENT_SECRET || functions.config().microsoft?.client_secret;
+    console.log('Attempting to download from public OneDrive share link...');
 
-    if (!tenantId || !clientId || !clientSecret) {
-      throw new Error('Missing Microsoft Graph API credentials in environment variables');
+    // Convert the share link to a direct download link
+    // OneDrive share links can be converted by changing the action parameter
+    let downloadLink = shareLink;
+
+    // Method 1: Replace action parameter
+    if (shareLink.includes('action=')) {
+      downloadLink = shareLink.replace(/action=[^&]+/, 'action=download');
+    } else if (shareLink.includes('?')) {
+      downloadLink = shareLink + '&action=download';
+    } else {
+      downloadLink = shareLink + '?action=download';
     }
 
-    const response = await axios.post(
-      tokenEndpoint.replace('{tenant}', tenantId),
-      new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        scope: 'https://graph.microsoft.com/.default',
-        grant_type: 'client_credentials'
-      }),
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      }
-    );
+    console.log('Attempting download from:', downloadLink);
 
-    return response.data.access_token;
+    // Download the file
+    const response = await axios.get(downloadLink, {
+      responseType: 'arraybuffer',
+      maxRedirects: 10,
+      timeout: 60000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      }
+    });
+
+    if (!response || !response.data) {
+      throw new Error('No data received from OneDrive');
+    }
+
+    console.log(`Successfully downloaded ${response.data.byteLength} bytes from OneDrive`);
+    return response.data;
   } catch (error) {
-    console.error('Error getting Microsoft access token:', error.response?.data || error.message);
-    throw new Error('Failed to authenticate with Microsoft Graph API');
+    console.error('Failed to download from public link:', error.message);
+    throw new Error('Unable to download file. Please ensure the OneDrive link is publicly accessible.');
   }
 }
 
@@ -472,42 +482,7 @@ function extractFileIdFromShareLink(shareLink) {
   }
 }
 
-// Helper function to download Excel file from OneDrive
-async function downloadExcelFromOneDrive(accessToken, shareLink) {
-  try {
-    console.log('Downloading Excel file from OneDrive...');
-
-    // Extract file ID from share link
-    const fileId = extractFileIdFromShareLink(shareLink);
-    console.log('Extracted file ID:', fileId);
-
-    // Get file metadata and download URL
-    const fileMetadataUrl = `https://graph.microsoft.com/v1.0/shares/u!${Buffer.from(shareLink).toString('base64url')}/driveItem`;
-
-    const metadataResponse = await axios.get(fileMetadataUrl, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      }
-    });
-
-    const downloadUrl = metadataResponse.data['@microsoft.graph.downloadUrl'];
-
-    if (!downloadUrl) {
-      throw new Error('Could not get download URL from OneDrive');
-    }
-
-    // Download the file
-    const fileResponse = await axios.get(downloadUrl, {
-      responseType: 'arraybuffer'
-    });
-
-    console.log('Excel file downloaded successfully, size:', fileResponse.data.length, 'bytes');
-    return fileResponse.data;
-  } catch (error) {
-    console.error('Error downloading Excel from OneDrive:', error.response?.data || error.message);
-    throw new Error('Failed to download Excel file from OneDrive');
-  }
-}
+// This function is no longer needed - using downloadExcelFromPublicLink instead
 
 // Helper function to parse Excel data
 function parseExcelData(excelBuffer) {
@@ -626,18 +601,15 @@ exports.scheduledOneDriveImport = functions.pubsub
     console.log('Starting scheduled OneDrive Excel import...');
 
     try {
-      // Get OneDrive share link from environment variable
-      const shareLink = process.env.ONEDRIVE_SHARE_LINK || functions.config().onedrive?.share_link;
+      // Get OneDrive share link from environment variable or use default
+      const shareLink = process.env.ONEDRIVE_SHARE_LINK ||
+                       functions.config().onedrive?.share_link ||
+                       'https://onedrive.live.com/personal/537ba0d7826179ca/_layouts/15/Doc.aspx?sourcedoc=%7B826179ca-a0d7-207b-8053-2e6a00000000%7D&action=default&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3gvcyFBc3A1WVlMWG9IdFRnZFF1MU5JTGtIRVRicEJoWWc_ZT1MYVBScm4&slrid=9a30cba1-60dd-a000-529b-02f45f3fb372&originalPath=aHR0cHM6Ly8xZHJ2Lm1zL3gvYy81MzdiYTBkNzgyNjE3OWNhL1FjcDVZWUxYb0hzZ2dGTXVhZ0FBQUFBQTFOSUxrSEVUYnBCaFlnP3J0aW1lPVNaUTFxaEVCM2tn&CID=94d7ba4c-9289-4c7b-acf6-67a89815c258&_SRM=0:G:45';
 
-      if (!shareLink) {
-        throw new Error('OneDrive share link not configured in environment variables');
-      }
+      console.log('Using share link:', shareLink.substring(0, 100) + '...');
 
-      // Get Microsoft Graph API access token
-      const accessToken = await getMicrosoftAccessToken();
-
-      // Download Excel file from OneDrive
-      const excelBuffer = await downloadExcelFromOneDrive(accessToken, shareLink);
+      // Download Excel file directly from public OneDrive link
+      const excelBuffer = await downloadExcelFromPublicLink(shareLink);
 
       // Parse Excel data
       const trackingData = parseExcelData(excelBuffer);
@@ -692,22 +664,16 @@ exports.triggerOneDriveImport = functions.https.onRequest((req, res) => {
 
       console.log('Manual OneDrive import triggered by:', decodedToken.email);
 
-      // Get OneDrive share link from environment variable or request body
+      // Get OneDrive share link from request body, environment variable, or use default
       const shareLink = req.body.shareLink ||
                        process.env.ONEDRIVE_SHARE_LINK ||
-                       functions.config().onedrive?.share_link;
+                       functions.config().onedrive?.share_link ||
+                       'https://onedrive.live.com/personal/537ba0d7826179ca/_layouts/15/Doc.aspx?sourcedoc=%7B826179ca-a0d7-207b-8053-2e6a00000000%7D&action=default&redeem=aHR0cHM6Ly8xZHJ2Lm1zL3gvcyFBc3A1WVlMWG9IdFRnZFF1MU5JTGtIRVRicEJoWWc_ZT1MYVBScm4&slrid=9a30cba1-60dd-a000-529b-02f45f3fb372&originalPath=aHR0cHM6Ly8xZHJ2Lm1zL3gvYy81MzdiYTBkNzgyNjE3OWNhL1FjcDVZWUxYb0hzZ2dGTXVhZ0FBQUFBQTFOSUxrSEVUYnBCaFlnP3J0aW1lPVNaUTFxaEVCM2tn&CID=94d7ba4c-9289-4c7b-acf6-67a89815c258&_SRM=0:G:45';
 
-      if (!shareLink) {
-        return res.status(400).json({
-          error: 'OneDrive share link not configured. Provide it in request body or environment variables.'
-        });
-      }
+      console.log('Using share link:', shareLink.substring(0, 100) + '...');
 
-      // Get Microsoft Graph API access token
-      const accessToken = await getMicrosoftAccessToken();
-
-      // Download Excel file from OneDrive
-      const excelBuffer = await downloadExcelFromOneDrive(accessToken, shareLink);
+      // Download Excel file directly from public OneDrive link
+      const excelBuffer = await downloadExcelFromPublicLink(shareLink);
 
       // Parse Excel data
       const trackingData = parseExcelData(excelBuffer);
