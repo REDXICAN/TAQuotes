@@ -23,12 +23,11 @@ final stockDataProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref)
       if (value is Map) {
         final product = Map<String, dynamic>.from(value);
         final stock = product['stock'] ?? product['totalStock'] ?? product['availableStock'] ?? 0;
-        if (stock > 0) {
-          stockData[key] = {
-            'available': stock,
-            'warehouse': product['warehouse'] ?? '999',
-          };
-        }
+        // Show ALL products, even with 0 stock (removed stock > 0 filter)
+        stockData[key] = {
+          'available': stock,
+          'warehouse': product['warehouse'] ?? '999',
+        };
       }
     });
 
