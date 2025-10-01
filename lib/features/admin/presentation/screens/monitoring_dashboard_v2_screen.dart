@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/auth/models/rbac_permissions.dart';
 import '../../../../core/auth/providers/rbac_provider.dart';
@@ -1266,55 +1267,70 @@ class _MonitoringDashboardV2ScreenState extends ConsumerState<MonitoringDashboar
                   );
                 }
 
+                // Separate critical and low stock alerts
+                final criticalAlerts = alerts.where((a) => a['severity'] == 'critical').toList();
+                final lowStockAlerts = alerts.where((a) => a['severity'] == 'warning' || a['severity'] == 'info').toList();
+
                 return SizedBox(
-                  height: 300,
-                  child: ListView.builder(
-                    itemCount: alerts.length,
-                    itemBuilder: (context, index) {
-                      final alert = alerts[index];
-                      final severity = alert['severity'];
-
-                      Color alertColor;
-                      IconData alertIcon;
-
-                      switch (severity) {
-                        case 'critical':
-                          alertColor = AppTheme.errorColor;
-                          alertIcon = Icons.error;
-                          break;
-                        case 'warning':
-                          alertColor = AppTheme.warningColor;
-                          alertIcon = Icons.warning;
-                          break;
-                        default:
-                          alertColor = Colors.blue;
-                          alertIcon = Icons.info;
-                      }
-
-                      return ListTile(
-                        dense: true,
-                        leading: Icon(alertIcon, color: alertColor),
-                        title: Text(alert['name'] ?? ''),
-                        subtitle: Text(
-                          'SKU: ${alert['sku']} • ${alert['warehouse']} • ${alert['message']}',
-                        ),
-                        trailing: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: alertColor.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '${alert['stock']} units',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: alertColor,
+                  height: 400,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Critical Stock Section
+                        if (criticalAlerts.isNotEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.errorColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.error, color: AppTheme.errorColor, size: 20),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Critical Stock (${criticalAlerts.length})',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.errorColor,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      );
-                    },
+                          const SizedBox(height: 8),
+                          _buildAlertGrid(criticalAlerts, 'critical'),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Low Stock Section
+                        if (lowStockAlerts.isNotEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.warningColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.warning, color: AppTheme.warningColor, size: 20),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Low Stock (${lowStockAlerts.length})',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.warningColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildAlertGrid(lowStockAlerts, 'warning'),
+                        ],
+                      ],
+                    ),
                   ),
                 );
               },
@@ -1331,6 +1347,105 @@ class _MonitoringDashboardV2ScreenState extends ConsumerState<MonitoringDashboar
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAlertGrid(List<Map<String, dynamic>> alerts, String severity) {
+    Color alertColor;
+    IconData alertIcon;
+
+    switch (severity) {
+      case 'critical':
+        alertColor = AppTheme.errorColor;
+        alertIcon = Icons.error;
+        break;
+      case 'warning':
+        alertColor = AppTheme.warningColor;
+        alertIcon = Icons.warning;
+        break;
+      default:
+        alertColor = Colors.blue;
+        alertIcon = Icons.info;
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 3,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemCount: alerts.length,
+      itemBuilder: (context, index) {
+        final alert = alerts[index];
+
+        return InkWell(
+          onTap: () {
+            // Navigate to Stock Dashboard
+            context.go('/admin/stock');
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              border: Border.all(color: alertColor.withValues(alpha: 0.3)),
+              borderRadius: BorderRadius.circular(8),
+              color: alertColor.withValues(alpha: 0.05),
+            ),
+            child: Row(
+              children: [
+                Icon(alertIcon, color: alertColor, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        alert['name'] ?? '',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'SKU: ${alert['sku']} • ${alert['warehouse']}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[600],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: alertColor.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    '${alert['stock']}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: alertColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
