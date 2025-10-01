@@ -17,6 +17,7 @@ import '../../../../core/services/app_logger.dart';
 import '../widgets/user_approvals_widget.dart' show pendingUserApprovalsProvider;
 // import '../widgets/mock_analytics_generator_widget.dart'; // Removed - no longer needed
 import '../widgets/spare_parts_import_widget.dart';
+import '../widgets/comprehensive_data_populator.dart';
 import '../../../../core/services/hybrid_database_service.dart';
 import '../../../settings/presentation/screens/app_settings_screen.dart';
 
@@ -1054,9 +1055,9 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
           const BackupStatusWidget(),
           const SizedBox(height: 24),
 
-          // Mock Analytics Data Generator - removed (no longer needed)
-          // const MockAnalyticsGeneratorWidget(),
-          // const SizedBox(height: 24),
+          // Comprehensive Mock Data Populator
+          const ComprehensiveDataPopulatorWidget(),
+          const SizedBox(height: 24),
 
           // Spare Parts Import
           const SparePartsImportWidget(),

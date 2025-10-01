@@ -257,14 +257,7 @@ class HybridDatabaseService {
     });
   }
 
-  Future<String> createQuote({
-    required String clientId,
-    required List<Map<String, dynamic>> items,
-    required double subtotal,
-    required double taxRate,
-    required double taxAmount,
-    required double totalAmount,
-  }) async {
+  Future<String> createQuote(Map<String, dynamic> quoteData) async {
     if (userId == null) throw Exception('User not authenticated');
 
     // Check rate limiting for quote creation
@@ -287,24 +280,17 @@ class HybridDatabaseService {
       throw Exception(rateLimitResult.message ?? 'Too many quote creation attempts. Please wait before creating another quote.');
     }
 
-    final quoteNumber = 'Q${DateTime.now().millisecondsSinceEpoch}';
     final newQuoteRef = _realtimeDb.ref('quotes/$userId').push();
-    
+
     await newQuoteRef.set({
-      'client_id': clientId,
-      'quote_number': quoteNumber,
-      'items': items,
-      'subtotal': subtotal,
-      'tax_rate': taxRate,
-      'tax_amount': taxAmount,
-      'total_amount': totalAmount,
-      'status': 'draft',
+      ...quoteData,
       'created_at': rtdb.ServerValue.timestamp,
       'updated_at': rtdb.ServerValue.timestamp,
     });
-    
+
     return newQuoteRef.key!;
   }
+
 
   // ============ ANALYTICS & ADMIN METHODS ============
 

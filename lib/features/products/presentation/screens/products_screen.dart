@@ -1325,15 +1325,16 @@ Future<void> _handleExcelUpload() async {
 
         // Adjust aspect ratio based on screen size - optimized for square images and proper content
         // Lower values = taller cards with more room for content
+        // Square image needs ~40% of card, text/price/quantity needs ~60%
         double childAspectRatio;
         if (ResponsiveHelper.isVerticalDisplay(context)) {
-          childAspectRatio = 0.65;  // Taller cards for vertical displays with square images
+          childAspectRatio = 0.40;  // Much taller cards to ensure price/quantity visible
         } else if (ResponsiveHelper.isMobile(context)) {
-          childAspectRatio = 0.70;  // Taller cards on mobile to accommodate square images
+          childAspectRatio = 0.45;  // Taller cards to show all content including price
         } else if (ResponsiveHelper.isTablet(context)) {
-          childAspectRatio = 0.73;  // Taller cards on tablets for better content with square images
+          childAspectRatio = 0.50;  // Taller cards for complete content visibility
         } else {
-          childAspectRatio = 0.75;  // Taller cards on desktop to accommodate square images
+          childAspectRatio = 0.55;  // Taller cards to accommodate all elements
         }
 
         // Increased spacing for vertical screens to prevent overlap
@@ -1843,7 +1844,9 @@ class ProductCard extends ConsumerWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
-          context.push('/products/${product.id}');
+          if (product.id != null && product.id!.isNotEmpty) {
+            context.push('/products/${product.id}');
+          }
         },
         borderRadius: BorderRadius.circular(8),
         child: LayoutBuilder(

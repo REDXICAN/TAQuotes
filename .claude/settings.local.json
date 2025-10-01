@@ -215,7 +215,15 @@
       "Bash(then grep -i \"password\\|apikey\\|secret\" CHANGES_SUMMARY_SEP15-30_2025.md)",
       "Bash(if [ -f firebase_database_structure.json ])",
       "Bash(then head -200 firebase_database_structure.json)",
-      "Bash(else echo \"File not created, checking Firebase...\")"
+      "Bash(else echo \"File not created, checking Firebase...\")",
+      "Bash(test:*)",
+      "Bash(else echo \"OK: .env not found\")",
+      "Bash(then echo \"WARNING: firebase_options.dart exists\")",
+      "Bash(else echo \"OK: firebase_options.dart not found\")",
+      "Bash(then echo \"WARNING: firebase-admin-key.json exists\")",
+      "Bash(else echo \"OK: firebase-admin-key.json not found\")",
+      "Bash(git fetch:*)",
+      "Bash(git rev-parse:*)"
     ],
     "deny": [],
     "ask": [

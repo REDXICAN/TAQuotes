@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:excel/excel.dart' as excel_pkg;
+import 'dart:typed_data';
 import '../../../../core/models/models.dart';
 import '../../../../core/auth/providers/rbac_provider.dart';
 import '../../../../core/auth/models/rbac_permissions.dart';
@@ -12,36 +14,12 @@ import '../../../../core/utils/responsive_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../../core/services/rbac_service.dart';
 import '../../../../core/services/app_logger.dart';
+import '../../../../core/utils/download_helper.dart';
+import '../../models/report_schedule.dart';
+import '../../services/report_scheduler_service.dart';
+import '../../services/performance_report_email_service.dart';
+import '../../widgets/report_schedule_dialog.dart';
 
-// Performance Metrics Provider
-final performanceMetricsProvider = FutureProvider.family<List<UserPerformanceMetrics>, String>((ref, period) async {
-  // Mock data for now - in real app this would fetch from Firebase
-  return [
-    UserPerformanceMetrics(
-      userId: 'user1',
-      email: 'sales@turboairmexico.com',
-      displayName: 'Sales Representative',
-      totalQuotes: 45,
-      acceptedQuotes: 38,
-      pendingQuotes: 5,
-      rejectedQuotes: 2,
-      totalRevenue: 125000.0,
-      averageQuoteValue: 2777.78,
-      conversionRate: 84.4,
-      totalClients: 15,
-      newClientsThisMonth: 3,
-      lastActivity: DateTime.now().subtract(const Duration(hours: 2)),
-      quotesThisWeek: 8,
-      quotesThisMonth: 18,
-      revenueThisMonth: 45000.0,
-      productsSold: {'Refrigeration': 12, 'Freezers': 8, 'Prep Tables': 15},
-      categoryRevenue: {'Refrigeration': 65000.0, 'Freezers': 35000.0, 'Prep Tables': 25000.0},
-      recentQuotes: [],
-      averageResponseTime: 2.5,
-      totalProducts: 835,
-    ),
-  ];
-});
 
 // User performance metrics model
 class UserPerformanceMetrics {
@@ -64,9 +42,10 @@ class UserPerformanceMetrics {
   final Map<String, int> productsSold;
   final Map<String, double> categoryRevenue;
   final List<Quote> recentQuotes;
+  final List<Quote> allQuotes; // All quotes for accurate chart data
   final double averageResponseTime; // hours
   final int totalProducts;
-  
+
   UserPerformanceMetrics({
     required this.userId,
     required this.email,
@@ -87,20 +66,46 @@ class UserPerformanceMetrics {
     required this.productsSold,
     required this.categoryRevenue,
     required this.recentQuotes,
+    required this.allQuotes,
     required this.averageResponseTime,
     required this.totalProducts,
   });
 }
 
-// Auto-refreshing provider for aggregating user performance data
-final userPerformanceProvider = StreamProvider.autoDispose<List<UserPerformanceMetrics>>((ref) async* {
+// Performance filter parameters
+class PerformanceFilterParams {
+  final String period;
+  final DateTime? customStart;
+  final DateTime? customEnd;
+
+  const PerformanceFilterParams({
+    required this.period,
+    this.customStart,
+    this.customEnd,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PerformanceFilterParams &&
+          runtimeType == other.runtimeType &&
+          period == other.period &&
+          customStart == other.customStart &&
+          customEnd == other.customEnd;
+
+  @override
+  int get hashCode => period.hashCode ^ customStart.hashCode ^ customEnd.hashCode;
+}
+
+// Auto-refreshing provider for aggregating user performance data with period filtering
+final userPerformanceProvider = StreamProvider.autoDispose.family<List<UserPerformanceMetrics>, PerformanceFilterParams>((ref, params) async* {
   // Initial load
-  yield await _fetchUserPerformanceMetrics();
+  yield await _fetchUserPerformanceMetrics(params.period, customStart: params.customStart, customEnd: params.customEnd);
 
   // Auto-refresh every 30 seconds
   await for (final _ in Stream.periodic(const Duration(seconds: 30))) {
     try {
-      yield await _fetchUserPerformanceMetrics();
+      yield await _fetchUserPerformanceMetrics(params.period, customStart: params.customStart, customEnd: params.customEnd);
     } catch (e) {
       // Continue with previous data on error, don't break the stream
       AppLogger.error('Auto-refresh failed for performance metrics', error: e);
@@ -108,8 +113,8 @@ final userPerformanceProvider = StreamProvider.autoDispose<List<UserPerformanceM
   }
 });
 
-// Extract the logic to a separate function for reuse
-Future<List<UserPerformanceMetrics>> _fetchUserPerformanceMetrics() async {
+// Extract the logic to a separate function for reuse with period filtering
+Future<List<UserPerformanceMetrics>> _fetchUserPerformanceMetrics(String period, {DateTime? customStart, DateTime? customEnd}) async {
   final database = FirebaseDatabase.instance;
   final currentUser = FirebaseAuth.instance.currentUser;
 
@@ -122,16 +127,44 @@ Future<List<UserPerformanceMetrics>> _fetchUserPerformanceMetrics() async {
   if (!hasPermission) {
     return [];
   }
-  
+
   try {
     // Get all users
     final usersSnapshot = await database.ref('users').get();
     if (!usersSnapshot.exists) return [];
-    
+
     final users = Map<String, dynamic>.from(usersSnapshot.value as Map);
     final List<UserPerformanceMetrics> metrics = [];
-    
+
     final now = DateTime.now();
+
+    // Calculate date range based on selected period
+    final DateTime periodStartDate;
+    if (period == 'custom' && customStart != null) {
+      periodStartDate = customStart;
+    } else {
+      switch (period) {
+        case 'week':
+          periodStartDate = now.subtract(const Duration(days: 7));
+          break;
+        case 'month':
+          periodStartDate = DateTime(now.year, now.month - 1, now.day);
+          break;
+        case 'quarter':
+          periodStartDate = DateTime(now.year, now.month - 3, now.day);
+          break;
+        case 'year':
+          periodStartDate = DateTime(now.year - 1, now.month, now.day);
+          break;
+        case 'all':
+        default:
+          periodStartDate = DateTime(2000, 1, 1); // Beginning of time for "all time"
+          break;
+      }
+    }
+
+    final DateTime periodEndDate = (period == 'custom' && customEnd != null) ? customEnd : now;
+
     final weekAgo = now.subtract(const Duration(days: 7));
     final monthAgo = DateTime(now.year, now.month - 1, now.day);
     
@@ -139,16 +172,29 @@ Future<List<UserPerformanceMetrics>> _fetchUserPerformanceMetrics() async {
       final userId = entry.key;
       final userData = Map<String, dynamic>.from(entry.value);
       
-      // Get user's quotes
+      // Get user's quotes and filter by period
       final quotesSnapshot = await database.ref('quotes/$userId').get();
       final quotes = <Quote>[];
-      
+      final allQuotes = <Quote>[]; // Store all quotes for chart data
+
       if (quotesSnapshot.exists) {
         final quotesData = Map<String, dynamic>.from(quotesSnapshot.value as Map);
         for (final quoteEntry in quotesData.entries) {
           final quoteMap = Map<String, dynamic>.from(quoteEntry.value);
           quoteMap['id'] = quoteEntry.key;
-          quotes.add(Quote.fromMap(quoteMap));
+          final quote = Quote.fromMap(quoteMap);
+
+          // Store all quotes for complete data set
+          allQuotes.add(quote);
+
+          // Filter quotes by selected period for metrics calculation
+          final isInRange = (quote.createdAt.isAfter(periodStartDate) ||
+                            quote.createdAt.isAtSameMomentAs(periodStartDate)) &&
+                           (quote.createdAt.isBefore(periodEndDate.add(const Duration(days: 1))) ||
+                            period == 'all');
+          if (isInRange) {
+            quotes.add(quote);
+          }
         }
       }
       
@@ -277,6 +323,7 @@ Future<List<UserPerformanceMetrics>> _fetchUserPerformanceMetrics() async {
         productsSold: productsSold,
         categoryRevenue: categoryRevenue,
         recentQuotes: recentQuotes,
+        allQuotes: allQuotes, // Pass all quotes for chart calculations
         averageResponseTime: avgResponseTime,
         totalProducts: totalProducts,
       ));
@@ -305,22 +352,20 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
   String _selectedPeriod = 'month';
   String _sortBy = 'revenue';
   UserPerformanceMetrics? _selectedUser;
+  DateTime? _customStartDate;
+  DateTime? _customEndDate;
+  bool _isExporting = false;
 
   // Add missing getters
   ThemeData get theme => Theme.of(context);
   NumberFormat get numberFormat => NumberFormat('#,##0');
   NumberFormat get currencyFormat => NumberFormat.currency(symbol: '\$');
   bool get isMobile => MediaQuery.of(context).size.width < 600;
-
-  // Performance metrics async provider
-  AsyncValue<List<UserPerformanceMetrics>> get performanceAsync {
-    return ref.watch(performanceMetricsProvider(_selectedPeriod));
-  }
   
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _checkAccess();
   }
   
@@ -371,12 +416,6 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
   
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final performanceAsync = ref.watch(userPerformanceProvider);
-    final numberFormat = NumberFormat('#,###');
-    final currencyFormat = NumberFormat.currency(symbol: '\$');
-    final isMobile = ResponsiveHelper.isMobile(context);
-    
     // Admin access check
     final currentUser = ref.watch(authStateProvider).valueOrNull;
     if (currentUser == null) {
@@ -433,29 +472,18 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
   }
 
   Widget _buildDashboard(User currentUser, WidgetRef ref) {
-    if (false) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Performance Dashboard'),
-        ),
-        body: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.lock, size: 64, color: Colors.red),
-              SizedBox(height: 16),
-              Text(
-                'Access Denied',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              Text('Admin privileges required'),
-            ],
-          ),
-        ),
-      );
-    }
-    
+    // Watch the performance provider with the selected period and custom dates
+    final filterParams = PerformanceFilterParams(
+      period: _selectedPeriod,
+      customStart: _customStartDate,
+      customEnd: _customEndDate,
+    );
+    final performanceAsync = ref.watch(userPerformanceProvider(filterParams));
+    final theme = Theme.of(context);
+    final numberFormat = NumberFormat('#,###');
+    final currencyFormat = NumberFormat.currency(symbol: '\$');
+    final isMobile = ResponsiveHelper.isMobile(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('User Performance Dashboard'),
@@ -478,18 +506,69 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
                 DropdownMenuItem(value: 'quarter', child: Text('This Quarter')),
                 DropdownMenuItem(value: 'year', child: Text('This Year')),
                 DropdownMenuItem(value: 'all', child: Text('All Time')),
+                DropdownMenuItem(value: 'custom', child: Text('Custom Range')),
               ],
               onChanged: (value) {
-                setState(() {
-                  _selectedPeriod = value!;
-                });
+                if (value == 'custom') {
+                  _showCustomDateRangePicker(context);
+                } else {
+                  setState(() {
+                    _selectedPeriod = value!;
+                    _customStartDate = null;
+                    _customEndDate = null;
+                  });
+                }
               },
             ),
+          ),
+          // Date range display for custom period
+          if (_selectedPeriod == 'custom' && _customStartDate != null && _customEndDate != null)
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: theme.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${DateFormat('MMM d').format(_customStartDate!)} - ${DateFormat('MMM d, yyyy').format(_customEndDate!)}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: theme.primaryColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          // Send email button
+          IconButton(
+            icon: const Icon(Icons.send),
+            onPressed: () => _sendEmailReport(performanceAsync.value),
+            tooltip: 'Send Report via Email',
+          ),
+          // Export button
+          IconButton(
+            icon: _isExporting
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: theme.colorScheme.onPrimary,
+                    ),
+                  )
+                : const Icon(Icons.download),
+            onPressed: _isExporting ? null : () => _exportToExcel(performanceAsync.value),
+            tooltip: 'Export to Excel',
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              ref.invalidate(userPerformanceProvider);
+              final params = PerformanceFilterParams(
+                period: _selectedPeriod,
+                customStart: _customStartDate,
+                customEnd: _customEndDate,
+              );
+              ref.invalidate(userPerformanceProvider(params));
             },
             tooltip: 'Refresh',
           ),
@@ -501,6 +580,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
             Tab(text: 'Overview', icon: Icon(Icons.dashboard)),
             Tab(text: 'Users', icon: Icon(Icons.people)),
             Tab(text: 'Analytics', icon: Icon(Icons.analytics)),
+            Tab(text: 'Schedules', icon: Icon(Icons.schedule)),
           ],
         ),
       ),
@@ -517,12 +597,15 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
             children: [
               // Overview Tab
               _buildOverviewTab(metrics, theme, numberFormat, currencyFormat, isMobile),
-              
+
               // Users Tab
               _buildUsersTab(metrics, theme, numberFormat, currencyFormat, isMobile),
-              
+
               // Analytics Tab
               _buildAnalyticsTab(metrics, theme, numberFormat, currencyFormat, isMobile),
+
+              // Schedules Tab
+              _buildSchedulesTab(metrics, theme, isMobile),
             ],
           );
         },
@@ -536,7 +619,14 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
               Text('Error loading performance data: $error'),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => ref.invalidate(userPerformanceProvider),
+                onPressed: () {
+                  final params = PerformanceFilterParams(
+                    period: _selectedPeriod,
+                    customStart: _customStartDate,
+                    customEnd: _customEndDate,
+                  );
+                  ref.invalidate(userPerformanceProvider(params));
+                },
                 child: const Text('Retry'),
               ),
             ],
@@ -773,12 +863,12 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
         productsSold[product] = (productsSold[product] ?? 0) + quantity;
       });
       userQuoteCount[user.displayName] = user.totalQuotes;
-      
-      // Calculate monthly revenue from recent quotes
-      for (final quote in user.recentQuotes) {
+
+      // Calculate monthly revenue from ALL quotes (not just recent 5)
+      for (final quote in user.allQuotes) {
         final monthKey = DateFormat('MMM').format(quote.createdAt);
-        if (quote.status.toLowerCase() == 'accepted' || 
-            quote.status.toLowerCase() == 'closed' || 
+        if (quote.status.toLowerCase() == 'accepted' ||
+            quote.status.toLowerCase() == 'closed' ||
             quote.status.toLowerCase() == 'sold') {
           monthlyRevenue[monthKey] = (monthlyRevenue[monthKey] ?? 0) + quote.total;
         }
@@ -1685,9 +1775,9 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
       Colors.purple,
       Colors.red,
     ];
-    
+
     final total = categories.fold(0.0, (sum, entry) => sum + entry.value);
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1702,7 +1792,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
           final index = entry.key;
           final category = entry.value;
           final percentage = (category.value / total * 100);
-          
+
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
@@ -1763,5 +1853,1080 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
         ),
       ],
     );
+  }
+
+  // Custom Date Range Picker
+  Future<void> _showCustomDateRangePicker(BuildContext context) async {
+    final now = DateTime.now();
+    DateTime? startDate = _customStartDate ?? now.subtract(const Duration(days: 30));
+    DateTime? endDate = _customEndDate ?? now;
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Select Custom Date Range'),
+              content: SizedBox(
+                width: 400,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Start Date
+                    ListTile(
+                      leading: const Icon(Icons.calendar_today),
+                      title: const Text('Start Date'),
+                      subtitle: Text(
+                        startDate != null
+                            ? DateFormat('MMMM dd, yyyy').format(startDate!)
+                            : 'Not selected',
+                      ),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: startDate ?? now.subtract(const Duration(days: 30)),
+                          firstDate: DateTime(2000),
+                          lastDate: endDate ?? now,
+                        );
+                        if (picked != null) {
+                          setDialogState(() {
+                            startDate = picked;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // End Date
+                    ListTile(
+                      leading: const Icon(Icons.event),
+                      title: const Text('End Date'),
+                      subtitle: Text(
+                        endDate != null
+                            ? DateFormat('MMMM dd, yyyy').format(endDate!)
+                            : 'Not selected',
+                      ),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: endDate ?? now,
+                          firstDate: startDate ?? DateTime(2000),
+                          lastDate: now,
+                        );
+                        if (picked != null) {
+                          setDialogState(() {
+                            endDate = picked;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Quick date range buttons
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        _buildQuickRangeChip(
+                          'Last 7 Days',
+                          () {
+                            setDialogState(() {
+                              endDate = now;
+                              startDate = now.subtract(const Duration(days: 7));
+                            });
+                          },
+                        ),
+                        _buildQuickRangeChip(
+                          'Last 30 Days',
+                          () {
+                            setDialogState(() {
+                              endDate = now;
+                              startDate = now.subtract(const Duration(days: 30));
+                            });
+                          },
+                        ),
+                        _buildQuickRangeChip(
+                          'Last 90 Days',
+                          () {
+                            setDialogState(() {
+                              endDate = now;
+                              startDate = now.subtract(const Duration(days: 90));
+                            });
+                          },
+                        ),
+                        _buildQuickRangeChip(
+                          'Year to Date',
+                          () {
+                            setDialogState(() {
+                              endDate = now;
+                              startDate = DateTime(now.year, 1, 1);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: startDate != null && endDate != null
+                      ? () {
+                          setState(() {
+                            _customStartDate = startDate;
+                            _customEndDate = endDate;
+                            _selectedPeriod = 'custom';
+                          });
+                          Navigator.of(context).pop();
+                        }
+                      : null,
+                  child: const Text('Apply'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildQuickRangeChip(String label, VoidCallback onTap) {
+    return ActionChip(
+      label: Text(label),
+      onPressed: onTap,
+    );
+  }
+
+  // Export to Excel
+  Future<void> _exportToExcel(List<UserPerformanceMetrics>? metrics) async {
+    if (metrics == null || metrics.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No data available to export')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isExporting = true;
+    });
+
+    try {
+      final excel = excel_pkg.Excel.createExcel();
+      excel.delete('Sheet1');
+
+      // Create Overview Sheet
+      _createOverviewSheet(excel, metrics);
+
+      // Create User Details Sheet
+      _createUserDetailsSheet(excel, metrics);
+
+      // Create Analytics Sheet
+      _createAnalyticsSheet(excel, metrics);
+
+      // Save and download
+      final bytes = excel.save();
+      if (bytes != null) {
+        final periodName = _getPeriodDisplayName();
+        final fileName = 'Performance_Dashboard_${periodName}_${DateFormat('yyyy-MM-dd').format(DateTime.now())}.xlsx';
+
+        await DownloadHelper.downloadFile(
+          bytes: Uint8List.fromList(bytes),
+          filename: fileName,
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Excel file exported: $fileName')),
+          );
+        }
+      }
+    } catch (e) {
+      AppLogger.error('Error exporting to Excel', error: e, category: LogCategory.business);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error exporting: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isExporting = false;
+        });
+      }
+    }
+  }
+
+  String _getPeriodDisplayName() {
+    if (_selectedPeriod == 'custom' && _customStartDate != null && _customEndDate != null) {
+      return '${DateFormat('MMM_dd').format(_customStartDate!)}_to_${DateFormat('MMM_dd_yyyy').format(_customEndDate!)}';
+    }
+    switch (_selectedPeriod) {
+      case 'week': return 'This_Week';
+      case 'month': return 'This_Month';
+      case 'quarter': return 'This_Quarter';
+      case 'year': return 'This_Year';
+      case 'all': return 'All_Time';
+      default: return _selectedPeriod;
+    }
+  }
+
+  void _createOverviewSheet(excel_pkg.Excel excel, List<UserPerformanceMetrics> metrics) {
+    final sheet = excel['Overview'];
+
+    // Calculate totals
+    final totalRevenue = metrics.fold(0.0, (sum, m) => sum + m.totalRevenue);
+    final totalQuotes = metrics.fold(0, (sum, m) => sum + m.totalQuotes);
+    final totalClients = metrics.fold(0, (sum, m) => sum + m.totalClients);
+    final avgConversion = metrics.isEmpty ? 0.0 :
+        metrics.fold(0.0, (sum, m) => sum + m.conversionRate) / metrics.length;
+
+    int row = 0;
+
+    // Title
+    sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+      ..value = excel_pkg.TextCellValue('PERFORMANCE DASHBOARD - OVERVIEW')
+      ..cellStyle = excel_pkg.CellStyle(bold: true, fontSize: 16);
+    row += 2;
+
+    // Period
+    sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+      ..value = excel_pkg.TextCellValue('Period:')
+      ..cellStyle = excel_pkg.CellStyle(bold: true);
+    sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+      .value = excel_pkg.TextCellValue(_getPeriodDisplayName().replaceAll('_', ' '));
+    row += 2;
+
+    // Company KPIs
+    sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+      ..value = excel_pkg.TextCellValue('COMPANY PERFORMANCE')
+      ..cellStyle = excel_pkg.CellStyle(bold: true, fontSize: 14);
+    row += 1;
+
+    final kpiData = [
+      ['Total Revenue', NumberFormat.currency(symbol: '\$').format(totalRevenue)],
+      ['Total Quotes', totalQuotes.toString()],
+      ['Total Clients', totalClients.toString()],
+      ['Average Conversion Rate', '${avgConversion.toStringAsFixed(1)}%'],
+    ];
+
+    for (final kpi in kpiData) {
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+        ..value = excel_pkg.TextCellValue(kpi[0])
+        ..cellStyle = excel_pkg.CellStyle(bold: true);
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+        .value = excel_pkg.TextCellValue(kpi[1]);
+      row++;
+    }
+
+    row += 2;
+
+    // Top Performers
+    sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+      ..value = excel_pkg.TextCellValue('TOP PERFORMERS')
+      ..cellStyle = excel_pkg.CellStyle(bold: true, fontSize: 14);
+    row += 1;
+
+    final topByRevenue = [...metrics]..sort((a, b) => b.totalRevenue.compareTo(a.totalRevenue));
+    final topByQuotes = [...metrics]..sort((a, b) => b.totalQuotes.compareTo(a.totalQuotes));
+    final topByConversion = [...metrics]..sort((a, b) => b.conversionRate.compareTo(a.conversionRate));
+
+    // Headers
+    final headers = ['Rank', 'By Revenue', 'Amount', 'By Quotes', 'Count', 'By Conversion', 'Rate'];
+    for (int i = 0; i < headers.length; i++) {
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: row))
+        ..value = excel_pkg.TextCellValue(headers[i])
+        ..cellStyle = excel_pkg.CellStyle(bold: true, backgroundColorHex: excel_pkg.ExcelColor.fromHexString('#E0E0E0'));
+    }
+    row++;
+
+    // Top 10
+    for (int i = 0; i < 10 && i < metrics.length; i++) {
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+        .value = excel_pkg.IntCellValue(i + 1);
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+        .value = excel_pkg.TextCellValue(topByRevenue[i].displayName);
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+        .value = excel_pkg.TextCellValue(NumberFormat.currency(symbol: '\$').format(topByRevenue[i].totalRevenue));
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
+        .value = excel_pkg.TextCellValue(topByQuotes[i].displayName);
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row))
+        .value = excel_pkg.IntCellValue(topByQuotes[i].totalQuotes);
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row))
+        .value = excel_pkg.TextCellValue(topByConversion[i].displayName);
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row))
+        .value = excel_pkg.TextCellValue('${topByConversion[i].conversionRate.toStringAsFixed(1)}%');
+      row++;
+    }
+
+    // Auto-size columns
+    for (int i = 0; i < headers.length; i++) {
+      sheet.setColumnWidth(i, 20);
+    }
+  }
+
+  void _createUserDetailsSheet(excel_pkg.Excel excel, List<UserPerformanceMetrics> metrics) {
+    final sheet = excel['User Details'];
+
+    // Headers
+    final headers = [
+      'User Name',
+      'Email',
+      'Total Revenue',
+      'Total Quotes',
+      'Accepted',
+      'Pending',
+      'Rejected',
+      'Conversion Rate',
+      'Avg Quote Value',
+      'Total Clients',
+      'New Clients This Month',
+      'Quotes This Week',
+      'Quotes This Month',
+      'Revenue This Month',
+      'Avg Response Time (hrs)',
+      'Total Products Sold',
+    ];
+
+    for (int i = 0; i < headers.length; i++) {
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+        ..value = excel_pkg.TextCellValue(headers[i])
+        ..cellStyle = excel_pkg.CellStyle(
+          bold: true,
+          backgroundColorHex: excel_pkg.ExcelColor.fromHexString('#4CAF50'),
+          fontColorHex: excel_pkg.ExcelColor.fromHexString('#FFFFFF'),
+        );
+    }
+
+    // Data rows
+    for (int rowIndex = 0; rowIndex < metrics.length; rowIndex++) {
+      final user = metrics[rowIndex];
+      final row = rowIndex + 1;
+
+      final rowData = [
+        user.displayName,
+        user.email,
+        NumberFormat.currency(symbol: '\$').format(user.totalRevenue),
+        user.totalQuotes.toString(),
+        user.acceptedQuotes.toString(),
+        user.pendingQuotes.toString(),
+        user.rejectedQuotes.toString(),
+        '${user.conversionRate.toStringAsFixed(1)}%',
+        NumberFormat.currency(symbol: '\$').format(user.averageQuoteValue),
+        user.totalClients.toString(),
+        user.newClientsThisMonth.toString(),
+        user.quotesThisWeek.toString(),
+        user.quotesThisMonth.toString(),
+        NumberFormat.currency(symbol: '\$').format(user.revenueThisMonth),
+        user.averageResponseTime.toStringAsFixed(1),
+        user.totalProducts.toString(),
+      ];
+
+      for (int colIndex = 0; colIndex < rowData.length; colIndex++) {
+        sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: colIndex, rowIndex: row))
+          .value = excel_pkg.TextCellValue(rowData[colIndex]);
+      }
+    }
+
+    // Auto-size columns
+    for (int i = 0; i < headers.length; i++) {
+      sheet.setColumnWidth(i, 20);
+    }
+  }
+
+  void _createAnalyticsSheet(excel_pkg.Excel excel, List<UserPerformanceMetrics> metrics) {
+    final sheet = excel['Analytics'];
+
+    int row = 0;
+
+    // Title
+    sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+      ..value = excel_pkg.TextCellValue('ANALYTICS SUMMARY')
+      ..cellStyle = excel_pkg.CellStyle(bold: true, fontSize: 16);
+    row += 2;
+
+    // Category Revenue
+    final Map<String, double> categoryRevenue = {};
+    for (final user in metrics) {
+      user.categoryRevenue.forEach((category, revenue) {
+        categoryRevenue[category] = (categoryRevenue[category] ?? 0) + revenue;
+      });
+    }
+
+    if (categoryRevenue.isNotEmpty) {
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+        ..value = excel_pkg.TextCellValue('REVENUE BY CATEGORY')
+        ..cellStyle = excel_pkg.CellStyle(bold: true, fontSize: 14);
+      row += 1;
+
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+        ..value = excel_pkg.TextCellValue('Category')
+        ..cellStyle = excel_pkg.CellStyle(bold: true, backgroundColorHex: excel_pkg.ExcelColor.fromHexString('#E0E0E0'));
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+        ..value = excel_pkg.TextCellValue('Revenue')
+        ..cellStyle = excel_pkg.CellStyle(bold: true, backgroundColorHex: excel_pkg.ExcelColor.fromHexString('#E0E0E0'));
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+        ..value = excel_pkg.TextCellValue('Percentage')
+        ..cellStyle = excel_pkg.CellStyle(bold: true, backgroundColorHex: excel_pkg.ExcelColor.fromHexString('#E0E0E0'));
+      row++;
+
+      final totalRevenue = categoryRevenue.values.fold(0.0, (sum, val) => sum + val);
+      final sortedCategories = categoryRevenue.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+
+      for (final entry in sortedCategories) {
+        final percentage = (entry.value / totalRevenue * 100).toStringAsFixed(1);
+        sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+          .value = excel_pkg.TextCellValue(entry.key);
+        sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+          .value = excel_pkg.TextCellValue(NumberFormat.currency(symbol: '\$').format(entry.value));
+        sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+          .value = excel_pkg.TextCellValue('$percentage%');
+        row++;
+      }
+
+      row += 2;
+    }
+
+    // Top Products
+    final Map<String, int> productsSold = {};
+    for (final user in metrics) {
+      user.productsSold.forEach((product, quantity) {
+        productsSold[product] = (productsSold[product] ?? 0) + quantity;
+      });
+    }
+
+    if (productsSold.isNotEmpty) {
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+        ..value = excel_pkg.TextCellValue('TOP PRODUCTS SOLD')
+        ..cellStyle = excel_pkg.CellStyle(bold: true, fontSize: 14);
+      row += 1;
+
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+        ..value = excel_pkg.TextCellValue('Rank')
+        ..cellStyle = excel_pkg.CellStyle(bold: true, backgroundColorHex: excel_pkg.ExcelColor.fromHexString('#E0E0E0'));
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+        ..value = excel_pkg.TextCellValue('Product')
+        ..cellStyle = excel_pkg.CellStyle(bold: true, backgroundColorHex: excel_pkg.ExcelColor.fromHexString('#E0E0E0'));
+      sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+        ..value = excel_pkg.TextCellValue('Units Sold')
+        ..cellStyle = excel_pkg.CellStyle(bold: true, backgroundColorHex: excel_pkg.ExcelColor.fromHexString('#E0E0E0'));
+      row++;
+
+      final sortedProducts = productsSold.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+
+      for (int i = 0; i < sortedProducts.length && i < 20; i++) {
+        final entry = sortedProducts[i];
+        sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+          .value = excel_pkg.IntCellValue(i + 1);
+        sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+          .value = excel_pkg.TextCellValue(entry.key);
+        sheet.cell(excel_pkg.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+          .value = excel_pkg.IntCellValue(entry.value);
+        row++;
+      }
+    }
+
+    // Auto-size columns
+    sheet.setColumnWidth(0, 25);
+    sheet.setColumnWidth(1, 30);
+    sheet.setColumnWidth(2, 20);
+  }
+
+  // Build schedules tab
+  Widget _buildSchedulesTab(
+    List<UserPerformanceMetrics> metrics,
+    ThemeData theme,
+    bool isMobile,
+  ) {
+    return StreamBuilder<List<ReportSchedule>>(
+      stream: ReportSchedulerService.getUserSchedules(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Error loading schedules: ${snapshot.error}'),
+              ],
+            ),
+          );
+        }
+
+        final schedules = snapshot.data ?? [];
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with create button
+              Row(
+                children: [
+                  Icon(Icons.schedule_send, color: theme.primaryColor, size: 32),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Email Report Schedules',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Automatically send performance reports via email',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.disabledColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () => _showScheduleDialog(null, metrics),
+                    icon: const Icon(Icons.add),
+                    label: const Text('New Schedule'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Info banner
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Note: Actual scheduled sending requires backend setup (Firebase Cloud Functions). '
+                        'Currently, you can create schedules and send reports manually.',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Schedules list
+              if (schedules.isEmpty)
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.schedule,
+                          size: 80, color: theme.disabledColor),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No schedules created yet',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.disabledColor,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Create your first schedule to automate performance reports',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.disabledColor,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: () => _showScheduleDialog(null, metrics),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Create Schedule'),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: schedules.length,
+                  itemBuilder: (context, index) {
+                    final schedule = schedules[index];
+                    return _buildScheduleCard(schedule, theme, metrics);
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildScheduleCard(
+    ReportSchedule schedule,
+    ThemeData theme,
+    List<UserPerformanceMetrics> metrics,
+  ) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: schedule.isEnabled
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.grey.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    schedule.isEnabled ? Icons.schedule : Icons.schedule_outlined,
+                    color: schedule.isEnabled ? Colors.green : Colors.grey,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            schedule.getFrequencyDisplay(),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: schedule.isEnabled
+                                  ? Colors.green.withOpacity(0.1)
+                                  : Colors.grey.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              schedule.isEnabled ? 'Active' : 'Disabled',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: schedule.isEnabled
+                                    ? Colors.green
+                                    : Colors.grey,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${schedule.recipientEmails.length} recipient(s)',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.disabledColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Actions
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'send_now':
+                        _sendScheduledReport(schedule, metrics);
+                        break;
+                      case 'edit':
+                        _showScheduleDialog(schedule, metrics);
+                        break;
+                      case 'toggle':
+                        ReportSchedulerService.toggleSchedule(
+                            schedule.id, !schedule.isEnabled);
+                        break;
+                      case 'delete':
+                        _deleteSchedule(schedule);
+                        break;
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'send_now',
+                      child: Row(
+                        children: [
+                          Icon(Icons.send, size: 20),
+                          SizedBox(width: 8),
+                          Text('Send Now'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 20),
+                          SizedBox(width: 8),
+                          Text('Edit'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'toggle',
+                      child: Row(
+                        children: [
+                          Icon(
+                            schedule.isEnabled
+                                ? Icons.pause_circle_outline
+                                : Icons.play_circle_outline,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(schedule.isEnabled ? 'Disable' : 'Enable'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 20, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Delete', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Recipients
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: schedule.recipientEmails.map((email) {
+                return Chip(
+                  avatar: const Icon(Icons.email, size: 16),
+                  label: Text(email),
+                  labelStyle: theme.textTheme.bodySmall,
+                  visualDensity: VisualDensity.compact,
+                );
+              }).toList(),
+            ),
+            // Last sent / Next scheduled
+            if (schedule.lastSent != null || schedule.nextScheduled != null) ...[
+              const Divider(height: 24),
+              Row(
+                children: [
+                  if (schedule.lastSent != null)
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(Icons.check_circle,
+                              size: 16, color: Colors.green),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              'Last sent: ${DateFormat('MMM dd, yyyy HH:mm').format(schedule.lastSent!)}',
+                              style: theme.textTheme.bodySmall,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (schedule.nextScheduled != null)
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(Icons.schedule, size: 16, color: Colors.blue),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              'Next: ${DateFormat('MMM dd, yyyy HH:mm').format(schedule.nextScheduled!)}',
+                              style: theme.textTheme.bodySmall,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showScheduleDialog(
+    ReportSchedule? existingSchedule,
+    List<UserPerformanceMetrics> metrics,
+  ) async {
+    final result = await showDialog<ReportSchedule>(
+      context: context,
+      builder: (context) => ReportScheduleDialog(
+        existingSchedule: existingSchedule,
+      ),
+    );
+
+    if (result != null) {
+      final success = existingSchedule == null
+          ? await ReportSchedulerService.createSchedule(result)
+          : await ReportSchedulerService.updateSchedule(result);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? existingSchedule == null
+                      ? 'Schedule created successfully'
+                      : 'Schedule updated successfully'
+                  : 'Failed to save schedule',
+            ),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteSchedule(ReportSchedule schedule) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Schedule'),
+        content: Text(
+          'Are you sure you want to delete this schedule?\n\n${schedule.getFrequencyDisplay()}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final success =
+          await ReportSchedulerService.deleteSchedule(schedule.id);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Schedule deleted successfully'
+                  : 'Failed to delete schedule',
+            ),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _sendScheduledReport(
+    ReportSchedule schedule,
+    List<UserPerformanceMetrics> metrics,
+  ) async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Text('Sending report...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final success =
+          await PerformanceReportEmailService.sendPerformanceReport(
+        metrics: metrics,
+        recipientEmails: schedule.recipientEmails,
+        period: _selectedPeriod,
+        customPeriodText: _selectedPeriod == 'custom' &&
+                _customStartDate != null &&
+                _customEndDate != null
+            ? '${DateFormat('MMM dd').format(_customStartDate!)} - ${DateFormat('MMM dd, yyyy').format(_customEndDate!)}'
+            : null,
+      );
+
+      if (success) {
+        await ReportSchedulerService.markScheduleAsSent(schedule.id);
+      }
+
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Report sent to ${schedule.recipientEmails.length} recipient(s)'
+                  : 'Failed to send report',
+            ),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sending report: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _sendEmailReport(List<UserPerformanceMetrics>? metrics) async {
+    if (metrics == null || metrics.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No data available to send')),
+      );
+      return;
+    }
+
+    // Show dialog to enter recipient emails
+    final recipientsController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Send Report via Email'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Enter recipient email addresses (comma-separated):'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: recipientsController,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'user1@example.com, user2@example.com',
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Send'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && recipientsController.text.isNotEmpty) {
+      final recipients = recipientsController.text
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+
+      if (recipients.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter valid email addresses')),
+        );
+        return;
+      }
+
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Sending report...'),
+            ],
+          ),
+        ),
+      );
+
+      try {
+        final success =
+            await PerformanceReportEmailService.sendPerformanceReport(
+          metrics: metrics,
+          recipientEmails: recipients,
+          period: _selectedPeriod,
+          customPeriodText: _selectedPeriod == 'custom' &&
+                  _customStartDate != null &&
+                  _customEndDate != null
+              ? '${DateFormat('MMM dd').format(_customStartDate!)} - ${DateFormat('MMM dd, yyyy').format(_customEndDate!)}'
+              : null,
+        );
+
+        if (mounted) {
+          Navigator.of(context).pop(); // Close loading dialog
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                success
+                    ? 'Report sent to ${recipients.length} recipient(s)'
+                    : 'Failed to send report',
+              ),
+              backgroundColor: success ? Colors.green : Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          Navigator.of(context).pop(); // Close loading dialog
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error sending report: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+
+    recipientsController.dispose();
   }
 }

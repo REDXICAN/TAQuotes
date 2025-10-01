@@ -171,7 +171,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           // Products -> Catalog (tab 0)
           GoRoute(
             path: '/products',
-            redirect: (context, state) => '/catalog?tab=0',
+            redirect: (context, state) {
+              // Don't redirect if accessing product detail
+              if (state.matchedLocation.contains('/products/')) {
+                return null; // Allow navigation to product detail
+              }
+              return '/catalog?tab=0'; // Redirect to catalog for products list
+            },
             routes: [
               GoRoute(
                 path: ':productId',
