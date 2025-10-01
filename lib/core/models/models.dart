@@ -6,6 +6,7 @@ import '../utils/safe_conversions.dart';
 export 'user_role.dart';
 export 'project.dart';
 export 'shipment_tracking.dart';
+export 'pedido_tracking.dart';
 
 // Global safe date parsing helper function
 DateTime safeParseDateTimeWithFallback(dynamic value, {DateTime? fallback}) {

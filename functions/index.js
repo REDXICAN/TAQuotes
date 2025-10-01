@@ -492,24 +492,27 @@ function parseExcelData(excelBuffer) {
     // Read the Excel file
     const workbook = XLSX.read(excelBuffer, { type: 'buffer' });
 
-    // Get the first sheet
+    // Get the first sheet (USA-MEX - LOCALES)
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
 
-    // Convert to JSON
+    console.log(`Reading sheet: ${sheetName}`);
+
+    // Convert to JSON starting from row 3 (headers) and row 4 (data)
     const jsonData = XLSX.utils.sheet_to_json(sheet, {
       header: 1,
       defval: '',
-      blankrows: false
+      blankrows: false,
+      range: 2 // Start from row 3 (0-indexed, so row 3 = index 2)
     });
 
     if (jsonData.length < 2) {
       throw new Error('Excel file has no data rows');
     }
 
-    // Get headers (first row)
+    // Get headers (first row after range starts at row 3)
     const headers = jsonData[0];
-    console.log('Excel headers:', headers);
+    console.log('Excel headers found:', headers.filter(h => h).length, 'columns');
 
     // Convert rows to objects
     const data = [];
@@ -517,18 +520,61 @@ function parseExcelData(excelBuffer) {
       const row = jsonData[i];
       const rowObject = {};
 
-      headers.forEach((header, index) => {
-        const headerKey = String(header).trim().toLowerCase().replace(/\s+/g, '_');
-        rowObject[headerKey] = row[index] || '';
-      });
+      // Map columns to tracking data fields
+      // Column mapping based on actual Excel structure:
+      // Col 2: FECHA DE ENTRADA
+      // Col 3: # DE PEDIDO
+      // Col 4: OC
+      // Col 5: ESTATUS
+      // Col 6: CLIENTE
+      // Col 7: VENDEDOR
+      // Col 8: DESTINO
+      // Col 9: REFERENCIA
+      // Col 10: PROVEEDOR/ ORIGEN
+      // Col 11: SALES ORDER
+      // Col 12: TRANSFER
+      // Col 13: SALES INVOICE
+      // Col 14: FECHA FACTURA
+      // Col 15: ARRIBO A ADUANA
+      // Col 16: NUM. DE PEDIMENTO
+      // Col 17: REMISIÓN
+      // Col 18: FLETERA
+      // Col 19: GUIA
+      // Col 20: DOCUMENTADO
+      // Col 21: ENTREGA CANCÚN
+      // Col 22: ENTREGA APROXIMADA
+      // Col 23: ENTREGA REAL
 
-      // Only add rows with at least one non-empty value
-      if (Object.values(rowObject).some(val => val !== '')) {
+      rowObject.fecha_entrada = row[1] || ''; // Column 2
+      rowObject.numero_pedido = row[2] || ''; // Column 3
+      rowObject.oc = row[3] || ''; // Column 4
+      rowObject.estatus = row[4] || ''; // Column 5
+      rowObject.cliente = row[5] || ''; // Column 6
+      rowObject.vendedor = row[6] || ''; // Column 7
+      rowObject.destino = row[7] || ''; // Column 8
+      rowObject.referencia = row[8] || ''; // Column 9
+      rowObject.proveedor_origen = row[9] || ''; // Column 10
+      rowObject.sales_order = row[10] || ''; // Column 11
+      rowObject.transfer = row[11] || ''; // Column 12
+      rowObject.sales_invoice = row[12] || ''; // Column 13
+      rowObject.fecha_factura = row[13] || ''; // Column 14
+      rowObject.arribo_aduana = row[14] || ''; // Column 15
+      rowObject.num_pedimento = row[15] || ''; // Column 16
+      rowObject.remision = row[16] || ''; // Column 17
+      rowObject.fletera = row[17] || ''; // Column 18
+      rowObject.guia = row[18] || ''; // Column 19
+      rowObject.documentado = row[19] || ''; // Column 20
+      rowObject.entrega_cancun = row[20] || ''; // Column 21
+      rowObject.entrega_aproximada = row[21] || ''; // Column 22
+      rowObject.entrega_real = row[22] || ''; // Column 23
+
+      // Only add rows with at least numero_pedido or oc
+      if (rowObject.numero_pedido || rowObject.oc) {
         data.push(rowObject);
       }
     }
 
-    console.log(`Parsed ${data.length} rows from Excel`);
+    console.log(`Parsed ${data.length} tracking records from Excel`);
     return data;
   } catch (error) {
     console.error('Error parsing Excel data:', error.message);
@@ -549,9 +595,9 @@ async function importTrackingDataToFirebase(trackingData) {
     const timestamp = admin.database.ServerValue.TIMESTAMP;
 
     trackingData.forEach((record, index) => {
-      // Generate a unique key for each record (use tracking number or index)
-      const trackingNumber = record.tracking_number || record.tracking_no || `RECORD_${Date.now()}_${index}`;
-      const sanitizedKey = String(trackingNumber).replace(/[.#$\[\]]/g, '_');
+      // Generate a unique key for each record (use numero_pedido or OC)
+      const pedidoNumber = record.numero_pedido || record.oc || `PEDIDO_${Date.now()}_${index}`;
+      const sanitizedKey = String(pedidoNumber).replace(/[.#$\[\]\/\s]/g, '_');
 
       // Structure the data
       updates[sanitizedKey] = {
