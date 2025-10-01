@@ -676,24 +676,21 @@ class _MonitoringDashboardV2ScreenState extends ConsumerState<MonitoringDashboar
                   value: _currencyFormat.format(currentRevenue),
                   icon: Icons.attach_money,
                   color: AppTheme.successColor,
-                  subtitle: 'vs ${_currencyFormat.format(lastRevenue)} last period',
-                  trend: revenueTrend,
+                  subtitle: 'vs ${_currencyFormat.format(lastRevenue)} last period (${revenueTrend >= 0 ? '+' : ''}${revenueTrend.toStringAsFixed(1)}%)',
                 ),
                 KPICard(
                   title: 'Quote Volume',
                   value: currentQuotes.toString(),
                   icon: Icons.receipt_long,
                   color: AppTheme.accentPrimary,
-                  subtitle: 'quotes ${_selectedPeriod.label}',
-                  trend: quotesTrend,
+                  subtitle: 'quotes ${_selectedPeriod.label} (${quotesTrend >= 0 ? '+' : ''}${quotesTrend.toStringAsFixed(1)}%)',
                 ),
                 KPICard(
                   title: 'Conversion Rate',
                   value: '${currentConversion.toStringAsFixed(1)}%',
                   icon: Icons.trending_up,
                   color: AppTheme.warningColor,
-                  subtitle: '${_selectedPeriod.label} period',
-                  trend: conversionTrend,
+                  subtitle: '${_selectedPeriod.label} period (${conversionTrend >= 0 ? '+' : ''}${conversionTrend.toStringAsFixed(1)}%)',
                 ),
                 activeUsersAsync.when(
                   data: (activeUsers) => KPICard(
