@@ -2109,10 +2109,13 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                 await dbService.createProject(
                   name: nameController.text.trim(),
                   clientId: client.id!,
-                  description: descriptionController.text.trim().isEmpty
+                  notes: descriptionController.text.trim().isEmpty
                       ? null
                       : descriptionController.text.trim(),
                   status: selectedStatus,
+                  location: '',  // Required parameter
+                  personInCharge: '',  // Required parameter
+                  clientName: client.company,  // Required parameter
                 );
 
                 // Update with additional fields that the createProject method doesn't support
