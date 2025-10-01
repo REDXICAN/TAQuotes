@@ -6,10 +6,10 @@ import '../../../core/models/models.dart';
 import '../../../core/auth/providers/rbac_provider.dart';
 import '../../../core/auth/models/rbac_permissions.dart';
 import '../../../core/utils/price_formatter.dart';
-import '../../projects/presentation/providers/projects_provider.dart';
+import '../../projects/presentation/providers/projects_provider.dart' as projects_providers;
 
-// Provider for admin to get all projects across all users
-final allProjectsProvider = StreamProvider.autoDispose<List<ProjectWithUser>>((ref) {
+// Provider for admin to get all projects across all users (with user info wrapper)
+final dashboardAllProjectsProvider = StreamProvider.autoDispose<List<ProjectWithUser>>((ref) {
   final hasAdminAccess = ref.watch(hasPermissionProvider(Permission.accessAdminPanel));
 
   return hasAdminAccess.when(
@@ -37,7 +37,7 @@ final allProjectsProvider = StreamProvider.autoDispose<List<ProjectWithUser>>((r
                     allProjects.add(ProjectWithUser(
                       project: project,
                       userId: userId,
-                      userName: project.salesRepName ?? 'Unknown User',
+                      userName: 'User $userId', // Will be enhanced to fetch actual name later
                     ));
                   } catch (e) {
                     // Skip malformed projects
@@ -83,7 +83,7 @@ class ProjectsDashboardWidget extends ConsumerWidget {
   }
 
   Widget _buildUserProjectsView(BuildContext context, WidgetRef ref) {
-    final projectsAsync = ref.watch(projectsProvider);
+    final projectsAsync = ref.watch(projects_providers.projectsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -144,7 +144,7 @@ class ProjectsDashboardWidget extends ConsumerWidget {
   }
 
   Widget _buildAdminProjectsView(BuildContext context, WidgetRef ref) {
-    final allProjectsAsync = ref.watch(allProjectsProvider);
+    final allProjectsAsync = ref.watch(dashboardAllProjectsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,9 +347,9 @@ class ProjectsDashboardWidget extends ConsumerWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (project.clientName != null)
-              Text('Client: ${project.clientName}'),
-            Text('Product Lines: ${project.productLines.take(2).join(', ')}${project.productLines.length > 2 ? '...' : ''}'),
+            Text('Client: ${project.clientName}'),
+            if (project.productLines.isNotEmpty)
+              Text('Product Lines: ${project.productLines.take(2).join(', ')}${project.productLines.length > 2 ? '...' : ''}'),
             if (project.estimatedValue != null)
               Text('Est. Value: \$${PriceFormatter.formatPrice(project.estimatedValue!)}'),
           ],

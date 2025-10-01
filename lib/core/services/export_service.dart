@@ -1406,4 +1406,295 @@ class ExportService {
       return Uint8List.fromList(errorBytes ?? []);
     }
   }
+
+  // ============ PROJECTS EXPORT ============
+
+  /// Generate PDF for a single project
+  static Future<Uint8List> generateProjectPDF(Project project, {Client? client}) async {
+    AppLogger.info('Starting PDF generation for project: ${project.name}', category: LogCategory.business);
+    final stopwatch = AppLogger.startTimer();
+
+    try {
+      final pdf = pw.Document();
+
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(40),
+          build: (pw.Context context) {
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                // Header
+                pw.Text(
+                  'PROJECT DETAILS',
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Divider(thickness: 2),
+                pw.SizedBox(height: 24),
+
+                // Project Name
+                pw.Text(
+                  project.name,
+                  style: pw.TextStyle(
+                    fontSize: 20,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 20),
+
+                // Status Badge
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(width: 1),
+                    borderRadius: pw.BorderRadius.circular(4),
+                  ),
+                  child: pw.Text(
+                    'Status: ${project.statusDisplay}',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                  ),
+                ),
+                pw.SizedBox(height: 24),
+
+                // Client Information
+                pw.Text(
+                  'CLIENT INFORMATION',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 12),
+                _buildInfoRow('Company:', project.clientName),
+                if (client != null) ...[
+                  _buildInfoRow('Contact:', client.contactName ?? 'N/A'),
+                  _buildInfoRow('Email:', client.email ?? 'N/A'),
+                  _buildInfoRow('Phone:', client.phone ?? 'N/A'),
+                ],
+                pw.SizedBox(height: 20),
+
+                // Project Details
+                pw.Text(
+                  'PROJECT DETAILS',
+                  style: pw.TextStyle(
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 12),
+                _buildInfoRow('Location:', project.location),
+                _buildInfoRow('Person in Charge:', project.personInCharge),
+                if (project.phone != null) _buildInfoRow('Phone:', project.phone!),
+                if (project.email != null) _buildInfoRow('Email:', project.email!),
+                pw.SizedBox(height: 12),
+                _buildInfoRow('Created:', _dateFormat.format(project.createdAt)),
+                if (project.startDate != null)
+                  _buildInfoRow('Start Date:', _dateFormat.format(project.startDate!)),
+                if (project.completionDate != null)
+                  _buildInfoRow('Completion Date:', _dateFormat.format(project.completionDate!)),
+                pw.SizedBox(height: 20),
+
+                // Financial Information
+                if (project.estimatedValue != null) ...[
+                  pw.Text(
+                    'FINANCIAL INFORMATION',
+                    style: pw.TextStyle(
+                      fontSize: 14,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 12),
+                  _buildInfoRow('Estimated Value:', _currencyFormat.format(project.estimatedValue)),
+                  pw.SizedBox(height: 20),
+                ],
+
+                // Product Lines
+                if (project.productLines.isNotEmpty) ...[
+                  pw.Text(
+                    'PRODUCT LINES',
+                    style: pw.TextStyle(
+                      fontSize: 14,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 12),
+                  pw.Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: project.productLines.map((line) {
+                      return pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: pw.BoxDecoration(
+                          border: pw.Border.all(width: 1),
+                          borderRadius: pw.BorderRadius.circular(4),
+                        ),
+                        child: pw.Text(line, style: const pw.TextStyle(fontSize: 10)),
+                      );
+                    }).toList(),
+                  ),
+                  pw.SizedBox(height: 20),
+                ],
+
+                // Notes
+                if (project.notes != null && project.notes!.isNotEmpty) ...[
+                  pw.Text(
+                    'NOTES',
+                    style: pw.TextStyle(
+                      fontSize: 14,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 12),
+                  pw.Text(project.notes!),
+                ],
+
+                pw.Spacer(),
+
+                // Footer
+                pw.Divider(),
+                pw.SizedBox(height: 8),
+                pw.Text(
+                  'Generated on ${_dateFormat.format(DateTime.now())}',
+                  style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+
+      AppLogger.logTimer('Project PDF generation completed', stopwatch);
+      return pdf.save();
+    } catch (e, stackTrace) {
+      AppLogger.error('Error generating project PDF',
+          error: e, stackTrace: stackTrace, category: LogCategory.business);
+      rethrow;
+    }
+  }
+
+  /// Generate Excel file for projects list
+  static Future<Uint8List> generateProjectsExcel(List<Project> projects) async {
+    AppLogger.info('Starting Excel generation for ${projects.length} projects', category: LogCategory.business);
+    final stopwatch = AppLogger.startTimer();
+
+    try {
+      if (projects.isEmpty) {
+        throw Exception('No projects data provided for Excel export');
+      }
+
+      final excel = Excel.createExcel();
+      excel.delete('Sheet1'); // Remove default sheet
+      final sheet = excel['Projects'];
+
+      // Headers
+      final headers = [
+        'Project Name',
+        'Client',
+        'Location',
+        'Person in Charge',
+        'Phone',
+        'Email',
+        'Status',
+        'Estimated Value',
+        'Product Lines',
+        'Created Date',
+        'Start Date',
+        'Completion Date',
+        'Age (Days)',
+        'Notes',
+      ];
+
+      // Write headers
+      for (int i = 0; i < headers.length; i++) {
+        final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+        cell.value = TextCellValue(headers[i]);
+        cell.cellStyle = CellStyle(
+          bold: true,
+          backgroundColorHex: ExcelColor.fromHexString('#4CAF50'),
+          fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
+        );
+      }
+
+      // Write data rows
+      for (int rowIndex = 0; rowIndex < projects.length; rowIndex++) {
+        final project = projects[rowIndex];
+        final dataRow = rowIndex + 1;
+
+        final rowData = [
+          project.name,
+          project.clientName,
+          project.location,
+          project.personInCharge,
+          project.phone ?? '',
+          project.email ?? '',
+          project.statusDisplay,
+          project.estimatedValue != null ? _currencyFormat.format(project.estimatedValue) : '',
+          project.productLines.join(', '),
+          _dateFormat.format(project.createdAt),
+          project.startDate != null ? _dateFormat.format(project.startDate!) : '',
+          project.completionDate != null ? _dateFormat.format(project.completionDate!) : '',
+          project.ageDays.toString(),
+          project.notes ?? '',
+        ];
+
+        for (int colIndex = 0; colIndex < rowData.length; colIndex++) {
+          final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: colIndex, rowIndex: dataRow));
+          cell.value = TextCellValue(rowData[colIndex]);
+        }
+      }
+
+      // Auto-size columns (approximate)
+      for (int i = 0; i < headers.length; i++) {
+        sheet.setColumnWidth(i, 20);
+      }
+
+      AppLogger.logTimer('Projects Excel generation completed', stopwatch);
+      final bytes = excel.save();
+      if (bytes == null) throw Exception('Failed to encode Excel file');
+
+      return Uint8List.fromList(bytes);
+    } catch (e, stackTrace) {
+      AppLogger.error('Error generating projects Excel',
+          error: e, stackTrace: stackTrace, category: LogCategory.business);
+
+      // Return error Excel
+      final errorExcel = Excel.createExcel();
+      errorExcel.delete('Sheet1');
+      final errorSheet = errorExcel['Error'];
+      errorSheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
+          .value = TextCellValue('Error generating projects export');
+      errorSheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 1))
+          .value = TextCellValue(e.toString());
+
+      final errorBytes = errorExcel.save();
+      return Uint8List.fromList(errorBytes ?? []);
+    }
+  }
+
+  /// Helper method to build info rows for PDF
+  static pw.Widget _buildInfoRow(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 8),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.SizedBox(
+            width: 150,
+            child: pw.Text(
+              label,
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+          ),
+          pw.Expanded(
+            child: pw.Text(value),
+          ),
+        ],
+      ),
+    );
+  }
 }

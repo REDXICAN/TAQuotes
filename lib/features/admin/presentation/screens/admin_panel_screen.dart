@@ -286,6 +286,13 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                 onTap: () => setState(() => _selectedView = 'dashboard'),
               ),
               _buildMenuCard(
+                icon: Icons.bar_chart,
+                title: 'Monitoring',
+                subtitle: 'Sales, inventory & analytics',
+                color: Colors.purple,
+                onTap: () => context.go('/admin/monitoring'),
+              ),
+              _buildMenuCard(
                 icon: Icons.people,
                 title: 'Users',
                 subtitle: 'Manage users',

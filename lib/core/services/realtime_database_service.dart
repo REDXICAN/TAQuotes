@@ -695,26 +695,44 @@ class RealtimeDatabaseService {
   Future<String> createProject({
     required String name,
     required String clientId,
-    String? description,
-    String status = 'active',
+    required String clientName,
+    required String location,
+    required String personInCharge,
+    String? phone,
+    String? email,
+    List<String>? productLines,
+    String status = 'planning',
+    double? estimatedValue,
+    DateTime? startDate,
+    DateTime? completionDate,
+    String? notes,
   }) async {
     if (userId == null) throw Exception('User not authenticated');
-    
+
     try {
       final newProjectRef = _db.ref('projects/$userId').push();
-      
+
       await newProjectRef.set({
         'name': name,
+        'userId': userId,
         'clientId': clientId,
-        'description': description ?? '',
+        'clientName': clientName,
+        'location': location,
+        'personInCharge': personInCharge,
+        if (phone != null) 'phone': phone,
+        if (email != null) 'email': email,
+        'productLines': productLines ?? [],
         'status': status,
+        if (estimatedValue != null) 'estimatedValue': estimatedValue,
         'createdAt': ServerValue.timestamp,
-        'updatedAt': ServerValue.timestamp,
+        if (startDate != null) 'startDate': startDate.toIso8601String(),
+        if (completionDate != null) 'completionDate': completionDate.toIso8601String(),
+        if (notes != null) 'notes': notes,
       });
-      
+
       final key = newProjectRef.key;
       if (key == null) throw Exception('Failed to generate project ID');
-      
+
       AppLogger.info('Project created: $name', category: LogCategory.business);
       return key;
     } catch (e) {
@@ -791,13 +809,16 @@ class RealtimeDatabaseService {
   
   Future<void> updateProject(String projectId, Map<String, dynamic> updates) async {
     if (userId == null) throw Exception('User not authenticated');
-    
+
     try {
-      await _db.ref('projects/$userId/$projectId').update({
+      // Add updated timestamp to all updates
+      final updatesWithTimestamp = {
         ...updates,
         'updatedAt': ServerValue.timestamp,
-      });
-      
+      };
+
+      await _db.ref('projects/$userId/$projectId').update(updatesWithTimestamp);
+
       AppLogger.info('Project updated: $projectId', category: LogCategory.business);
     } catch (e) {
       AppLogger.error('Error updating project $projectId', error: e);
@@ -929,6 +950,517 @@ class RealtimeDatabaseService {
 
       return projects;
     });
+  }
+
+  // ============ ADMIN ANALYTICS - PROJECTS ============
+
+  /// Get all projects across all users (admin only)
+  Stream<List<Map<String, dynamic>>> getAllProjectsForAdmin() {
+    return _db.ref('projects').onValue.map((event) {
+      final allProjects = <Map<String, dynamic>>[];
+
+      if (event.snapshot.value != null) {
+        final usersData = SafeTypeConverter.toMap(event.snapshot.value);
+
+        usersData.forEach((userId, userProjects) {
+          if (userProjects is Map) {
+            final projectsMap = SafeTypeConverter.toMap(userProjects);
+
+            projectsMap.forEach((projectId, projectData) {
+              if (projectData is Map) {
+                try {
+                  final project = SafeTypeConverter.toMap(projectData);
+                  project['id'] = projectId;
+                  project['userId'] = userId; // Add user ID for filtering
+                  allProjects.add(project);
+                } catch (e) {
+                  AppLogger.warning('Skipping malformed project: $projectId', error: e);
+                }
+              }
+            });
+          }
+        });
+
+        // Sort by createdAt descending
+        allProjects.sort((a, b) {
+          final dateA = _safeParseDateTime(a['createdAt']);
+          final dateB = _safeParseDateTime(b['createdAt']);
+          return dateB.compareTo(dateA);
+        });
+      }
+
+      return allProjects;
+    }).handleError((error) {
+      AppLogger.error('Error fetching all projects for admin', error: error);
+      return <Map<String, dynamic>>[];
+    });
+  }
+
+  /// Get top clients by number of projects (admin analytics)
+  Future<List<Map<String, dynamic>>> getTopClientsByProjects({int limit = 10}) async {
+    try {
+      final snapshot = await _db.ref('projects').once();
+
+      if (snapshot.snapshot.value == null) return [];
+
+      final usersData = SafeTypeConverter.toMap(snapshot.snapshot.value);
+      final Map<String, Map<String, dynamic>> clientProjectCounts = {};
+
+      // Count projects per client
+      usersData.forEach((userId, userProjects) {
+        if (userProjects is Map) {
+          final projectsMap = SafeTypeConverter.toMap(userProjects);
+
+          projectsMap.forEach((projectId, projectData) {
+            if (projectData is Map) {
+              final project = SafeTypeConverter.toMap(projectData);
+              final clientId = project['clientId'] as String?;
+              final clientName = project['clientName'] as String?;
+
+              if (clientId != null && clientName != null) {
+                if (!clientProjectCounts.containsKey(clientId)) {
+                  clientProjectCounts[clientId] = {
+                    'clientId': clientId,
+                    'clientName': clientName,
+                    'projectCount': 0,
+                    'totalValue': 0.0,
+                  };
+                }
+
+                clientProjectCounts[clientId]!['projectCount'] =
+                    (clientProjectCounts[clientId]!['projectCount'] as int) + 1;
+
+                final estimatedValue = project['estimatedValue'] as num?;
+                if (estimatedValue != null) {
+                  clientProjectCounts[clientId]!['totalValue'] =
+                      (clientProjectCounts[clientId]!['totalValue'] as double) + estimatedValue.toDouble();
+                }
+              }
+            }
+          });
+        }
+      });
+
+      // Convert to list and sort by project count
+      final topClients = clientProjectCounts.values.toList();
+      topClients.sort((a, b) => (b['projectCount'] as int).compareTo(a['projectCount'] as int));
+
+      return topClients.take(limit).toList();
+    } catch (e) {
+      AppLogger.error('Error getting top clients by projects', error: e);
+      return [];
+    }
+  }
+
+  /// Get project statistics by user (admin analytics)
+  Future<Map<String, dynamic>> getProjectStatsByUser(String targetUserId) async {
+    try {
+      final snapshot = await _db.ref('projects/$targetUserId').once();
+
+      if (snapshot.snapshot.value == null) {
+        return {
+          'totalProjects': 0,
+          'activeProjects': 0,
+          'completedProjects': 0,
+          'totalValue': 0.0,
+        };
+      }
+
+      final projectsMap = SafeTypeConverter.toMap(snapshot.snapshot.value);
+      int totalProjects = 0;
+      int activeProjects = 0;
+      int completedProjects = 0;
+      double totalValue = 0.0;
+
+      projectsMap.forEach((projectId, projectData) {
+        if (projectData is Map) {
+          final project = SafeTypeConverter.toMap(projectData);
+          totalProjects++;
+
+          final status = project['status'] as String?;
+          if (status == 'active') activeProjects++;
+          if (status == 'completed') completedProjects++;
+
+          final estimatedValue = project['estimatedValue'] as num?;
+          if (estimatedValue != null) {
+            totalValue += estimatedValue.toDouble();
+          }
+        }
+      });
+
+      return {
+        'totalProjects': totalProjects,
+        'activeProjects': activeProjects,
+        'completedProjects': completedProjects,
+        'totalValue': totalValue,
+      };
+    } catch (e) {
+      AppLogger.error('Error getting project stats for user $targetUserId', error: e);
+      return {
+        'totalProjects': 0,
+        'activeProjects': 0,
+        'completedProjects': 0,
+        'totalValue': 0.0,
+      };
+    }
+  }
+
+  // ============ ADMIN ANALYTICS - QUOTES & CLIENTS ============
+
+  /// Get all quotes across all users (admin only)
+  Stream<List<Map<String, dynamic>>> getAllQuotesForAdmin() {
+    return _db.ref('quotes').onValue.map((event) {
+      final allQuotes = <Map<String, dynamic>>[];
+
+      if (event.snapshot.value != null) {
+        final usersData = SafeTypeConverter.toMap(event.snapshot.value);
+
+        usersData.forEach((userId, userQuotes) {
+          if (userQuotes is Map) {
+            final quotesMap = SafeTypeConverter.toMap(userQuotes);
+
+            quotesMap.forEach((quoteId, quoteData) {
+              if (quoteData is Map) {
+                try {
+                  final quote = SafeTypeConverter.toMap(quoteData);
+                  quote['id'] = quoteId;
+                  quote['userId'] = userId; // Add user ID for filtering
+                  allQuotes.add(quote);
+                } catch (e) {
+                  AppLogger.warning('Skipping malformed quote: $quoteId', error: e);
+                }
+              }
+            });
+          }
+        });
+
+        // Sort by created_at descending
+        allQuotes.sort((a, b) {
+          final aTime = a['created_at'] ?? 0;
+          final bTime = b['created_at'] ?? 0;
+          return bTime.compareTo(aTime);
+        });
+      }
+
+      return allQuotes;
+    }).handleError((error) {
+      AppLogger.error('Error fetching all quotes for admin', error: error);
+      return <Map<String, dynamic>>[];
+    });
+  }
+
+  /// Get all clients across all users (admin only)
+  Stream<List<Map<String, dynamic>>> getAllClientsForAdmin() {
+    return _db.ref('clients').onValue.map((event) {
+      final allClients = <Map<String, dynamic>>[];
+
+      if (event.snapshot.value != null) {
+        final usersData = SafeTypeConverter.toMap(event.snapshot.value);
+
+        usersData.forEach((userId, userClients) {
+          if (userClients is Map) {
+            final clientsMap = SafeTypeConverter.toMap(userClients);
+
+            clientsMap.forEach((clientId, clientData) {
+              if (clientData is Map) {
+                try {
+                  final client = SafeTypeConverter.toMap(clientData);
+                  client['id'] = clientId;
+                  client['userId'] = userId; // Add user ID for filtering
+                  allClients.add(client);
+                } catch (e) {
+                  AppLogger.warning('Skipping malformed client: $clientId', error: e);
+                }
+              }
+            });
+          }
+        });
+
+        // Sort by company name
+        allClients.sort((a, b) {
+          final aName = (a['company'] ?? '').toString().toLowerCase();
+          final bName = (b['company'] ?? '').toString().toLowerCase();
+          return aName.compareTo(bName);
+        });
+      }
+
+      return allClients;
+    }).handleError((error) {
+      AppLogger.error('Error fetching all clients for admin', error: error);
+      return <Map<String, dynamic>>[];
+    });
+  }
+
+  /// Get most quoted products (top N by count in quote_items)
+  Future<List<Map<String, dynamic>>> getMostQuotedProducts({int limit = 10}) async {
+    try {
+      final snapshot = await _db.ref('quotes').once();
+
+      if (snapshot.snapshot.value == null) return [];
+
+      final usersData = SafeTypeConverter.toMap(snapshot.snapshot.value);
+      final Map<String, Map<String, dynamic>> productQuoteCounts = {};
+
+      // Count product occurrences in all quotes
+      usersData.forEach((userId, userQuotes) {
+        if (userQuotes is Map) {
+          final quotesMap = SafeTypeConverter.toMap(userQuotes);
+
+          quotesMap.forEach((quoteId, quoteData) {
+            if (quoteData is Map) {
+              final quote = SafeTypeConverter.toMap(quoteData);
+              final quoteItems = quote['quote_items'];
+
+              if (quoteItems is List) {
+                for (var item in quoteItems) {
+                  if (item is Map) {
+                    final itemMap = SafeTypeConverter.toMap(item);
+                    final productId = itemMap['product_id'] as String?;
+                    final productName = itemMap['product_name'] as String?;
+                    final sku = itemMap['sku'] as String?;
+
+                    if (productId != null) {
+                      if (!productQuoteCounts.containsKey(productId)) {
+                        productQuoteCounts[productId] = {
+                          'productId': productId,
+                          'productName': productName ?? 'Unknown Product',
+                          'sku': sku ?? '',
+                          'quoteCount': 0,
+                        };
+                      }
+
+                      productQuoteCounts[productId]!['quoteCount'] =
+                          (productQuoteCounts[productId]!['quoteCount'] as int) + 1;
+                    }
+                  }
+                }
+              }
+            }
+          });
+        }
+      });
+
+      // Convert to list and sort by quote count
+      final topProducts = productQuoteCounts.values.toList();
+      topProducts.sort((a, b) => (b['quoteCount'] as int).compareTo(a['quoteCount'] as int));
+
+      return topProducts.take(limit).toList();
+    } catch (e) {
+      AppLogger.error('Error getting most quoted products', error: e);
+      return [];
+    }
+  }
+
+  /// Get best selling products (from accepted quotes)
+  Future<List<Map<String, dynamic>>> getBestSellingProducts({int limit = 10}) async {
+    try {
+      final snapshot = await _db.ref('quotes').once();
+
+      if (snapshot.snapshot.value == null) return [];
+
+      final usersData = SafeTypeConverter.toMap(snapshot.snapshot.value);
+      final Map<String, Map<String, dynamic>> productSales = {};
+
+      // Track sales from accepted/closed/sold quotes
+      usersData.forEach((userId, userQuotes) {
+        if (userQuotes is Map) {
+          final quotesMap = SafeTypeConverter.toMap(userQuotes);
+
+          quotesMap.forEach((quoteId, quoteData) {
+            if (quoteData is Map) {
+              final quote = SafeTypeConverter.toMap(quoteData);
+              final status = (quote['status'] as String?)?.toLowerCase();
+
+              // Only count accepted, closed, or sold quotes
+              if (status == 'accepted' || status == 'closed' || status == 'sold') {
+                final quoteItems = quote['quote_items'];
+
+                if (quoteItems is List) {
+                  for (var item in quoteItems) {
+                    if (item is Map) {
+                      final itemMap = SafeTypeConverter.toMap(item);
+                      final productId = itemMap['product_id'] as String?;
+                      final productName = itemMap['product_name'] as String?;
+                      final sku = itemMap['sku'] as String?;
+                      final quantity = (itemMap['quantity'] as num?)?.toInt() ?? 1;
+                      final price = (itemMap['price'] as num?)?.toDouble() ?? 0.0;
+                      final discount = (itemMap['discount'] as num?)?.toDouble() ?? 0.0;
+                      final revenue = (price - discount) * quantity;
+
+                      if (productId != null) {
+                        if (!productSales.containsKey(productId)) {
+                          productSales[productId] = {
+                            'productId': productId,
+                            'productName': productName ?? 'Unknown Product',
+                            'sku': sku ?? '',
+                            'totalQuantity': 0,
+                            'totalRevenue': 0.0,
+                          };
+                        }
+
+                        productSales[productId]!['totalQuantity'] =
+                            (productSales[productId]!['totalQuantity'] as int) + quantity;
+                        productSales[productId]!['totalRevenue'] =
+                            (productSales[productId]!['totalRevenue'] as double) + revenue;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          });
+        }
+      });
+
+      // Convert to list and sort by total revenue
+      final topProducts = productSales.values.toList();
+      topProducts.sort((a, b) => (b['totalRevenue'] as double).compareTo(a['totalRevenue'] as double));
+
+      return topProducts.take(limit).toList();
+    } catch (e) {
+      AppLogger.error('Error getting best selling products', error: e);
+      return [];
+    }
+  }
+
+  /// Get top clients by total revenue
+  Future<List<Map<String, dynamic>>> getTopClientsByRevenue({int limit = 10}) async {
+    try {
+      final quotesSnapshot = await _db.ref('quotes').once();
+
+      if (quotesSnapshot.snapshot.value == null) return [];
+
+      final usersData = SafeTypeConverter.toMap(quotesSnapshot.snapshot.value);
+      final Map<String, Map<String, dynamic>> clientRevenue = {};
+
+      // Calculate revenue per client from accepted/closed/sold quotes
+      usersData.forEach((userId, userQuotes) {
+        if (userQuotes is Map) {
+          final quotesMap = SafeTypeConverter.toMap(userQuotes);
+
+          quotesMap.forEach((quoteId, quoteData) async {
+            if (quoteData is Map) {
+              final quote = SafeTypeConverter.toMap(quoteData);
+              final status = (quote['status'] as String?)?.toLowerCase();
+
+              if (status == 'accepted' || status == 'closed' || status == 'sold') {
+                final clientId = quote['client_id'] as String?;
+                final totalAmount = (quote['total_amount'] as num?)?.toDouble() ?? 0.0;
+
+                if (clientId != null) {
+                  if (!clientRevenue.containsKey(clientId)) {
+                    // Fetch client name
+                    String clientName = 'Unknown Client';
+                    try {
+                      final clientSnapshot = await _db.ref('clients/$userId/$clientId').get();
+                      if (clientSnapshot.exists && clientSnapshot.value != null) {
+                        final client = SafeTypeConverter.toMap(clientSnapshot.value);
+                        clientName = client['company'] as String? ??
+                                   client['contactName'] as String? ??
+                                   'Unknown Client';
+                      }
+                    } catch (e) {
+                      AppLogger.warning('Error fetching client name: $clientId', error: e);
+                    }
+
+                    clientRevenue[clientId] = {
+                      'clientId': clientId,
+                      'clientName': clientName,
+                      'quoteCount': 0,
+                      'totalRevenue': 0.0,
+                    };
+                  }
+
+                  clientRevenue[clientId]!['quoteCount'] =
+                      (clientRevenue[clientId]!['quoteCount'] as int) + 1;
+                  clientRevenue[clientId]!['totalRevenue'] =
+                      (clientRevenue[clientId]!['totalRevenue'] as double) + totalAmount;
+                }
+              }
+            }
+          });
+        }
+      });
+
+      // Wait a bit for async client name fetches to complete
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Convert to list and sort by total revenue
+      final topClients = clientRevenue.values.toList();
+      topClients.sort((a, b) => (b['totalRevenue'] as double).compareTo(a['totalRevenue'] as double));
+
+      return topClients.take(limit).toList();
+    } catch (e) {
+      AppLogger.error('Error getting top clients by revenue', error: e);
+      return [];
+    }
+  }
+
+  /// Get revenue by product category
+  Future<Map<String, double>> getRevenueByCategory() async {
+    try {
+      final quotesSnapshot = await _db.ref('quotes').once();
+      final productsSnapshot = await _db.ref('products').once();
+
+      if (quotesSnapshot.snapshot.value == null) return {};
+
+      final usersData = SafeTypeConverter.toMap(quotesSnapshot.snapshot.value);
+      final Map<String, double> categoryRevenue = {};
+
+      // Build product category lookup map
+      final Map<String, String> productCategories = {};
+      if (productsSnapshot.snapshot.value != null) {
+        final productsData = SafeTypeConverter.toMap(productsSnapshot.snapshot.value);
+        productsData.forEach((productId, productData) {
+          if (productData is Map) {
+            final product = SafeTypeConverter.toMap(productData);
+            final category = product['category'] as String? ?? 'Uncategorized';
+            productCategories[productId] = category;
+          }
+        });
+      }
+
+      // Calculate revenue per category from accepted/closed/sold quotes
+      usersData.forEach((userId, userQuotes) {
+        if (userQuotes is Map) {
+          final quotesMap = SafeTypeConverter.toMap(userQuotes);
+
+          quotesMap.forEach((quoteId, quoteData) {
+            if (quoteData is Map) {
+              final quote = SafeTypeConverter.toMap(quoteData);
+              final status = (quote['status'] as String?)?.toLowerCase();
+
+              if (status == 'accepted' || status == 'closed' || status == 'sold') {
+                final quoteItems = quote['quote_items'];
+
+                if (quoteItems is List) {
+                  for (var item in quoteItems) {
+                    if (item is Map) {
+                      final itemMap = SafeTypeConverter.toMap(item);
+                      final productId = itemMap['product_id'] as String?;
+                      final quantity = (itemMap['quantity'] as num?)?.toInt() ?? 1;
+                      final price = (itemMap['price'] as num?)?.toDouble() ?? 0.0;
+                      final discount = (itemMap['discount'] as num?)?.toDouble() ?? 0.0;
+                      final revenue = (price - discount) * quantity;
+
+                      if (productId != null) {
+                        final category = productCategories[productId] ?? 'Uncategorized';
+                        categoryRevenue[category] = (categoryRevenue[category] ?? 0.0) + revenue;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          });
+        }
+      });
+
+      return categoryRevenue;
+    } catch (e) {
+      AppLogger.error('Error getting revenue by category', error: e);
+      return {};
+    }
   }
 
   // ============ USER PROFILES ============
