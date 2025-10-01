@@ -656,19 +656,61 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
 
 
   Color _getCategoryColor(String category) {
+    // Professional gray color palette for all categories
+    // Using Material Design BlueGrey for sophisticated, neutral appearance
     switch (category) {
-      case 'Refrigeration':
-        return Colors.blue;
-      case 'Freezers':
-        return Colors.cyan;
-      case 'Prep Tables':
-        return Colors.green;
+      // Major Product Categories - Gray Scale
+      case 'Open Merchandisers':
+        return const Color(0xFF78909C); // Blue Gray 400
+      case 'PRO Series':
+        return const Color(0xFF607D8B); // Blue Gray 500
+      case 'Equipment':
+        return const Color(0xFF90A4AE); // Blue Gray 300
+      case 'Super Deluxe':
+        return const Color(0xFF5D6D7E); // Steel Gray
+      case 'Bar Equipment':
+        return const Color(0xFF546E7A); // Blue Gray 600
+      case 'M3 Series':
+        return const Color(0xFF808B96); // Cool Gray
+      case 'Commercial Refrigeration':
+        return const Color(0xFF455A64); // Blue Gray 700
+      case 'Deli Cases':
+        return const Color(0xFF6B7680); // Custom Dark Gray
+      case 'J Series':
+        return const Color(0xFF7C8A95); // Custom Gray
+      case 'E-Line':
+        return const Color(0xFF8D9499); // Custom Light Gray
+      case 'Refrigerated Merchandisers':
+        return const Color(0xFF5F6D78); // Custom Medium Gray
       case 'Display Cases':
-        return Colors.orange;
+        return const Color(0xFF37474F); // Blue Gray 800
+      case 'Pizza Prep Tables':
+        return const Color(0xFF6D7A86); // Custom Gray
+      case 'Merchandisers':
+        return const Color(0xFF798791); // Custom Gray
+      case 'Refrigerators':
+        return const Color(0xFF4E5C68); // Custom Dark Gray
+      case 'Prep Tables':
+        return const Color(0xFF6A7681); // Custom Gray
+      case 'Ice Cream':
+        return const Color(0xFF858F9A); // Custom Light Gray
+      case 'Undercounter':
+        return const Color(0xFF526069); // Custom Dark Gray
+      case 'Freezers':
+        return const Color(0xFF63717C); // Custom Gray
+
+      // Legacy categories (if they exist)
+      case 'Refrigeration':
+        return const Color(0xFF607D8B); // Blue Gray 500
       case 'Ice Machines':
-        return Colors.purple;
+        return const Color(0xFF546E7A); // Blue Gray 600
+      case 'Parts':
+      case 'Spare Parts':
+        return const Color(0xFF9E9E9E); // Standard Gray 500
+
+      // Default fallback
       default:
-        return Colors.grey;
+        return const Color(0xFF9E9E9E); // Neutral Gray
     }
   }
 }
