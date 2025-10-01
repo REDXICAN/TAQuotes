@@ -25,7 +25,7 @@ import '../../features/admin/presentation/screens/user_info_dashboard_screen.dar
 import '../../features/admin/presentation/screens/user_details_screen.dart';
 import '../../features/admin/presentation/screens/error_monitoring_dashboard_optimized.dart';
 import '../../features/admin/presentation/screens/database_management_screen_optimized.dart';
-import '../../features/admin/presentation/screens/monitoring_dashboard_screen.dart';
+import '../../features/admin/presentation/screens/monitoring_dashboard_v2_screen.dart';
 import '../../features/stock/presentation/screens/stock_dashboard_screen.dart';
 import '../../features/spareparts/presentation/screens/spareparts_screen.dart';
 import '../../features/projects/presentation/screens/projects_screen.dart';
@@ -254,7 +254,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: 'monitoring',
-                builder: (context, state) => const MonitoringDashboardScreen(),
+                builder: (context, state) => const MonitoringDashboardV2Screen(),
               ),
               GoRoute(
                 path: 'errors',
