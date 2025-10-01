@@ -743,9 +743,9 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
 
       // Download
       await DownloadHelper.downloadFile(
-        bytes,
-        'products_export_${DateTime.now().millisecondsSinceEpoch}.json',
-        'application/json',
+        bytes: bytes,
+        filename: 'products_export_${DateTime.now().millisecondsSinceEpoch}.json',
+        mimeType: 'application/json',
       );
 
       if (!mounted) return;
