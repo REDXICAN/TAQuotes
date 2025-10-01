@@ -624,7 +624,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
           rows: recentQuotes.map((quote) {
             return DataRow(cells: [
               DataCell(
-                  Text('#${quote.quoteNumber ?? quote.id?.substring(0, 8) ?? 'N/A'}')),
+                  Text('#${quote.quoteNumber ?? (quote.id != null && quote.id!.length >= 8 ? quote.id!.substring(0, 8) : quote.id ?? 'N/A')}')),
               DataCell(Text(quote.clientName ?? 'Unknown')),
               DataCell(Text(quote.createdBy)),
               DataCell(Text('\$${quote.total.toStringAsFixed(2)}')),
@@ -715,6 +715,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
             final totalQuotes = dashboardData['totalQuotes'] as int;
             final totalRevenue = dashboardData['totalRevenue'] as double;
             final users = dashboardData['users'] as List<UserProfile>;
+            final quotes = dashboardData['quotes'] as List<Quote>;
             final categoryRevenue = dashboardData['categoryRevenue'] as Map<String, double>;
             final monthlyQuotes = dashboardData['monthlyQuotes'] as Map<String, int>;
 
@@ -743,10 +744,14 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                     children: [
                       _buildKPICard(
                         'Conversion Rate',
-                        '${((totalQuotes > 0 ? (categoryRevenue.values.fold(0.0, (a, b) => a + b) / (totalQuotes * 1000)) * 100 : 0).toStringAsFixed(1))}%',
+                        '${(() {
+                          if (totalQuotes == 0) return '0.0';
+                          final acceptedQuotes = quotes.where((q) => q.status == 'accepted').length;
+                          return ((acceptedQuotes / totalQuotes) * 100).toStringAsFixed(1);
+                        })()}%',
                         Icons.trending_up,
                         Colors.green,
-                        '+12.5% from last month',
+                        'Accepted / Total quotes',
                       ),
                       _buildKPICard(
                         'Avg Quote Value',
@@ -757,10 +762,24 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                       ),
                       _buildKPICard(
                         'Active Users',
-                        users.where((u) => u.lastLoginAt != null && DateTime.now().difference(u.lastLoginAt!).inDays < 7).length.toString(),
+                        '${(() {
+                          try {
+                            final now = DateTime.now();
+                            return users.where((u) {
+                              if (u.lastLoginAt == null) return false;
+                              try {
+                                return now.difference(u.lastLoginAt!).inDays < 7;
+                              } catch (e) {
+                                return false;
+                              }
+                            }).length;
+                          } catch (e) {
+                            return 0;
+                          }
+                        })()}',
                         Icons.people,
                         Colors.orange,
-                        'Last 7 days',
+                        'Active in last 7 days',
                       ),
                       _buildKPICard(
                         'Product Categories',
@@ -1559,51 +1578,62 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
   }
 
   Widget _buildCategoryProductsTable() {
-    // Fetch real products data for category table
-    final dashboardData = ref.read(adminDashboardProvider).value ?? {};
-    final allProducts = dashboardData['products'] as List<Product>? ?? [];
-    final products = allProducts
-        .where((p) => p.category == _selectedCategory)
-        .map((p) => p.toMap())
-        .toList();
-    
-    if (products.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Text('No products in this category'),
-        ),
-      );
-    }
-    
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        columns: const [
-          DataColumn(label: Text('SKU')),
-          DataColumn(label: Text('Model')),
-          DataColumn(label: Text('Name')),
-          DataColumn(label: Text('Price')),
-          DataColumn(label: Text('Stock')),
-        ],
-        rows: products.take(10).map((product) {
-          return DataRow(cells: [
-            DataCell(Text(product['sku'] ?? 'N/A')),
-            DataCell(Text(product['model'] ?? '')),
-            DataCell(
-              SizedBox(
-                width: 200,
-                child: Text(
-                  product['displayName'] ?? product['name'] ?? '',
-                  overflow: TextOverflow.ellipsis,
+    return Consumer(
+      builder: (context, ref, child) {
+        final dashboardAsync = ref.watch(adminDashboardProvider);
+
+        return dashboardAsync.when(
+          data: (dashboardData) {
+            final allProducts = dashboardData['products'] as List<Product>? ?? [];
+            final products = allProducts
+                .where((p) => p.category == _selectedCategory)
+                .toList();
+
+            if (products.isEmpty) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Text('No products in this category'),
                 ),
+              );
+            }
+
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                columns: const [
+                  DataColumn(label: Text('SKU')),
+                  DataColumn(label: Text('Model')),
+                  DataColumn(label: Text('Name')),
+                  DataColumn(label: Text('Price')),
+                  DataColumn(label: Text('Stock')),
+                ],
+                rows: products.take(10).map((product) {
+                  return DataRow(cells: [
+                    DataCell(Text(product.sku ?? 'N/A')),
+                    DataCell(Text(product.model)),
+                    DataCell(
+                      SizedBox(
+                        width: 200,
+                        child: Text(
+                          product.displayName,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                    DataCell(Text('\$${product.price.toStringAsFixed(2)}')),
+                    DataCell(Text(product.stock.toString())),
+                  ]);
+                }).toList(),
               ),
-            ),
-            DataCell(Text('\$${(product['price'] ?? 0.0).toStringAsFixed(2)}')),
-            DataCell(Text((product['stock'] ?? 0).toString())),
-          ]);
-        }).toList(),
-      ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => Center(
+            child: Text('Error loading products: $error'),
+          ),
+        );
+      },
     );
   }
 

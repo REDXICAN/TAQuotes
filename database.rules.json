@@ -89,7 +89,7 @@
     },
 
     "user_approval_requests": {
-      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.email == 'andres@turboairmexico.com')",
+      ".read": "auth != null && (auth.token.role == 'superadmin' || auth.token.role == 'admin' || auth.token.email == 'andres@turboairmexico.com')",
       ".write": "auth != null",
       ".indexOn": ["status", "requestedAt"]
     },
