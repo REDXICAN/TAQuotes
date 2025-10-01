@@ -30,6 +30,10 @@ import '../../features/spareparts/presentation/screens/spareparts_screen.dart';
 import '../../features/projects/presentation/screens/projects_screen.dart';
 import '../../features/settings/presentation/screens/app_settings_screen.dart';
 import '../../features/settings/presentation/screens/backup_management_screen.dart';
+// Architecture A: New grouped screens
+import '../../features/catalog/presentation/screens/catalog_screen.dart';
+import '../../features/customers/presentation/screens/customers_screen.dart';
+import '../../features/account/presentation/screens/account_screen.dart';
 
 // Router provider
 final routerProvider = Provider<GoRouter>((ref) {
@@ -106,34 +110,37 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const HomeScreen(),
           ),
 
-          // Products
+          // ARCHITECTURE A - NEW GROUPED NAVIGATION
+
+          // Catalog - Groups Products, Spare Parts, and Stock
           GoRoute(
-            path: '/products',
-            builder: (context, state) => const ProductsScreen(),
-            routes: [
-              GoRoute(
-                path: ':productId',
-                builder: (context, state) {
-                  final productId = state.pathParameters['productId']!;
-                  return ProductDetailScreen(productId: productId);
-                },
-              ),
-            ],
+            path: '/catalog',
+            builder: (context, state) {
+              // Support optional tab parameter (?tab=0|1|2)
+              final tabParam = state.uri.queryParameters['tab'];
+              final tabIndex = int.tryParse(tabParam ?? '0') ?? 0;
+              return CatalogScreen(initialTabIndex: tabIndex);
+            },
           ),
 
-          // Cart
+          // Customers - Groups Clients and Projects
+          GoRoute(
+            path: '/customers',
+            builder: (context, state) {
+              // Support optional tab parameter (?tab=0|1)
+              final tabParam = state.uri.queryParameters['tab'];
+              final tabIndex = int.tryParse(tabParam ?? '0') ?? 0;
+              return CustomersScreen(initialTabIndex: tabIndex);
+            },
+          ),
+
+          // Cart - Standalone (high frequency)
           GoRoute(
             path: '/cart',
             builder: (context, state) => const CartScreen(),
           ),
 
-          // Clients
-          GoRoute(
-            path: '/clients',
-            builder: (context, state) => const ClientsScreen(),
-          ),
-
-          // Quotes
+          // Quotes - Standalone (high frequency)
           GoRoute(
             path: '/quotes',
             builder: (context, state) => const QuotesScreen(),
@@ -152,31 +159,60 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // Profile
+          // Account - Groups Profile, Settings, and Admin
           GoRoute(
-            path: '/profile',
-            builder: (context, state) => const ProfileScreen(),
+            path: '/account',
+            builder: (context, state) => const AccountScreen(),
           ),
 
-          // Stock
+          // LEGACY ROUTES - Kept for backward compatibility, redirect to new structure
+
+          // Products -> Catalog (tab 0)
           GoRoute(
-            path: '/stock',
-            builder: (context, state) => const StockDashboardScreen(),
+            path: '/products',
+            redirect: (context, state) => '/catalog?tab=0',
+            routes: [
+              GoRoute(
+                path: ':productId',
+                builder: (context, state) {
+                  final productId = state.pathParameters['productId']!;
+                  return ProductDetailScreen(productId: productId);
+                },
+              ),
+            ],
           ),
 
-          // Spare Parts
+          // Spare Parts -> Catalog (tab 1)
           GoRoute(
             path: '/spareparts',
-            builder: (context, state) => const SparePartsScreen(),
+            redirect: (context, state) => '/catalog?tab=1',
           ),
 
-          // Projects
+          // Stock -> Catalog (tab 2)
+          GoRoute(
+            path: '/stock',
+            redirect: (context, state) => '/catalog?tab=2',
+          ),
+
+          // Clients -> Customers (tab 0)
+          GoRoute(
+            path: '/clients',
+            redirect: (context, state) => '/customers?tab=0',
+          ),
+
+          // Projects -> Customers (tab 1)
           GoRoute(
             path: '/projects',
-            builder: (context, state) => const ProjectsScreen(),
+            redirect: (context, state) => '/customers?tab=1',
           ),
 
-          // Settings
+          // Profile -> Account
+          GoRoute(
+            path: '/profile',
+            redirect: (context, state) => '/account',
+          ),
+
+          // Settings -> Account (but load actual settings screen)
           GoRoute(
             path: '/settings',
             builder: (context, state) => const AppSettingsScreen(),
@@ -246,31 +282,29 @@ class MainNavigationShell extends ConsumerStatefulWidget {
 }
 
 class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
+  /// Returns navigation routes for Architecture A (6 items)
+  /// NN/g Guideline #8: Reduced from 9 items to 6 (within 7±2 cognitive load)
+  ///
+  /// Structure:
+  /// - Home: Dashboard and overview
+  /// - Catalog: Products, Spare Parts, Stock (grouped)
+  /// - Customers: Clients, Projects (grouped)
+  /// - Cart: Current quote builder
+  /// - Quotes: Quote management
+  /// - Account: Profile, Settings, Admin (grouped)
+  ///
+  /// Admin users see same 6 items (admin is in Account menu, not primary nav)
   List<String> _getRoutes(bool isAdmin) {
-    if (isAdmin) {
-      return [
-        '/',
-        '/stock',
-        '/clients',
-        '/products',
-        '/spareparts',
-        '/cart',
-        '/settings',
-        '/admin',
-        '/profile',
-      ];
-    } else {
-      return [
-        '/',
-        '/stock',
-        '/clients',
-        '/products',
-        '/spareparts',
-        '/cart',
-        '/settings',
-        '/profile',
-      ];
-    }
+    // Architecture A: 6 items for all users
+    // Admin panel is accessed via Account screen, not as separate nav item
+    return [
+      '/',          // Home
+      '/catalog',   // Catalog (Products, Spare Parts, Stock)
+      '/customers', // Customers (Clients, Projects)
+      '/cart',      // Cart
+      '/quotes',    // Quotes
+      '/account',   // Account (Profile, Settings, Admin)
+    ];
   }
 
   int _calculateSelectedIndex(String location, List<String> routes) {
@@ -358,18 +392,14 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     );
   }
 
+  /// Builds NavigationRail destinations for Architecture A
+  /// NN/g Guideline #10: Icons support text labels (not replace them)
+  /// NN/g Guideline #7: Clear, familiar labels
   List<NavigationRailDestination> _buildNavigationRailDestinations(List<String> routes, int cartItemCount) {
     final destinations = <NavigationRailDestination>[];
 
     for (final route in routes) {
       switch (route) {
-        case '/admin':
-          destinations.add(const NavigationRailDestination(
-            icon: Icon(Icons.admin_panel_settings_outlined),
-            selectedIcon: Icon(Icons.admin_panel_settings),
-            label: Text('Admin'),
-          ));
-          break;
         case '/':
           destinations.add(const NavigationRailDestination(
             icon: Icon(Icons.home_outlined),
@@ -377,29 +407,27 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             label: Text('Home'),
           ));
           break;
-        case '/clients':
-          destinations.add(const NavigationRailDestination(
-            icon: Icon(Icons.people_outline),
-            selectedIcon: Icon(Icons.people),
-            label: Text('Clients'),
-          ));
-          break;
-        // Projects removed from navigation - keeping route definition for future use
-        // case '/projects':
-        //   destinations.add(const NavigationRailDestination(
-        //     icon: Icon(Icons.folder_outlined),
-        //     selectedIcon: Icon(Icons.folder),
-        //     label: Text('Projects'),
-        //   ));
-        //   break;
-        case '/products':
+
+        case '/catalog':
+          // Groups: Products, Spare Parts, Stock
           destinations.add(const NavigationRailDestination(
             icon: Icon(Icons.inventory_2_outlined),
             selectedIcon: Icon(Icons.inventory_2),
-            label: Text('Products'),
+            label: Text('Catalog'),
           ));
           break;
+
+        case '/customers':
+          // Groups: Clients, Projects
+          destinations.add(const NavigationRailDestination(
+            icon: Icon(Icons.people_outline),
+            selectedIcon: Icon(Icons.people),
+            label: Text('Customers'),
+          ));
+          break;
+
         case '/cart':
+          // NN/g Guideline #13: Badge indicates cart item count
           destinations.add(NavigationRailDestination(
             icon: Badge(
               label: cartItemCount > 0 ? Text('$cartItemCount') : null,
@@ -414,39 +442,21 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             label: const Text('Cart'),
           ));
           break;
+
         case '/quotes':
           destinations.add(const NavigationRailDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
+            icon: Icon(Icons.description_outlined),
+            selectedIcon: Icon(Icons.description),
             label: Text('Quotes'),
           ));
           break;
-        case '/stock':
-          destinations.add(const NavigationRailDestination(
-            icon: Icon(Icons.warehouse_outlined),
-            selectedIcon: Icon(Icons.warehouse),
-            label: Text('Stock'),
-          ));
-          break;
-        case '/spareparts':
-          destinations.add(const NavigationRailDestination(
-            icon: Icon(Icons.build_outlined),
-            selectedIcon: Icon(Icons.build),
-            label: Text('Spare Parts'),
-          ));
-          break;
-        case '/settings':
-          destinations.add(const NavigationRailDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: Text('Settings'),
-          ));
-          break;
-        case '/profile':
+
+        case '/account':
+          // Groups: Profile, Settings, Admin (conditional)
           destinations.add(const NavigationRailDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
-            label: Text('Profile'),
+            label: Text('Account'),
           ));
           break;
       }
@@ -455,18 +465,14 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     return destinations;
   }
 
+  /// Builds NavigationBar destinations for mobile (Architecture A)
+  /// NN/g Guideline #11: Minimum 48dp touch targets
+  /// NN/g Guideline #2: Show on mobile (no hamburger menu needed with only 6 items)
   List<NavigationDestination> _buildNavigationDestinations(List<String> routes, int cartItemCount) {
     final destinations = <NavigationDestination>[];
 
     for (final route in routes) {
       switch (route) {
-        case '/admin':
-          destinations.add(const NavigationDestination(
-            icon: Icon(Icons.admin_panel_settings_outlined),
-            selectedIcon: Icon(Icons.admin_panel_settings),
-            label: 'Admin',
-          ));
-          break;
         case '/':
           destinations.add(const NavigationDestination(
             icon: Icon(Icons.home_outlined),
@@ -474,29 +480,27 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             label: 'Home',
           ));
           break;
-        case '/clients':
-          destinations.add(const NavigationDestination(
-            icon: Icon(Icons.people_outline),
-            selectedIcon: Icon(Icons.people),
-            label: 'Clients',
-          ));
-          break;
-        // Projects removed from navigation - keeping route definition for future use
-        // case '/projects':
-        //   destinations.add(const NavigationDestination(
-        //     icon: Icon(Icons.folder_outlined),
-        //     selectedIcon: Icon(Icons.folder),
-        //     label: 'Projects',
-        //   ));
-        //   break;
-        case '/products':
+
+        case '/catalog':
+          // Groups: Products, Spare Parts, Stock
           destinations.add(const NavigationDestination(
             icon: Icon(Icons.inventory_2_outlined),
             selectedIcon: Icon(Icons.inventory_2),
-            label: 'Products',
+            label: 'Catalog',
           ));
           break;
+
+        case '/customers':
+          // Groups: Clients, Projects
+          destinations.add(const NavigationDestination(
+            icon: Icon(Icons.people_outline),
+            selectedIcon: Icon(Icons.people),
+            label: 'Customers',
+          ));
+          break;
+
         case '/cart':
+          // NN/g Guideline #13: Badge for cart count
           destinations.add(NavigationDestination(
             icon: Badge(
               label: cartItemCount > 0 ? Text('$cartItemCount') : null,
@@ -511,39 +515,21 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             label: 'Cart',
           ));
           break;
+
         case '/quotes':
           destinations.add(const NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
+            icon: Icon(Icons.description_outlined),
+            selectedIcon: Icon(Icons.description),
             label: 'Quotes',
           ));
           break;
-        case '/stock':
-          destinations.add(const NavigationDestination(
-            icon: Icon(Icons.warehouse_outlined),
-            selectedIcon: Icon(Icons.warehouse),
-            label: 'Stock',
-          ));
-          break;
-        case '/spareparts':
-          destinations.add(const NavigationDestination(
-            icon: Icon(Icons.build_outlined),
-            selectedIcon: Icon(Icons.build),
-            label: 'Spare Parts',
-          ));
-          break;
-        case '/settings':
-          destinations.add(const NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
-          ));
-          break;
-        case '/profile':
+
+        case '/account':
+          // Groups: Profile, Settings, Admin (conditional)
           destinations.add(const NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
-            label: 'Profile',
+            label: 'Account',
           ));
           break;
       }

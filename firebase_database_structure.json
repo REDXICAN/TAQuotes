@@ -1,0 +1,25 @@
+[2025-10-01T01:54:27.560Z] Object "/hosting" in "firebase.json" has unknown property: {"additionalProperty":"releases"}
+[2025-10-01T01:54:27.561Z] Field "/hosting" in "firebase.json" is possibly invalid: must be array
+[2025-10-01T01:54:27.562Z] Field "/hosting" in "firebase.json" is possibly invalid: must match a schema in anyOf
+[2025-10-01T01:54:27.567Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[2025-10-01T01:54:27.568Z] > authorizing via signed-in user (andres.xbgo@gmail.com)
+[2025-10-01T01:54:27.569Z] [iam] checking project taquotes for permissions ["firebase.projects.get","firebasedatabase.instances.get"]
+[2025-10-01T01:54:27.570Z] Checked if tokens are valid: true, expires at: 1759287098742
+[2025-10-01T01:54:27.570Z] Checked if tokens are valid: true, expires at: 1759287098742
+[2025-10-01T01:54:27.571Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/taquotes:testIamPermissions [none]
+[2025-10-01T01:54:27.572Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/taquotes:testIamPermissions x-goog-quota-user=projects/taquotes
+[2025-10-01T01:54:27.572Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/taquotes:testIamPermissions {"permissions":["firebase.projects.get","firebasedatabase.instances.get"]}
+[2025-10-01T01:54:27.836Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/taquotes:testIamPermissions 200
+[2025-10-01T01:54:27.837Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/taquotes:testIamPermissions {"permissions":["firebase.projects.get","firebasedatabase.instances.get"]}
+[2025-10-01T01:54:27.837Z] Checked if tokens are valid: true, expires at: 1759287098742
+[2025-10-01T01:54:27.838Z] Checked if tokens are valid: true, expires at: 1759287098742
+[2025-10-01T01:54:27.838Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/taquotes [none]
+[2025-10-01T01:54:28.102Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/taquotes 200
+[2025-10-01T01:54:28.103Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/taquotes {"projectId":"taquotes","projectNumber":"1016639818898","displayName":"TAQuotes","name":"projects/taquotes","resources":{"hostingSite":"taquotes","realtimeDatabaseInstance":"taquotes-default-rtdb"},"state":"ACTIVE","etag":"1_e929f7e9-144e-4c01-a0fd-d4e76bd201bc"}
+[2025-10-01T01:54:28.103Z] Checked if tokens are valid: true, expires at: 1759287098742
+[2025-10-01T01:54:28.103Z] Checked if tokens are valid: true, expires at: 1759287098742
+[2025-10-01T01:54:28.103Z] >>> [apiv2][query] GET https://firebasedatabase.googleapis.com/v1beta/projects/taquotes/locations/-/instances/taquotes-default-rtdb [none]
+[2025-10-01T01:54:28.441Z] <<< [apiv2][status] GET https://firebasedatabase.googleapis.com/v1beta/projects/taquotes/locations/-/instances/taquotes-default-rtdb 200
+[2025-10-01T01:54:28.441Z] <<< [apiv2][body] GET https://firebasedatabase.googleapis.com/v1beta/projects/taquotes/locations/-/instances/taquotes-default-rtdb {"name":"projects/1016639818898/locations/us-central1/instances/taquotes-default-rtdb","project":"projects/1016639818898","databaseUrl":"https://taquotes-default-rtdb.firebaseio.com","type":"DEFAULT_DATABASE","state":"ACTIVE"}
+
+Error: Path must begin with /

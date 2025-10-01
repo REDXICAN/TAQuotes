@@ -205,7 +205,17 @@
       "Bash(jq:*)",
       "Bash(java:*)",
       "Bash(do echo \"=== $file ===\")",
-      "Bash(do echo \"Processing $file\")"
+      "Bash(do echo \"Processing $file\")",
+      "Bash(if [ -f \"emergency_admin_fix.html\" ])",
+      "Bash(then echo \"⚠️ WARNING: emergency_admin_fix.html EXISTS - Contains credentials!\")",
+      "Bash(else echo \"✅ emergency_admin_fix.html not found (good)\")",
+      "Bash(then echo \"⚠️ .env file exists locally\")",
+      "Bash(else echo \"✅ .env not found\")",
+      "Bash(if [ -f \"CHANGES_SUMMARY_SEP15-30_2025.md\" ])",
+      "Bash(then grep -i \"password\\|apikey\\|secret\" CHANGES_SUMMARY_SEP15-30_2025.md)",
+      "Bash(if [ -f firebase_database_structure.json ])",
+      "Bash(then head -200 firebase_database_structure.json)",
+      "Bash(else echo \"File not created, checking Firebase...\")"
     ],
     "deny": [],
     "ask": [
