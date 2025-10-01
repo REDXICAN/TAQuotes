@@ -373,32 +373,40 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
                             Column(
                               children: stockByCategory.entries.map((entry) {
                                 final percentage = totalStock > 0 ? (entry.value / totalStock * 100) : 0.0;
+                                final categoryColor = _getCategoryColor(entry.key);
                                 return Container(
                                   margin: const EdgeInsets.only(bottom: 12),
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey[50],
+                                    color: categoryColor.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.grey[300]!),
+                                    border: Border.all(color: categoryColor.withOpacity(0.3), width: 2),
                                   ),
                                   child: Row(
                                     children: [
                                       Container(
-                                        width: 20,
-                                        height: 20,
+                                        width: 24,
+                                        height: 24,
                                         decoration: BoxDecoration(
-                                          color: _getCategoryColor(entry.key),
+                                          color: categoryColor,
                                           borderRadius: BorderRadius.circular(4),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: categoryColor.withOpacity(0.3),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                       const SizedBox(width: 16),
                                       Expanded(
                                         child: Text(
                                           entry.key,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 16,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.black87,
+                                            fontWeight: FontWeight.w600,
+                                            color: categoryColor.withOpacity(0.9),
                                           ),
                                         ),
                                       ),
@@ -407,17 +415,18 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
                                         children: [
                                           Text(
                                             '${entry.value} units',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 16,
                                               fontWeight: FontWeight.bold,
-                                              color: Colors.blue,
+                                              color: categoryColor,
                                             ),
                                           ),
                                           Text(
                                             '${percentage.toStringAsFixed(1)}%',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 12,
-                                              color: Colors.black87,
+                                              fontWeight: FontWeight.w500,
+                                              color: categoryColor.withOpacity(0.7),
                                             ),
                                           ),
                                         ],
