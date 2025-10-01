@@ -475,9 +475,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                   return Center(
                     child: Container(
                       constraints: BoxConstraints(
-                        maxWidth: ResponsiveHelper.isMobile(context)
-                          ? MediaQuery.of(context).size.width
-                          : MediaQuery.of(context).size.width * 0.67,
+                        maxWidth: MediaQuery.of(context).size.width,
                       ),
                       child: ListView.builder(
                         padding: EdgeInsets.all(ResponsiveHelper.isMobile(context) ? 8 : 16),
@@ -486,14 +484,14 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                           final group = sortedGroups[groupIndex];
                           final projectName = group.key!;
                           final projectQuotes = group.value;
-                          
+
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Project header
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                margin: EdgeInsets.only(bottom: 8, top: groupIndex > 0 ? 16 : 0),
+                                margin: EdgeInsets.only(bottom: 16, top: groupIndex > 0 ? 24 : 0),
                                 decoration: BoxDecoration(
                                   color: theme.primaryColor.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
@@ -534,8 +532,27 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                                   ],
                                 ),
                               ),
-                              // Project quotes
-                              ...projectQuotes.map((quote) => _buildQuoteCard(quote, filteredQuotes)),
+                              // Project quotes - Grid layout
+                              GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: ResponsiveHelper.isMobile(context)
+                                      ? 1 // 1 column on mobile
+                                      : ResponsiveHelper.isTablet(context)
+                                          ? 2 // 2 columns on tablet
+                                          : 3, // 3 columns on desktop
+                                  childAspectRatio: ResponsiveHelper.isMobile(context)
+                                      ? 2.5 // Wider cards on mobile
+                                      : 1.8, // More square on desktop
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                ),
+                                itemCount: projectQuotes.length,
+                                itemBuilder: (context, index) {
+                                  return _buildQuoteCard(projectQuotes[index], filteredQuotes);
+                                },
+                              ),
                             ],
                           );
                         },
@@ -547,12 +564,22 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                   return Center(
                     child: Container(
                       constraints: BoxConstraints(
-                        maxWidth: ResponsiveHelper.isMobile(context)
-                          ? MediaQuery.of(context).size.width  // Full width on mobile
-                          : MediaQuery.of(context).size.width * 0.67, // 2/3 of screen width on desktop
+                        maxWidth: MediaQuery.of(context).size.width, // Full width for grid
                       ),
-                      child: ListView.builder(
+                      child: GridView.builder(
                         padding: EdgeInsets.all(ResponsiveHelper.isMobile(context) ? 8 : 16),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: ResponsiveHelper.isMobile(context)
+                              ? 1 // 1 column on mobile
+                              : ResponsiveHelper.isTablet(context)
+                                  ? 2 // 2 columns on tablet
+                                  : 3, // 3 columns on desktop
+                          childAspectRatio: ResponsiveHelper.isMobile(context)
+                              ? 2.5 // Wider cards on mobile
+                              : 1.8, // More square on desktop
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
                         itemCount: filteredQuotes.length,
                         itemBuilder: (context, index) {
                           final quote = filteredQuotes[index];
@@ -620,7 +647,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
     final isSelected = _selectedQuoteIds.contains(quote.id);
 
     return Card(
-      margin: EdgeInsets.only(bottom: isMobile ? 8 : 12),
+      margin: EdgeInsets.zero, // No margin - grid handles spacing
       color: isSelected ? theme.primaryColor.withOpacity(0.1) : null,
       elevation: isSelected ? 3 : 1,
       child: InkWell(
