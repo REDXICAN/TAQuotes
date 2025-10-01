@@ -1323,17 +1323,17 @@ Future<void> _handleExcelUpload() async {
       builder: (context, constraints) {
         final crossAxisCount = ResponsiveHelper.getGridColumns(context);
 
-        // Adjust aspect ratio based on screen size - optimized for proper card content containment
+        // Adjust aspect ratio based on screen size - optimized for square images and proper content
         // Lower values = taller cards with more room for content
         double childAspectRatio;
         if (ResponsiveHelper.isVerticalDisplay(context)) {
-          childAspectRatio = 0.70;  // Taller cards for vertical displays to fit all content
+          childAspectRatio = 0.65;  // Taller cards for vertical displays with square images
         } else if (ResponsiveHelper.isMobile(context)) {
-          childAspectRatio = 0.75;  // Significantly taller cards on mobile to prevent overflow
+          childAspectRatio = 0.70;  // Taller cards on mobile to accommodate square images
         } else if (ResponsiveHelper.isTablet(context)) {
-          childAspectRatio = 0.78;  // Taller cards on tablets for better content containment
+          childAspectRatio = 0.73;  // Taller cards on tablets for better content with square images
         } else {
-          childAspectRatio = 0.80;  // Taller cards on desktop to accommodate all elements
+          childAspectRatio = 0.75;  // Taller cards on desktop to accommodate square images
         }
 
         // Increased spacing for vertical screens to prevent overlap
@@ -1854,21 +1854,23 @@ class ProductCard extends ConsumerWidget {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Product Image - responsive height based on card size
-                SizedBox(
-                  height: cardHeight * 0.40, // 40% of card height for image
+                // Product Image - square aspect ratio, centered
+                AspectRatio(
+                  aspectRatio: 1.0, // Square aspect ratio
                   child: Container(
                     decoration: const BoxDecoration(
                       color: Color(0xFFFFFFFF), // Pure white background for images
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: SimpleImageWidget(
-                        sku: product.sku ?? product.model ?? '',
-                        useThumbnail: true,
-                        fit: BoxFit.contain,
-                        width: double.infinity,
-                        imageUrl: product.thumbnailUrl ?? product.imageUrl,
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: SimpleImageWidget(
+                          sku: product.sku ?? product.model ?? '',
+                          useThumbnail: true,
+                          fit: BoxFit.contain,
+                          width: double.infinity,
+                          imageUrl: product.thumbnailUrl ?? product.imageUrl,
+                        ),
                       ),
                     ),
                   ),
@@ -1930,22 +1932,22 @@ class ProductCard extends ConsumerWidget {
                         ),
                     ],
                   ),
-                  SizedBox(height: ResponsiveHelper.getValue(context, mobile: 2, tablet: 3, desktop: 4)),
+                  SizedBox(height: ResponsiveHelper.getValue(context, mobile: 1, tablet: 2, desktop: 2)),
                   Text(
                     product.displayName,
                     style: TextStyle(
                       fontSize: ResponsiveHelper.getResponsiveFontSize(
                         context,
-                        baseFontSize: 12,
-                        minFontSize: 11,
-                        maxFontSize: 13,
+                        baseFontSize: 11,
+                        minFontSize: 10,
+                        maxFontSize: 12,
                       ),
-                      height: 1.2,
+                      height: 1.15,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: ResponsiveHelper.getValue(context, mobile: 4, tablet: 5, desktop: 6)),
+                  SizedBox(height: ResponsiveHelper.getValue(context, mobile: 2, tablet: 3, desktop: 4)),
                   // Stock Status Badge - more compact
                   Container(
                     padding: EdgeInsets.symmetric(
@@ -1989,7 +1991,7 @@ class ProductCard extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  SizedBox(height: ResponsiveHelper.getValue(context, mobile: 4, tablet: 5, desktop: 6)),
+                  SizedBox(height: ResponsiveHelper.getValue(context, mobile: 2, tablet: 3, desktop: 4)),
 
                   // Warehouse Availability Badges - compact and responsive
                   if (product.warehouseStock != null && product.warehouseStock!.isNotEmpty)
@@ -2052,49 +2054,55 @@ class ProductCard extends ConsumerWidget {
                               badgeColor = Colors.grey;
                             }
 
-                            return Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: ResponsiveHelper.getValue(context, mobile: 3, tablet: 4, desktop: 4),
-                                vertical: ResponsiveHelper.getValue(context, mobile: 1, tablet: 1, desktop: 2),
-                              ),
-                              decoration: BoxDecoration(
-                                color: badgeColor.withOpacity(isHighPriority ? 0.15 : 0.1),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: badgeColor.withOpacity(isHighPriority ? 0.5 : 0.3),
-                                  width: isHighPriority ? 1.0 : 0.5,
+                            return Tooltip(
+                              message: '${WarehouseUtils.getDescription(warehouse)}\nLocation: ${WarehouseUtils.getLocation(warehouse)}\nAvailable: $availableStock units',
+                              preferBelow: false,
+                              verticalOffset: 10,
+                              waitDuration: const Duration(milliseconds: 500),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: ResponsiveHelper.getValue(context, mobile: 3, tablet: 4, desktop: 4),
+                                  vertical: ResponsiveHelper.getValue(context, mobile: 1, tablet: 1, desktop: 2),
                                 ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (isHighPriority)
-                                    Padding(
-                                      padding: const EdgeInsets.only(right: 2),
-                                      child: Icon(
-                                        WarehouseUtils.getWarehouseIcon(warehouse),
-                                        size: ResponsiveHelper.getValue(context, mobile: 8, tablet: 9, desktop: 10),
-                                        color: badgeColor,
-                                      ),
-                                    ),
-                                  Flexible(
-                                    child: Text(
-                                      '${warehouse}: $availableStock',
-                                      style: TextStyle(
-                                        fontSize: ResponsiveHelper.getResponsiveFontSize(
-                                          context,
-                                          baseFontSize: isHighPriority ? 9 : 8,
-                                          minFontSize: 8,
-                                          maxFontSize: 10,
-                                        ),
-                                        color: badgeColor,
-                                        fontWeight: isHighPriority ? FontWeight.w700 : FontWeight.w600,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                    ),
+                                decoration: BoxDecoration(
+                                  color: badgeColor.withOpacity(isHighPriority ? 0.15 : 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: badgeColor.withOpacity(isHighPriority ? 0.5 : 0.3),
+                                    width: isHighPriority ? 1.0 : 0.5,
                                   ),
-                                ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (isHighPriority)
+                                      Padding(
+                                        padding: const EdgeInsets.only(right: 2),
+                                        child: Icon(
+                                          WarehouseUtils.getWarehouseIcon(warehouse),
+                                          size: ResponsiveHelper.getValue(context, mobile: 8, tablet: 9, desktop: 10),
+                                          color: badgeColor,
+                                        ),
+                                      ),
+                                    Flexible(
+                                      child: Text(
+                                        '${warehouse}: $availableStock',
+                                        style: TextStyle(
+                                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                            context,
+                                            baseFontSize: isHighPriority ? 9 : 8,
+                                            minFontSize: 8,
+                                            maxFontSize: 10,
+                                          ),
+                                          color: badgeColor,
+                                          fontWeight: isHighPriority ? FontWeight.w700 : FontWeight.w600,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             );
                           }).toList();
