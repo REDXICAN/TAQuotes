@@ -147,9 +147,11 @@ class ClientMetric {
 
 /// Main monitoring metrics provider - fetches all data from Firebase
 final monitoringMetricsProvider = StreamProvider.autoDispose<MonitoringMetrics>((ref) async* {
-  try {
-    // Fetch all data in parallel
-    final db = FirebaseDatabase.instance;
+  // Refresh every 30 seconds
+  while (true) {
+    try {
+      // Fetch all data in parallel
+      final db = FirebaseDatabase.instance;
 
     // Get data snapshots
     final productsSnapshot = await db.ref('products').get();
@@ -474,12 +476,44 @@ final monitoringMetricsProvider = StreamProvider.autoDispose<MonitoringMetrics>(
       clientLifetimeValue: clientLifetimeValue,
     );
 
-    // Auto-refresh every 30 seconds
-    await Future.delayed(const Duration(seconds: 30));
-    ref.invalidateSelf();
-  } catch (e) {
-    AppLogger.error('Error fetching monitoring metrics', error: e);
-    rethrow;
+      // Auto-refresh every 30 seconds
+      await Future.delayed(const Duration(seconds: 30));
+    } catch (e) {
+      AppLogger.error('Error fetching monitoring metrics', error: e);
+      // Yield error state or empty metrics
+      yield MonitoringMetrics(
+        totalRevenue: 0,
+        totalQuotes: 0,
+        activeUsers: 0,
+        globalConversionRate: 0,
+        revenueTrend: 0,
+        quotesTrend: 0,
+        usersTrend: 0,
+        conversionTrend: 0,
+        outOfStockCount: 0,
+        lowStockCount: 0,
+        pendingApprovalsCount: 0,
+        topPerformers: [],
+        recentQuotes: [],
+        revenueByMonth: {},
+        quotesByStatus: {},
+        averageDealSize: 0,
+        averageResponseTime: 0,
+        totalStock: 0,
+        totalSKUs: 0,
+        stockByWarehouse: {},
+        lowStockProducts: [],
+        mostQuotedProducts: [],
+        bestSellingProducts: [],
+        revenueByCategory: {},
+        neverQuotedCount: 0,
+        topClientsByRevenue: [],
+        topClientsByProjects: [],
+        newClientsThisMonth: 0,
+        clientLifetimeValue: 0,
+      );
+      await Future.delayed(const Duration(seconds: 30));
+    }
   }
 });
 
