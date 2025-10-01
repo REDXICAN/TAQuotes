@@ -15,7 +15,7 @@ import '../../features/products/presentation/screens/products_screen.dart';
 import '../../features/products/presentation/screens/product_detail_screen.dart';
 import '../../features/clients/presentation/screens/clients_screen.dart';
 import '../../features/cart/presentation/screens/cart_screen.dart';
-import '../../features/quotes/presentation/screens/quotes_screen.dart';
+import '../../features/quotes/presentation/screens/quotes_with_tracking_screen.dart';
 import '../../features/quotes/presentation/screens/quote_detail_screen.dart';
 import '../../features/quotes/presentation/screens/create_quote_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
@@ -141,10 +141,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const CartScreen(),
           ),
 
-          // Quotes - Standalone (high frequency)
+          // Quotes - Standalone (high frequency) - Now with Tracking tab
           GoRoute(
             path: '/quotes',
-            builder: (context, state) => const QuotesScreen(),
+            builder: (context, state) => const QuotesWithTrackingScreen(),
             routes: [
               GoRoute(
                 path: 'create',

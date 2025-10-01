@@ -380,7 +380,7 @@ exports.testEmail = functions.https.onRequest((req, res) => {
   cors(req, res, async () => {
     try {
       const { recipientEmail } = req.body || req.query;
-      
+
       if (!recipientEmail) {
         return res.status(400).json({ error: 'recipientEmail is required' });
       }
@@ -400,19 +400,388 @@ exports.testEmail = functions.https.onRequest((req, res) => {
       };
 
       const info = await transporter.sendMail(mailOptions);
-      
-      return res.status(200).json({ 
-        success: true, 
+
+      return res.status(200).json({
+        success: true,
         messageId: info.messageId,
         message: 'Test email sent successfully'
       });
-      
+
     } catch (error) {
       // Error logged internally by Firebase Functions
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: 'Failed to send test email',
-        details: error.message 
+        details: error.message
       });
     }
   });
+});
+
+// ========== ONEDRIVE EXCEL IMPORT FUNCTIONS ==========
+
+const axios = require('axios');
+const XLSX = require('xlsx');
+
+// Helper function to get Microsoft Graph API access token
+async function getMicrosoftAccessToken() {
+  try {
+    const tokenEndpoint = 'https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token';
+    const tenantId = process.env.MICROSOFT_TENANT_ID || functions.config().microsoft?.tenant_id;
+    const clientId = process.env.MICROSOFT_CLIENT_ID || functions.config().microsoft?.client_id;
+    const clientSecret = process.env.MICROSOFT_CLIENT_SECRET || functions.config().microsoft?.client_secret;
+
+    if (!tenantId || !clientId || !clientSecret) {
+      throw new Error('Missing Microsoft Graph API credentials in environment variables');
+    }
+
+    const response = await axios.post(
+      tokenEndpoint.replace('{tenant}', tenantId),
+      new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        scope: 'https://graph.microsoft.com/.default',
+        grant_type: 'client_credentials'
+      }),
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
+
+    return response.data.access_token;
+  } catch (error) {
+    console.error('Error getting Microsoft access token:', error.response?.data || error.message);
+    throw new Error('Failed to authenticate with Microsoft Graph API');
+  }
+}
+
+// Helper function to extract file ID from OneDrive share link
+function extractFileIdFromShareLink(shareLink) {
+  try {
+    // OneDrive share links format:
+    // https://onedrive.live.com/personal/{user}/_layouts/15/Doc.aspx?sourcedoc={fileId}&action=default
+    const match = shareLink.match(/sourcedoc=\{([^}]+)\}/i) || shareLink.match(/resid=([^&]+)/i);
+    if (match && match[1]) {
+      return match[1];
+    }
+    throw new Error('Could not extract file ID from share link');
+  } catch (error) {
+    console.error('Error extracting file ID:', error.message);
+    throw error;
+  }
+}
+
+// Helper function to download Excel file from OneDrive
+async function downloadExcelFromOneDrive(accessToken, shareLink) {
+  try {
+    console.log('Downloading Excel file from OneDrive...');
+
+    // Extract file ID from share link
+    const fileId = extractFileIdFromShareLink(shareLink);
+    console.log('Extracted file ID:', fileId);
+
+    // Get file metadata and download URL
+    const fileMetadataUrl = `https://graph.microsoft.com/v1.0/shares/u!${Buffer.from(shareLink).toString('base64url')}/driveItem`;
+
+    const metadataResponse = await axios.get(fileMetadataUrl, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    const downloadUrl = metadataResponse.data['@microsoft.graph.downloadUrl'];
+
+    if (!downloadUrl) {
+      throw new Error('Could not get download URL from OneDrive');
+    }
+
+    // Download the file
+    const fileResponse = await axios.get(downloadUrl, {
+      responseType: 'arraybuffer'
+    });
+
+    console.log('Excel file downloaded successfully, size:', fileResponse.data.length, 'bytes');
+    return fileResponse.data;
+  } catch (error) {
+    console.error('Error downloading Excel from OneDrive:', error.response?.data || error.message);
+    throw new Error('Failed to download Excel file from OneDrive');
+  }
+}
+
+// Helper function to parse Excel data
+function parseExcelData(excelBuffer) {
+  try {
+    console.log('Parsing Excel data...');
+
+    // Read the Excel file
+    const workbook = XLSX.read(excelBuffer, { type: 'buffer' });
+
+    // Get the first sheet
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    // Convert to JSON
+    const jsonData = XLSX.utils.sheet_to_json(sheet, {
+      header: 1,
+      defval: '',
+      blankrows: false
+    });
+
+    if (jsonData.length < 2) {
+      throw new Error('Excel file has no data rows');
+    }
+
+    // Get headers (first row)
+    const headers = jsonData[0];
+    console.log('Excel headers:', headers);
+
+    // Convert rows to objects
+    const data = [];
+    for (let i = 1; i < jsonData.length; i++) {
+      const row = jsonData[i];
+      const rowObject = {};
+
+      headers.forEach((header, index) => {
+        const headerKey = String(header).trim().toLowerCase().replace(/\s+/g, '_');
+        rowObject[headerKey] = row[index] || '';
+      });
+
+      // Only add rows with at least one non-empty value
+      if (Object.values(rowObject).some(val => val !== '')) {
+        data.push(rowObject);
+      }
+    }
+
+    console.log(`Parsed ${data.length} rows from Excel`);
+    return data;
+  } catch (error) {
+    console.error('Error parsing Excel data:', error.message);
+    throw new Error('Failed to parse Excel file');
+  }
+}
+
+// Helper function to import tracking data to Firebase
+async function importTrackingDataToFirebase(trackingData) {
+  try {
+    console.log('Importing tracking data to Firebase...');
+
+    const db = admin.database();
+    const trackingRef = db.ref('tracking');
+
+    // Create a batch update object
+    const updates = {};
+    const timestamp = admin.database.ServerValue.TIMESTAMP;
+
+    trackingData.forEach((record, index) => {
+      // Generate a unique key for each record (use tracking number or index)
+      const trackingNumber = record.tracking_number || record.tracking_no || `RECORD_${Date.now()}_${index}`;
+      const sanitizedKey = String(trackingNumber).replace(/[.#$\[\]]/g, '_');
+
+      // Structure the data
+      updates[sanitizedKey] = {
+        ...record,
+        imported_at: timestamp,
+        last_updated: timestamp
+      };
+    });
+
+    // Perform batch update
+    await trackingRef.update(updates);
+
+    console.log(`Successfully imported ${Object.keys(updates).length} tracking records`);
+
+    // Log the import action
+    await db.ref('import_logs').push({
+      type: 'onedrive_excel_import',
+      records_count: Object.keys(updates).length,
+      timestamp: timestamp,
+      status: 'success'
+    });
+
+    return {
+      success: true,
+      recordsImported: Object.keys(updates).length
+    };
+  } catch (error) {
+    console.error('Error importing tracking data to Firebase:', error.message);
+
+    // Log the failed import
+    await admin.database().ref('import_logs').push({
+      type: 'onedrive_excel_import',
+      timestamp: admin.database.ServerValue.TIMESTAMP,
+      status: 'failed',
+      error: error.message
+    });
+
+    throw new Error('Failed to import tracking data to Firebase');
+  }
+}
+
+// Scheduled function to import Excel from OneDrive every 30 minutes
+exports.scheduledOneDriveImport = functions.pubsub
+  .schedule('every 30 minutes')
+  .timeZone('America/Mexico_City')
+  .onRun(async (context) => {
+    console.log('Starting scheduled OneDrive Excel import...');
+
+    try {
+      // Get OneDrive share link from environment variable
+      const shareLink = process.env.ONEDRIVE_SHARE_LINK || functions.config().onedrive?.share_link;
+
+      if (!shareLink) {
+        throw new Error('OneDrive share link not configured in environment variables');
+      }
+
+      // Get Microsoft Graph API access token
+      const accessToken = await getMicrosoftAccessToken();
+
+      // Download Excel file from OneDrive
+      const excelBuffer = await downloadExcelFromOneDrive(accessToken, shareLink);
+
+      // Parse Excel data
+      const trackingData = parseExcelData(excelBuffer);
+
+      // Import to Firebase
+      const result = await importTrackingDataToFirebase(trackingData);
+
+      console.log('Scheduled import completed successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Scheduled import failed:', error.message);
+
+      // Send alert email to admin
+      try {
+        await transporter.sendMail({
+          from: '"TurboAir System" <turboairquotes@gmail.com>',
+          to: 'andres@turboairmexico.com',
+          subject: 'OneDrive Import Failed',
+          text: `The scheduled OneDrive Excel import failed with error: ${error.message}`,
+          html: `
+            <h2>OneDrive Import Failed</h2>
+            <p>The scheduled import from OneDrive failed at ${new Date().toISOString()}</p>
+            <p><strong>Error:</strong> ${error.message}</p>
+            <p>Please check the Firebase Functions logs for more details.</p>
+          `
+        });
+      } catch (emailError) {
+        console.error('Failed to send alert email:', emailError.message);
+      }
+
+      throw error;
+    }
+  });
+
+// Manual trigger function for OneDrive import (for testing and manual runs)
+exports.triggerOneDriveImport = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    try {
+      // Verify admin access
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized - Bearer token required' });
+      }
+
+      const idToken = authHeader.split('Bearer ')[1];
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+
+      // Check if user is admin or super admin
+      if (!decodedToken.admin && !decodedToken.superAdmin) {
+        return res.status(403).json({ error: 'Forbidden - Admin access required' });
+      }
+
+      console.log('Manual OneDrive import triggered by:', decodedToken.email);
+
+      // Get OneDrive share link from environment variable or request body
+      const shareLink = req.body.shareLink ||
+                       process.env.ONEDRIVE_SHARE_LINK ||
+                       functions.config().onedrive?.share_link;
+
+      if (!shareLink) {
+        return res.status(400).json({
+          error: 'OneDrive share link not configured. Provide it in request body or environment variables.'
+        });
+      }
+
+      // Get Microsoft Graph API access token
+      const accessToken = await getMicrosoftAccessToken();
+
+      // Download Excel file from OneDrive
+      const excelBuffer = await downloadExcelFromOneDrive(accessToken, shareLink);
+
+      // Parse Excel data
+      const trackingData = parseExcelData(excelBuffer);
+
+      // Import to Firebase
+      const result = await importTrackingDataToFirebase(trackingData);
+
+      console.log('Manual import completed successfully:', result);
+
+      return res.status(200).json({
+        success: true,
+        message: 'OneDrive import completed successfully',
+        recordsImported: result.recordsImported,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Manual import failed:', error.message);
+      return res.status(500).json({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+});
+
+// Function to get import history/logs
+exports.getImportLogs = functions.https.onCall(async (data, context) => {
+  // Check authentication
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'Request must be authenticated'
+    );
+  }
+
+  // Check if user is admin
+  if (!context.auth.token.admin && !context.auth.token.superAdmin) {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'Admin access required'
+    );
+  }
+
+  try {
+    const limit = data.limit || 50;
+    const db = admin.database();
+
+    const snapshot = await db.ref('import_logs')
+      .orderByChild('timestamp')
+      .limitToLast(limit)
+      .once('value');
+
+    const logs = [];
+    snapshot.forEach((childSnapshot) => {
+      logs.push({
+        id: childSnapshot.key,
+        ...childSnapshot.val()
+      });
+    });
+
+    // Reverse to show newest first
+    logs.reverse();
+
+    return {
+      success: true,
+      logs: logs,
+      count: logs.length
+    };
+  } catch (error) {
+    console.error('Error fetching import logs:', error.message);
+    throw new functions.https.HttpsError(
+      'internal',
+      'Failed to fetch import logs'
+    );
+  }
 });

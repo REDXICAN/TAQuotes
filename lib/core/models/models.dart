@@ -2,9 +2,10 @@
 import '../services/app_logger.dart';
 import '../utils/safe_conversions.dart';
 
-// Export UserRole enum and Project model
+// Export UserRole enum, Project model, and Shipment Tracking model
 export 'user_role.dart';
 export 'project.dart';
+export 'shipment_tracking.dart';
 
 // Global safe date parsing helper function
 DateTime safeParseDateTimeWithFallback(dynamic value, {DateTime? fallback}) {

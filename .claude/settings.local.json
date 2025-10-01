@@ -223,7 +223,9 @@
       "Bash(then echo \"WARNING: firebase-admin-key.json exists\")",
       "Bash(else echo \"OK: firebase-admin-key.json not found\")",
       "Bash(git fetch:*)",
-      "Bash(git rev-parse:*)"
+      "Bash(git rev-parse:*)",
+      "Bash(then echo \"✓ .env file exists\")",
+      "Bash(else echo \"✗ .env file not found\")"
     ],
     "deny": [],
     "ask": [

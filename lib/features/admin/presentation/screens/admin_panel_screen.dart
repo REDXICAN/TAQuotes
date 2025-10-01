@@ -18,6 +18,7 @@ import '../widgets/user_approvals_widget.dart' show pendingUserApprovalsProvider
 // import '../widgets/mock_analytics_generator_widget.dart'; // Removed - no longer needed
 import '../widgets/spare_parts_import_widget.dart';
 import '../widgets/comprehensive_data_populator.dart';
+import '../widgets/tracking_import_widget.dart';
 import '../../../../core/services/hybrid_database_service.dart';
 import '../../../settings/presentation/screens/app_settings_screen.dart';
 
@@ -1061,6 +1062,10 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
 
           // Spare Parts Import
           const SparePartsImportWidget(),
+          const SizedBox(height: 24),
+
+          // Shipment Tracking Import
+          const TrackingImportWidget(),
           const SizedBox(height: 24),
 
           // Export data
