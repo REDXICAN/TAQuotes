@@ -243,11 +243,12 @@ class RealtimeDatabaseService {
   }
 
   // ============ CLIENTS ============
+  // Clients are now global (shared across all users)
   Stream<List<Map<String, dynamic>>> getClients() {
     if (userId == null) return Stream.value([]);
 
     return _db
-        .ref('clients/$userId')
+        .ref('clients') // Global clients path
         .onValue
         .map((event) {
       final List<Map<String, dynamic>> clients = [];
@@ -265,7 +266,8 @@ class RealtimeDatabaseService {
 
   Future<Map<String, dynamic>?> getClient(String clientId) async {
     if (userId == null) return null;
-    final snapshot = await _db.ref('clients/$userId/$clientId').get();
+    // Get client from global clients collection
+    final snapshot = await _db.ref('clients/$clientId').get();
     if (snapshot.exists) {
       final data = SafeTypeConverter.toMap(snapshot.value);
       data['id'] = clientId;
@@ -297,9 +299,11 @@ class RealtimeDatabaseService {
       throw Exception(rateLimitResult.message ?? 'Too many client creation attempts. Please wait before creating another client.');
     }
 
-    final newClientRef = _db.ref('clients/$userId').push();
+    // Store clients globally (shared across all users)
+    final newClientRef = _db.ref('clients').push();
     await newClientRef.set({
       ...client,
+      'created_by': userId, // Track who created the client
       'created_at': ServerValue.timestamp,
       'updated_at': ServerValue.timestamp,
     });
@@ -309,15 +313,18 @@ class RealtimeDatabaseService {
   Future<void> updateClient(
       String clientId, Map<String, dynamic> updates) async {
     if (userId == null) return;
-    await _db.ref('clients/$userId/$clientId').update({
+    // Update client in global clients collection
+    await _db.ref('clients/$clientId').update({
       ...updates,
+      'updated_by': userId, // Track who last updated
       'updated_at': ServerValue.timestamp,
     });
   }
 
   Future<void> deleteClient(String clientId) async {
     if (userId == null) return;
-    await _db.ref('clients/$userId/$clientId').remove();
+    // Delete client from global clients collection
+    await _db.ref('clients/$clientId').remove();
   }
 
   // ============ CART ============
@@ -1149,30 +1156,23 @@ class RealtimeDatabaseService {
     });
   }
 
-  /// Get all clients across all users (admin only)
+  /// Get all clients (same as getClients since clients are now global)
   Stream<List<Map<String, dynamic>>> getAllClientsForAdmin() {
     return _db.ref('clients').onValue.map((event) {
       final allClients = <Map<String, dynamic>>[];
 
       if (event.snapshot.value != null) {
-        final usersData = SafeTypeConverter.toMap(event.snapshot.value);
+        final clientsData = SafeTypeConverter.toMap(event.snapshot.value);
 
-        usersData.forEach((userId, userClients) {
-          if (userClients is Map) {
-            final clientsMap = SafeTypeConverter.toMap(userClients);
-
-            clientsMap.forEach((clientId, clientData) {
-              if (clientData is Map) {
-                try {
-                  final client = SafeTypeConverter.toMap(clientData);
-                  client['id'] = clientId;
-                  client['userId'] = userId; // Add user ID for filtering
-                  allClients.add(client);
-                } catch (e) {
-                  AppLogger.warning('Skipping malformed client: $clientId', error: e);
-                }
-              }
-            });
+        clientsData.forEach((clientId, clientData) {
+          if (clientData is Map) {
+            try {
+              final client = SafeTypeConverter.toMap(clientData);
+              client['id'] = clientId;
+              allClients.add(client);
+            } catch (e) {
+              AppLogger.warning('Skipping malformed client: $clientId', error: e);
+            }
           }
         });
 

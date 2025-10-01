@@ -11,7 +11,7 @@ import '../../../../core/models/models.dart';
 ///
 /// Creates realistic business data for all existing users:
 /// - 20 quotes per user (Draft, Sent, Closed statuses)
-/// - 10-15 clients per user
+/// - 10-15 GLOBAL clients (shared across all users)
 /// - Realistic product distributions
 /// - Geographic diversity
 /// - Financial diversity ($1K-$50K quotes)
@@ -234,16 +234,41 @@ class _ComprehensiveDataPopulatorWidgetState
         throw Exception('No products found. Please add products first.');
       }
 
-      // Calculate total steps
-      _totalSteps = users.length * (15 + 20); // avg clients + quotes per user
+      // Create global clients first (30 clients shared by all users)
+      const numGlobalClients = 30;
+      _totalSteps = numGlobalClients + (users.length * 20); // global clients + quotes per user
 
       setState(() {
-        _progressMessage = 'Found ${users.length} users. Starting population...';
+        _progressMessage = 'Creating $numGlobalClients global clients (shared by all users)...';
       });
 
-      // Process each user
+      // Create global clients
+      final globalClients = <Map<String, dynamic>>[];
+      for (int i = 0; i < numGlobalClients; i++) {
+        try {
+          // Use first user's ID as creator, but clients are global
+          final client = await _createClientDirectly(users.first.uid);
+          globalClients.add(client);
+
+          setState(() {
+            _progressValue++;
+            _progressMessage = 'Created global client ${i + 1}/$numGlobalClients';
+          });
+
+          // Small delay to avoid rate limiting
+          await Future.delayed(const Duration(milliseconds: 50));
+        } catch (e) {
+          AppLogger.warning('Failed to create global client', error: e, data: {'clientIndex': i});
+        }
+      }
+
+      setState(() {
+        _progressMessage = 'Found ${users.length} users. Starting quote population...';
+      });
+
+      // Process each user (quotes only, clients are now global)
       for (final user in users) {
-        await _populateDataForUser(dbService, user, products);
+        await _populateDataForUser(dbService, user, products, globalClients);
       }
 
       setState(() {
@@ -290,34 +315,14 @@ class _ComprehensiveDataPopulatorWidgetState
     HybridDatabaseService dbService,
     UserProfile user,
     List<Product> products,
+    List<Map<String, dynamic>> globalClients, // Use global clients instead of creating per-user
   ) async {
     setState(() {
       _progressMessage = 'Processing user: ${user.displayName ?? user.email}';
     });
 
-    // Temporarily authenticate as this user to create their data
-    // Note: This requires admin privileges
-
-    // Generate 10-15 clients
-    final numClients = 10 + _random.nextInt(6);
-    final clients = <Map<String, dynamic>>[];
-
-    for (int i = 0; i < numClients; i++) {
-      try {
-        final client = await _createClientDirectly(user.uid);
-        clients.add(client);
-
-        setState(() {
-          _progressValue++;
-          _progressMessage = 'Created client ${i + 1}/$numClients for ${user.displayName ?? user.email}';
-        });
-      } catch (e) {
-        AppLogger.warning('Failed to create client', error: e, data: {'userId': user.uid, 'clientIndex': i});
-      }
-
-      // Small delay to avoid rate limiting
-      await Future.delayed(const Duration(milliseconds: 50));
-    }
+    // Use global clients for this user's quotes
+    final clients = globalClients;
 
 
     // Generate 20 quotes with varied statuses and dates
@@ -366,9 +371,13 @@ class _ComprehensiveDataPopulatorWidgetState
     };
 
     // Write directly to Firebase Realtime Database
+    // Clients are now global (shared across all users)
     final database = rtdb.FirebaseDatabase.instance;
-    final newClientRef = database.ref('clients/$userId').push();
-    await newClientRef.set(client);
+    final newClientRef = database.ref('clients').push();
+    await newClientRef.set({
+      ...client,
+      'created_by': userId, // Track which user created this client
+    });
     client['id'] = newClientRef.key!;
     return client;
   }
