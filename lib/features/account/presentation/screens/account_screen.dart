@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/config/env_config.dart';
-import '../../../../core/providers/providers.dart';
-import '../../../../core/auth/providers/rbac_provider.dart';
-import '../../../../core/auth/models/rbac_permissions.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
 /// Account Screen - Groups Profile, Settings, and Admin (conditional)
@@ -97,10 +94,10 @@ class AccountScreen extends ConsumerWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.1),
+                              color: Colors.blue.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(
-                                color: Colors.blue.withOpacity(0.3),
+                                color: Colors.blue.withValues(alpha: 0.3),
                               ),
                             ),
                             child: const Text(
@@ -185,7 +182,7 @@ class AccountScreen extends ConsumerWidget {
               ),
             ),
             Card(
-              color: Colors.blue.withOpacity(0.05),
+              color: Colors.blue.withValues(alpha: 0.05),
               child: ListTile(
                 leading: const Icon(
                   Icons.admin_panel_settings_outlined,
@@ -235,7 +232,7 @@ class AccountScreen extends ConsumerWidget {
 
                 if (confirmed == true && context.mounted) {
                   // Perform logout - use Firebase Auth directly
-                  await ref.read(signOutProvider);
+                  ref.read(signOutProvider);
                   if (context.mounted) {
                     context.go('/auth/login');
                   }

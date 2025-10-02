@@ -138,7 +138,7 @@ class _RecentSearchItem extends StatelessWidget {
               width: 70,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: theme.dividerColor.withOpacity(0.3)),
+                border: Border.all(color: theme.dividerColor.withValues(alpha: 0.3)),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
@@ -152,7 +152,7 @@ class _RecentSearchItem extends StatelessWidget {
             const SizedBox(height: 4),
             // SKU
             Text(
-              product.sku ?? product.model ?? '',
+              product.sku ?? product.model,
               style: theme.textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -191,7 +191,7 @@ class _RecentSearchItem extends StatelessWidget {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
@@ -213,7 +213,7 @@ class _RecentSearchItem extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'SKU: ${product.sku ?? product.model ?? 'N/A'}',
+                'SKU: ${product.sku ?? product.model}',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               Text(

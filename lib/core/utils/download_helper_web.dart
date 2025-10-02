@@ -1,5 +1,6 @@
 // lib/core/utils/download_helper_web.dart
 // ignore: avoid_web_libraries_in_flutter
+// ignore_for_file: deprecated_member_use
 
 import 'dart:typed_data';
 // ignore: avoid_web_libraries_in_flutter

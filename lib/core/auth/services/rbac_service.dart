@@ -22,7 +22,8 @@ class RbacService {
       final roleString = userProfile['role'] as String? ?? 'distributor';
       return UserRole.fromString(roleString);
     } catch (e) {
-      AppLogger.error('Error getting user role', error: e, category: LogCategory.auth);
+      AppLogger.error('Error getting user role',
+          error: e, category: LogCategory.auth);
       return UserRole.distributor; // Default role on error
     }
   }
@@ -43,9 +44,11 @@ class RbacService {
 
       return hasPermission;
     } catch (e) {
-      AppLogger.error('Error checking permission', error: e, category: LogCategory.auth);
+      AppLogger.error('Error checking permission',
+          error: e, category: LogCategory.auth);
       // Log failed permission check
-      logPermissionCheck(userId, permission, false, additionalInfo: 'Error: ${e.toString()}');
+      logPermissionCheck(userId, permission, false,
+          additionalInfo: 'Error: ${e.toString()}');
       return false; // Deny access on error
     }
   }
@@ -56,7 +59,8 @@ class RbacService {
       final userRole = await getUserRole(userId);
       return userRole.hasPrivilegeLevel(requiredRole);
     } catch (e) {
-      AppLogger.error('Error checking role', error: e, category: LogCategory.auth);
+      AppLogger.error('Error checking role',
+          error: e, category: LogCategory.auth);
       return false; // Deny access on error
     }
   }
@@ -104,7 +108,8 @@ class RbacService {
 
       return true;
     } catch (e) {
-      AppLogger.error('Error updating user role', error: e, category: LogCategory.auth);
+      AppLogger.error('Error updating user role',
+          error: e, category: LogCategory.auth);
       return false;
     }
   }
@@ -122,25 +127,31 @@ class RbacService {
 
       return RoleHierarchy.canManageUser(managerRole, targetRole);
     } catch (e) {
-      AppLogger.error('Error checking user management permission', error: e, category: LogCategory.auth);
+      AppLogger.error('Error checking user management permission',
+          error: e, category: LogCategory.auth);
       return false;
     }
   }
 
   /// Get users that can be managed by the current user
-  Future<List<Map<String, dynamic>>> getManagedUsers(String managerUserId) async {
+  Future<List<Map<String, dynamic>>> getManagedUsers(
+      String managerUserId) async {
     try {
+      // managerRole kept for potential future role hierarchy filtering
+      // ignore: unused_local_variable
       final managerRole = await getUserRole(managerUserId);
-      final subordinateRoles = RoleHierarchy.getAssignableRoles(managerRole);
+      // subordinateRoles would be used when database service implements user filtering
+      // final subordinateRoles = RoleHierarchy.getAssignableRoles(managerRole);
 
       // This would need to be implemented in your database service
       // For now, returning empty list as placeholder
-      // You'd want something like:
+
       // return await _databaseService.getUsersByRoles(subordinateRoles.map((r) => r.value).toList());
 
       return [];
     } catch (e) {
-      AppLogger.error('Error getting managed users', error: e, category: LogCategory.auth);
+      AppLogger.error('Error getting managed users',
+          error: e, category: LogCategory.auth);
       return [];
     }
   }
@@ -155,7 +166,8 @@ class RbacService {
       // Check admin permissions
       final adminRole = await getUserRole(adminUserId);
       if (!RolePermissions.hasPermission(adminRole, Permission.assignRoles)) {
-        return RoleValidationResult.error('You do not have permission to assign roles');
+        return RoleValidationResult.error(
+            'You do not have permission to assign roles');
       }
 
       // Check if admin can assign this specific role
@@ -177,41 +189,49 @@ class RbacService {
 
       return RoleValidationResult.success('Role assignment is valid');
     } catch (e) {
-      AppLogger.error('Error validating role assignment', error: e, category: LogCategory.auth);
-      return RoleValidationResult.error('An error occurred while validating the role assignment');
+      AppLogger.error('Error validating role assignment',
+          error: e, category: LogCategory.auth);
+      return RoleValidationResult.error(
+          'An error occurred while validating the role assignment');
     }
   }
 
   /// Check if user has Firebase custom claims for the specified role
-  Future<bool> hasFirebaseCustomClaim(User user, String claim, dynamic expectedValue) async {
+  Future<bool> hasFirebaseCustomClaim(
+      User user, String claim, dynamic expectedValue) async {
     try {
       final idTokenResult = await user.getIdTokenResult();
       final claims = idTokenResult.claims;
 
       if (claims == null) {
-        AppLogger.warning('No custom claims found for user ${user.uid}', category: LogCategory.auth);
+        AppLogger.warning('No custom claims found for user ${user.uid}',
+            category: LogCategory.auth);
         return false;
       }
 
       final claimValue = claims[claim];
       return claimValue == expectedValue;
     } catch (e) {
-      AppLogger.error('Error checking Firebase custom claims', error: e, category: LogCategory.auth);
+      AppLogger.error('Error checking Firebase custom claims',
+          error: e, category: LogCategory.auth);
       return false;
     }
   }
 
   /// Validate user role against Firebase custom claims
-  Future<bool> validateRoleWithCustomClaims(String userId, UserRole expectedRole) async {
+  Future<bool> validateRoleWithCustomClaims(
+      String userId, UserRole expectedRole) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null || user.uid != userId) {
-        AppLogger.warning('User not authenticated or ID mismatch', category: LogCategory.auth);
+        AppLogger.warning('User not authenticated or ID mismatch',
+            category: LogCategory.auth);
         return false;
       }
 
       // Check if user has the expected role in custom claims
-      final hasValidClaim = await hasFirebaseCustomClaim(user, 'role', expectedRole.value);
+      final hasValidClaim =
+          await hasFirebaseCustomClaim(user, 'role', expectedRole.value);
 
       if (!hasValidClaim) {
         // Fallback to database role check for users without custom claims
@@ -221,7 +241,8 @@ class RbacService {
 
       return hasValidClaim;
     } catch (e) {
-      AppLogger.error('Error validating role with custom claims', error: e, category: LogCategory.auth);
+      AppLogger.error('Error validating role with custom claims',
+          error: e, category: LogCategory.auth);
       return false;
     }
   }
@@ -238,7 +259,8 @@ class RbacService {
         'Distributor': 100,
       };
     } catch (e) {
-      AppLogger.error('Error getting role statistics', error: e, category: LogCategory.auth);
+      AppLogger.error('Error getting role statistics',
+          error: e, category: LogCategory.auth);
       return {};
     }
   }

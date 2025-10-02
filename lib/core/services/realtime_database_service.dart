@@ -1809,4 +1809,28 @@ class RealtimeDatabaseService {
   Stream<List<Map<String, dynamic>>> getPendingAdminRequests() {
     return getPendingUserApprovals();
   }
+
+  /// Approve an admin request
+  Future<void> approveAdminRequest({
+    required String requestId,
+    required String approvedBy,
+  }) async {
+    await approveUserRequest(
+      requestId: requestId,
+      approvedBy: approvedBy,
+    );
+  }
+
+  /// Reject an admin request
+  Future<void> rejectAdminRequest({
+    required String requestId,
+    required String rejectedBy,
+    required String reason,
+  }) async {
+    await rejectUserRequest(
+      requestId: requestId,
+      rejectedBy: rejectedBy,
+      reason: reason,
+    );
+  }
 }

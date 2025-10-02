@@ -8,7 +8,6 @@ import 'core/services/product_cache_service.dart';
 import 'core/services/realtime_database_service.dart';
 import 'core/services/error_monitoring_service.dart';
 import 'core/services/rbac_service.dart';
-import 'core/services/app_logger.dart';
 import 'dart:async';
 
 void main() async {

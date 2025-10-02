@@ -29,7 +29,7 @@ class _EditQuoteScreenState extends ConsumerState<EditQuoteScreen> {
   void initState() {
     super.initState();
     _items = List.from(widget.quote.items);
-    _selectedClientId = widget.quote.clientId ?? '';
+    _selectedClientId = widget.quote.clientId;
     
     // Calculate tax rate from existing quote
     if (widget.quote.subtotal > 0) {
@@ -261,7 +261,7 @@ class _EditQuoteScreenState extends ConsumerState<EditQuoteScreen> {
   }
 
   void _showNoteDialog(int index, QuoteItem item) {
-    final controller = TextEditingController(text: item.note ?? '');
+    final controller = TextEditingController(text: item.note);
     
     showDialog(
       context: context,
@@ -434,10 +434,10 @@ class _EditQuoteScreenState extends ConsumerState<EditQuoteScreen> {
                                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                   margin: const EdgeInsets.only(right: 8),
                                                   decoration: BoxDecoration(
-                                                    color: theme.primaryColor.withOpacity(0.1),
+                                                    color: theme.primaryColor.withValues(alpha: 0.1),
                                                     borderRadius: BorderRadius.circular(4),
                                                     border: Border.all(
-                                                      color: theme.primaryColor.withOpacity(0.3),
+                                                      color: theme.primaryColor.withValues(alpha: 0.3),
                                                     ),
                                                   ),
                                                   child: Text(
@@ -482,7 +482,7 @@ class _EditQuoteScreenState extends ConsumerState<EditQuoteScreen> {
                                                 Container(
                                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                   decoration: BoxDecoration(
-                                                    color: Colors.green.withOpacity(0.1),
+                                                    color: Colors.green.withValues(alpha: 0.1),
                                                     borderRadius: BorderRadius.circular(4),
                                                   ),
                                                   child: Text(
@@ -735,7 +735,9 @@ class _EditQuoteScreenState extends ConsumerState<EditQuoteScreen> {
 }
 
 // Extension for QuoteItem
+// ignore: unused_element
 extension on QuoteItem {
+  // ignore: unused_element
   QuoteItem copyWith({
     String? productId,
     String? productName,

@@ -232,6 +232,7 @@ class ExcelInventoryService {
   }
 
   /// Get warehouse name based on code
+  // ignore: unused_element
   static String _getWarehouseName(String code) {
     switch (code) {
       case '999':
@@ -331,7 +332,7 @@ class ExcelInventoryService {
     }
 
     // Sort by stock volume (highest first)
-    products.sort((a, b) => (b.stock ?? 0).compareTo(a.stock ?? 0));
+    products.sort((a, b) => b.stock.compareTo(a.stock));
     return products;
   }
 

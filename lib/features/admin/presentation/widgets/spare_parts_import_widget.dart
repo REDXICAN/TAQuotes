@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import '../../../../core/services/spare_parts_import_service.dart';
 import '../../../../core/services/app_logger.dart';
 
@@ -108,7 +107,7 @@ class SparePartsImportNotifier extends StateNotifier<SparePartsImportState> {
         }
       }
 
-      if (jsonString == null || jsonString.isEmpty) {
+      if (jsonString.isEmpty) {
         state = state.copyWith(
           isImporting: false,
           error: 'Failed to read JSON file content.',
@@ -250,7 +249,7 @@ class _SparePartsImportWidgetState extends ConsumerState<SparePartsImportWidget>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(

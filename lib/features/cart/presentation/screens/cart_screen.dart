@@ -291,7 +291,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
               color: theme.primaryColor,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha:0.1),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -320,7 +320,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha:0.2),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
@@ -436,7 +436,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                   color: theme.cardColor,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha:0.05),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -487,7 +487,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                           error: (error, stack) => Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              border: Border.all(color: Colors.red.withOpacity(0.5)),
+                              border: Border.all(color: Colors.red.withValues(alpha:0.5)),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -570,7 +570,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                               ResponsiveHelper.getBorderRadius(context, baseRadius: 3),
                                             ),
                                             child: SimpleImageWidget(
-                                              sku: product.sku ?? product.model ?? '',
+                                              sku: product.sku ?? product.model,
                                               useThumbnail: true,
                                               fit: BoxFit.contain,
                                               imageUrl: product.thumbnailUrl ?? product.imageUrl ?? '',
@@ -594,7 +594,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                             desktop: 70,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: theme.disabledColor.withOpacity(0.1),
+                                            color: theme.disabledColor.withValues(alpha:0.1),
                                             borderRadius: BorderRadius.circular(
                                               ResponsiveHelper.getBorderRadius(context, baseRadius: 4),
                                             ),
@@ -703,7 +703,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(3),
                                         child: SimpleImageWidget(
-                                          sku: product.sku ?? product.model ?? '',
+                                          sku: product.sku ?? product.model,
                                           useThumbnail: true,
                                           fit: BoxFit.contain,
                                           imageUrl: product.thumbnailUrl ?? product.imageUrl ?? '',
@@ -716,7 +716,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                       width: isMobile ? 50 : 60,
                                       height: isMobile ? 50 : 60,
                                       decoration: BoxDecoration(
-                                        color: theme.disabledColor.withOpacity(0.1),
+                                        color: theme.disabledColor.withValues(alpha:0.1),
                                         borderRadius: BorderRadius.circular(4),
                                         border: Border.all(
                                           color: Colors.grey.shade300,
@@ -736,12 +736,12 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                     margin: const EdgeInsets.only(right: 8),
                                     decoration: BoxDecoration(
                                       color: (item.sequenceNumber?.isNotEmpty == true)
-                                          ? theme.primaryColor.withOpacity(0.1)
+                                          ? theme.primaryColor.withValues(alpha:0.1)
                                           : theme.cardColor,
                                       borderRadius: BorderRadius.circular(4),
                                       border: Border.all(
                                         color: (item.sequenceNumber?.isNotEmpty == true)
-                                            ? theme.primaryColor.withOpacity(0.3)
+                                            ? theme.primaryColor.withValues(alpha:0.3)
                                             : theme.cardColor,
                                       ),
                                     ),
@@ -851,7 +851,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                     ),
                                   ),
                                   // Show note if exists
-                                  if (item.note?.isNotEmpty == true)
+                                  if (item.note.isNotEmpty == true)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 4),
                                       child: Row(
@@ -862,7 +862,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                           const SizedBox(width: 4),
                                           Expanded(
                                             child: Text(
-                                              item.note ?? '',
+                                              item.note,
                                               style: TextStyle(
                                                 fontSize: ResponsiveHelper.getValue(
                                                   context,
@@ -912,7 +912,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                         // Note button
                                         TextButton.icon(
                                           icon: const Icon(Icons.note_add, size: 16),
-                                          label: Text((item.note?.isNotEmpty == true) ? 'Edit Note' : 'Add Note'),
+                                          label: Text((item.note.isNotEmpty == true) ? 'Edit Note' : 'Add Note'),
                                           style: TextButton.styleFrom(
                                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                             textStyle: const TextStyle(fontSize: 12),
@@ -1003,7 +1003,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                   color: theme.cardColor,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha:0.1),
                       blurRadius: 8,
                       offset: const Offset(0, -2),
                     ),
@@ -1016,7 +1016,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                       decoration: BoxDecoration(
                         color: theme.cardColor,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: theme.dividerColor.withOpacity(0.2)),
+                        border: Border.all(color: theme.dividerColor.withValues(alpha:0.2)),
                       ),
                       child: Theme(
                         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -1122,7 +1122,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                               final basePrice = (item.product?.price ?? 0) * item.quantity;
                               final itemDiscount = item.discount > 0 ? basePrice * (item.discount / 100) : 0;
                               final itemTotal = basePrice - itemDiscount;
-                              final hasNote = item.note?.isNotEmpty == true;
+                              final hasNote = item.note.isNotEmpty == true;
                               
                               return Column(
                                 children: [
@@ -1142,7 +1142,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                                                       margin: const EdgeInsets.only(right: 4),
                                                       decoration: BoxDecoration(
-                                                        color: theme.primaryColor.withOpacity(0.1),
+                                                        color: theme.primaryColor.withValues(alpha:0.1),
                                                         borderRadius: BorderRadius.circular(2),
                                                       ),
                                                       child: Text(
@@ -1165,7 +1165,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                                     Icon(
                                                       Icons.note,
                                                       size: 12,
-                                                      color: theme.primaryColor.withOpacity(0.7),
+                                                      color: theme.primaryColor.withValues(alpha:0.7),
                                                     ),
                                                 ],
                                               ),
@@ -1192,7 +1192,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                                         Container(
                                                           padding: const EdgeInsets.all(6),
                                                           decoration: BoxDecoration(
-                                                            color: theme.primaryColor.withOpacity(0.05),
+                                                            color: theme.primaryColor.withValues(alpha:0.05),
                                                             borderRadius: BorderRadius.circular(4),
                                                           ),
                                                           child: Row(
@@ -1200,11 +1200,11 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                                             children: [
                                                               Icon(Icons.note_alt_outlined, 
                                                                 size: 12, 
-                                                                color: theme.primaryColor.withOpacity(0.7)),
+                                                                color: theme.primaryColor.withValues(alpha:0.7)),
                                                               const SizedBox(width: 4),
                                                               Expanded(
                                                                 child: Text(
-                                                                  item.note ?? '',
+                                                                  item.note,
                                                                   style: TextStyle(
                                                                     fontSize: 10,
                                                                     color: theme.textTheme.bodySmall?.color,
@@ -1259,7 +1259,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                     ),
                                 ],
                               );
-                            }).toList(),
+                            }),
                             const Divider(height: 12),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1304,7 +1304,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                       decoration: BoxDecoration(
                         color: theme.cardColor,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: theme.dividerColor.withOpacity(0.2)),
+                        border: Border.all(color: theme.dividerColor.withValues(alpha:0.2)),
                       ),
                       child: Theme(
                         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -1328,37 +1328,50 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                           childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                           children: [
                             // Toggle between existing and new project
-                            Row(
+                            // ignore: deprecated_member_use
+                            Column(
                               children: [
-                                Expanded(
-                                  child: RadioListTile<bool>(
-                                    title: const Text('Select Existing'),
-                                    value: false,
-                                    groupValue: _createNewProject,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _createNewProject = value ?? false;
-                                        _projectNameController.clear();
-                                      });
-                                    },
-                                    contentPadding: EdgeInsets.zero,
-                                    dense: true,
-                                  ),
-                                ),
-                                Expanded(
-                                  child: RadioListTile<bool>(
-                                    title: const Text('Create New'),
-                                    value: true,
-                                    groupValue: _createNewProject,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _createNewProject = value ?? true;
-                                        _selectedProjectId = null;
-                                      });
-                                    },
-                                    contentPadding: EdgeInsets.zero,
-                                    dense: true,
-                                  ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: RadioListTile<bool>(
+                                        title: const Text('Select Existing'),
+                                        value: false,
+                                        // ignore: deprecated_member_use
+                                        groupValue: _createNewProject,
+                                        // ignore: deprecated_member_use
+                                        onChanged: (value) {
+                                          if (value != null) {
+                                            setState(() {
+                                              _createNewProject = value;
+                                              _projectNameController.clear();
+                                            });
+                                          }
+                                        },
+                                        contentPadding: EdgeInsets.zero,
+                                        dense: true,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: RadioListTile<bool>(
+                                        title: const Text('Create New'),
+                                        value: true,
+                                        // ignore: deprecated_member_use
+                                        groupValue: _createNewProject,
+                                        // ignore: deprecated_member_use
+                                        onChanged: (value) {
+                                          if (value != null) {
+                                            setState(() {
+                                              _createNewProject = value;
+                                              _selectedProjectId = null;
+                                            });
+                                          }
+                                        },
+                                        contentPadding: EdgeInsets.zero,
+                                        dense: true,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -1403,7 +1416,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                   }
                                   
                                   return DropdownButtonFormField<String>(
-                                    value: _selectedProjectId,
+                                    initialValue: _selectedProjectId,
                                     decoration: const InputDecoration(
                                       labelText: 'Select Project',
                                       border: OutlineInputBorder(),
@@ -1424,7 +1437,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                               decoration: BoxDecoration(
-                                                color: _getProjectStatusColor(project['status']).withOpacity(0.2),
+                                                color: _getProjectStatusColor(project['status']).withValues(alpha:0.2),
                                                 borderRadius: BorderRadius.circular(12),
                                               ),
                                               child: Text(
@@ -1457,7 +1470,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                       decoration: BoxDecoration(
                         color: theme.cardColor,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: theme.dividerColor.withOpacity(0.2)),
+                        border: Border.all(color: theme.dividerColor.withValues(alpha:0.2)),
                       ),
                       child: Theme(
                         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -1654,6 +1667,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
     return PriceFormatter.formatPrice(price);
   }
 
+  // ignore: unused_element
   Future<void> _selectClient() async {
     // Show the client selector dialog
     final client = await showModalBottomSheet<Client>(
@@ -1777,13 +1791,13 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                   flex: 2,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: theme.disabledColor.withOpacity(0.1),
+                      color: theme.disabledColor.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: SimpleImageWidget(
-                        sku: product.sku ?? product.model ?? '',
+                        sku: product.sku ?? product.model,
                         useThumbnail: false,  // Use full screenshot in popup
                         fit: BoxFit.contain,
                         imageUrl: product.imageUrl ?? product.thumbnailUrl,
@@ -2254,6 +2268,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                 
                 // Get the newly created client
                 final clientsAsync = await ref.read(clientsStreamProvider.future);
+                if (!mounted) return;
                 final newClient = clientsAsync.firstWhere(
                   (c) => c.id == clientId,
                   orElse: () => Client(
@@ -2266,10 +2281,11 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                     createdAt: DateTime.now(),
                   ),
                 );
-                
+
                 // Select the new client
                 ref.read(cartClientProvider.notifier).state = newClient;
-                
+
+                if (!context.mounted) return;
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -2278,6 +2294,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                   ),
                 );
               } catch (e) {
+                if (!context.mounted) return;
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -2294,7 +2311,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
   }
 
   void _showEmailQuoteDialog(String quoteId, Client client) {
-    final emailController = TextEditingController(text: client.email ?? '');
+    final emailController = TextEditingController(text: client.email);
     final formKey = GlobalKey<FormState>();
     bool attachPDF = true;
     bool attachExcel = false;
@@ -2472,15 +2489,15 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                         // Generate HTML content for email
                         final htmlContent = '''
                         <h2>Quote #Q${DateTime.now().millisecondsSinceEpoch}</h2>
-                        <p>Dear ${client.contactName ?? 'Customer'},</p>
+                        <p>Dear ${client.contactName},</p>
                         <p>Thank you for your interest. Please find attached your quote details.</p>
-                        
+
                         <h3>Customer Information:</h3>
                         <p>
                           <strong>Company:</strong> ${client.company}<br>
-                          <strong>Contact:</strong> ${client.contactName ?? 'N/A'}<br>
-                          <strong>Email:</strong> ${client.email ?? 'N/A'}<br>
-                          <strong>Phone:</strong> ${client.phone ?? 'N/A'}
+                          <strong>Contact:</strong> ${client.contactName}<br>
+                          <strong>Email:</strong> ${client.email}<br>
+                          <strong>Phone:</strong> ${client.phone}
                         </p>
                         
                         <h3>Products:</h3>
@@ -2530,7 +2547,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                         
                         final success = await emailService.sendQuoteEmail(
                           recipientEmail: emailController.text.trim(),
-                          recipientName: client.contactName ?? 'Customer',
+                          recipientName: client.contactName,
                           quoteNumber: 'Q${DateTime.now().millisecondsSinceEpoch}',
                           htmlContent: htmlContent,
                           userInfo: {
@@ -2549,17 +2566,17 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                         if (!success) {
                           throw Exception('Failed to send email');
                         }
-                        
+
                         // Hide loading
-                        if (mounted) Navigator.pop(context);
-                        
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text('Quote emailed successfully to ${emailController.text}'),
+                        if (!context.mounted) return;
+                        Navigator.pop(context);
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                Expanded(
+                                  child: Text('Quote emailed successfully to ${emailController.text}'),
                                   ),
                                   TextButton(
                                     onPressed: () {
@@ -2570,36 +2587,34 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                                     child: const Text(
                                       'VIEW',
                                       style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                ],
-                              ),
-                              backgroundColor: Colors.green,
-                              duration: const Duration(seconds: 5),
+                                ),
+                              ],
                             ),
-                          );
-                        }
+                            backgroundColor: Colors.green,
+                            duration: const Duration(seconds: 5),
+                          ),
+                        );
                       } catch (e, stackTrace) {
-                        AppLogger.error('Failed to send email from cart', 
-                          error: e, 
+                        AppLogger.error('Failed to send email from cart',
+                          error: e,
                           stackTrace: stackTrace,
                           category: LogCategory.business);
-                        
+
                         // Hide loading
-                        if (mounted) Navigator.pop(context);
-                        
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
+                        if (!context.mounted) return;
+                        Navigator.pop(context);
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
                               content: Text('Error sending email: ${e.toString()}'),
                               backgroundColor: Colors.red,
                               duration: const Duration(seconds: 5),
                             ),
                           );
-                        }
                       }
                     },
               child: const Text('Send Email'),
@@ -2626,6 +2641,8 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
       final selectedClient = ref.read(cartClientProvider) ?? ref.read(selectedClientProvider);
       if (selectedClient?.id == null) return [];
 
+      // dbService kept for potential future database operations
+      // ignore: unused_local_variable
       final dbService = ref.read(databaseServiceProvider);
       final user = ref.read(currentUserProvider);
       if (user == null) return [];
@@ -2756,7 +2773,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: Colors.green.withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Builder(
@@ -2822,13 +2839,14 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                       discount: 0,
                     );
                   }
+                  if (!context.mounted) return;
                   Navigator.pop(dialogContext);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Discount removed'),
-                      backgroundColor: Colors.blue,
-                    ),
-                  );
+                      const SnackBar(
+                        content: Text('Discount removed'),
+                        backgroundColor: Colors.blue,
+                      ),
+                    );
                 },
                 child: const Text('Remove'),
               ),
@@ -2869,14 +2887,15 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                     discount: finalDiscountPercentage,
                   );
                 }
-                
+
+                if (!context.mounted) return;
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Discount ${finalDiscountPercentage > 0 ? "applied" : "removed"}'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                    SnackBar(
+                      content: Text('Discount ${finalDiscountPercentage > 0 ? "applied" : "removed"}'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
               },
               child: const Text('Apply'),
             ),
@@ -2942,13 +2961,15 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                     sequenceNumber: '',
                   );
                 }
+                if (!context.mounted) return;
                 Navigator.pop(dialogContext);
+                // ignore: use_build_context_synchronously
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Item number removed'),
-                    backgroundColor: Colors.blue,
-                  ),
-                );
+                    const SnackBar(
+                      content: Text('Item number removed'),
+                      backgroundColor: Colors.blue,
+                    ),
+                  );
               },
               child: const Text('Remove'),
             ),
@@ -2963,12 +2984,14 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                   sequenceNumber: sequenceNumber,
                 );
               }
-              
+
+              if (!context.mounted) return;
               Navigator.pop(dialogContext);
+              // ignore: use_build_context_synchronously
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(sequenceNumber.isEmpty 
-                    ? 'Item number removed' 
+                  content: Text(sequenceNumber.isEmpty
+                    ? 'Item number removed'
                     : 'Item number set to #$sequenceNumber'),
                   backgroundColor: Colors.green,
                 ),
@@ -2983,7 +3006,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
 
   // Show note dialog for individual item
   void _showNoteDialog(CartItem item) {
-    final noteController = TextEditingController(text: item.note ?? '');
+    final noteController = TextEditingController(text: item.note);
     
     showDialog(
       context: context,
@@ -3014,7 +3037,7 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
-          if (item.note?.isNotEmpty == true)
+          if (item.note.isNotEmpty == true)
             TextButton(
               onPressed: () async {
                 // Remove note
@@ -3025,20 +3048,22 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                     note: null,
                   );
                 }
+                if (!context.mounted) return;
                 Navigator.pop(dialogContext);
+                // ignore: use_build_context_synchronously
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Note removed'),
-                    backgroundColor: Colors.blue,
-                  ),
-                );
+                    const SnackBar(
+                      content: Text('Note removed'),
+                      backgroundColor: Colors.blue,
+                    ),
+                  );
               },
               child: const Text('Remove'),
             ),
           ElevatedButton(
             onPressed: () async {
               final note = noteController.text.trim();
-              
+
               final dbService = ref.read(databaseServiceProvider);
               if (item.id != null) {
                 await dbService.updateCartItem(
@@ -3046,8 +3071,10 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                   note: note.isEmpty ? null : note,
                 );
               }
-              
+
+              if (!context.mounted) return;
               Navigator.pop(dialogContext);
+              // ignore: use_build_context_synchronously
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(note.isEmpty ? 'Note removed' : 'Note saved'),

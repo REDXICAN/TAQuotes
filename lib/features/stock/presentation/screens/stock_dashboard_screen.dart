@@ -37,6 +37,8 @@ final stockDataProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref)
 
 // Generate demo stock data for test mode
 Map<String, dynamic> _generateDemoStockData() {
+  // demoService kept for potential future demo data expansion
+  // ignore: unused_local_variable
   final demoService = SparePartsDemoService();
   final stockData = <String, dynamic>{};
 
@@ -75,7 +77,7 @@ final productsForStockProvider = StreamProvider.autoDispose<List<Product>>((ref)
     });
 
     // Sort by stock volume descending
-    products.sort((a, b) => (b.stock ?? 0).compareTo(a.stock ?? 0));
+    products.sort((a, b) => b.stock.compareTo(a.stock));
     return products;
   });
 });
@@ -102,7 +104,7 @@ List<Product> _generateDemoProducts() {
   }
 
   // Sort by stock volume descending
-  products.sort((a, b) => (b.stock ?? 0).compareTo(a.stock ?? 0));
+  products.sort((a, b) => b.stock.compareTo(a.stock));
   return products;
 }
 
@@ -377,9 +379,9 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
                                   margin: const EdgeInsets.only(bottom: 12),
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: categoryColor.withOpacity(0.1),
+                                    color: categoryColor.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: categoryColor.withOpacity(0.3), width: 2),
+                                    border: Border.all(color: categoryColor.withValues(alpha: 0.3), width: 2),
                                   ),
                                   child: Row(
                                     children: [
@@ -391,7 +393,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
                                           borderRadius: BorderRadius.circular(4),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: categoryColor.withOpacity(0.3),
+                                              color: categoryColor.withValues(alpha: 0.3),
                                               blurRadius: 4,
                                               offset: const Offset(0, 2),
                                             ),
@@ -405,7 +407,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
-                                            color: categoryColor.withOpacity(0.9),
+                                            color: categoryColor.withValues(alpha: 0.9),
                                           ),
                                         ),
                                       ),
@@ -425,7 +427,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
                                             style: TextStyle(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w500,
-                                              color: categoryColor.withOpacity(0.7),
+                                              color: categoryColor.withValues(alpha: 0.7),
                                             ),
                                           ),
                                         ],
@@ -476,7 +478,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
                               SizedBox(
                                 width: 150,
                                 child: DropdownButtonFormField<String>(
-                                  value: selectedCategory,
+                                  initialValue: selectedCategory,
                                   decoration: InputDecoration(
                                     labelText: 'Category',
                                     border: OutlineInputBorder(
@@ -543,23 +545,23 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
                                 DataColumn(label: Text('Status')),
                               ],
                               rows: filteredProducts.take(50).map((product) {
-                                final stock = product.stock ?? 0;
+                                final stockValue = product.stock;
 
                                 return DataRow(
                                   cells: [
                                     DataCell(Text(product.sku ?? '')),
                                     DataCell(Text(product.name, overflow: TextOverflow.ellipsis)),
-                                    DataCell(Text(product.category ?? 'Uncategorized')),
+                                    DataCell(Text(product.category)),
                                     DataCell(
                                       Text(
-                                        stock.toString(),
+                                        stockValue.toString(),
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color: _getStockStatusColor(stock),
+                                          color: _getStockStatusColor(stockValue),
                                         ),
                                       ),
                                     ),
-                                    DataCell(_buildStockStatusChip(stock)),
+                                    DataCell(_buildStockStatusChip(stockValue)),
                                   ],
                                 );
                               }).toList(),
@@ -618,8 +620,8 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
     final stockByCategory = <String, int>{};
 
     for (final product in products) {
-      final category = product.category ?? 'Uncategorized';
-      final stock = product.stock ?? 0;
+      final category = product.category;
+      final stock = product.stock;
       if (stock > 0) {
         stockByCategory[category] = (stockByCategory[category] ?? 0) + stock;
       }
@@ -632,7 +634,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
     final lowStock = <MapEntry<String, dynamic>>[];
 
     for (final product in products) {
-      final stock = product.stock ?? 0;
+      final stock = product.stock;
       if (stock > 0 && stock < 5) {
         lowStock.add(MapEntry(product.sku ?? '', {'available': stock}));
       }
@@ -645,7 +647,8 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
     final outOfStock = <MapEntry<String, dynamic>>[];
 
     for (final product in products) {
-      if ((product.stock ?? 0) == 0) {
+      final stock = product.stock;
+      if (stock == 0) {
         outOfStock.add(MapEntry(product.sku ?? '', {'available': 0}));
       }
     }

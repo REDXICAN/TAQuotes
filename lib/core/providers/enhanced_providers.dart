@@ -174,26 +174,8 @@ final firebaseReadyProvider = FutureProvider<bool>((ref) async {
 });
 
 // Wrapper providers that wait for Firebase to be ready
-final smartProductsProvider = StreamProvider.autoDispose.family<List<Product>, String?>((ref, category) async* {
-  // Wait for Firebase to be ready
-  final firebaseReady = await ref.watch(firebaseReadyProvider.future);
-  
-  if (!firebaseReady) {
-    // Try enhanced provider anyway, it has retry logic
-    yield* ref.watch(enhancedProductsProvider(category).stream);
-  } else {
-    yield* ref.watch(enhancedProductsProvider(category).stream);
-  }
-});
+// Since enhancedProductsProvider is already a StreamProvider, we can delegate to it directly
+final smartProductsProvider = enhancedProductsProvider;
 
-final smartClientsProvider = StreamProvider.autoDispose<List<Client>>((ref) async* {
-  // Wait for Firebase to be ready
-  final firebaseReady = await ref.watch(firebaseReadyProvider.future);
-  
-  if (!firebaseReady) {
-    // Try enhanced provider anyway, it has retry logic
-    yield* ref.watch(enhancedClientsProvider.stream);
-  } else {
-    yield* ref.watch(enhancedClientsProvider.stream);
-  }
-});
+// Since enhancedClientsProvider is already a StreamProvider, we can delegate to it directly
+final smartClientsProvider = enhancedClientsProvider;

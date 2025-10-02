@@ -54,7 +54,7 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.primaryColor.withOpacity(0.1),
+                color: theme.primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -119,17 +119,22 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
                 ),
               ),
               const SizedBox(height: 8),
+              // ignore: deprecated_member_use
               Column(
                 children: [
                   RadioListTile<String>(
                     title: const Text('Update existing products'),
                     subtitle: const Text('Replace duplicate products with new data'),
                     value: 'update',
+                    // ignore: deprecated_member_use
                     groupValue: _duplicateHandling,
+                    // ignore: deprecated_member_use
                     onChanged: (value) {
-                      setState(() {
-                        _duplicateHandling = value!;
-                      });
+                      if (value != null) {
+                        setState(() {
+                          _duplicateHandling = value;
+                        });
+                      }
                     },
                     dense: true,
                   ),
@@ -137,11 +142,15 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
                     title: const Text('Skip duplicates'),
                     subtitle: const Text('Keep existing products, skip duplicates'),
                     value: 'skip',
+                    // ignore: deprecated_member_use
                     groupValue: _duplicateHandling,
+                    // ignore: deprecated_member_use
                     onChanged: (value) {
-                      setState(() {
-                        _duplicateHandling = value!;
-                      });
+                      if (value != null) {
+                        setState(() {
+                          _duplicateHandling = value;
+                        });
+                      }
                     },
                     dense: true,
                   ),
@@ -149,11 +158,15 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
                     title: const Text('Error on duplicates'),
                     subtitle: const Text('Stop import if duplicates are found'),
                     value: 'error',
+                    // ignore: deprecated_member_use
                     groupValue: _duplicateHandling,
+                    // ignore: deprecated_member_use
                     onChanged: (value) {
-                      setState(() {
-                        _duplicateHandling = value!;
-                      });
+                      if (value != null) {
+                        setState(() {
+                          _duplicateHandling = value;
+                        });
+                      }
                     },
                     dense: true,
                   ),
@@ -241,7 +254,7 @@ class _ExcelPreviewDialogState extends State<ExcelPreviewDialog> {
                 height: 60,
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.orange.withOpacity(0.5)),
+                  border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: ListView.builder(

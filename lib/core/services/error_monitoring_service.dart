@@ -18,7 +18,7 @@ enum ErrorCategory {
   database,
   network,
   ui,
-  business_logic,
+  businessLogic,
   performance,
   security,
   unknown,
@@ -280,7 +280,7 @@ class ErrorMonitoringService {
     await captureError(
       error: exception,
       stackTrace: stackTrace,
-      category: ErrorCategory.business_logic,
+      category: ErrorCategory.businessLogic,
       screen: screen,
       action: action,
       context: context,

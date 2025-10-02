@@ -6,6 +6,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:io' show Platform;
 import 'package:intl/intl.dart';
+import '../models/models.dart';
 
 enum LogLevel {
   debug,

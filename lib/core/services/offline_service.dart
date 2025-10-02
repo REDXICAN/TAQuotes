@@ -5,6 +5,7 @@
 /// - Web: Firebase Realtime Database maintains connection state
 ///
 /// No custom offline implementation needed - Firebase handles everything!
+library;
 
 import 'dart:async';
 

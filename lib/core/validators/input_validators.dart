@@ -1,7 +1,6 @@
 // lib/core/validators/input_validators.dart
 
 import '../utils/safe_type_converter.dart';
-import '../services/app_logger.dart';
 
 /// Comprehensive input validation for all forms in the application
 class InputValidators {

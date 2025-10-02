@@ -18,6 +18,8 @@ class CsrfProtectionService {
   // Token storage - per form type for better security
   final Map<String, String> _formTokens = {};
   final Map<String, DateTime> _tokenTimestamps = {};
+  // Session token kept for potential multi-layer CSRF protection
+  // ignore: unused_field
   String? _sessionToken;
   String? _currentToken;
   DateTime? _tokenGeneratedAt;

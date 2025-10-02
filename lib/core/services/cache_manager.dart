@@ -2,13 +2,15 @@
 ///
 /// Firebase already provides caching through its offline persistence.
 /// This is kept as a stub for compatibility with existing code.
+library;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 class CacheManager {
+  // Initialization flag kept for compatibility but not actively used
+  // Firebase handles all caching automatically
   static bool _isInitialized = true;
 
-  static bool get isInitialized => true;
+  static bool get isInitialized => _isInitialized;
 
   // No initialization needed - Firebase handles caching
   static Future<void> initialize() async {

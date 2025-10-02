@@ -6,7 +6,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/models/models.dart';
 import '../../../../core/auth/models/rbac_permissions.dart';
 import '../../../../core/auth/providers/rbac_provider.dart';
 import '../../../../core/utils/responsive_helper.dart';
@@ -1118,6 +1117,8 @@ class _MonitoringDashboardV2ScreenState extends ConsumerState<MonitoringDashboar
                     PieChartData(
                       sections: categoryRevenue.entries.toList().asMap().entries.map((entry) {
                         final index = entry.key;
+                        // category kept for potential future legend labels
+                        // ignore: unused_local_variable
                         final category = entry.value.key;
                         final revenue = entry.value.value;
                         final percentage = (revenue / total) * 100;

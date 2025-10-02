@@ -205,8 +205,8 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: isDark ? bgElevated : Colors.white,
         indicatorColor: isDark
-            ? accentPrimary.withOpacity(0.2)
-            : accentPrimary.withOpacity(0.1),
+            ? accentPrimary.withValues(alpha: 0.2)
+            : accentPrimary.withValues(alpha: 0.1),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return TextStyle(
@@ -299,7 +299,7 @@ class AppTheme {
         headingRowColor: WidgetStateProperty.all(isDark ? bgSecondary : Colors.grey[100]),
         dataRowColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return isDark ? accentPrimary.withOpacity(0.2) : accentPrimary.withOpacity(0.1);
+            return isDark ? accentPrimary.withValues(alpha: 0.2) : accentPrimary.withValues(alpha: 0.1);
           }
           if (states.contains(WidgetState.hovered)) {
             return isDark ? bgTertiary : Colors.grey[50];

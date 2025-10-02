@@ -311,7 +311,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
               padding: EdgeInsets.all(
                 ResponsiveHelper.getSpacing(context, medium: 12),
               ),
-              color: Colors.green.withOpacity(0.1),
+              color: Colors.green.withValues(alpha: 0.1),
               child: Row(
                 children: [
                   Icon(
@@ -693,10 +693,10 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                     ? clients
                     : clients.where((client) {
                         final companyLower = client.company.toLowerCase();
-                        final contactLower = (client.contactName ?? '').toLowerCase();
-                        final emailLower = (client.email ?? '').toLowerCase();
-                        final phoneLower = (client.phone ?? '').toLowerCase();
-                        
+                        final contactLower = client.contactName.toLowerCase();
+                        final emailLower = client.email.toLowerCase();
+                        final phoneLower = client.phone.toLowerCase();
+
                         return companyLower.contains(_searchQuery) ||
                                contactLower.contains(_searchQuery) ||
                                emailLower.contains(_searchQuery) ||
@@ -740,7 +740,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                     return Card(
                       elevation: isSelected ? 4 : 1,
                       color: isSelected
-                          ? theme.primaryColor.withOpacity(0.1)
+                          ? theme.primaryColor.withValues(alpha: 0.1)
                           : null,
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ExpansionTile(
@@ -749,7 +749,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                           child: CircleAvatar(
                             backgroundColor: isSelected
                                 ? theme.primaryColor
-                                : theme.disabledColor.withOpacity(0.3),
+                                : theme.disabledColor.withValues(alpha: 0.3),
                             backgroundImage: client.profilePictureUrl != null
                                 ? NetworkImage(client.profilePictureUrl!)
                                 : null,
@@ -779,9 +779,9 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.orange.withOpacity(0.2),
+                                  color: Colors.orange.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.orange.withOpacity(0.5)),
+                                  border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
                                 ),
                                 child: Text(
                                   'Incomplete',
@@ -852,7 +852,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                                   }
                                 },
                                 activeThumbColor: Colors.green,
-                                activeTrackColor: Colors.green.withOpacity(0.5),
+                                activeTrackColor: Colors.green.withValues(alpha: 0.5),
                               ),
                           ],
                         ),
@@ -970,7 +970,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                                             return Container(
                                               padding: const EdgeInsets.all(16),
                                               decoration: BoxDecoration(
-                                                color: theme.disabledColor.withOpacity(0.1),
+                                                color: theme.disabledColor.withValues(alpha: 0.1),
                                                 borderRadius: BorderRadius.circular(8),
                                               ),
                                               child: Center(
@@ -1001,7 +1001,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                                                     leading: Container(
                                                       padding: const EdgeInsets.all(8),
                                                       decoration: BoxDecoration(
-                                                        color: theme.primaryColor.withOpacity(0.1),
+                                                        color: theme.primaryColor.withValues(alpha: 0.1),
                                                         borderRadius: BorderRadius.circular(8),
                                                       ),
                                                       child: Icon(
@@ -1020,11 +1020,11 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                                                         Container(
                                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                                           decoration: BoxDecoration(
-                                                            color: _getStatusColor(quote.status).withOpacity(0.2),
+                                                            color: _getStatusColor(quote.status).withValues(alpha: 0.2),
                                                             borderRadius: BorderRadius.circular(12),
                                                           ),
                                                           child: Text(
-                                                            quote.status ?? 'Pending',
+                                                            quote.status,
                                                             style: TextStyle(
                                                               fontSize: 10,
                                                               color: _getStatusColor(quote.status),
@@ -1212,7 +1212,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                                                   Container(
                                                     padding: const EdgeInsets.all(16),
                                                     decoration: BoxDecoration(
-                                                      color: theme.disabledColor.withOpacity(0.1),
+                                                      color: theme.disabledColor.withValues(alpha: 0.1),
                                                       borderRadius: BorderRadius.circular(8),
                                                     ),
                                                     child: Center(
@@ -1236,7 +1236,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                                                           Text(
                                                             'Create your first project for this client',
                                                             style: TextStyle(
-                                                              color: theme.disabledColor.withOpacity(0.7),
+                                                              color: theme.disabledColor.withValues(alpha: 0.7),
                                                               fontSize: 12,
                                                             ),
                                                           ),
@@ -1760,6 +1760,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
 
     try {
       // Show loading
+      if (!mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -1827,7 +1828,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: _getProjectStatusColor(project['status']).withOpacity(0.1),
+                    color: _getProjectStatusColor(project['status']).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Icon(
@@ -1848,7 +1849,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: _getProjectStatusColor(project['status']).withOpacity(0.2),
+                    color: _getProjectStatusColor(project['status']).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -1973,9 +1974,9 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1986,7 +1987,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
             label,
             style: TextStyle(
               fontSize: 10,
-              color: color.withOpacity(0.8),
+              color: color.withValues(alpha: 0.8),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -2058,7 +2059,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: selectedStatus,
+                  initialValue: selectedStatus,
                   decoration: const InputDecoration(
                     labelText: 'Status',
                     prefixIcon: Icon(Icons.flag),
@@ -2134,8 +2135,11 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                   });
                 }
 
+                if (!mounted) return;
+                // ignore: use_build_context_synchronously
                 Navigator.pop(context);
-
+                if (!mounted) return;
+                // ignore: use_build_context_synchronously
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Project created successfully'),
@@ -2143,6 +2147,8 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                   ),
                 );
               } catch (e) {
+                if (!mounted) return;
+                // ignore: use_build_context_synchronously
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Error creating project: $e'),
@@ -2229,7 +2235,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: selectedStatus,
+                  initialValue: selectedStatus,
                   decoration: const InputDecoration(
                     labelText: 'Status',
                     prefixIcon: Icon(Icons.flag),
@@ -2293,8 +2299,11 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                   'address': client.address ?? '',
                 });
 
+                if (!mounted) return;
+                // ignore: use_build_context_synchronously
                 Navigator.pop(context);
-
+                if (!mounted) return;
+                // ignore: use_build_context_synchronously
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Project updated successfully'),
@@ -2302,6 +2311,8 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                   ),
                 );
               } catch (e) {
+                if (!mounted) return;
+                // ignore: use_build_context_synchronously
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Error updating project: $e'),
@@ -2343,6 +2354,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
       final dbService = ref.read(databaseServiceProvider);
       await dbService.deleteProject(projectId);
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Project deleted successfully'),
@@ -2350,6 +2362,7 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error deleting project: $e'),

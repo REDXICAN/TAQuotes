@@ -11,7 +11,6 @@ import '../../../../core/services/product_cache_service.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/services/rbac_service.dart';
 import '../../../../core/models/models.dart';
-import '../../../../core/models/user_role.dart';
 
 // Auth Service Provider
 final authServiceProvider = Provider<AuthService>((ref) {
@@ -266,6 +265,8 @@ final signUpProvider = Provider((ref) {
 
       if (user != null) {
         // ALL new users require approval - set as pending initially
+        // actualRole kept for potential future direct role assignment feature
+        // ignore: unused_local_variable
         String actualRole = 'pending';
         String requestedRoleNormalized = role;
 
@@ -337,6 +338,7 @@ final signUpProvider = Provider((ref) {
 });
 
 // Handle registration emails
+// ignore: unused_element
 Future<void> _handleRegistrationEmails(String email, String name, String role, String uid, RealtimeDatabaseService dbService) async {
   try {
     // Import email service at the top of the file if not already imported

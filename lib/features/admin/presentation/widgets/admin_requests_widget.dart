@@ -150,7 +150,7 @@ class _AdminRequestCardState extends ConsumerState<_AdminRequestCard> {
       await dbService.rejectAdminRequest(
         requestId: widget.request.id,
         rejectedBy: currentUser?.email ?? 'superadmin',
-        reason: _rejectionReason,
+        reason: _rejectionReason ?? 'No reason provided',
       );
 
       if (mounted) {
@@ -186,7 +186,7 @@ class _AdminRequestCardState extends ConsumerState<_AdminRequestCard> {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       leading: CircleAvatar(
-        backgroundColor: theme.primaryColor.withOpacity(0.1),
+        backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
         child: Icon(Icons.person_add, color: theme.primaryColor),
       ),
       title: Text(

@@ -70,7 +70,7 @@ class _CollapsibleSectionState extends State<CollapsibleSection> with SingleTick
       decoration: BoxDecoration(
         color: widget.backgroundColor ?? theme.cardColor,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.dividerColor.withOpacity(0.2)),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

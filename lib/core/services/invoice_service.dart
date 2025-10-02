@@ -12,7 +12,7 @@ import '../utils/safe_type_converter.dart';
 import 'app_logger.dart';
 
 enum InvoiceStatus { draft, sent, paid, overdue, cancelled }
-enum PaymentTerms { net15, net30, net45, net60, cash_on_delivery, advance_payment }
+enum PaymentTerms { net15, net30, net45, net60, cashOnDelivery, advancePayment }
 
 class Invoice {
   final String id;
@@ -194,6 +194,8 @@ class InvoiceService {
   String? get userId => _auth.currentUser?.uid;
   String? get userEmail => _auth.currentUser?.email;
 
+  // Invoice counter kept for potential future auto-increment feature
+  // ignore: unused_field
   static final int _invoiceCounter = 1;
 
   /// Create invoice from quote
@@ -487,6 +489,8 @@ class InvoiceService {
       }
 
       // Prepare email
+      // emailSubject kept for potential future custom email templates
+      // ignore: unused_local_variable
       final emailSubject = subject ?? 'Invoice ${invoice.invoiceNumber} from Turbo Air Mexico';
       final emailBody = body ?? _generateEmailBody(invoice);
 
@@ -683,8 +687,8 @@ class InvoiceService {
         return now.add(const Duration(days: 45));
       case PaymentTerms.net60:
         return now.add(const Duration(days: 60));
-      case PaymentTerms.cash_on_delivery:
-      case PaymentTerms.advance_payment:
+      case PaymentTerms.cashOnDelivery:
+      case PaymentTerms.advancePayment:
         return now;
     }
   }
@@ -699,9 +703,9 @@ class InvoiceService {
         return 'Net 45 days';
       case PaymentTerms.net60:
         return 'Net 60 days';
-      case PaymentTerms.cash_on_delivery:
+      case PaymentTerms.cashOnDelivery:
         return 'Cash on Delivery';
-      case PaymentTerms.advance_payment:
+      case PaymentTerms.advancePayment:
         return 'Advance Payment';
     }
   }

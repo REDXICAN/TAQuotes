@@ -5,9 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import '../../../../core/models/models.dart';
-import '../../../../core/services/realtime_database_service.dart';
 import '../../../../core/services/app_logger.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 
 class DatabaseManagementScreen extends ConsumerStatefulWidget {
   const DatabaseManagementScreen({super.key});
@@ -43,8 +41,12 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
-    _productControllers.values.forEach((c) => c.dispose());
-    _userControllers.values.forEach((c) => c.dispose());
+    for (var c in _productControllers.values) {
+      c.dispose();
+    }
+    for (var c in _userControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -73,18 +75,16 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
       setState(() => _isLoading = true);
       try {
         await FirebaseDatabase.instance.ref('products/$productId').remove();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Product deleted successfully')),
-          );
-        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Product deleted successfully')),
+        );
       } catch (e) {
         AppLogger.error('Failed to delete product', error: e);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete product: $e')),
-          );
-        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete product: $e')),
+        );
       } finally {
         if (mounted) setState(() => _isLoading = false);
       }
@@ -117,18 +117,16 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
 
       await FirebaseDatabase.instance.ref('products/${newProduct.id}').set(newProduct.toMap());
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product duplicated successfully')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product duplicated successfully')),
+      );
     } catch (e) {
       AppLogger.error('Failed to duplicate product', error: e);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to duplicate product: $e')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to duplicate product: $e')),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -197,18 +195,16 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
         _editingProducts.remove(product.id);
       });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product updated successfully')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product updated successfully')),
+      );
     } catch (e) {
       AppLogger.error('Failed to update product', error: e);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update product: $e')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update product: $e')),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -231,10 +227,10 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
     setState(() {
       _editingProducts.remove(productId);
       // Clean up controllers
-      ['sku', 'model', 'name', 'description', 'price', 'category', 'stock'].forEach((field) {
+      for (var field in ['sku', 'model', 'name', 'description', 'price', 'category', 'stock']) {
         _productControllers['${productId}_$field']?.dispose();
         _productControllers.remove('${productId}_$field');
-      });
+      }
     });
   }
 
@@ -263,18 +259,16 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
       setState(() => _isLoading = true);
       try {
         await FirebaseDatabase.instance.ref('users/$userId').remove();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('User deleted successfully')),
-          );
-        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User deleted successfully')),
+        );
       } catch (e) {
         AppLogger.error('Failed to delete user', error: e);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete user: $e')),
-          );
-        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete user: $e')),
+        );
       } finally {
         if (mounted) setState(() => _isLoading = false);
       }
@@ -328,18 +322,16 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
         _editingUsers.remove(userId);
       });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User updated successfully')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User updated successfully')),
+      );
     } catch (e) {
       AppLogger.error('Failed to update user', error: e);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update user: $e')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update user: $e')),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -358,10 +350,10 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
     setState(() {
       _editingUsers.remove(userId);
       // Clean up controllers
-      ['name', 'email', 'role'].forEach((field) {
+      for (var field in ['name', 'email', 'role']) {
         _userControllers['${userId}_$field']?.dispose();
         _userControllers.remove('${userId}_$field');
-      });
+      }
     });
   }
 
@@ -369,18 +361,16 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
     setState(() => _isLoading = true);
     try {
       await FirebaseDatabase.instance.ref('users/$userId/isApproved').set(!currentStatus);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('User ${!currentStatus ? 'approved' : 'unapproved'} successfully')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('User ${!currentStatus ? 'approved' : 'unapproved'} successfully')),
+      );
     } catch (e) {
       AppLogger.error('Failed to toggle user approval', error: e);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update user approval: $e')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update user approval: $e')),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -396,7 +386,7 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
           productData['id'] = e.key;
           return Product.fromJson(productData);
         }).toList()
-          ..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
+          ..sort((a, b) => a.name.compareTo(b.name));
       }),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
@@ -410,9 +400,9 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
           products = products.where((p) {
             final query = _searchQuery.toLowerCase();
             return (p.sku?.toLowerCase().contains(query) ?? false) ||
-                   (p.model?.toLowerCase().contains(query) ?? false) ||
-                   (p.name?.toLowerCase().contains(query) ?? false) ||
-                   (p.description?.toLowerCase().contains(query) ?? false);
+                   p.model.toLowerCase().contains(query) ||
+                   p.name.toLowerCase().contains(query) ||
+                   p.description.toLowerCase().contains(query);
           }).toList();
         }
 
@@ -492,7 +482,7 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
                                     controller: _productControllers['${product.id}_model'],
                                     style: const TextStyle(fontSize: 14),
                                   )
-                                : Text(product.model ?? '-'),
+                                : Text(product.model),
                           ),
                           DataCell(
                             isEditing
@@ -500,7 +490,7 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
                                     controller: _productControllers['${product.id}_name'],
                                     style: const TextStyle(fontSize: 14),
                                   )
-                                : Text(product.name ?? '-'),
+                                : Text(product.name),
                           ),
                           DataCell(
                             isEditing
@@ -508,7 +498,7 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
                                     controller: _productControllers['${product.id}_category'],
                                     style: const TextStyle(fontSize: 14),
                                   )
-                                : Text(product.category ?? '-'),
+                                : Text(product.category),
                           ),
                           DataCell(
                             isEditing
@@ -831,18 +821,20 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
 
               try {
                 await FirebaseDatabase.instance.ref('products/${newProduct.id}').set(newProduct.toMap());
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Product added successfully')),
-                  );
-                }
+                if (!mounted) return;
+                // ignore: use_build_context_synchronously
+                Navigator.pop(context);
+                if (!mounted) return;
+                // ignore: use_build_context_synchronously
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Product added successfully')),
+                );
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to add product: $e')),
-                  );
-                }
+                if (!mounted) return;
+                // ignore: use_build_context_synchronously
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Failed to add product: $e')),
+                );
               }
             },
             child: const Text('Add'),
@@ -850,7 +842,9 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
         ],
       ),
     ).then((_) {
-      controllers.values.forEach((c) => c.dispose());
+      for (var c in controllers.values) {
+        c.dispose();
+      }
     });
   }
 
@@ -884,7 +878,7 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
                 obscureText: true,
               ),
               DropdownButtonFormField<String>(
-                value: controllers['role']!.text,
+                initialValue: controllers['role']!.text,
                 decoration: const InputDecoration(labelText: 'Role'),
                 items: ['user', 'admin', 'superadmin']
                     .map((role) => DropdownMenuItem(value: role, child: Text(role)))
@@ -920,18 +914,20 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
                   'createdAt': ServerValue.timestamp,
                 });
 
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('User added successfully')),
-                  );
-                }
+                if (!mounted) return;
+                // ignore: use_build_context_synchronously
+                Navigator.pop(context);
+                if (!mounted) return;
+                // ignore: use_build_context_synchronously
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('User added successfully')),
+                );
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to add user: $e')),
-                  );
-                }
+                if (!mounted) return;
+                // ignore: use_build_context_synchronously
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Failed to add user: $e')),
+                );
               }
             },
             child: const Text('Add'),
@@ -939,7 +935,9 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
         ],
       ),
     ).then((_) {
-      controllers.values.forEach((c) => c.dispose());
+      for (var c in controllers.values) {
+        c.dispose();
+      }
     });
   }
 

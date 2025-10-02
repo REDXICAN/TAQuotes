@@ -3,11 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_auth/firebase_auth.dart' as auth;
 import '../../../../core/models/models.dart';
-import '../../../../core/services/realtime_database_service.dart';
 import '../../../../core/services/app_logger.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 
 // Provider for paginated products with caching
 final paginatedProductsProvider = FutureProvider.autoDispose.family<List<Product>, int>((ref, page) async {
@@ -31,7 +28,7 @@ final paginatedProductsProvider = FutureProvider.autoDispose.family<List<Product
 
   // Return only the products for this page
   return products.skip(startIndex).take(pageSize).toList()
-    ..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
+    ..sort((a, b) => a.name.compareTo(b.name));
 });
 
 // Provider for total product count
@@ -108,7 +105,9 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
   late TabController _tabController;
   final _searchController = TextEditingController();
   String _searchQuery = '';
-  String _selectedCategory = 'All';
+  // Selected category kept for potential future filtering feature
+  // ignore: unused_field
+  final String _selectedCategory = 'All';
   bool _isLoading = false;
   int _currentPage = 0;
   int _currentUserPage = 0;
@@ -309,7 +308,7 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
     if (!_isLoading) return const SizedBox.shrink();
 
     return Container(
-      color: Colors.black.withOpacity(0.5),
+      color: Colors.black.withValues(alpha: 0.5),
       child: const Center(
         child: Card(
           child: Padding(
@@ -463,7 +462,7 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
               productCountAsync.when(
                 data: (count) => Chip(
                   label: Text('$count products'),
-                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                  backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                 ),
                 loading: () => const SizedBox(
                   width: 24,
@@ -486,9 +485,9 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
                 final query = _searchQuery.toLowerCase();
                 filteredProducts = products.where((p) =>
                   (p.sku?.toLowerCase().contains(query) ?? false) ||
-                  (p.model.toLowerCase().contains(query)) ||
-                  (p.name?.toLowerCase().contains(query) ?? false) ||
-                  (p.category?.toLowerCase().contains(query) ?? false)
+                  p.model.toLowerCase().contains(query) ||
+                  p.name.toLowerCase().contains(query) ||
+                  p.category.toLowerCase().contains(query)
                 ).toList();
               }
 
@@ -581,7 +580,7 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
                                           controller: _getProductController(
                                             product.id!,
                                             'name',
-                                            product.name ?? '',
+                                            product.name,
                                           ),
                                           style: const TextStyle(fontSize: 14),
                                           decoration: const InputDecoration(
@@ -591,9 +590,9 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
                                         ),
                                       )
                                     : Tooltip(
-                                        message: product.name ?? '',
+                                        message: product.name,
                                         child: Text(
-                                          product.name ?? '',
+                                          product.name,
                                           style: const TextStyle(fontSize: 13),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -609,7 +608,7 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
                                           controller: _getProductController(
                                             product.id!,
                                             'description',
-                                            product.description ?? '',
+                                            product.description,
                                           ),
                                           style: const TextStyle(fontSize: 14),
                                           decoration: const InputDecoration(
@@ -619,9 +618,9 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
                                         ),
                                       )
                                     : Tooltip(
-                                        message: product.description ?? '',
+                                        message: product.description,
                                         child: Text(
-                                          _truncateText(product.description ?? '-', 50),
+                                          _truncateText(product.description, 50),
                                           style: const TextStyle(fontSize: 13),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -637,7 +636,7 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
                                           controller: _getProductController(
                                             product.id!,
                                             'category',
-                                            product.category ?? '',
+                                            product.category,
                                           ),
                                           style: const TextStyle(fontSize: 14),
                                           decoration: const InputDecoration(
@@ -646,7 +645,7 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
                                           ),
                                         ),
                                       )
-                                    : Text(product.category ?? '', style: const TextStyle(fontSize: 13)),
+                                    : Text(product.category, style: const TextStyle(fontSize: 13)),
                                 ),
                                 // Warehouse
                                 DataCell(
@@ -933,7 +932,7 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
               userCountAsync.when(
                 data: (count) => Chip(
                   label: Text('$count profiles'),
-                  backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                  backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                 ),
                 loading: () => const SizedBox(
                   width: 24,
@@ -1052,7 +1051,7 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
                                     : Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: _getRoleColor(user['role']).withOpacity(0.2),
+                                          color: _getRoleColor(user['role']).withValues(alpha: 0.2),
                                           borderRadius: BorderRadius.circular(12),
                                         ),
                                         child: Text(
@@ -1076,8 +1075,8 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
                                       color: user['isActive'] == true
-                                          ? Colors.green.withOpacity(0.2)
-                                          : Colors.grey.withOpacity(0.2),
+                                          ? Colors.green.withValues(alpha: 0.2)
+                                          : Colors.grey.withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(

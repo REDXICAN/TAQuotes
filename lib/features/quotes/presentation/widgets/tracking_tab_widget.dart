@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/models/shipment_tracking.dart';
 import '../../../../core/services/tracking_service.dart';
-import '../../../../core/services/app_logger.dart';
 import '../../../../core/utils/responsive_helper.dart';
 
 // Provider for tracking service
@@ -103,7 +102,7 @@ class _TrackingTabWidgetState extends ConsumerState<TrackingTabWidget> {
                         });
                       },
                       backgroundColor: theme.chipTheme.backgroundColor,
-                      selectedColor: Colors.red.withOpacity(0.2),
+                      selectedColor: Colors.red.withValues(alpha: 0.2),
                       checkmarkColor: Colors.red,
                     ),
                   ],
@@ -150,7 +149,7 @@ class _TrackingTabWidgetState extends ConsumerState<TrackingTabWidget> {
                       Icon(
                         Icons.local_shipping_outlined,
                         size: 80,
-                        color: theme.iconTheme.color?.withOpacity(0.5),
+                        color: theme.iconTheme.color?.withValues(alpha: 0.5),
                       ),
                       const SizedBox(height: 16),
                       const Text(
@@ -278,7 +277,7 @@ class _TrackingTabWidgetState extends ConsumerState<TrackingTabWidget> {
         });
       },
       backgroundColor: theme.chipTheme.backgroundColor,
-      selectedColor: theme.primaryColor.withOpacity(0.2),
+      selectedColor: theme.primaryColor.withValues(alpha: 0.2),
       checkmarkColor: theme.primaryColor,
     );
   }
@@ -334,7 +333,7 @@ class _TrackingTabWidgetState extends ConsumerState<TrackingTabWidget> {
                       vertical: isMobile ? 2 : 4,
                     ),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
+                      color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: statusColor),
                     ),
@@ -436,7 +435,7 @@ class _TrackingTabWidgetState extends ConsumerState<TrackingTabWidget> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
+                    color: Colors.red.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(color: Colors.red),
                   ),
@@ -668,7 +667,7 @@ class TrackingDetailsDialog extends StatelessWidget {
               border: Border.all(color: Colors.white, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.blue.withOpacity(0.3),
+                  color: Colors.blue.withValues(alpha: 0.3),
                   blurRadius: 4,
                   spreadRadius: 1,
                 ),

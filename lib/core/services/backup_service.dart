@@ -244,7 +244,7 @@ class BackupService {
         throw Exception('Invalid backup file structure');
       }
 
-      final data = SafeTypeConverter.toMap(backupData['data']) ?? {};
+      final data = SafeTypeConverter.toMap(backupData['data']);
 
       // Check if user is admin
       final canManageBackups = await RBACService.hasPermission('manage_backups');

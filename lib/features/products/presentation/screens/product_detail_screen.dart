@@ -59,7 +59,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   bool _showNoteField = false;
   String? _cartItemId;
   final _noteController = TextEditingController();
-  Map<String, String> _preservedComments = {}; // Store preserved comments in memory
+  // Preserved comments map kept for potential future comment persistence
+  // ignore: unused_field
+  final Map<String, String> _preservedComments = {}; // Store preserved comments in memory
 
   @override
   void initState() {
@@ -196,7 +198,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: theme.primaryColor.withOpacity(0.1),
+                              color: theme.primaryColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -264,9 +266,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                       );
                                       // Refresh the product data
                                       ref.invalidate(productDetailProvider(widget.productId));
-                                      
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
+
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
                                           content: Text(
                                             product.isTopSeller
@@ -276,16 +278,14 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                           backgroundColor: Colors.green,
                                         ),
                                       );
-                                      }
                                     } catch (e) {
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
                                           content: Text('Error updating product: $e'),
                                           backgroundColor: Colors.red,
                                         ),
                                       );
-                                      }
                                     }
                                   },
                                 ) : const SizedBox.shrink(),
@@ -332,13 +332,13 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: theme.brightness == Brightness.dark
-                                ? Colors.blue.withOpacity(0.1)
-                                : Colors.blue.withOpacity(0.05),
+                                ? Colors.blue.withValues(alpha: 0.1)
+                                : Colors.blue.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: theme.brightness == Brightness.dark
-                                  ? Colors.blue.withOpacity(0.3)
-                                  : Colors.blue.withOpacity(0.2),
+                                  ? Colors.blue.withValues(alpha: 0.3)
+                                  : Colors.blue.withValues(alpha: 0.2),
                             ),
                           ),
                           child: Column(
@@ -373,13 +373,13 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                         }
                                         
                                         if (totalStock > 50) {
-                                          return Colors.green.withOpacity(0.2);
+                                          return Colors.green.withValues(alpha: 0.2);
                                         } else if (totalStock > 10) {
-                                          return Colors.orange.withOpacity(0.2);
+                                          return Colors.orange.withValues(alpha: 0.2);
                                         } else if (totalStock > 0) {
-                                          return Colors.red.withOpacity(0.2);
+                                          return Colors.red.withValues(alpha: 0.2);
                                         } else {
-                                          return Colors.grey.withOpacity(0.2);
+                                          return Colors.grey.withValues(alpha: 0.2);
                                         }
                                       }(),
                                       borderRadius: BorderRadius.circular(12),
@@ -529,7 +529,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                     ],
                                   ),
                                 );
-                              }).toList(),
+                              }),
                               const SizedBox(height: 8),
                               Text(
                                 'Stock levels are updated in real-time',
@@ -684,6 +684,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                             _cartItemId!,
                                             note: _note,
                                           );
+                                          if (!mounted) return;
+                                          if (!context.mounted) return;
                                           Navigator.pop(dialogContext);
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             const SnackBar(
@@ -713,9 +715,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
+                              color: Colors.green.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.green.withOpacity(0.3)),
+                              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
                             ),
                             child: Row(
                               children: [
@@ -816,7 +818,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: theme.primaryColor.withOpacity(0.1),
+                                  color: theme.primaryColor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -877,9 +879,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                           );
                                           // Refresh the product data
                                           ref.invalidate(productDetailProvider(widget.productId));
-                                          
-                                          if (context.mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
+
+                                          if (!context.mounted) return;
+                                          ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(
                                               content: Text(
                                                 product.isTopSeller
@@ -889,16 +891,14 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                               backgroundColor: Colors.green,
                                             ),
                                           );
-                                          }
                                         } catch (e) {
-                                          if (context.mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
+                                          if (!context.mounted) return;
+                                          ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(
                                               content: Text('Error updating product: $e'),
                                               backgroundColor: Colors.red,
                                             ),
                                           );
-                                          }
                                         }
                                       },
                                     ) : const SizedBox.shrink(),
@@ -945,13 +945,13 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: theme.brightness == Brightness.dark
-                                    ? Colors.blue.withOpacity(0.1)
-                                    : Colors.blue.withOpacity(0.05),
+                                    ? Colors.blue.withValues(alpha: 0.1)
+                                    : Colors.blue.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color: theme.brightness == Brightness.dark
-                                      ? Colors.blue.withOpacity(0.3)
-                                      : Colors.blue.withOpacity(0.2),
+                                      ? Colors.blue.withValues(alpha: 0.3)
+                                      : Colors.blue.withValues(alpha: 0.2),
                                 ),
                               ),
                               child: Column(
@@ -987,13 +987,13 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                             }
                                             
                                             if (totalStock > 50) {
-                                              return Colors.green.withOpacity(0.2);
+                                              return Colors.green.withValues(alpha: 0.2);
                                             } else if (totalStock > 10) {
-                                              return Colors.orange.withOpacity(0.2);
+                                              return Colors.orange.withValues(alpha: 0.2);
                                             } else if (totalStock > 0) {
-                                              return Colors.red.withOpacity(0.2);
+                                              return Colors.red.withValues(alpha: 0.2);
                                             } else {
-                                              return Colors.grey.withOpacity(0.2);
+                                              return Colors.grey.withValues(alpha: 0.2);
                                             }
                                           }(),
                                           borderRadius: BorderRadius.circular(10),
@@ -1143,7 +1143,7 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                         ],
                                       ),
                                     );
-                                  }).toList(),
+                                  }),
                                   const SizedBox(height: 8),
                                   Text(
                                     'Stock levels are updated in real-time',
@@ -1295,6 +1295,8 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                                               _cartItemId!,
                                               note: _note,
                                             );
+                                            if (!mounted) return;
+                                            if (!context.mounted) return;
                                             Navigator.pop(dialogContext);
                                             ScaffoldMessenger.of(context).showSnackBar(
                                               const SnackBar(
@@ -1324,9 +1326,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.1),
+                                  color: Colors.green.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                                  border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
                                 ),
                                 child: Row(
                                   children: [

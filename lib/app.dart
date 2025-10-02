@@ -13,7 +13,8 @@ class TurboAirApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
-    final themeMode = ref.watch(themeModeProvider);
+    // Theme mode provider watched for potential future use
+    ref.watch(themeModeProvider);
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(

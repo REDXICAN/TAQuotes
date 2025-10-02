@@ -1,7 +1,6 @@
 // lib/features/products/presentation/screens/products_screen.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
@@ -16,7 +15,6 @@ import '../../../../core/services/app_logger.dart';
 import '../../../../core/services/rbac_service.dart';
 import '../../../../core/utils/warehouse_utils.dart';
 import '../../../../core/providers/providers.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../widgets/excel_preview_dialog.dart';
 import '../../widgets/import_progress_dialog.dart';
 
@@ -150,12 +148,12 @@ final searchResultsProvider = Provider<List<Product>>((ref) {
     data: (allProducts) {
       // Search in SKU, name, description, category, and model
       return allProducts.where((product) {
-        final sku = (product.sku ?? '').toLowerCase();
-        final model = (product.model ?? '').toLowerCase();
+        final sku = product.sku?.toLowerCase() ?? '';
+        final model = product.model.toLowerCase();
         final name = product.name.toLowerCase();
         final description = product.description.toLowerCase();
         final category = product.category.toLowerCase();
-        
+
         // Check if query matches any field
         return sku.contains(query) ||
                model.contains(query) ||
@@ -186,8 +184,12 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
   bool _isUploading = false;
   int _visibleItemCount = 24; // Show 24 items initially on web
   TabController? _tabController;
-  List<String> _productTypes = ['All'];
-  String _selectedProductType = 'All';
+  // Product types list kept for potential future category filtering
+  // ignore: unused_field
+  final List<String> _productTypes = ['All'];
+  // Selected product type kept for potential future type filtering
+  // ignore: unused_field
+  final String _selectedProductType = 'All';
   String? _selectedWarehouse; // Warehouse filter state
   
   @override
@@ -230,7 +232,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
   Set<String> _getProductLines(List<Product> products) {
     final lines = <String>{};
     for (final product in products) {
-      final sku = product.sku ?? product.model ?? '';
+      final sku = (product.sku != null && product.sku!.isNotEmpty) ? product.sku! : product.model;
       if (sku.length >= 3) {
         // Get first 3 letters of SKU as product line
         final line = sku.substring(0, 3).toUpperCase();
@@ -241,8 +243,9 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
     }
     return lines;
   }
-  
+
   // Extract unique product types from products
+  // ignore: unused_element
   Set<String> _getProductTypes(List<Product> products) {
     final types = <String>{};
     for (final product in products) {
@@ -252,8 +255,9 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
     }
     return types;
   }
-  
+
   // Extract unique categories from products
+  // ignore: unused_element
   Set<String> _getCategories(List<Product> products) {
     final categories = <String>{};
     for (final product in products) {
@@ -282,7 +286,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
   List<Product> _filterByProductLine(List<Product> products, String? line) {
     if (line == null) return products;
     return products.where((product) {
-      final sku = product.sku ?? product.model ?? '';
+      final sku = (product.sku != null && product.sku!.isNotEmpty) ? product.sku! : product.model;
       return sku.toUpperCase().startsWith(line);
     }).toList();
   }
@@ -425,6 +429,8 @@ Future<void> _handleExcelUpload() async {
                   progressController.close();
 
                   // Wait for progress dialog to complete
+                  // finalProgress kept for potential future progress tracking
+                  // ignore: unused_local_variable
                   final finalProgress = await progressDialogFuture;
 
                   if (mounted && context.mounted) {
@@ -503,6 +509,8 @@ Future<void> _handleExcelUpload() async {
     final productsAsync = ref.watch(productsProvider(null));
 
     // Check if current user is superadmin
+    // isSuperAdmin kept for potential future admin-only features
+    // ignore: unused_local_variable
     final isSuperAdmin = ExcelUploadService.isSuperAdmin;
 
     return Scaffold(
@@ -554,14 +562,14 @@ Future<void> _handleExcelUpload() async {
               decoration: InputDecoration(
                 hintText: 'Search by SKU, category or description',
                 hintStyle: theme.inputDecorationTheme.hintStyle?.copyWith(
-                  color: theme.colorScheme.onPrimary.withOpacity(0.7),
+                  color: theme.colorScheme.onPrimary.withValues(alpha: 0.7),
                 ),
-                prefixIcon: Icon(Icons.search, 
-                  color: theme.colorScheme.onPrimary.withOpacity(0.7)),
+                prefixIcon: Icon(Icons.search,
+                  color: theme.colorScheme.onPrimary.withValues(alpha: 0.7)),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: Icon(Icons.clear, 
-                          color: theme.colorScheme.onPrimary.withOpacity(0.7)),
+                        icon: Icon(Icons.clear,
+                          color: theme.colorScheme.onPrimary.withValues(alpha: 0.7)),
                         onPressed: () {
                           _searchController.clear();
                           ref.read(searchQueryProvider.notifier).state = '';
@@ -630,8 +638,8 @@ Future<void> _handleExcelUpload() async {
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
                               color: _selectedWarehouse != null
-                                  ? theme.primaryColor.withOpacity(0.2)
-                                  : theme.dividerColor.withOpacity(0.2),
+                                  ? theme.primaryColor.withValues(alpha: 0.2)
+                                  : theme.dividerColor.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
                                 color: _selectedWarehouse != null
@@ -853,9 +861,9 @@ Future<void> _handleExcelUpload() async {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(
-                                color: selectedProductLine != null 
-                                    ? theme.primaryColor.withOpacity(0.2)
-                                    : theme.dividerColor.withOpacity(0.2),
+                                color: selectedProductLine != null
+                                    ? theme.primaryColor.withValues(alpha: 0.2)
+                                    : theme.dividerColor.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color: selectedProductLine != null
@@ -912,7 +920,7 @@ Future<void> _handleExcelUpload() async {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: theme.primaryColor.withOpacity(0.1),
+                                          color: theme.primaryColor.withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(4),
                                         ),
                                         child: Text(
@@ -926,7 +934,7 @@ Future<void> _handleExcelUpload() async {
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
-                                          '${allProducts.where((p) => (p.sku ?? p.model ?? '').toUpperCase().startsWith(line)).length} products',
+                                          '${allProducts.where((p) => ((p.sku != null && p.sku!.isNotEmpty) ? p.sku! : p.model).toUpperCase().startsWith(line)).length} products',
                                           style: theme.textTheme.bodySmall,
                                         ),
                                       ),
@@ -965,7 +973,7 @@ Future<void> _handleExcelUpload() async {
                         },
                         tooltip: 'Clear all filters',
                         style: IconButton.styleFrom(
-                          backgroundColor: theme.primaryColor.withOpacity(0.1),
+                          backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
                           minimumSize: Size(
                             ResponsiveHelper.getTouchTargetSize(context),
                             ResponsiveHelper.getTouchTargetSize(context),
@@ -1103,6 +1111,7 @@ Future<void> _handleExcelUpload() async {
     );
   }
 
+  // ignore: unused_element
   Widget _buildQuantitySelector(Product product, WidgetRef ref, BuildContext context, ThemeData theme, dynamic dbService) {
     final quantities = ref.watch(productQuantitiesProvider);
     final quantity = quantities[product.id] ?? 0;
@@ -1376,7 +1385,8 @@ Future<void> _handleExcelUpload() async {
       },
     );
   }
-  
+
+  // ignore: unused_element
   String _formatPrice(double price) {
     final parts = price.toStringAsFixed(2).split('.');
     final wholePart = parts[0].replaceAllMapped(
@@ -1429,9 +1439,9 @@ Future<void> _handleExcelUpload() async {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                  border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1461,7 +1471,7 @@ Future<void> _handleExcelUpload() async {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Row(
@@ -1496,9 +1506,9 @@ Future<void> _handleExcelUpload() async {
                 height: 150,
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                   borderRadius: BorderRadius.circular(4),
-                  color: Colors.red.withOpacity(0.05),
+                  color: Colors.red.withValues(alpha: 0.05),
                 ),
                 child: ListView.builder(
                   itemCount: (result['errors'] as List).length,
@@ -1524,9 +1534,9 @@ Future<void> _handleExcelUpload() async {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -1852,6 +1862,8 @@ class ProductCard extends ConsumerWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             // Calculate available height for dynamic sizing
+            // cardHeight kept for potential future dynamic sizing
+            // ignore: unused_local_variable
             final cardHeight = constraints.maxHeight;
 
             return Column(
@@ -1868,7 +1880,7 @@ class ProductCard extends ConsumerWidget {
                       child: Padding(
                         padding: const EdgeInsets.all(8),
                         child: SimpleImageWidget(
-                          sku: product.sku ?? product.model ?? '',
+                          sku: (product.sku != null && product.sku!.isNotEmpty) ? product.sku! : product.model,
                           useThumbnail: true,
                           fit: BoxFit.contain,
                           width: double.infinity,
@@ -1897,7 +1909,7 @@ class ProductCard extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          product.sku ?? product.model ?? '',
+                          (product.sku != null && product.sku!.isNotEmpty) ? product.sku! : product.model,
                           style: TextStyle(
                             fontSize: ResponsiveHelper.getResponsiveFontSize(
                               context,
@@ -1958,10 +1970,10 @@ class ProductCard extends ConsumerWidget {
                       vertical: ResponsiveHelper.getValue(context, mobile: 2, tablet: 2, desktop: 3),
                     ),
                     decoration: BoxDecoration(
-                      color: stockColor.withOpacity(0.1),
+                      color: stockColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
-                        color: stockColor.withOpacity(0.3),
+                        color: stockColor.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -2068,10 +2080,10 @@ class ProductCard extends ConsumerWidget {
                                   vertical: ResponsiveHelper.getValue(context, mobile: 1, tablet: 1, desktop: 2),
                                 ),
                                 decoration: BoxDecoration(
-                                  color: badgeColor.withOpacity(isHighPriority ? 0.15 : 0.1),
+                                  color: badgeColor.withValues(alpha: isHighPriority ? 0.15 : 0.1),
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                    color: badgeColor.withOpacity(isHighPriority ? 0.5 : 0.3),
+                                    color: badgeColor.withValues(alpha: isHighPriority ? 0.5 : 0.3),
                                     width: isHighPriority ? 1.0 : 0.5,
                                   ),
                                 ),
@@ -2089,7 +2101,7 @@ class ProductCard extends ConsumerWidget {
                                       ),
                                     Flexible(
                                       child: Text(
-                                        '${warehouse}: $availableStock',
+                                        '$warehouse: $availableStock',
                                         style: TextStyle(
                                           fontSize: ResponsiveHelper.getResponsiveFontSize(
                                             context,

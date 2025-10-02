@@ -1,27 +1,28 @@
 // lib/core/utils/disabled_state_helper.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Helper class for consistent disabled state handling across the app
 class DisabledStateHelper {
   /// Get the appropriate color for disabled text
   static Color getDisabledTextColor(BuildContext context, {double opacity = 1.0}) {
-    return Theme.of(context).disabledColor.withOpacity(opacity);
+    return Theme.of(context).disabledColor.withValues(alpha: opacity);
   }
 
   /// Get the appropriate color for disabled background
   static Color getDisabledBackgroundColor(BuildContext context, {double opacity = 0.1}) {
-    return Theme.of(context).disabledColor.withOpacity(opacity);
+    return Theme.of(context).disabledColor.withValues(alpha: opacity);
   }
 
   /// Get the appropriate color for disabled borders
   static Color getDisabledBorderColor(BuildContext context, {double opacity = 0.3}) {
-    return Theme.of(context).disabledColor.withOpacity(opacity);
+    return Theme.of(context).disabledColor.withValues(alpha: opacity);
   }
 
   /// Get the appropriate color for disabled icons
   static Color getDisabledIconColor(BuildContext context, {double opacity = 0.6}) {
-    return Theme.of(context).disabledColor.withOpacity(opacity);
+    return Theme.of(context).disabledColor.withValues(alpha: opacity);
   }
 
   /// Create a disabled text style
@@ -139,8 +140,8 @@ class DisabledStateHelper {
       hintText: hintText,
       helperText: helperText,
       labelStyle: !isEnabled ? TextStyle(color: disabledColor) : null,
-      hintStyle: !isEnabled ? TextStyle(color: disabledColor.withOpacity(0.5)) : null,
-      helperStyle: !isEnabled ? TextStyle(color: disabledColor.withOpacity(0.7)) : null,
+      hintStyle: !isEnabled ? TextStyle(color: disabledColor.withValues(alpha: 0.5)) : null,
+      helperStyle: !isEnabled ? TextStyle(color: disabledColor.withValues(alpha: 0.7)) : null,
       prefixIcon: prefixIcon != null
           ? Icon(
               prefixIcon,

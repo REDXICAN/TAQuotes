@@ -258,9 +258,9 @@ class _BackupStatusWidgetState extends ConsumerState<BackupStatusWidget> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
+                color: Colors.blue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -340,7 +340,7 @@ class _BackupStatusWidgetState extends ConsumerState<BackupStatusWidget> {
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: _getStatusColor(backup.status).withOpacity(0.2),
+                          backgroundColor: _getStatusColor(backup.status).withValues(alpha: 0.2),
                           child: Icon(
                             _getTypeIcon(backup.type),
                             color: _getStatusColor(backup.status),
@@ -360,7 +360,7 @@ class _BackupStatusWidgetState extends ConsumerState<BackupStatusWidget> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: _getStatusColor(backup.status).withOpacity(0.2),
+                                color: _getStatusColor(backup.status).withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
@@ -498,10 +498,10 @@ class _BackupStatusWidgetState extends ConsumerState<BackupStatusWidget> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: color.withOpacity(0.3),
+            color: color.withValues(alpha: 0.3),
             width: 1,
           ),
         ),

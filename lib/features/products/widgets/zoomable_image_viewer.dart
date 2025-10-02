@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:vector_math/vector_math_64.dart' as vm;
 
 class ZoomableImageViewer extends StatefulWidget {
   final List<String> imagePaths;
@@ -87,15 +88,15 @@ class _ZoomableImageViewerState extends State<ZoomableImageViewer> {
   
   void _zoomIn() {
     final newScale = (_currentScale * 1.2).clamp(_minScale, _maxScale);
-    _transformationController.value = Matrix4.identity()..scale(newScale);
+    _transformationController.value = Matrix4.identity()..scaleByVector3(vm.Vector3(newScale, newScale, 1.0));
     setState(() {
       _currentScale = newScale;
     });
   }
-  
+
   void _zoomOut() {
     final newScale = (_currentScale / 1.2).clamp(_minScale, _maxScale);
-    _transformationController.value = Matrix4.identity()..scale(newScale);
+    _transformationController.value = Matrix4.identity()..scaleByVector3(vm.Vector3(newScale, newScale, 1.0));
     setState(() {
       _currentScale = newScale;
     });
@@ -103,8 +104,10 @@ class _ZoomableImageViewerState extends State<ZoomableImageViewer> {
   
   @override
   Widget build(BuildContext context) {
+    // theme kept for potential future custom styling
+    // ignore: unused_local_variable
     final theme = Theme.of(context);
-    
+
     return Dialog(
       backgroundColor: Colors.black,
       insetPadding: EdgeInsets.zero,
@@ -185,7 +188,7 @@ class _ZoomableImageViewerState extends State<ZoomableImageViewer> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.7),
+                    Colors.black.withValues(alpha: 0.7),
                     Colors.transparent,
                   ],
                 ),
@@ -230,7 +233,7 @@ class _ZoomableImageViewerState extends State<ZoomableImageViewer> {
                   icon: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withValues(alpha: 0.5),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -255,7 +258,7 @@ class _ZoomableImageViewerState extends State<ZoomableImageViewer> {
                   icon: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withValues(alpha: 0.5),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -277,7 +280,7 @@ class _ZoomableImageViewerState extends State<ZoomableImageViewer> {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7),
+                color: Colors.black.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -331,7 +334,7 @@ class _ZoomableImageViewerState extends State<ZoomableImageViewer> {
                     shape: BoxShape.circle,
                     color: index == _currentIndex
                         ? Colors.white
-                        : Colors.white.withOpacity(0.3),
+                        : Colors.white.withValues(alpha: 0.3),
                   ),
                 ),
               ),
@@ -345,7 +348,7 @@ class _ZoomableImageViewerState extends State<ZoomableImageViewer> {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7),
+                color: Colors.black.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(

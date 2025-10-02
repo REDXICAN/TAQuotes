@@ -72,9 +72,14 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
   final _searchController = TextEditingController();
   bool _hasAccess = false;
   String _errorSortBy = 'timestamp'; // 'timestamp', 'severity', 'category'
-  int _currentPage = 0;
+  // Pagination fields kept for potential future implementation
+  // ignore: unused_field
+  final int _currentPage = 0;
+  // ignore: unused_field
   static const int _pageSize = 20;
-  bool _isLoading = false;
+  // ignore: unused_field
+  final bool _isLoading = false;
+  // ignore: unused_field
   DateTime? _lastRefresh;
   bool _isErrorListExpanded = true;
 
@@ -128,14 +133,13 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
         return Colors.orange;
       case ErrorCategory.ui:
         return Colors.green;
-      case ErrorCategory.business_logic:
+      case ErrorCategory.businessLogic:
         return Colors.purple;
       case ErrorCategory.performance:
         return Colors.teal;
       case ErrorCategory.security:
         return Colors.red[900]!;
       case ErrorCategory.unknown:
-      default:
         return Colors.grey;
     }
   }
@@ -195,14 +199,13 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
         return Icons.wifi_off;
       case ErrorCategory.ui:
         return Icons.web;
-      case ErrorCategory.business_logic:
+      case ErrorCategory.businessLogic:
         return Icons.business_center;
       case ErrorCategory.performance:
         return Icons.speed;
       case ErrorCategory.security:
         return Icons.security;
       case ErrorCategory.unknown:
-      default:
         return Icons.help_outline;
     }
   }
@@ -217,14 +220,13 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
     ref.invalidate(recentErrorsProvider);
     ref.invalidate(unresolvedErrorsProvider);
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error data refreshed'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Error data refreshed'),
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   void _showExportDialog() {
@@ -583,7 +585,7 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor.withOpacity(0.1),
+                    color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -675,7 +677,7 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
                         // Error count summary
                         Container(
                           padding: const EdgeInsets.all(16),
-                          color: Theme.of(context).primaryColor.withOpacity(0.05),
+                          color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -721,6 +723,7 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
     );
   }
 
+  // ignore: unused_element
   Widget _buildAnalyticsTab() {
     final statisticsAsync = ref.watch(errorStatisticsProvider);
 
@@ -903,27 +906,26 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
   Future<void> _exportErrorsToCSV() async {
     try {
       // Show loading indicator
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
-                SizedBox(width: 16),
-                Text('Preparing export...'),
-              ],
-            ),
-            duration: Duration(seconds: 30),
+              ),
+              SizedBox(width: 16),
+              Text('Preparing export...'),
+            ],
           ),
-        );
-      }
+          duration: Duration(seconds: 30),
+        ),
+      );
 
       // Get errors from the provider
       final errorsAsync = ref.read(recentErrorsProvider);
@@ -937,14 +939,13 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
 
       if (errors.isEmpty) {
         ScaffoldMessenger.of(context).clearSnackBars();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No error reports to export'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No error reports to export'),
+            backgroundColor: Colors.orange,
+          ),
+        );
         return;
       }
 
@@ -989,53 +990,50 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
       );
 
       // Clear loading snackbar and show success
+      if (!mounted) return;
       ScaffoldMessenger.of(context).clearSnackBars();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Successfully exported ${errors.length} error reports'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Successfully exported ${errors.length} error reports'),
+          backgroundColor: Colors.green,
+        ),
+      );
 
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).clearSnackBars();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to export error reports: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to export error reports: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   Future<void> _exportErrorsToJSON() async {
     try {
       // Show loading indicator
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
-                SizedBox(width: 16),
-                Text('Preparing JSON export...'),
-              ],
-            ),
-            duration: Duration(seconds: 30),
+              ),
+              SizedBox(width: 16),
+              Text('Preparing JSON export...'),
+            ],
           ),
-        );
-      }
+          duration: Duration(seconds: 30),
+        ),
+      );
 
       // Get errors from the provider
       final errorsAsync = ref.read(recentErrorsProvider);
@@ -1049,14 +1047,13 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
 
       if (errors.isEmpty) {
         ScaffoldMessenger.of(context).clearSnackBars();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No error reports to export'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No error reports to export'),
+            backgroundColor: Colors.orange,
+          ),
+        );
         return;
       }
 
@@ -1105,26 +1102,24 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
       );
 
       // Clear loading snackbar and show success
+      if (!mounted) return;
       ScaffoldMessenger.of(context).clearSnackBars();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Successfully exported ${errors.length} error reports as JSON'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Successfully exported ${errors.length} error reports as JSON'),
+          backgroundColor: Colors.green,
+        ),
+      );
 
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).clearSnackBars();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to export error reports: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to export error reports: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -1167,7 +1162,7 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
         dense: true,
         leading: CircleAvatar(
           radius: 18,
-          backgroundColor: _getSeverityColor(error.severity).withOpacity(0.2),
+          backgroundColor: _getSeverityColor(error.severity).withValues(alpha: 0.2),
           child: Icon(
             _getSeverityIcon(error.severity),
             color: _getSeverityColor(error.severity),
@@ -1188,7 +1183,7 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: _getCategoryColor(error.category).withOpacity(0.1),
+                color: _getCategoryColor(error.category).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -1217,11 +1212,11 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
                 icon: const Icon(Icons.check_circle_outline, size: 18),
                 onPressed: () async {
                   await ref.read(errorMonitoringProvider).markErrorAsResolved(error.id);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Error marked as resolved')),
-                    );
-                  }
+                  if (!context.mounted) return;
+                  // ignore: use_build_context_synchronously
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Error marked as resolved')),
+                  );
                 },
                 tooltip: 'Mark as Resolved',
               )
@@ -1287,7 +1282,7 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
             ),
             child: SelectableText(
@@ -1306,6 +1301,7 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
     );
   }
 
+  // ignore: unused_element
   Widget _buildErrorCard(ErrorReport error) {
     final dateFormat = DateFormat('MMM dd, yyyy HH:mm');
 
@@ -1590,23 +1586,21 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
       final service = ref.read(errorMonitoringProvider);
       await service.markErrorResolved(errorId);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error marked as resolved'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error marked as resolved'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to mark error as resolved: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to mark error as resolved: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -1631,25 +1625,25 @@ class _ErrorMonitoringDashboardState extends ConsumerState<ErrorMonitoringDashbo
                 final service = ref.read(errorMonitoringProvider);
                 await service.clearOldErrors();
 
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Old errors cleared successfully'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  ref.invalidate(errorStatisticsProvider);
-                  ref.invalidate(recentErrorsProvider);
-                }
+                if (!mounted) return;
+                // ignore: use_build_context_synchronously
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Old errors cleared successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                ref.invalidate(errorStatisticsProvider);
+                ref.invalidate(recentErrorsProvider);
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Failed to clear old errors: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
+                if (!mounted) return;
+                // ignore: use_build_context_synchronously
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to clear old errors: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
             style: ElevatedButton.styleFrom(

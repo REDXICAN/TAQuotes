@@ -1,5 +1,6 @@
 // lib/scripts/check_and_populate_admin_clients.dart
 // Standalone script to check if admin user has clients and populate demo data if needed
+// ignore_for_file: avoid_print
 
 import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';

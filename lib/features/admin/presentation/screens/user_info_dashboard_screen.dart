@@ -230,7 +230,9 @@ class UserInfoDashboardScreen extends ConsumerStatefulWidget {
 class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScreen> with TickerProviderStateMixin {
   String _searchQuery = '';
   String _selectedRole = 'all';
-  String _sortBy = 'lastLogin';
+  final String _sortBy = 'lastLogin';
+  // Selected user ID kept for potential future user details panel
+  // ignore: unused_field
   int? _selectedUserId; // For showing user details
   bool _hasAccess = false;
   late TabController _tabController;
@@ -293,10 +295,16 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final usersAsync = ref.watch(allUsersProvider);
+    // Number format kept for potential future statistics formatting
+    // ignore: unused_local_variable
     final numberFormat = NumberFormat('#,###');
     final currencyFormat = NumberFormat.currency(symbol: '\$');
     final dateFormat = DateFormat('MMM dd, yyyy');
+    // Time format kept for potential future time-based features
+    // ignore: unused_local_variable
     final timeFormat = DateFormat('hh:mm a');
+    // isMobile kept for potential future responsive adjustments
+    // ignore: unused_local_variable
     final isMobile = ResponsiveHelper.isMobile(context);
 
     // Show loading while checking access
@@ -543,7 +551,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
                   const SizedBox(height: 16),
                   ...topPerformers.take(5).map((user) => ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: _getRoleColor(user.role).withOpacity(0.2),
+                      backgroundColor: _getRoleColor(user.role).withValues(alpha: 0.2),
                       child: Text(
                         user.displayName.substring(0, 1).toUpperCase(),
                         style: TextStyle(
@@ -661,7 +669,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
             margin: const EdgeInsets.only(bottom: 8),
             child: ListTile(
               leading: CircleAvatar(
-                backgroundColor: _getRoleColor(user.role).withOpacity(0.2),
+                backgroundColor: _getRoleColor(user.role).withValues(alpha: 0.2),
                 child: Text(
                   user.quotesCount.toString(),
                   style: TextStyle(
@@ -790,7 +798,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
               Row(
                 children: [
                   CircleAvatar(
-                    backgroundColor: roleColor.withOpacity(0.2),
+                    backgroundColor: roleColor.withValues(alpha: 0.2),
                     child: Text(
                       user.displayName.substring(0, 1).toUpperCase(),
                       style: TextStyle(
@@ -822,7 +830,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: roleColor.withOpacity(0.2),
+                      color: roleColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(

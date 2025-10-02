@@ -68,6 +68,8 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
 
   @override
   Widget build(BuildContext context) {
+    // screenHeight kept for potential future responsive sizing
+    // ignore: unused_local_variable
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth > 1200;
@@ -171,7 +173,7 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
                         icon: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.5),
+                            color: Colors.black.withValues(alpha: 0.5),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -200,7 +202,7 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
                         icon: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.5),
+                            color: Colors.black.withValues(alpha: 0.5),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -363,7 +365,7 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
                   icon: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withValues(alpha: 0.5),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.close, color: Colors.white, size: 24),
@@ -397,7 +399,7 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
+                    color: Colors.black.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -457,7 +459,7 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),

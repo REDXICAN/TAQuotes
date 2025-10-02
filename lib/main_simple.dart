@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'app.dart';
+import 'core/services/app_logger.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,7 +17,7 @@ void main() async {
   } catch (e) {
     // Log Firebase initialization error
     if (kDebugMode) {
-      AppLogger.error('Firebase initialization error', error: e, category: LogCategory.system);
+      AppLogger.error('Firebase initialization error', error: e, category: LogCategory.general);
     }
   }
 

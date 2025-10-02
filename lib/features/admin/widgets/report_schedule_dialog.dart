@@ -1,9 +1,7 @@
 // lib/features/admin/widgets/report_schedule_dialog.dart
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../models/report_schedule.dart';
-import '../../../core/services/app_logger.dart';
 
 class ReportScheduleDialog extends StatefulWidget {
   final ReportSchedule? existingSchedule;
@@ -148,7 +146,7 @@ class _ReportScheduleDialogState extends State<ReportScheduleDialog> {
                           ),
                           const SizedBox(height: 12),
                           DropdownButtonFormField<int>(
-                            value: _dayOfWeek,
+                            initialValue: _dayOfWeek,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                               prefixIcon: Icon(Icons.calendar_today),
@@ -183,7 +181,7 @@ class _ReportScheduleDialogState extends State<ReportScheduleDialog> {
                           ),
                           const SizedBox(height: 12),
                           DropdownButtonFormField<int>(
-                            value: _dayOfMonth,
+                            initialValue: _dayOfMonth,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                               prefixIcon: Icon(Icons.calendar_today),
@@ -289,10 +287,10 @@ class _ReportScheduleDialogState extends State<ReportScheduleDialog> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: theme.primaryColor.withOpacity(0.1),
+                            color: theme.primaryColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: theme.primaryColor.withOpacity(0.3),
+                              color: theme.primaryColor.withValues(alpha: 0.3),
                             ),
                           ),
                           child: Column(

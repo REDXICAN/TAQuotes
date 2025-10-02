@@ -13,8 +13,11 @@ class InputValidators {
     r'^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$',
   );
 
+  // Numeric regex patterns kept for potential future validation features
+  // ignore: unused_field
   static final RegExp _numericRegex = RegExp(r'^-?[0-9]+\.?[0-9]*$');
   static final RegExp _integerRegex = RegExp(r'^-?[0-9]+$');
+  // ignore: unused_field
   static final RegExp _positiveNumberRegex = RegExp(r'^[0-9]+\.?[0-9]*$');
 
   // Email validation

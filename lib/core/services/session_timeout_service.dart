@@ -19,6 +19,8 @@ class SessionTimeoutService {
   DateTime? _lastActivity;
   bool _isAdminOperation = false;
   Function()? _onWarning;
+  // Timeout callback kept for potential future session management features
+  // ignore: unused_field
   Function()? _onTimeout;
 
   /// Start monitoring user activity for session timeout

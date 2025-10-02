@@ -2,8 +2,8 @@
 ///
 /// Firebase already caches products through its offline persistence.
 /// This is kept as a stub for compatibility with existing code.
+library;
 
-import 'package:flutter/foundation.dart';
 import '../models/models.dart';
 
 class ProductCacheService {
@@ -12,6 +12,9 @@ class ProductCacheService {
 
   ProductCacheService._();
 
+  // Initialization flag kept for compatibility but not actively used
+  // Firebase handles all caching automatically
+  // ignore: unused_field
   bool _isInitialized = true;
 
   // No initialization needed - Firebase handles caching

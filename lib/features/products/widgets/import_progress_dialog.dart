@@ -109,8 +109,8 @@ class _ImportProgressDialogState extends State<ImportProgressDialog>
     final theme = Theme.of(context);
     final progress = _currentProgress;
 
-    return WillPopScope(
-      onWillPop: () async => _isCompleted || _isCancelled,
+    return PopScope(
+      canPop: _isCompleted || _isCancelled,
       child: AlertDialog(
         title: Row(
           children: [
@@ -250,9 +250,9 @@ class _ImportProgressDialogState extends State<ImportProgressDialog>
                   height: 80,
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.red.withOpacity(0.3)),
+                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                     borderRadius: BorderRadius.circular(4),
-                    color: Colors.red.withOpacity(0.05),
+                    color: Colors.red.withValues(alpha: 0.05),
                   ),
                   child: ListView.builder(
                     itemCount: progress!.errors.length,
@@ -291,9 +291,9 @@ class _ImportProgressDialogState extends State<ImportProgressDialog>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

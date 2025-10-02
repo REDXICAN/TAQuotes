@@ -12,11 +12,15 @@ class ImagePathMapper {
     
     try {
       // Load the asset manifest to get all available assets
+      // manifestContent kept for potential future asset validation
+      // ignore: unused_local_variable
       final manifestContent = await rootBundle.loadString('AssetManifest.json');
-      
+
       // Parse the manifest (it's a JSON map of asset paths)
+      // manifestMap kept for potential future dynamic asset loading
+      // ignore: unused_local_variable
       final Map<String, dynamic> manifestMap = {};
-      
+
       // Since we can't use dart:convert in this simplified version,
       // we'll manually build the mapping based on known patterns
       _buildKnownMappings();

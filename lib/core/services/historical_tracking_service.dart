@@ -6,8 +6,8 @@ import 'app_logger.dart';
 import 'rbac_service.dart';
 import '../utils/safe_type_converter.dart';
 
-enum ActionType { create, update, delete, view, export, import_data }
-enum EntityType { client, quote, product, user, cart_item, project }
+enum ActionType { create, update, delete, view, export, importData }
+enum EntityType { client, quote, product, user, cartItem, project }
 
 class HistoryEntry {
   final String id;
@@ -223,7 +223,7 @@ class HistoricalTrackingService {
   }) async {
     return await trackOperation(
       action: action,
-      entityType: EntityType.cart_item,
+      entityType: EntityType.cartItem,
       entityId: cartItemId,
       beforeData: beforeData,
       afterData: afterData,
@@ -648,7 +648,6 @@ class HistoricalTrackingService {
 
   /// Generate description for operation
   String _generateDescription(ActionType action, EntityType entityType, String entityId) {
-    final actionStr = action.toString().split('.').last;
     final entityStr = entityType.toString().split('.').last;
 
     switch (action) {
@@ -662,10 +661,8 @@ class HistoricalTrackingService {
         return 'Viewed $entityStr $entityId';
       case ActionType.export:
         return 'Exported $entityStr $entityId';
-      case ActionType.import_data:
+      case ActionType.importData:
         return 'Imported $entityStr data';
-      default:
-        return 'Performed $actionStr on $entityStr $entityId';
     }
   }
 

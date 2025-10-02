@@ -13,7 +13,10 @@ class ErrorDemoDataService {
   ErrorDemoDataService._internal();
 
   final FirebaseDatabase _db = FirebaseDatabase.instance;
+  // Auth and random kept for potential future error simulation features
+  // ignore: unused_field
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  // ignore: unused_field
   final Random _random = Random();
 
   // Sample error messages by category
@@ -48,7 +51,7 @@ class ErrorDemoDataService {
       'Navigation state corruption in admin panel',
       'Image widget failed to load product thumbnail',
     ],
-    ErrorCategory.business_logic: [
+    ErrorCategory.businessLogic: [
       'Quote calculation error: Invalid discount amount',
       'Client validation failed: Missing required fields',
       'Product price calculation returned negative value',
@@ -265,7 +268,7 @@ class ErrorDemoDataService {
       final errorService = ErrorMonitoringService();
 
       final testSeverity = severity ?? ErrorSeverity.high;
-      final testCategory = category ?? ErrorCategory.business_logic;
+      final testCategory = category ?? ErrorCategory.businessLogic;
       final message = customMessage ?? 'Test error generated for dashboard verification';
 
       await errorService.captureError(

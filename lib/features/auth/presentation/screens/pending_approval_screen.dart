@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
-import '../providers/auth_provider.dart';
 
 class PendingApprovalScreen extends ConsumerWidget {
   final String userEmail;
@@ -36,7 +35,7 @@ class PendingApprovalScreen extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -60,7 +59,7 @@ class PendingApprovalScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.orange.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -95,7 +94,7 @@ class PendingApprovalScreen extends ConsumerWidget {
                 // Status Card
                 Card(
                   elevation: 0,
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Column(
@@ -132,10 +131,10 @@ class PendingApprovalScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: Colors.green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.green.withOpacity(0.3),
+                      color: Colors.green.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -307,7 +306,7 @@ class PendingApprovalScreen extends ConsumerWidget {
           width: 24,
           height: 24,
           decoration: BoxDecoration(
-            color: theme.primaryColor.withOpacity(0.2),
+            color: theme.primaryColor.withValues(alpha: 0.2),
             shape: BoxShape.circle,
           ),
           child: Center(

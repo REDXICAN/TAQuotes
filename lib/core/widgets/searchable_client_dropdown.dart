@@ -94,13 +94,11 @@ class _SearchableClientDropdownState extends ConsumerState<SearchableClientDropd
 
     _overlayEntry = _createOverlayEntry();
     final overlay = Overlay.of(context);
-    if (overlay != null) {
-      overlay.insert(_overlayEntry!);
-      setState(() {
-        _isDropdownOpen = true;
-      });
+    overlay.insert(_overlayEntry!);
+    setState(() {
+      _isDropdownOpen = true;
+    });
     }
-  }
 
   void _closeDropdown() {
     if (!_isDropdownOpen) return;
@@ -147,7 +145,7 @@ class _SearchableClientDropdownState extends ConsumerState<SearchableClientDropd
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor.withOpacity(0.1),
+                          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                           borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(8),
                             topRight: Radius.circular(8),
@@ -203,7 +201,7 @@ class _SearchableClientDropdownState extends ConsumerState<SearchableClientDropd
                                     vertical: 12,
                                   ),
                                   color: isSelected
-                                      ? Theme.of(context).primaryColor.withOpacity(0.1)
+                                      ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
                                       : null,
                                   child: Row(
                                     children: [
@@ -264,8 +262,10 @@ class _SearchableClientDropdownState extends ConsumerState<SearchableClientDropd
 
   @override
   Widget build(BuildContext context) {
+    // Theme kept for potential future custom styling
+    // ignore: unused_local_variable
     final theme = Theme.of(context);
-    
+
     return CompositedTransformTarget(
       link: _layerLink,
       child: TextFormField(

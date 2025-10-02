@@ -239,7 +239,7 @@ Future<List<UserPerformanceMetrics>> _fetchUserPerformanceMetrics(String period,
             
             // Track products sold
             for (final item in quote.items) {
-              final productName = item.productName ?? 'Unknown';
+              final productName = item.productName;
               productsSold[productName] = (productsSold[productName] ?? 0) + item.quantity;
               
               // Track category revenue
@@ -527,7 +527,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: theme.primaryColor.withOpacity(0.1),
+                color: theme.primaryColor.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -822,7 +822,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
                     },
                   ),
                 );
-              }).toList(),
+              }),
             ],
           ),
         ),
@@ -980,7 +980,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
               children: topProducts.take(10).map((entry) {
                 return ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: theme.primaryColor.withOpacity(0.1),
+                    backgroundColor: theme.primaryColor.withValues(alpha:0.1),
                     child: Text(
                       '${topProducts.indexOf(entry) + 1}',
                       style: TextStyle(
@@ -993,7 +993,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
                   trailing: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
-                      color: theme.primaryColor.withOpacity(0.1),
+                      color: theme.primaryColor.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -1039,7 +1039,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
         border: Border.all(color: theme.dividerColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha:0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -1088,12 +1088,12 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
+          colors: [color.withValues(alpha:0.1), color.withValues(alpha:0.05)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha:0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1373,7 +1373,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: theme.primaryColor.withOpacity(0.1),
+                      color: theme.primaryColor.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
@@ -1387,7 +1387,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ],
     );
@@ -1421,7 +1421,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
               item,
               style: theme.textTheme.bodySmall,
             ),
-          )).toList(),
+          )),
         ],
       ),
     );
@@ -1629,13 +1629,13 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
           horizontalInterval: maxY > 0 ? maxY / 5 : 1,
           getDrawingHorizontalLine: (value) {
             return FlLine(
-              color: theme.dividerColor.withOpacity(0.3),
+              color: theme.dividerColor.withValues(alpha:0.3),
               strokeWidth: 1,
             );
           },
           getDrawingVerticalLine: (value) {
             return FlLine(
-              color: theme.dividerColor.withOpacity(0.3),
+              color: theme.dividerColor.withValues(alpha:0.3),
               strokeWidth: 1,
             );
           },
@@ -1679,7 +1679,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
         ),
         borderData: FlBorderData(
           show: true,
-          border: Border.all(color: theme.dividerColor.withOpacity(0.5)),
+          border: Border.all(color: theme.dividerColor.withValues(alpha:0.5)),
         ),
         minX: 0,
         maxX: months.length.toDouble() - 1,
@@ -1690,7 +1690,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
             spots: spots,
             isCurved: true,
             gradient: LinearGradient(
-              colors: [theme.primaryColor, theme.primaryColor.withOpacity(0.7)],
+              colors: [theme.primaryColor, theme.primaryColor.withValues(alpha:0.7)],
             ),
             barWidth: 3,
             isStrokeCapRound: true,
@@ -1709,8 +1709,8 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
               show: true,
               gradient: LinearGradient(
                 colors: [
-                  theme.primaryColor.withOpacity(0.2),
-                  theme.primaryColor.withOpacity(0.0),
+                  theme.primaryColor.withValues(alpha:0.2),
+                  theme.primaryColor.withValues(alpha:0.0),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -1829,7 +1829,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
               ],
             ),
           );
-        }).toList(),
+        }),
         const Spacer(),
         Divider(color: theme.dividerColor),
         const SizedBox(height: 8),
@@ -2406,9 +2406,9 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  border: Border.all(color: Colors.blue.withValues(alpha:0.3)),
                 ),
                 child: Row(
                   children: [
@@ -2492,8 +2492,8 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: schedule.isEnabled
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.grey.withOpacity(0.1),
+                        ? Colors.green.withValues(alpha:0.1)
+                        : Colors.grey.withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -2520,8 +2520,8 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
                                 horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: schedule.isEnabled
-                                  ? Colors.green.withOpacity(0.1)
-                                  : Colors.grey.withOpacity(0.1),
+                                  ? Colors.green.withValues(alpha:0.1)
+                                  : Colors.grey.withValues(alpha:0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -2865,6 +2865,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
           .toList();
 
       if (recipients.isEmpty) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please enter valid email addresses')),
         );
@@ -2872,6 +2873,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
       }
 
       // Show loading dialog
+      if (!mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,

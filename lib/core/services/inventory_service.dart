@@ -5,8 +5,10 @@ import '../../features/auth/presentation/providers/auth_provider.dart';
 
 // Service to manage inventory data from Firebase
 class InventoryService {
+  // Database service kept for potential future warehouse operations
+  // ignore: unused_field
   final RealtimeDatabaseService _dbService;
-  
+
   InventoryService(this._dbService);
   
   // Get warehouse stock for a product from Firebase

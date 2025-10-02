@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:file_picker/file_picker.dart';
-import '../../../../core/models/models.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/auth/models/rbac_permissions.dart';
 import '../../../../core/auth/providers/rbac_provider.dart';
@@ -94,7 +93,9 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
 
   @override
   void dispose() {
-    _controllers.values.forEach((controller) => controller.dispose());
+    for (var controller in _controllers.values) {
+      controller.dispose();
+    }
     _horizontalScrollController.dispose();
     super.dispose();
   }
@@ -191,12 +192,17 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
           );
         }
 
-        return WillPopScope(
-          onWillPop: () async {
-            if (_editingState.hasUnsavedChanges) {
-              return await _showUnsavedChangesDialog() ?? false;
+        return PopScope(
+          canPop: !_editingState.hasUnsavedChanges,
+          onPopInvokedWithResult: (bool didPop, dynamic result) async {
+            if (!didPop && _editingState.hasUnsavedChanges) {
+              final shouldPop = await _showUnsavedChangesDialog();
+              if (!mounted) return;
+              if (!context.mounted) return;
+              if (shouldPop == true) {
+                Navigator.of(context).pop();
+              }
             }
-            return true;
           },
           child: Scaffold(
             appBar: AppBar(
@@ -306,7 +312,8 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
               child: DataTable(
                 columnSpacing: 20,
                 headingRowHeight: 56,
-                dataRowHeight: 72,
+                dataRowMinHeight: 72,
+                dataRowMaxHeight: 72,
                 columns: [
                   // Actions column (fixed left)
                   const DataColumn(
@@ -327,8 +334,8 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
                   final isEditing = _editingState.productId == productId;
 
                   return DataRow(
-                    color: MaterialStateProperty.resolveWith<Color?>(
-                      (states) => isEditing ? Colors.blue.withOpacity(0.1) : null,
+                    color: WidgetStateProperty.resolveWith<Color?>(
+                      (states) => isEditing ? Colors.blue.withValues(alpha: 0.1) : null,
                     ),
                     cells: [
                       // Actions cell
@@ -354,7 +361,7 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
     final productId = product['id'] as String;
 
     if (isEditing) {
-      return Container(
+      return SizedBox(
         width: 120,
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -376,7 +383,7 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
       );
     }
 
-    return Container(
+    return SizedBox(
       width: 120,
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -576,6 +583,7 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
 
       // Close loading
       if (!mounted) return;
+      if (!context.mounted) return;
       Navigator.of(context).pop();
 
       // Clear editing state
@@ -589,6 +597,7 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
       );
     } catch (e) {
       if (!mounted) return;
+      if (!context.mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error saving: $e')),
@@ -625,6 +634,7 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
             onPressed: () async {
               await _saveChanges();
               if (!mounted) return;
+              if (!context.mounted) return;
               Navigator.of(context).pop(true); // Save and leave
             },
             child: const Text('Save'),
@@ -772,6 +782,7 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
 
       final file = result.files.first;
       if (file.bytes == null) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not read file')),
         );
@@ -792,6 +803,7 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
       }
 
       // Show confirmation
+      if (!mounted) return;
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -810,6 +822,7 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
         ),
       );
 
+      if (!mounted) return;
       if (confirmed != true) return;
 
       // Show loading
@@ -845,6 +858,7 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
 
       // Close loading
       if (!mounted) return;
+      if (!context.mounted) return;
       Navigator.of(context).pop();
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -852,6 +866,7 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
       );
     } catch (e) {
       if (!mounted) return;
+      if (!context.mounted) return;
       Navigator.of(context).pop(); // Close loading if open
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error importing: $e')),

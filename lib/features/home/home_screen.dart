@@ -213,7 +213,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             userProfile?.email ?? user?.email ?? '',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                             ),
                           ),
                         ],
@@ -471,7 +471,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
-  
+
+  // ignore: unused_element
   Widget _buildRecentProductCard(BuildContext context, Product product, double width) {
     final theme = Theme.of(context);
     
@@ -490,11 +491,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             color: theme.cardColor,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: theme.dividerColor.withOpacity(0.3),
+              color: theme.dividerColor.withValues(alpha: 0.3),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -511,7 +512,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     top: Radius.circular(12),
                   ),
                   child: SimpleImageWidget(
-                    sku: product.sku ?? product.model ?? '',
+                    sku: (product.sku != null && product.sku!.isNotEmpty) ? product.sku! : product.model,
                     useThumbnail: true,
                     fit: BoxFit.contain,
                     width: double.infinity,
@@ -528,7 +529,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        product.sku ?? product.model ?? '',
+                        (product.sku != null && product.sku!.isNotEmpty) ? product.sku! : product.model,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -587,9 +588,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return Container(
           padding: EdgeInsets.all(padding),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withOpacity(0.3)),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -612,7 +613,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 title,
                 style: TextStyle(
                   fontSize: titleSize,
-                  color: color.withOpacity(0.8),
+                  color: color.withValues(alpha: 0.8),
                 ),
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,

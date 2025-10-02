@@ -4,8 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/utils/price_formatter.dart';
-import '../../../../core/utils/responsive_helper.dart';
-import '../../../cart/presentation/providers/cart_provider.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 // Cache for successful image paths to prevent repeated lookups
 class ImagePathCache {
@@ -33,7 +32,7 @@ final productStockProvider = Provider.family<int, Product>((ref, product) {
   }
 
   return product.warehouseStock!.values
-      .fold<int>(0, (sum, stock) => sum + (stock.available ?? 0));
+      .fold<int>(0, (sum, stock) => sum + stock.available);
 });
 
 class OptimizedProductCard extends ConsumerStatefulWidget {
@@ -88,6 +87,8 @@ class _OptimizedProductCardState extends ConsumerState<OptimizedProductCard>
     super.build(context);
 
     final theme = Theme.of(context);
+    // isDarkMode kept for potential future theme-specific styling
+    // ignore: unused_local_variable
     final isDarkMode = theme.brightness == Brightness.dark;
     final totalStock = ref.watch(productStockProvider(widget.product));
     final isOutOfStock = totalStock <= 0;
@@ -135,7 +136,7 @@ class _OptimizedProductCardState extends ConsumerState<OptimizedProductCard>
                   children: [
                     // SKU/Model
                     Text(
-                      widget.product.sku ?? widget.product.model,
+                      (widget.product.sku != null && widget.product.sku!.isNotEmpty) ? widget.product.sku! : widget.product.model,
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[600],
@@ -148,7 +149,7 @@ class _OptimizedProductCardState extends ConsumerState<OptimizedProductCard>
 
                     // Name
                     Text(
-                      widget.product.name ?? '',
+                      widget.product.name,
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -344,43 +345,37 @@ class _OptimizedProductCardState extends ConsumerState<OptimizedProductCard>
     setState(() => _isAddingToCart = true);
 
     try {
-      final cartItem = CartItem(
-        product: widget.product,
-        quantity: _quantity,
-        addedAt: DateTime.now(),
-        sequenceNumber: '',
+      final dbService = ref.read(databaseServiceProvider);
+      await dbService.addToCart(widget.product.id ?? '', _quantity);
+
+      if (!mounted) return;
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${widget.product.displayName} added to cart',
+          ),
+          action: SnackBarAction(
+            label: 'View Cart',
+            onPressed: () => Navigator.pushNamed(context, '/cart'),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
       );
 
-      await ref.read(cartProvider.notifier).addItem(cartItem);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${widget.product.displayName} added to cart',
-            ),
-            action: SnackBarAction(
-              label: 'View Cart',
-              onPressed: () => Navigator.pushNamed(context, '/cart'),
-            ),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-
-        // Reset quantity
-        setState(() {
-          _quantity = 1;
-        });
-      }
+      // Reset quantity
+      setState(() {
+        _quantity = 1;
+      });
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to add to cart: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to add to cart: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isAddingToCart = false);

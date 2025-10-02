@@ -6,7 +6,7 @@ import 'app_logger.dart';
 import 'rbac_service.dart';
 import '../utils/safe_type_converter.dart';
 
-enum DocumentType { terms_of_service, privacy_policy, user_agreement, data_processing, cookie_policy }
+enum DocumentType { termsOfService, privacyPolicy, userAgreement, dataProcessing, cookiePolicy }
 enum DocumentStatus { draft, published, archived, expired }
 
 class LegalDocument {
@@ -67,7 +67,7 @@ class LegalDocument {
       id: map['id'] ?? '',
       type: DocumentType.values.firstWhere(
         (e) => e.toString().split('.').last == map['type'],
-        orElse: () => DocumentType.terms_of_service,
+        orElse: () => DocumentType.termsOfService,
       ),
       title: map['title'] ?? '',
       content: map['content'] ?? '',
@@ -146,7 +146,7 @@ class UserAcceptance {
       documentId: map['documentId'] ?? '',
       documentType: DocumentType.values.firstWhere(
         (e) => e.toString().split('.').last == map['documentType'],
-        orElse: () => DocumentType.terms_of_service,
+        orElse: () => DocumentType.termsOfService,
       ),
       documentVersion: map['documentVersion'] ?? '1.0',
       acceptedAt: map['acceptedAt'] != null
@@ -341,49 +341,51 @@ class LegalDocumentsService {
     DocumentStatus? status,
     bool adminView = false,
   }) {
-    Query query = _db.ref('legal_documents');
+    return Stream.fromFuture(_isCurrentUserAdminOrSuperAdmin()).asyncExpand((isAdmin) {
+      Query query = _db.ref('legal_documents');
 
-    // If not admin and not specifically requesting admin view, only show published
-    if (!_isCurrentUserAdminOrSuperAdmin() && !adminView) {
-      query = query.orderByChild('status').equalTo(DocumentStatus.published.toString().split('.').last);
-    } else if (type != null) {
-      query = query.orderByChild('type').equalTo(type.toString().split('.').last);
-    } else {
-      query = query.orderByChild('createdAt');
-    }
-
-    return query.onValue.map((event) {
-      final List<LegalDocument> documents = [];
-
-      if (event.snapshot.value != null) {
-        final data = SafeTypeConverter.toMap(event.snapshot.value as Map);
-
-        for (final entry in data.entries) {
-          try {
-            final document = LegalDocument.fromMap(
-              SafeTypeConverter.toMap(entry.value),
-            );
-
-            // Apply additional filters
-            if (type != null && document.type != type) continue;
-            if (status != null && document.status != status) continue;
-
-            // For non-admin users, only show published documents
-            if (!_isCurrentUserAdminOrSuperAdmin() && !adminView) {
-              if (document.status != DocumentStatus.published) continue;
-            }
-
-            documents.add(document);
-          } catch (e) {
-            AppLogger.error('Error parsing legal document', error: e, category: LogCategory.business);
-          }
-        }
+      // If not admin and not specifically requesting admin view, only show published
+      if (!isAdmin && !adminView) {
+        query = query.orderByChild('status').equalTo(DocumentStatus.published.toString().split('.').last);
+      } else if (type != null) {
+        query = query.orderByChild('type').equalTo(type.toString().split('.').last);
+      } else {
+        query = query.orderByChild('createdAt');
       }
 
-      // Sort by creation date (newest first)
-      documents.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return query.onValue.map((event) {
+        final List<LegalDocument> documents = [];
 
-      return documents;
+        if (event.snapshot.value != null) {
+          final data = SafeTypeConverter.toMap(event.snapshot.value as Map);
+
+          for (final entry in data.entries) {
+            try {
+              final document = LegalDocument.fromMap(
+                SafeTypeConverter.toMap(entry.value),
+              );
+
+              // Apply additional filters
+              if (type != null && document.type != type) continue;
+              if (status != null && document.status != status) continue;
+
+              // For non-admin users, only show published documents
+              if (!isAdmin && !adminView) {
+                if (document.status != DocumentStatus.published) continue;
+              }
+
+              documents.add(document);
+            } catch (e) {
+              AppLogger.error('Error parsing legal document', error: e, category: LogCategory.business);
+            }
+          }
+        }
+
+        // Sort by creation date (newest first)
+        documents.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+        return documents;
+      });
     });
   }
 
@@ -610,7 +612,7 @@ class LegalDocumentsService {
 
       // Terms of Service
       await createDocument(
-        type: DocumentType.terms_of_service,
+        type: DocumentType.termsOfService,
         title: 'Terms of Service',
         content: _getDefaultTermsOfService(),
         version: '1.0',
@@ -619,7 +621,7 @@ class LegalDocumentsService {
 
       // Privacy Policy
       await createDocument(
-        type: DocumentType.privacy_policy,
+        type: DocumentType.privacyPolicy,
         title: 'Privacy Policy',
         content: _getDefaultPrivacyPolicy(),
         version: '1.0',
@@ -628,7 +630,7 @@ class LegalDocumentsService {
 
       // User Agreement
       await createDocument(
-        type: DocumentType.user_agreement,
+        type: DocumentType.userAgreement,
         title: 'User Agreement',
         content: _getDefaultUserAgreement(),
         version: '1.0',

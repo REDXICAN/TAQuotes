@@ -13,7 +13,10 @@ class ClientDemoDataService {
   ClientDemoDataService._internal();
 
   final FirebaseDatabase _db = FirebaseDatabase.instance;
+  // Auth and random kept for potential future demo data features
+  // ignore: unused_field
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  // ignore: unused_field
   final Random _random = Random();
 
   // Demo client data for commercial kitchen equipment companies

@@ -9,7 +9,6 @@ import '../../../auth/presentation/providers/auth_provider.dart' hide currentUse
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/services/error_demo_data_service.dart';
 import '../../../../core/services/spare_parts_demo_service.dart';
-import '../../../../core/services/client_demo_data_service.dart';
 import '../../../../core/utils/admin_client_checker.dart';
 import '../../../../core/providers/test_mode_provider.dart';
 import 'package:intl/intl.dart';
@@ -674,7 +673,9 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                               onChanged: (value) async {
                                 final notifier = ref.read(testModeProvider.notifier);
                                 final success = await notifier.toggleTestMode();
-                                if (success && mounted) {
+                                if (!mounted) return;
+                                if (!context.mounted) return;
+                                if (success) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
@@ -685,7 +686,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                       backgroundColor: value ? Colors.orange : Colors.green,
                                     ),
                                   );
-                                } else if (!success && mounted) {
+                                } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text('Failed to toggle test mode'),
@@ -694,7 +695,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                                   );
                                 }
                               },
-                              activeColor: Colors.orange,
+                              activeThumbColor: Colors.orange,
                             ),
                           ],
                         ),
@@ -815,7 +816,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                             if (_autoBackup) ...[
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
-                                value: _backupScheduleController.text.isEmpty
+                                initialValue: _backupScheduleController.text.isEmpty
                                     ? 'daily'
                                     : _backupScheduleController.text,
                                 decoration: const InputDecoration(
@@ -1207,7 +1208,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
 
                     // Default Warehouse
                     DropdownButtonFormField<String>(
-                      value: _defaultWarehouse,
+                      initialValue: _defaultWarehouse,
                       decoration: const InputDecoration(
                         labelText: 'Default Warehouse',
                         border: OutlineInputBorder(),
@@ -1239,7 +1240,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
 
                     // Default Currency
                     DropdownButtonFormField<String>(
-                      value: _defaultCurrency,
+                      initialValue: _defaultCurrency,
                       decoration: const InputDecoration(
                         labelText: 'Default Currency',
                         border: OutlineInputBorder(),
@@ -1259,7 +1260,7 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
 
                     // Items Per Page
                     DropdownButtonFormField<int>(
-                      value: _itemsPerPage,
+                      initialValue: _itemsPerPage,
                       decoration: const InputDecoration(
                         labelText: 'Items Per Page',
                         border: OutlineInputBorder(),
@@ -1504,9 +1505,9 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                    border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                   ),
                   child: const Row(
                     children: [

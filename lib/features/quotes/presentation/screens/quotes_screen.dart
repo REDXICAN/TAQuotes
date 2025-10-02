@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:typed_data';
 import 'dart:async';
 import '../../../../core/utils/download_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -435,7 +434,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                         Icon(
                           Icons.receipt_long_outlined,
                           size: 80,
-                          color: theme.iconTheme.color?.withOpacity(0.5),
+                          color: theme.iconTheme.color?.withValues(alpha: 0.5),
                         ),
                         const SizedBox(height: 16),
                         const Text(
@@ -493,7 +492,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 margin: EdgeInsets.only(bottom: 16, top: groupIndex > 0 ? 24 : 0),
                                 decoration: BoxDecoration(
-                                  color: theme.primaryColor.withOpacity(0.1),
+                                  color: theme.primaryColor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
@@ -517,7 +516,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: theme.primaryColor.withOpacity(0.2),
+                                        color: theme.primaryColor.withValues(alpha: 0.2),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
@@ -632,7 +631,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         });
       },
       backgroundColor: theme.chipTheme.backgroundColor,
-      selectedColor: theme.primaryColor.withOpacity(0.2),
+      selectedColor: theme.primaryColor.withValues(alpha: 0.2),
       checkmarkColor: theme.primaryColor,
     );
   }
@@ -648,7 +647,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
 
     return Card(
       margin: EdgeInsets.zero, // No margin - grid handles spacing
-      color: isSelected ? theme.primaryColor.withOpacity(0.1) : null,
+      color: isSelected ? theme.primaryColor.withValues(alpha: 0.1) : null,
       elevation: isSelected ? 3 : 1,
       child: InkWell(
         onTap: () => _handleQuoteCardTap(quote),
@@ -767,7 +766,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                         vertical: isMobile ? 2 : 4,
                       ),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
+                        color: statusColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: statusColor),
                       ),
@@ -1036,7 +1035,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -1109,6 +1108,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
     });
   }
 
+  // ignore: unused_element
   void _toggleSelectAll() {
     final quotesAsync = ref.read(quotesProvider(_showArchived));
     quotesAsync.whenData((quotes) {
@@ -1223,6 +1223,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
     final selectedQuotes = await _getSelectedQuotes();
     if (selectedQuotes.isEmpty) return;
 
+    if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1245,6 +1246,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
 
     try {
       // Show loading dialog
+      if (!mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -1281,6 +1283,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         }
       }
 
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
       _clearSelection();
 
@@ -1291,6 +1294,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1306,6 +1310,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
     if (selectedQuotes.isEmpty) return;
 
     try {
+      if (!mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -1349,6 +1354,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       );
 
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
       _clearSelection();
 
@@ -1359,6 +1365,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1373,6 +1380,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
     final selectedQuotes = await _getSelectedQuotes();
     if (selectedQuotes.isEmpty) return;
 
+    if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1406,6 +1414,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
     if (confirmed != true) return;
 
     try {
+      if (!mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -1439,6 +1448,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
       }
 
       ref.invalidate(quotesProvider);
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
       _clearSelection();
 
@@ -1449,6 +1459,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1463,6 +1474,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
     final selectedQuotes = await _getSelectedQuotes();
     if (selectedQuotes.isEmpty) return;
 
+    if (!mounted) return;
     final newStatus = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1496,6 +1508,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
     if (newStatus == null) return;
 
     try {
+      if (!mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -1529,6 +1542,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
       }
 
       ref.invalidate(quotesProvider);
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
       _clearSelection();
 
@@ -1539,6 +1553,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1681,18 +1696,21 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
     );
 
     if (result == null) return;
-    
+
+    // email from result kept for potential future validation
+    // ignore: unused_local_variable
     final email = result['email'] as String;
     final sendPDF = result['attachPdf'] as bool;
     final sendExcel = result['attachExcel'] as bool;
-    
+
     // Track loading dialog state
     bool isLoadingDialogShowing = false;
-    
+
     try {
       // Validate email
       final email = emailController.text.trim();
       if (email.isEmpty || !email.contains('@')) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Please enter a valid email address'),
@@ -1767,7 +1785,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
       List<Map<String, dynamic>> productsList = [];
       for (var item in quote.items) {
         productsList.add({
-          'name': item.productName ?? 'Unknown Product',
+          'name': item.productName,
           'sku': item.product?.sku ?? item.product?.model ?? 'N/A',
           'quantity': item.quantity,
           'unitPrice': item.unitPrice,
@@ -1898,7 +1916,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
     }
   }
 
-
+  // ignore: unused_element
   void _duplicateQuote(Quote quote) async {
     try {
       final dbService = ref.read(databaseServiceProvider);
@@ -1906,9 +1924,9 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
       // Create a duplicate quote with the same items
       // Calculate tax rate from tax amount and subtotal
       final taxRate = quote.subtotal > 0 ? (quote.tax / quote.subtotal) * 100 : 0.0;
-      
+
       final quoteId = await dbService.createQuote(
-        clientId: quote.clientId ?? '',
+        clientId: quote.clientId,
         items: quote.items.map((item) => {
           'product_id': item.productId,
           'quantity': item.quantity,
@@ -2105,7 +2123,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
   Future<void> _exportQuotesToPDF() async {
     final quotesAsync = ref.read(quotesProvider(_showArchived));
 
-    await quotesAsync.when(
+    quotesAsync.when(
       data: (quotes) async {
         if (quotes.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -2143,6 +2161,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
         int completed = 0;
         int failed = 0;
 
+        if (!mounted) return;
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -2192,7 +2211,8 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
             }
 
             // Update progress dialog
-            if (isProgressDialogShowing && context.mounted) {
+            if (!mounted) return;
+            if (isProgressDialogShowing) {
               // Force dialog rebuild to show progress
               Navigator.of(context, rootNavigator: true).pop();
               showDialog(
@@ -2225,50 +2245,48 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
           }
 
           // Close progress dialog
-          if (isProgressDialogShowing && context.mounted) {
+          if (!mounted) return;
+          if (isProgressDialogShowing) {
             Navigator.of(context, rootNavigator: true).pop();
             isProgressDialogShowing = false;
           }
 
           // Show completion message
-          if (context.mounted) {
-            String message;
-            Color backgroundColor;
+          String message;
+          Color backgroundColor;
 
-            if (failed == 0) {
-              message = 'All $completed quotes exported successfully!';
-              backgroundColor = Colors.green;
-            } else if (completed > 0) {
-              message = '$completed quotes exported, $failed failed';
-              backgroundColor = Colors.orange;
-            } else {
-              message = 'All $failed quotes failed to export';
-              backgroundColor = Colors.red;
-            }
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(message),
-                backgroundColor: backgroundColor,
-                duration: const Duration(seconds: 4),
-              ),
-            );
+          if (failed == 0) {
+            message = 'All $completed quotes exported successfully!';
+            backgroundColor = Colors.green;
+          } else if (completed > 0) {
+            message = '$completed quotes exported, $failed failed';
+            backgroundColor = Colors.orange;
+          } else {
+            message = 'All $failed quotes failed to export';
+            backgroundColor = Colors.red;
           }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: backgroundColor,
+              duration: const Duration(seconds: 4),
+            ),
+          );
 
         } catch (e) {
           // Close progress dialog if still showing
-          if (isProgressDialogShowing && context.mounted) {
+          if (!mounted) return;
+          if (isProgressDialogShowing) {
             Navigator.of(context, rootNavigator: true).pop();
           }
 
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Bulk export failed: ${e.toString()}'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Bulk export failed: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
           AppLogger.error('Bulk PDF export failed', error: e, category: LogCategory.business);
         }
       },

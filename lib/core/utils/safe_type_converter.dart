@@ -144,7 +144,7 @@ class SafeTypeConverter {
     return toDateTimeOrNull(value) ?? defaultValue ?? DateTime.now();
   }
 
-  /// Safely convert dynamic value to List<T>
+  /// Safely convert dynamic value to `List<T>`
   static List<T> toList<T>(
     dynamic value, {
     required T Function(dynamic) itemConverter,
@@ -165,7 +165,7 @@ class SafeTypeConverter {
     return defaultValue ?? [];
   }
 
-  /// Safely convert dynamic value to Map<String, dynamic>
+  /// Safely convert dynamic value to `Map<String, dynamic>`
   static Map<String, dynamic>? toMapOrNull(dynamic value) {
     if (value == null) return null;
     if (value is Map<String, dynamic>) return value;
@@ -188,7 +188,7 @@ class SafeTypeConverter {
     return null;
   }
 
-  /// Safely convert dynamic value to Map<String, dynamic> with default
+  /// Safely convert dynamic value to `Map<String, dynamic>` with default
   static Map<String, dynamic> toMap(dynamic value, {Map<String, dynamic>? defaultValue}) {
     return toMapOrNull(value) ?? defaultValue ?? {};
   }

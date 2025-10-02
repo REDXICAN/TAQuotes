@@ -2,7 +2,6 @@
 import 'package:firebase_database/firebase_database.dart' as rtdb;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../config/env_config.dart';
 import 'app_logger.dart';
 import 'rate_limiter_service.dart';
 import 'rbac_service.dart';

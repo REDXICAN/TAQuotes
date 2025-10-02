@@ -12,6 +12,8 @@ class StorageService {
   static const int _maxFileSizeBytes = 5 * 1024 * 1024; // 5MB
   static const int _maxImageWidth = 1024;
   static const int _maxImageHeight = 1024;
+  // Compression quality kept for potential future image optimization
+  // ignore: unused_field
   static const int _compressionQuality = 85; // 85% quality
   
   // Compress and resize image before upload

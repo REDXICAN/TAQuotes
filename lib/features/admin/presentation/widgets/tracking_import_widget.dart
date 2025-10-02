@@ -5,7 +5,6 @@ import 'package:excel/excel.dart' as excel_pkg;
 import 'dart:typed_data';
 import '../../../../core/services/tracking_service.dart';
 import '../../../../core/services/app_logger.dart';
-import '../../../../core/models/shipment_tracking.dart';
 
 /// Widget for importing shipment tracking data from Excel files
 class TrackingImportWidget extends StatefulWidget {
@@ -22,6 +21,8 @@ class _TrackingImportWidgetState extends State<TrackingImportWidget> {
   bool _hasPreview = false;
   List<Map<String, dynamic>> _previewData = [];
   String? _fileName;
+  // File bytes kept for potential future direct upload feature
+  // ignore: unused_field
   Uint8List? _fileBytes;
 
   // Column mapping configuration
@@ -112,9 +113,9 @@ class _TrackingImportWidgetState extends State<TrackingImportWidget> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
+        color: Colors.blue.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,7 +212,7 @@ class _TrackingImportWidgetState extends State<TrackingImportWidget> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.1),
+            color: Colors.green.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.green),
           ),

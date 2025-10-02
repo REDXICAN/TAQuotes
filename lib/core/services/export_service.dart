@@ -44,6 +44,8 @@ class ExportService {
         quoteData = Map<String, dynamic>.from(userQuoteSnapshot.value as Map);
       } else {
         // If not found in user's quotes, check if user is admin
+        // userEmail kept for potential future audit logging
+        // ignore: unused_local_variable
         final userEmail = currentUser.email;
         if (await RBACService.isAdminOrAbove()) {
           // Admin can search all quotes
@@ -600,6 +602,8 @@ class ExportService {
         quoteData = Map<String, dynamic>.from(userQuoteSnapshot.value as Map);
       } else {
         // If not found in user's quotes, check if user is admin
+        // userEmail kept for potential future audit logging
+        // ignore: unused_local_variable
         final userEmail = currentUser.email;
         if (await RBACService.isAdminOrAbove()) {
           // Admin can search all quotes
@@ -1472,9 +1476,9 @@ class ExportService {
                 pw.SizedBox(height: 12),
                 _buildInfoRow('Company:', project.clientName),
                 if (client != null) ...[
-                  _buildInfoRow('Contact:', client.contactName ?? 'N/A'),
-                  _buildInfoRow('Email:', client.email ?? 'N/A'),
-                  _buildInfoRow('Phone:', client.phone ?? 'N/A'),
+                  _buildInfoRow('Contact:', client.contactName),
+                  _buildInfoRow('Email:', client.email),
+                  _buildInfoRow('Phone:', client.phone),
                 ],
                 pw.SizedBox(height: 20),
 

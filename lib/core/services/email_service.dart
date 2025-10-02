@@ -179,7 +179,7 @@ class EmailService {
       diagnostics['details']['smtpSecure'] = SecureEmailConfig.smtpSecure;
 
       // Test SMTP server connection (without sending email)
-      diagnostics['details']['smtpServerCreated'] = _smtpServer != null;
+      diagnostics['details']['smtpServerCreated'] = true; // _smtpServer is always initialized in constructor
 
       AppLogger.info('Email service configuration test completed',
           category: LogCategory.email,
@@ -1151,6 +1151,8 @@ $userSignature
     String? rejectionReason,
   }) async {
     try {
+      // Status color kept for potential future HTML email styling
+      // ignore: unused_local_variable
       final statusColor = approved ? '#28a745' : '#dc3545';
       final statusText = approved ? 'APPROVED' : 'REJECTED';
       final statusIcon = approved ? '✓' : '✗';

@@ -426,13 +426,15 @@ class QuoteDetailScreen extends ConsumerWidget {
                           }
                           
                           // Set the client in cart
+                          if (!context.mounted) return;
                           if (quote.client != null) {
                             // Navigate to cart with the client pre-selected
                             context.go('/cart', extra: {'client': quote.client});
                           } else {
                             context.go('/cart');
                           }
-                          
+
+                          if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Quote loaded into cart for editing'),
@@ -550,6 +552,7 @@ class QuoteDetailScreen extends ConsumerWidget {
     
     // Validate email
     if (email.isEmpty || !email.contains('@')) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter a valid email address'),
@@ -558,8 +561,9 @@ class QuoteDetailScreen extends ConsumerWidget {
       );
       return;
     }
-    
+
     // Show loading dialog
+    if (!context.mounted) return;
     bool isLoadingDialogShowing = true;
     showDialog(
       context: context,
@@ -1288,6 +1292,7 @@ class QuoteDetailScreen extends ConsumerWidget {
       }
     } catch (e) {
       // Fallback to clipboard for web/desktop
+      if (!context.mounted) return;
       await _shareQuoteToClipboard(context, quote);
       AppLogger.error('Error sharing quote', error: e, category: LogCategory.business);
     }
@@ -1328,10 +1333,12 @@ class QuoteDetailScreen extends ConsumerWidget {
       }
 
       // Share with files using share_plus
-      await Share.shareXFiles(
-        [XFile.fromData(pdfBytes, name: fileName, mimeType: 'application/pdf')],
-        text: shareText,
-        subject: 'Quote #${quote.quoteNumber}',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile.fromData(pdfBytes, name: fileName, mimeType: 'application/pdf')],
+          text: shareText,
+          subject: 'Quote #${quote.quoteNumber}',
+        ),
       );
 
       if (context.mounted) {
@@ -1344,21 +1351,22 @@ class QuoteDetailScreen extends ConsumerWidget {
       }
     } catch (e) {
       // Close loading dialog if still open
-      if (context.mounted && Navigator.canPop(context)) {
+      if (!context.mounted) return;
+      if (Navigator.canPop(context)) {
         Navigator.of(context, rootNavigator: true).pop();
       }
 
       // Fallback to text-only sharing
+      if (!context.mounted) return;
       await _shareQuoteText(context, quote);
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Shared quote (text only - PDF generation failed)'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Shared quote (text only - PDF generation failed)'),
+          backgroundColor: Colors.orange,
+        ),
+      );
     }
   }
 
@@ -1366,9 +1374,8 @@ class QuoteDetailScreen extends ConsumerWidget {
     try {
       final shareText = _generateShareText(quote);
 
-      await Share.share(
-        shareText,
-        subject: 'Quote #${quote.quoteNumber}',
+      await SharePlus.instance.share(
+        ShareParams(text: shareText, subject: 'Quote #${quote.quoteNumber}'),
       );
 
       if (context.mounted) {
@@ -1381,6 +1388,7 @@ class QuoteDetailScreen extends ConsumerWidget {
       }
     } catch (e) {
       // If native sharing fails, fall back to clipboard
+      if (!context.mounted) return;
       await _shareQuoteToClipboard(context, quote);
     }
   }
@@ -1543,7 +1551,7 @@ class QuoteDetailScreen extends ConsumerWidget {
 
       // Create the duplicate quote
       final newQuoteId = await dbService.createQuote(
-        clientId: quote.clientId ?? '',
+        clientId: quote.clientId,
         items: duplicateItems,
         subtotal: quote.subtotal,
         taxRate: 8.0, // Standard tax rate

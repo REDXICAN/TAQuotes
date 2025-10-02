@@ -97,7 +97,7 @@ void _calculateStatistics(UserDetailedStats stats) {
 
     // Top products and categories
     for (final item in quote.items) {
-      final productName = item.productName ?? 'Unknown';
+      final productName = item.productName;
       final category = item.product?.category ?? 'Other';
 
       stats.topProducts[productName] = (stats.topProducts[productName] ?? 0) + item.quantity;
@@ -154,6 +154,8 @@ class UserDetailsScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final statsAsync = ref.watch(userDetailsProvider(userId));
     final isMobile = ResponsiveHelper.isMobile(context);
+    // isTablet kept for potential future tablet-specific layout
+    // ignore: unused_local_variable
     final isTablet = ResponsiveHelper.isTablet(context);
 
     return Scaffold(
@@ -408,7 +410,7 @@ class UserDetailsScreen extends ConsumerWidget {
                       dotData: FlDotData(show: true),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: Colors.blue.withOpacity(0.2),
+                        color: Colors.blue.withValues(alpha: 0.2),
                       ),
                     ),
                   ],
@@ -671,7 +673,7 @@ class UserDetailsScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _getStatusColor(quote.status).withOpacity(0.2),
+                          color: _getStatusColor(quote.status).withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -719,9 +721,9 @@ class UserDetailsScreen extends ConsumerWidget {
                   ),
                 ),
                 title: Text(client.company),
-                subtitle: Text('${client.contactName ?? 'N/A'} • ${client.email ?? 'N/A'}'),
+                subtitle: Text('${client.contactName} • ${client.email}'),
                 trailing: Text(
-                  client.phone ?? '',
+                  client.phone,
                   style: theme.textTheme.bodySmall,
                 ),
               );
