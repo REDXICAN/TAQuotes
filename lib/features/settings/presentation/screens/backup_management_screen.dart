@@ -6,10 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:excel/excel.dart' as excel_lib;
 import '../../../../core/services/backup_service.dart';
 import '../../../../core/services/app_logger.dart';
 import '../../../../core/auth/providers/rbac_provider.dart';
 import '../../../../core/auth/models/rbac_permissions.dart';
+import '../../../../core/utils/download_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart' hide currentUserRoleProvider;
 
 // Providers for backup management
@@ -441,9 +444,23 @@ class _BackupManagementScreenState extends ConsumerState<BackupManagementScreen>
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _exportDatabaseToExcel,
+                icon: const Icon(Icons.table_chart),
+                label: const Text('Export Database to Excel'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(0, 48),
+                ),
+              ),
+            ),
             const SizedBox(height: 8),
             Text(
-              'Quick backup includes your personal data (quotes, clients)',
+              'Excel export downloads the entire product database in a format that can be edited and re-uploaded',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[600],
@@ -917,6 +934,206 @@ class _BackupManagementScreenState extends ConsumerState<BackupManagementScreen>
         setState(() => _isCreatingBackup = false);
       }
     });
+  }
+
+  Future<void> _exportDatabaseToExcel() async {
+    try {
+      // Show loading indicator
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 20),
+              Text('Exporting database to Excel...'),
+            ],
+          ),
+        ),
+      );
+
+      // Fetch all products from Firebase
+      final snapshot = await FirebaseDatabase.instance.ref('products').get();
+
+      if (!snapshot.exists) {
+        if (!mounted) return;
+        Navigator.of(context).pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No products found in database')),
+        );
+        return;
+      }
+
+      final data = snapshot.value as Map<dynamic, dynamic>;
+      final products = <Map<String, dynamic>>[];
+
+      data.forEach((key, value) {
+        if (value is Map) {
+          final product = Map<String, dynamic>.from(value);
+          product['id'] = key.toString();
+          products.add(product);
+        }
+      });
+
+      // Create Excel file
+      final excel = excel_lib.Excel.createExcel();
+      final sheet = excel['Products'];
+
+      // Define headers in the exact format expected by Excel upload
+      final headers = [
+        'SKU',
+        'Description',
+        'Category',
+        'Subcategory',
+        'Product Type',
+        'Price',
+        'Voltage',
+        'Amperage',
+        'Phase',
+        'Frequency',
+        'Plug Type',
+        'Dimensions',
+        'Dimensions (Metric)',
+        'Weight',
+        'Weight (Metric)',
+        'Temperature Range',
+        'Temperature Range (Metric)',
+        'Refrigerant',
+        'Compressor',
+        'Capacity',
+        'Doors',
+        'Shelves',
+        'Features',
+        'Certifications',
+        // Warehouse columns
+        '999', 'CA', 'CA1', 'CA2', 'CA3', 'CA4',
+        'COCZ', 'COPZ', 'INT', 'MEE', 'PU', 'SI',
+        'XCA', 'XPU', 'XZRE', 'ZRE',
+      ];
+
+      // Add header row
+      for (int i = 0; i < headers.length; i++) {
+        sheet.cell(excel_lib.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0))
+            .value = excel_lib.TextCellValue(headers[i]);
+      }
+
+      // Add data rows
+      for (int rowIndex = 0; rowIndex < products.length; rowIndex++) {
+        final product = products[rowIndex];
+        final dataRow = rowIndex + 1;
+
+        // Helper to get warehouse stock value
+        int getWarehouseStock(String warehouseCode) {
+          if (product['warehouseStock'] != null && product['warehouseStock'] is Map) {
+            final warehouseStock = product['warehouseStock'] as Map;
+            if (warehouseStock[warehouseCode] != null && warehouseStock[warehouseCode] is Map) {
+              final stockData = warehouseStock[warehouseCode] as Map;
+              final available = stockData['available'] ?? 0;
+              final reserved = stockData['reserved'] ?? 0;
+              return available - reserved;
+            }
+          }
+          return 0;
+        }
+
+        final rowData = [
+          product['sku']?.toString() ?? '',
+          product['description']?.toString() ?? '',
+          product['category']?.toString() ?? '',
+          product['subcategory']?.toString() ?? '',
+          product['productType']?.toString() ?? product['product_type']?.toString() ?? '',
+          product['price']?.toString() ?? '',
+          product['voltage']?.toString() ?? '',
+          product['amperage']?.toString() ?? '',
+          product['phase']?.toString() ?? '',
+          product['frequency']?.toString() ?? '',
+          product['plugType']?.toString() ?? product['plug_type']?.toString() ?? '',
+          product['dimensions']?.toString() ?? '',
+          product['dimensionsMetric']?.toString() ?? product['dimensions_metric']?.toString() ?? '',
+          product['weight']?.toString() ?? '',
+          product['weightMetric']?.toString() ?? product['weight_metric']?.toString() ?? '',
+          product['temperatureRange']?.toString() ?? product['temperature_range']?.toString() ?? '',
+          product['temperatureRangeMetric']?.toString() ?? product['temperature_range_metric']?.toString() ?? '',
+          product['refrigerant']?.toString() ?? '',
+          product['compressor']?.toString() ?? '',
+          product['capacity']?.toString() ?? '',
+          product['doors']?.toString() ?? '',
+          product['shelves']?.toString() ?? '',
+          product['features']?.toString() ?? '',
+          product['certifications']?.toString() ?? '',
+          // Warehouse stock
+          getWarehouseStock('999').toString(),
+          getWarehouseStock('CA').toString(),
+          getWarehouseStock('CA1').toString(),
+          getWarehouseStock('CA2').toString(),
+          getWarehouseStock('CA3').toString(),
+          getWarehouseStock('CA4').toString(),
+          getWarehouseStock('COCZ').toString(),
+          getWarehouseStock('COPZ').toString(),
+          getWarehouseStock('INT').toString(),
+          getWarehouseStock('MEE').toString(),
+          getWarehouseStock('PU').toString(),
+          getWarehouseStock('SI').toString(),
+          getWarehouseStock('XCA').toString(),
+          getWarehouseStock('XPU').toString(),
+          getWarehouseStock('XZRE').toString(),
+          getWarehouseStock('ZRE').toString(),
+        ];
+
+        for (int i = 0; i < rowData.length; i++) {
+          sheet.cell(excel_lib.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: dataRow))
+              .value = excel_lib.TextCellValue(rowData[i]);
+        }
+      }
+
+      // Encode to bytes
+      final bytes = excel.encode();
+      if (bytes == null) {
+        throw Exception('Failed to encode Excel file');
+      }
+
+      // Download file
+      final timestamp = DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
+      final filename = 'database_export_$timestamp.xlsx';
+
+      DownloadHelper.downloadFile(
+        bytes: Uint8List.fromList(bytes),
+        filename: filename,
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Database exported successfully! ${products.length} products exported to $filename'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+
+      AppLogger.info('Database exported to Excel', data: {
+        'filename': filename,
+        'products_count': products.length,
+        'user': FirebaseAuth.instance.currentUser?.email,
+      });
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to export database: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+
+      AppLogger.error('Failed to export database to Excel', error: e, category: LogCategory.database);
+    }
   }
 
   Future<void> _selectAndRestoreBackup() async {

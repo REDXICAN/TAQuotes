@@ -168,7 +168,13 @@ final searchResultsProvider = Provider<List<Product>>((ref) {
 });
 
 class ProductsScreen extends ConsumerStatefulWidget {
-  const ProductsScreen({super.key});
+  /// Whether to show the app bar (false when embedded in CatalogScreen)
+  final bool showAppBar;
+
+  const ProductsScreen({
+    super.key,
+    this.showAppBar = true,
+  });
 
   @override
   ConsumerState<ProductsScreen> createState() => _ProductsScreenState();
@@ -514,7 +520,7 @@ Future<void> _handleExcelUpload() async {
     final isSuperAdmin = ExcelUploadService.isSuperAdmin;
 
     return Scaffold(
-      appBar: AppBarWithClient(
+      appBar: widget.showAppBar ? AppBarWithClient(
         title: 'Products',
         elevation: 0,
         actions: [
@@ -547,7 +553,7 @@ Future<void> _handleExcelUpload() async {
             },
           ),
         ],
-      ),
+      ) : null,
       body: Column(
         children: [
           // Search Bar

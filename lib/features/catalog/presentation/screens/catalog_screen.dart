@@ -83,13 +83,13 @@ class _CatalogScreenState extends State<CatalogScreen>
             : const NeverScrollableScrollPhysics(),
         children: const [
           // Products Tab - Main product catalog (835+ products)
-          ProductsScreen(),
+          ProductsScreen(showAppBar: false),
 
           // Spare Parts Tab - Parts catalog
           SparePartsScreen(),
 
           // Stock Tab - Warehouse inventory levels
-          StockDashboardScreen(),
+          StockDashboardScreen(showAppBar: false),
         ],
       ),
     );

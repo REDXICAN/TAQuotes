@@ -162,16 +162,10 @@ final routerProvider = Provider<GoRouter>((ref) {
 
           // LEGACY ROUTES - Kept for backward compatibility, redirect to new structure
 
-          // Products -> Catalog (tab 0)
+          // Products -> Catalog (tab 0), but allow product detail to work
           GoRoute(
             path: '/products',
-            redirect: (context, state) {
-              // Don't redirect if accessing product detail
-              if (state.matchedLocation.contains('/products/')) {
-                return null; // Allow navigation to product detail
-              }
-              return '/catalog?tab=0'; // Redirect to catalog for products list
-            },
+            builder: (context, state) => const CatalogScreen(initialTabIndex: 0),
             routes: [
               GoRoute(
                 path: ':productId',

@@ -139,7 +139,13 @@ List<Product> _generateDemoProducts() {
 }
 
 class StockDashboardScreen extends ConsumerStatefulWidget {
-  const StockDashboardScreen({super.key});
+  /// Whether to show the app bar (false when embedded in CatalogScreen)
+  final bool showAppBar;
+
+  const StockDashboardScreen({
+    super.key,
+    this.showAppBar = true,
+  });
 
   @override
   ConsumerState<StockDashboardScreen> createState() => _StockDashboardScreenState();
@@ -159,7 +165,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
     final isTestMode = ref.watch(testModeProvider);
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: widget.showAppBar ? AppBar(
         title: Row(
           children: [
             const Text('Stock Management Dashboard'),
@@ -183,7 +189,7 @@ class _StockDashboardScreenState extends ConsumerState<StockDashboardScreen> {
           ],
         ),
         backgroundColor: Theme.of(context).primaryColor,
-      ),
+      ) : null,
       body: stockAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(

@@ -305,22 +305,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 crossAxisCount: ResponsiveHelper.getValue(
                   context,
                   mobile: 2,
-                  tablet: 3,
+                  tablet: 4,
                   desktop: 4,
                 ),
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
                 childAspectRatio: ResponsiveHelper.getValue(
                   context,
-                  mobile: 1.0,  // More square for mobile to fit text
-                  tablet: 1.3,
-                  desktop: 1.2,
+                  mobile: 1.2,  // Smaller, more compact cards
+                  tablet: 1.5,
+                  desktop: 1.5,
                 ),
                 children: [
-                  // Products Card - STATS ONLY (non-clickable)
-                  // NN/g Guideline #16: Familiar pattern - stat cards show data, navigation is via nav bar
+                  // Products Card - Clickable to navigate to catalog
                   Consumer(
                     builder: (context, ref, child) {
                       final productsAsync = ref.watch(totalProductsProvider);
@@ -330,23 +329,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           count.toString(),
                           Icons.inventory_2,
                           Colors.blue,
+                          route: '/catalog?tab=0',
                         ),
                         loading: () => _buildStatCard(
                           'Products',
                           '...',
                           Icons.inventory_2,
                           Colors.blue,
+                          route: '/catalog?tab=0',
                         ),
                         error: (_, __) => _buildStatCard(
                           'Products',
                           '0',
                           Icons.inventory_2,
                           Colors.blue,
+                          route: '/catalog?tab=0',
                         ),
                       );
                     },
                   ),
-                  // Clients Card - STATS ONLY (non-clickable)
+                  // Clients Card - Clickable to navigate to customers
                   Consumer(
                     builder: (context, ref, child) {
                       final clientsAsync = ref.watch(totalClientsProvider);
@@ -356,23 +358,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           count.toString(),
                           Icons.people,
                           Colors.green,
+                          route: '/customers?tab=0',
                         ),
                         loading: () => _buildStatCard(
                           'Clients',
                           '...',
                           Icons.people,
                           Colors.green,
+                          route: '/customers?tab=0',
                         ),
                         error: (_, __) => _buildStatCard(
                           'Clients',
                           '0',
                           Icons.people,
                           Colors.green,
+                          route: '/customers?tab=0',
                         ),
                       );
                     },
                   ),
-                  // Quotes Card - STATS ONLY (non-clickable)
+                  // Quotes Card - Clickable to navigate to quotes
                   Consumer(
                     builder: (context, ref, child) {
                       final quotesAsync = ref.watch(totalQuotesProvider);
@@ -382,23 +387,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           count.toString(),
                           Icons.description,
                           Colors.orange,
+                          route: '/quotes',
                         ),
                         loading: () => _buildStatCard(
                           'Quotes',
                           '...',
                           Icons.description,
                           Colors.orange,
+                          route: '/quotes',
                         ),
                         error: (_, __) => _buildStatCard(
                           'Quotes',
                           '0',
                           Icons.description,
                           Colors.orange,
+                          route: '/quotes',
                         ),
                       );
                     },
                   ),
-                  // Cart Items Card - STATS ONLY (non-clickable)
+                  // Cart Items Card - Clickable to navigate to cart
                   Consumer(
                     builder: (context, ref, child) {
                       final cartAsync = ref.watch(cartItemCountProvider);
@@ -408,23 +416,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           count.toString(),
                           Icons.shopping_cart,
                           Colors.purple,
+                          route: '/cart',
                         ),
                         loading: () => _buildStatCard(
                           'Cart Items',
                           '...',
                           Icons.shopping_cart,
                           Colors.purple,
+                          route: '/cart',
                         ),
                         error: (_, __) => _buildStatCard(
                           'Cart Items',
                           '0',
                           Icons.shopping_cart,
                           Colors.purple,
+                          route: '/cart',
                         ),
                       );
                     },
                   ),
-                  // Spare Parts Card - STATS ONLY (non-clickable)
+                  // Spare Parts Card - Clickable to navigate to spare parts
                   Consumer(
                     builder: (context, ref, child) {
                       final sparePartsAsync = ref.watch(sparePartsProvider);
@@ -434,18 +445,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           spareParts.length.toString(),
                           Icons.build,
                           Colors.teal,
+                          route: '/catalog?tab=1',
                         ),
                         loading: () => _buildStatCard(
                           'Spare Parts',
                           '...',
                           Icons.build,
                           Colors.teal,
+                          route: '/catalog?tab=1',
                         ),
                         error: (_, __) => _buildStatCard(
                           'Spare Parts',
                           '0',
                           Icons.build,
                           Colors.teal,
+                          route: '/catalog?tab=1',
                         ),
                       );
                     },
@@ -574,29 +588,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     String title,
     String value,
     IconData icon,
-    Color color,
-  ) {
+    Color color, {
+    String? route,
+  }) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = ResponsiveHelper.isMobile(context);
-        final iconSize = isMobile ? 32.0 : 40.0;
-        final valueSize = isMobile ? 24.0 : 28.0;
-        final titleSize = isMobile ? 12.0 : 14.0;
-        final padding = isMobile ? 12.0 : 16.0;
+        final iconSize = isMobile ? 28.0 : 32.0; // Smaller icons
+        final valueSize = isMobile ? 20.0 : 24.0; // Smaller values
+        final titleSize = isMobile ? 11.0 : 12.0; // Smaller titles
+        final padding = isMobile ? 10.0 : 12.0; // Less padding
 
-        // Non-interactive container (no InkWell, no onTap)
-        return Container(
+        final cardContent = Container(
           padding: EdgeInsets.all(padding),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: color.withValues(alpha: 0.3)),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: iconSize, color: color),
-              SizedBox(height: isMobile ? 8 : 12),
+              SizedBox(height: isMobile ? 6 : 8),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
@@ -608,7 +622,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 title,
                 style: TextStyle(
@@ -621,6 +635,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ],
           ),
         );
+
+        // If route is provided, make it clickable
+        if (route != null) {
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => context.go(route),
+              borderRadius: BorderRadius.circular(12),
+              child: cardContent,
+            ),
+          );
+        }
+
+        return cardContent;
       },
     );
   }

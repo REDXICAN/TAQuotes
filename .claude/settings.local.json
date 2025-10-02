@@ -225,7 +225,9 @@
       "Bash(git fetch:*)",
       "Bash(git rev-parse:*)",
       "Bash(then echo \"✓ .env file exists\")",
-      "Bash(else echo \"✗ .env file not found\")"
+      "Bash(else echo \"✗ .env file not found\")",
+      "Bash(awk:*)",
+      "Read(//c//**)"
     ],
     "deny": [],
     "ask": [

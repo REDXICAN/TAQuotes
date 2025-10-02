@@ -90,6 +90,8 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
   final Map<String, TextEditingController> _controllers = {};
   final ScrollController _horizontalScrollController = ScrollController();
   String _searchQuery = '';
+  int _currentPage = 0;
+  int _itemsPerPage = 50; // Show 50 products per page to prevent browser freeze
 
   @override
   void dispose() {
@@ -256,7 +258,10 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
                           : null,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
+                    onChanged: (value) => setState(() {
+                      _searchQuery = value.toLowerCase();
+                      _currentPage = 0; // Reset to first page when searching
+                    }),
                   ),
                 ),
 
@@ -302,54 +307,125 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
           );
         }
 
-        return Scrollbar(
-          controller: _horizontalScrollController,
-          thumbVisibility: true,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            controller: _horizontalScrollController,
-            child: SingleChildScrollView(
-              child: DataTable(
-                columnSpacing: 20,
-                headingRowHeight: 56,
-                dataRowMinHeight: 72,
-                dataRowMaxHeight: 72,
-                columns: [
-                  // Actions column (fixed left)
-                  const DataColumn(
-                    label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                  // All field columns
-                  ..._fieldNames.map((fieldName) {
-                    return DataColumn(
-                      label: Text(
-                        _fieldLabels[fieldName] ?? fieldName,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    );
-                  }),
-                ],
-                rows: filteredProducts.map((product) {
-                  final productId = product['id'] as String;
-                  final isEditing = _editingState.productId == productId;
+        // Pagination to prevent browser freeze
+        final totalPages = (filteredProducts.length / _itemsPerPage).ceil();
+        final startIndex = _currentPage * _itemsPerPage;
+        final endIndex = (startIndex + _itemsPerPage).clamp(0, filteredProducts.length);
+        final paginatedProducts = filteredProducts.sublist(startIndex, endIndex);
 
-                  return DataRow(
-                    color: WidgetStateProperty.resolveWith<Color?>(
-                      (states) => isEditing ? Colors.blue.withValues(alpha: 0.1) : null,
-                    ),
-                    cells: [
-                      // Actions cell
-                      DataCell(_buildActionsCell(product, isEditing)),
-                      // Field cells
-                      ..._fieldNames.map((fieldName) {
-                        return DataCell(_buildFieldCell(product, fieldName, isEditing));
-                      }),
+        return Column(
+          children: [
+            // Pagination controls at top
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.grey[100],
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Showing ${startIndex + 1}-$endIndex of ${filteredProducts.length} products',
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.first_page),
+                        onPressed: _currentPage > 0 ? () => setState(() => _currentPage = 0) : null,
+                        tooltip: 'First page',
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed: _currentPage > 0 ? () => setState(() => _currentPage--) : null,
+                        tooltip: 'Previous page',
+                      ),
+                      Text(
+                        'Page ${_currentPage + 1} of $totalPages',
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: _currentPage < totalPages - 1 ? () => setState(() => _currentPage++) : null,
+                        tooltip: 'Next page',
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.last_page),
+                        onPressed: _currentPage < totalPages - 1 ? () => setState(() => _currentPage = totalPages - 1) : null,
+                        tooltip: 'Last page',
+                      ),
+                      const SizedBox(width: 16),
+                      DropdownButton<int>(
+                        value: _itemsPerPage,
+                        items: [25, 50, 100, 200].map((value) {
+                          return DropdownMenuItem(
+                            value: value,
+                            child: Text('$value per page'),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _itemsPerPage = value!;
+                            _currentPage = 0; // Reset to first page
+                          });
+                        },
+                      ),
                     ],
-                  );
-                }).toList(),
+                  ),
+                ],
               ),
             ),
-          ),
+            // Data table
+            Expanded(
+              child: Scrollbar(
+                controller: _horizontalScrollController,
+                thumbVisibility: true,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  controller: _horizontalScrollController,
+                  child: SingleChildScrollView(
+                    child: DataTable(
+                      columnSpacing: 20,
+                      headingRowHeight: 56,
+                      dataRowMinHeight: 72,
+                      dataRowMaxHeight: 72,
+                      columns: [
+                        // Actions column (fixed left)
+                        const DataColumn(
+                          label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                        // All field columns
+                        ..._fieldNames.map((fieldName) {
+                          return DataColumn(
+                            label: Text(
+                              _fieldLabels[fieldName] ?? fieldName,
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          );
+                        }),
+                      ],
+                      rows: paginatedProducts.map((product) {
+                        final productId = product['id'] as String;
+                        final isEditing = _editingState.productId == productId;
+
+                        return DataRow(
+                          color: WidgetStateProperty.resolveWith<Color?>(
+                            (states) => isEditing ? Colors.blue.withValues(alpha: 0.1) : null,
+                          ),
+                          cells: [
+                            // Actions cell
+                            DataCell(_buildActionsCell(product, isEditing)),
+                            // Field cells
+                            ..._fieldNames.map((fieldName) {
+                              return DataCell(_buildFieldCell(product, fieldName, isEditing));
+                            }),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),

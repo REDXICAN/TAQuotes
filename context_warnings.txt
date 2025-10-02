@@ -1,0 +1,105 @@
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\admin\presentation\screens\database_management_screen.dart:837:33 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\admin\presentation\screens\database_management_screen.dart:838:40 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\admin\presentation\screens\database_management_screen.dart:844:40 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\admin\presentation\screens\database_management_screen.dart:928:33 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\admin\presentation\screens\database_management_screen.dart:929:40 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\admin\presentation\screens\database_management_screen.dart:935:40 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\admin\presentation\screens\database_management_v2_screen.dart:629:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\admin\presentation\screens\database_management_v2_screen.dart:776:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\admin\presentation\screens\database_management_v2_screen.dart:797:9 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\admin\presentation\screens\error_monitoring_dashboard.dart:996:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\admin\presentation\screens\error_monitoring_dashboard.dart:1007:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\admin\presentation\screens\error_monitoring_dashboard.dart:1112:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\admin\presentation\screens\error_monitoring_dashboard.dart:1123:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\admin\presentation\screens\error_monitoring_dashboard.dart:1225:42 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\admin\presentation\screens\error_monitoring_dashboard.dart:1640:40 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\admin\presentation\screens\error_monitoring_dashboard.dart:1651:40 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\admin\presentation\screens\error_monitoring_dashboard_optimized.dart:1232:42 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\admin\presentation\screens\error_monitoring_dashboard_optimized.dart:1430:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\admin\presentation\screens\error_monitoring_dashboard_optimized.dart:1441:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\admin\presentation\screens\error_monitoring_dashboard_optimized.dart:1546:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\admin\presentation\screens\error_monitoring_dashboard_optimized.dart:1557:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\admin\presentation\screens\error_monitoring_dashboard_optimized.dart:1591:40 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\admin\presentation\screens\error_monitoring_dashboard_optimized.dart:1602:40 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\admin\presentation\screens\error_monitoring_dashboard_optimized.dart:1652:40 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\admin\presentation\screens\error_monitoring_dashboard_optimized.dart:1668:40 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\admin\presentation\screens\performance_dashboard_screen.dart:2868:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\admin\presentation\screens\performance_dashboard_screen.dart:2876:9 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\cart\presentation\screens\cart_screen.dart:2274:31 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\cart\presentation\screens\cart_screen.dart:2275:38 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\cart\presentation\screens\cart_screen.dart:2282:31 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\cart\presentation\screens\cart_screen.dart:2283:38 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\cart\presentation\screens\cart_screen.dart:2555:52 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\cart\presentation\screens\cart_screen.dart:2558:48 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\cart\presentation\screens\cart_screen.dart:2593:52 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\cart\presentation\screens\cart_screen.dart:2596:48 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\cart\presentation\screens\cart_screen.dart:2828:33 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\cart\presentation\screens\cart_screen.dart:2829:40 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\cart\presentation\screens\cart_screen.dart:2876:31 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\cart\presentation\screens\cart_screen.dart:2877:38 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\cart\presentation\screens\cart_screen.dart:2948:31 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\cart\presentation\screens\cart_screen.dart:2949:38 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\cart\presentation\screens\cart_screen.dart:2970:29 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\cart\presentation\screens\cart_screen.dart:2971:36 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\cart\presentation\screens\cart_screen.dart:3031:31 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\cart\presentation\screens\cart_screen.dart:3032:38 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\cart\presentation\screens\cart_screen.dart:3053:29 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\cart\presentation\screens\cart_screen.dart:3054:36 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\clients\presentation\screens\clients_screen.dart:1764:9 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\clients\presentation\screens\clients_screen.dart:2137:31 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\clients\presentation\screens\clients_screen.dart:2139:38 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\clients\presentation\screens\clients_screen.dart:2146:38 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\clients\presentation\screens\clients_screen.dart:2296:31 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\clients\presentation\screens\clients_screen.dart:2298:38 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\clients\presentation\screens\clients_screen.dart:2305:38 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\clients\presentation\screens\clients_screen.dart:2346:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\clients\presentation\screens\clients_screen.dart:2353:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\products\presentation\screens\product_detail_screen.dart:689:57 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\products\presentation\screens\product_detail_screen.dart:690:64 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\products\presentation\screens\product_detail_screen.dart:1300:59 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\products\presentation\screens\product_detail_screen.dart:1301:66 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\products\presentation\widgets\optimized_product_card.dart:352:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\products\presentation\widgets\optimized_product_card.dart:372:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\profile\presentation\screens\profile_screen.dart:397:9 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\profile\presentation\screens\profile_screen.dart:504:9 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quote_detail_screen.dart:431:29 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quote_detail_screen.dart:433:29 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quote_detail_screen.dart:436:48 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quote_detail_screen.dart:553:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quote_detail_screen.dart:565:7 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quote_detail_screen.dart:1291:36 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quote_detail_screen.dart:1352:29 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quote_detail_screen.dart:1384:36 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1227:7 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1249:9 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1284:20 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1287:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1294:20 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1295:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1310:9 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1352:20 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1355:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1362:20 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1363:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1377:7 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1410:9 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1442:20 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1445:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1452:20 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1453:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1467:7 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1500:9 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1532:20 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1535:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1542:20 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1543:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:1698:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\features\quotes\presentation\screens\quotes_screen.dart:2149:11 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\quotes\presentation\screens\quotes_screen.dart:2199:28 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\quotes\presentation\screens\quotes_screen.dart:2201:17 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\quotes\presentation\screens\quotes_screen.dart:2231:26 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\quotes\presentation\screens\quotes_screen.dart:2251:34 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\quotes\presentation\screens\quotes_screen.dart:2263:26 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\quotes\presentation\screens\quotes_screen.dart:2267:34 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\settings\presentation\screens\app_settings_screen.dart:677:56 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\settings\presentation\screens\app_settings_screen.dart:688:56 - use_build_context_synchronously
