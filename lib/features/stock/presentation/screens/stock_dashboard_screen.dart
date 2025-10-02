@@ -22,12 +22,42 @@ final stockDataProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref)
     data.forEach((key, value) {
       if (value is Map) {
         final product = Map<String, dynamic>.from(value);
-        final stock = product['stock'] ?? product['totalStock'] ?? product['availableStock'] ?? 0;
-        // Show ALL products, even with 0 stock (removed stock > 0 filter)
-        stockData[key] = {
-          'available': stock,
-          'warehouse': product['warehouse'] ?? '999',
-        };
+
+        // Check if product has warehouse stock data (new structure)
+        if (product['warehouseStock'] != null && product['warehouseStock'] is Map) {
+          final warehouseStock = Map<String, dynamic>.from(product['warehouseStock'] as Map);
+
+          // Calculate total stock across all warehouses
+          int totalAvailable = 0;
+          String primaryWarehouse = '999';
+
+          warehouseStock.forEach((warehouseKey, warehouseValue) {
+            if (warehouseValue is Map) {
+              final stockInfo = Map<String, dynamic>.from(warehouseValue);
+              final available = stockInfo['available'] ?? 0;
+              final reserved = stockInfo['reserved'] ?? 0;
+              totalAvailable += (available - reserved) as int;
+
+              // Set primary warehouse to first non-zero stock location
+              if (totalAvailable > 0 && primaryWarehouse == '999') {
+                primaryWarehouse = warehouseKey;
+              }
+            }
+          });
+
+          stockData[key] = {
+            'available': totalAvailable,
+            'warehouse': primaryWarehouse,
+            'warehouseStock': warehouseStock, // Include full warehouse data
+          };
+        } else {
+          // Fallback to legacy stock field
+          final stock = product['stock'] ?? product['totalStock'] ?? product['availableStock'] ?? 0;
+          stockData[key] = {
+            'available': stock,
+            'warehouse': product['warehouse'] ?? '999',
+          };
+        }
       }
     });
 
