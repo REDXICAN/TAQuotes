@@ -9,12 +9,11 @@ import '../../../../core/models/models.dart';
 
 /// Comprehensive Mock Data Populator Widget
 ///
-/// Creates realistic business data for all existing users:
-/// - 20 quotes per user (Draft, Sent, Closed statuses)
-/// - 10-15 GLOBAL clients (shared across all users)
-/// - Realistic product distributions
-/// - Geographic diversity
-/// - Financial diversity ($1K-$50K quotes)
+/// Creates realistic business data for registered users:
+/// - Uses real registered users from Firebase Auth
+/// - Assigns 20 clients per user from real client list
+/// - Generates 100 quotes distributed among the 20 clients with varied volumes
+/// - Provides undo functionality to remove generated data
 class ComprehensiveDataPopulatorWidget extends ConsumerStatefulWidget {
   const ComprehensiveDataPopulatorWidget({super.key});
 
@@ -26,80 +25,14 @@ class ComprehensiveDataPopulatorWidget extends ConsumerStatefulWidget {
 class _ComprehensiveDataPopulatorWidgetState
     extends ConsumerState<ComprehensiveDataPopulatorWidget> {
   bool _isPopulating = false;
+  bool _isUndoing = false;
   String _progressMessage = '';
   int _progressValue = 0;
   int _totalSteps = 0;
 
-  // Business type templates
-  final List<Map<String, dynamic>> _businessTypes = [
-    {
-      'type': 'Restaurant',
-      'contactTitles': ['Head Chef', 'Owner', 'Manager', 'Kitchen Manager'],
-      'productFocus': ['Refrigeration', 'Freezers', 'Prep Tables', 'Ice Machines'],
-    },
-    {
-      'type': 'Hotel',
-      'contactTitles': ['Facilities Manager', 'GM', 'Operations Director', 'F&B Director'],
-      'productFocus': ['Refrigeration', 'Ice Machines', 'Display Cases', 'Walk-ins'],
-    },
-    {
-      'type': 'Catering',
-      'contactTitles': ['Owner', 'Operations Manager', 'Purchasing Manager'],
-      'productFocus': ['Transport Refrigeration', 'Prep Tables', 'Freezers', 'Ice Machines'],
-    },
-    {
-      'type': 'Hospital',
-      'contactTitles': ['Facilities Director', 'Purchasing', 'Operations Manager'],
-      'productFocus': ['Medical Refrigeration', 'Freezers', 'Ice Machines'],
-    },
-    {
-      'type': 'School',
-      'contactTitles': ['Cafeteria Manager', 'Facilities', 'Purchasing'],
-      'productFocus': ['Refrigeration', 'Freezers', 'Display Cases', 'Ice Machines'],
-    },
-    {
-      'type': 'Supermarket',
-      'contactTitles': ['Store Manager', 'Owner', 'Operations Manager'],
-      'productFocus': ['Display Cases', 'Walk-ins', 'Freezers', 'Refrigeration'],
-    },
-    {
-      'type': 'Bar',
-      'contactTitles': ['Owner', 'Manager', 'GM'],
-      'productFocus': ['Ice Machines', 'Refrigeration', 'Display Cases'],
-    },
-    {
-      'type': 'Casino',
-      'contactTitles': ['F&B Director', 'Facilities Manager', 'Purchasing'],
-      'productFocus': ['Ice Machines', 'Refrigeration', 'Display Cases', 'Walk-ins'],
-    },
-  ];
-
-  // Geographic locations
-  final List<Map<String, String>> _locations = [
-    {'city': 'Cancún', 'state': 'Quintana Roo', 'country': 'Mexico'},
-    {'city': 'Playa del Carmen', 'state': 'Quintana Roo', 'country': 'Mexico'},
-    {'city': 'Tulum', 'state': 'Quintana Roo', 'country': 'Mexico'},
-    {'city': 'Mexico City', 'state': 'CDMX', 'country': 'Mexico'},
-    {'city': 'Guadalajara', 'state': 'Jalisco', 'country': 'Mexico'},
-    {'city': 'Monterrey', 'state': 'Nuevo León', 'country': 'Mexico'},
-    {'city': 'Puebla', 'state': 'Puebla', 'country': 'Mexico'},
-    {'city': 'Mérida', 'state': 'Yucatán', 'country': 'Mexico'},
-    {'city': 'Los Cabos', 'state': 'Baja California Sur', 'country': 'Mexico'},
-    {'city': 'Puerto Vallarta', 'state': 'Jalisco', 'country': 'Mexico'},
-  ];
-
-  // First and last names for contacts
-  final List<String> _firstNames = [
-    'Carlos', 'Maria', 'José', 'Ana', 'Miguel', 'Sofia', 'Luis', 'Carmen',
-    'Diego', 'Laura', 'Fernando', 'Patricia', 'Alejandro', 'Isabel', 'Roberto',
-    'Elena', 'Ricardo', 'Gabriela', 'Eduardo', 'Monica', 'Jorge', 'Daniela',
-  ];
-
-  final List<String> _lastNames = [
-    'García', 'Rodríguez', 'Martínez', 'López', 'González', 'Hernández',
-    'Pérez', 'Sánchez', 'Ramírez', 'Torres', 'Flores', 'Rivera', 'Gómez',
-    'Díaz', 'Morales', 'Jiménez', 'Álvarez', 'Romero', 'Mendoza', 'Vargas',
-  ];
+  // Track generated data for undo functionality
+  final List<String> _generatedQuoteIds = [];
+  final Map<String, List<String>> _generatedQuotesByUser = {};
 
   // Quote statuses - only the 3 requested statuses
   final List<String> _quoteStatuses = [
@@ -116,10 +49,10 @@ class _ComprehensiveDataPopulatorWidgetState
       child: ExpansionTile(
         leading: const Icon(Icons.dataset, color: Colors.blue),
         title: const Text(
-          'Comprehensive Mock Data Population',
+          'Mock Data Population',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        subtitle: const Text('Generate realistic business data for all users'),
+        subtitle: const Text('Generate quotes for registered users using real clients'),
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
@@ -127,17 +60,17 @@ class _ComprehensiveDataPopulatorWidgetState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Text(
-                  'This will create for each existing user:',
+                  'This will use registered users and real clients:',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                const Text('• 20 quotes with varied statuses and dates'),
-                const Text('• 10-15 diverse clients'),
-                const Text('• Realistic business scenarios'),
-                const Text('• Geographic and financial diversity'),
+                const Text('• Assign 20 clients per user from existing client list'),
+                const Text('• Generate 100 quotes distributed across 20 clients'),
+                const Text('• Varied quote volumes per client'),
+                const Text('• Mixed statuses (Draft, Sent, Closed)'),
                 const SizedBox(height: 16),
 
-                if (_isPopulating) ...[
+                if (_isPopulating || _isUndoing) ...[
                   LinearProgressIndicator(
                     value: _totalSteps > 0 ? _progressValue / _totalSteps : 0,
                   ),
@@ -154,21 +87,45 @@ class _ComprehensiveDataPopulatorWidgetState
                     textAlign: TextAlign.center,
                   ),
                 ] else ...[
-                  ElevatedButton.icon(
-                    onPressed: _populateComprehensiveData,
-                    icon: const Icon(Icons.cloud_upload),
-                    label: const Text('Populate Comprehensive Data'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _populateComprehensiveData,
+                          icon: const Icon(Icons.cloud_upload),
+                          label: const Text('Generate Mock Data'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _generatedQuoteIds.isEmpty ? null : _undoMockData,
+                          icon: const Icon(Icons.undo),
+                          label: const Text('Undo Mock Data'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
                 const SizedBox(height: 8),
-                const Text(
-                  'Note: This operation may take several minutes to complete.',
-                  style: TextStyle(fontSize: 12, color: Colors.orange),
+                Text(
+                  _generatedQuoteIds.isEmpty
+                      ? 'No mock data to undo. Generate data first.'
+                      : '${_generatedQuoteIds.length} mock quotes ready to undo.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _generatedQuoteIds.isEmpty ? Colors.grey : Colors.orange,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -186,10 +143,10 @@ class _ComprehensiveDataPopulatorWidgetState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Populate Comprehensive Data'),
+        title: const Text('Generate Mock Data'),
         content: const Text(
-          'This will create extensive mock data for all existing users. '
-          'This operation cannot be easily undone. Continue?',
+          'This will generate 100 quotes for registered users using real clients from the database. '
+          'Each user will be assigned 20 clients. Continue?',
         ),
         actions: [
           TextButton(
@@ -199,7 +156,7 @@ class _ComprehensiveDataPopulatorWidgetState
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-            child: const Text('Populate'),
+            child: const Text('Generate'),
           ),
         ],
       ),
@@ -210,18 +167,50 @@ class _ComprehensiveDataPopulatorWidgetState
     setState(() {
       _isPopulating = true;
       _progressValue = 0;
-      _progressMessage = 'Fetching existing users...';
+      _progressMessage = 'Fetching registered users...';
+      _generatedQuoteIds.clear();
+      _generatedQuotesByUser.clear();
     });
 
     try {
       final dbService = ref.read(hybridDatabaseProvider);
 
-      // Get all existing users
+      // Get all registered users from Firebase Auth
       final usersSnapshot = await dbService.getAllUsersOnce();
       final users = usersSnapshot.map((u) => UserProfile.fromJson(u)).toList();
 
       if (users.isEmpty) {
-        throw Exception('No users found. Please create users first.');
+        throw Exception('No registered users found.');
+      }
+
+      // Get ALL existing clients from database
+      final database = rtdb.FirebaseDatabase.instance;
+      final clientsSnapshot = await database.ref('clients').get();
+
+      if (!clientsSnapshot.exists) {
+        throw Exception('No clients found in database. Please add clients first.');
+      }
+
+      // Flatten all clients from all users
+      final allClients = <Map<String, dynamic>>[];
+      final clientsData = Map<String, dynamic>.from(clientsSnapshot.value as Map);
+
+      for (final userEntry in clientsData.entries) {
+        if (userEntry.value is Map) {
+          final userClients = Map<String, dynamic>.from(userEntry.value as Map);
+          for (final clientEntry in userClients.entries) {
+            if (clientEntry.value is Map) {
+              final clientData = Map<String, dynamic>.from(clientEntry.value as Map);
+              clientData['id'] = clientEntry.key;
+              clientData['userId'] = userEntry.key;
+              allClients.add(clientData);
+            }
+          }
+        }
+      }
+
+      if (allClients.isEmpty) {
+        throw Exception('No clients found. Please add clients first.');
       }
 
       // Get all products to use in quotes
@@ -234,41 +223,16 @@ class _ComprehensiveDataPopulatorWidgetState
         throw Exception('No products found. Please add products first.');
       }
 
-      // Create global clients first (30 clients shared by all users)
-      const numGlobalClients = 30;
-      _totalSteps = numGlobalClients + (users.length * 20); // global clients + quotes per user
+      // Total steps: 100 quotes
+      _totalSteps = 100;
 
       setState(() {
-        _progressMessage = 'Creating $numGlobalClients global clients (shared by all users)...';
+        _progressMessage = 'Found ${users.length} users and ${allClients.length} clients. Generating quotes...';
       });
 
-      // Create global clients
-      final globalClients = <Map<String, dynamic>>[];
-      for (int i = 0; i < numGlobalClients; i++) {
-        try {
-          // Use first user's ID as creator, but clients are global
-          final client = await _createClientDirectly(users.first.uid);
-          globalClients.add(client);
-
-          setState(() {
-            _progressValue++;
-            _progressMessage = 'Created global client ${i + 1}/$numGlobalClients';
-          });
-
-          // Small delay to avoid rate limiting
-          await Future.delayed(const Duration(milliseconds: 50));
-        } catch (e) {
-          AppLogger.warning('Failed to create global client', error: e, data: {'clientIndex': i});
-        }
-      }
-
-      setState(() {
-        _progressMessage = 'Found ${users.length} users. Starting quote population...';
-      });
-
-      // Process each user (quotes only, clients are now global)
+      // Process each user
       for (final user in users) {
-        await _populateDataForUser(dbService, user, products, globalClients);
+        await _populateDataForUser(dbService, user, products, allClients);
       }
 
       setState(() {
@@ -279,20 +243,20 @@ class _ComprehensiveDataPopulatorWidgetState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Successfully populated data for ${users.length} users!'),
+            content: Text('Generated ${_generatedQuoteIds.length} quotes for ${users.length} users!'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 5),
           ),
         );
       }
 
-      AppLogger.info('Comprehensive mock data population completed', data: {
+      AppLogger.info('Mock data population completed', data: {
         'users': users.length,
-        'estimated_clients': users.length * 12,
-        'estimated_quotes': users.length * 20,
+        'quotes_generated': _generatedQuoteIds.length,
+        'clients_used': allClients.length,
       });
     } catch (e, stackTrace) {
-      AppLogger.error('Failed to populate comprehensive data', error: e, stackTrace: stackTrace);
+      AppLogger.error('Failed to populate mock data', error: e, stackTrace: stackTrace);
 
       setState(() {
         _isPopulating = false;
@@ -315,82 +279,90 @@ class _ComprehensiveDataPopulatorWidgetState
     HybridDatabaseService dbService,
     UserProfile user,
     List<Product> products,
-    List<Map<String, dynamic>> globalClients, // Use global clients instead of creating per-user
+    List<Map<String, dynamic>> allClients,
   ) async {
     setState(() {
       _progressMessage = 'Processing user: ${user.displayName ?? user.email}';
     });
 
-    // Use global clients for this user's quotes
-    final clients = globalClients;
+    // Randomly assign 20 clients to this user (or all if less than 20 available)
+    final numClientsToAssign = allClients.length < 20 ? allClients.length : 20;
+    final assignedClients = List<Map<String, dynamic>>.from(allClients)..shuffle(_random);
+    final userClients = assignedClients.take(numClientsToAssign).toList();
 
+    // Generate quote distribution: varied volumes across 20 clients
+    // Some clients get more quotes (high volume), others get fewer
+    final quoteDistribution = _generateQuoteDistribution(userClients.length);
 
-    // Generate 20 quotes with varied statuses and dates
-    for (int i = 0; i < 20; i++) {
-      try {
-        await _createQuoteDirectly(user.uid, clients, products);
+    int totalQuotesToGenerate = quoteDistribution.reduce((a, b) => a + b);
 
-        setState(() {
-          _progressValue++;
-          _progressMessage = 'Created quote ${i + 1}/20 for ${user.displayName ?? user.email}';
-        });
-      } catch (e) {
-        AppLogger.warning('Failed to create quote', error: e, data: {'userId': user.uid, 'quoteIndex': i});
+    // Limit total quotes to not exceed remaining progress
+    if (_progressValue + totalQuotesToGenerate > _totalSteps) {
+      totalQuotesToGenerate = _totalSteps - _progressValue;
+    }
+
+    int quotesGenerated = 0;
+    for (int clientIndex = 0; clientIndex < userClients.length && quotesGenerated < totalQuotesToGenerate; clientIndex++) {
+      final client = userClients[clientIndex];
+      final quotesForThisClient = quoteDistribution[clientIndex];
+
+      for (int i = 0; i < quotesForThisClient && quotesGenerated < totalQuotesToGenerate; i++) {
+        try {
+          final quoteId = await _createQuoteDirectly(user.uid, client, products);
+
+          if (quoteId != null) {
+            _generatedQuoteIds.add(quoteId);
+            _generatedQuotesByUser.putIfAbsent(user.uid, () => []).add(quoteId);
+          }
+
+          quotesGenerated++;
+          setState(() {
+            _progressValue++;
+            _progressMessage = 'Generated quote $quotesGenerated for ${user.displayName ?? user.email}';
+          });
+        } catch (e) {
+          AppLogger.warning('Failed to create quote', error: e, data: {'userId': user.uid, 'clientId': client['id']});
+        }
+
+        await Future.delayed(const Duration(milliseconds: 30));
       }
-
-      await Future.delayed(const Duration(milliseconds: 50));
     }
   }
 
-  Future<Map<String, dynamic>> _createClientDirectly(String userId) async {
-    final businessType = _businessTypes[_random.nextInt(_businessTypes.length)];
-    final location = _locations[_random.nextInt(_locations.length)];
-    final firstName = _firstNames[_random.nextInt(_firstNames.length)];
-    final lastName = _lastNames[_random.nextInt(_lastNames.length)];
-    final contactTitle = (businessType['contactTitles'] as List)[_random.nextInt((businessType['contactTitles'] as List).length)];
+  // Generate quote distribution across clients with varied volumes
+  List<int> _generateQuoteDistribution(int numClients) {
+    // Total quotes to distribute: 100 / number of users (roughly)
+    // But we'll distribute them unevenly across 20 clients
+    final distribution = <int>[];
 
-    final companyName = '${businessType['type']} ${_generateCompanyName()}';
-    final contactName = '$firstName $lastName';
-    final email = '${firstName.toLowerCase()}.${lastName.toLowerCase()}@${companyName.toLowerCase().replaceAll(' ', '')}.com';
-    final phone = _generatePhoneNumber();
+    // High volume clients (2-3 clients): 10-20 quotes each
+    final highVolumeClients = _random.nextInt(2) + 2; // 2-3 clients
+    for (int i = 0; i < highVolumeClients && i < numClients; i++) {
+      distribution.add(_random.nextInt(11) + 10); // 10-20 quotes
+    }
 
-    final client = {
-      'company': companyName,
-      'contactName': contactName,
-      'name': contactName,
-      'email': email,
-      'phone': phone,
-      'address': '${_random.nextInt(9999) + 100} ${_generateStreetName()}',
-      'city': location['city'],
-      'state': location['state'],
-      'zipCode': '${_random.nextInt(90000) + 10000}',
-      'country': location['country'],
-      'notes': '$contactTitle at $companyName - Interested in ${(businessType['productFocus'] as List).join(', ')}',
-      'created_at': DateTime.now().millisecondsSinceEpoch,
-      'updated_at': DateTime.now().millisecondsSinceEpoch,
-    };
+    // Medium volume clients (5-7 clients): 3-8 quotes each
+    final mediumVolumeClients = _random.nextInt(3) + 5; // 5-7 clients
+    for (int i = 0; i < mediumVolumeClients && distribution.length < numClients; i++) {
+      distribution.add(_random.nextInt(6) + 3); // 3-8 quotes
+    }
 
-    // Write directly to Firebase Realtime Database
-    // Clients are now global (shared across all users)
-    final database = rtdb.FirebaseDatabase.instance;
-    final newClientRef = database.ref('clients').push();
-    await newClientRef.set({
-      ...client,
-      'created_by': userId, // Track which user created this client
-    });
-    client['id'] = newClientRef.key!;
-    return client;
+    // Low volume clients (remaining): 1-3 quotes each
+    while (distribution.length < numClients) {
+      distribution.add(_random.nextInt(3) + 1); // 1-3 quotes
+    }
+
+    distribution.shuffle(_random);
+    return distribution;
   }
 
-
-  Future<void> _createQuoteDirectly(
+  Future<String?> _createQuoteDirectly(
     String userId,
-    List<Map<String, dynamic>> clients,
+    Map<String, dynamic> client,
     List<Product> products,
   ) async {
-    if (clients.isEmpty || products.isEmpty) return;
+    if (products.isEmpty) return null;
 
-    final client = clients[_random.nextInt(clients.length)];
     final status = _getRandomQuoteStatus();
 
     // Create quote date in the past 12 months
@@ -439,7 +411,7 @@ class _ComprehensiveDataPopulatorWidgetState
     final quoteData = {
       'quoteNumber': 'Q-${DateTime.now().year}-${_random.nextInt(99999).toString().padLeft(5, '0')}',
       'clientId': client['id'] as String,
-      'clientName': client['company'] as String,
+      'clientName': client['company'] as String? ?? client['name'] as String? ?? 'Unknown',
       'items': items,
       'subtotal': subtotal,
       'discountAmount': discountAmount,
@@ -450,16 +422,18 @@ class _ComprehensiveDataPopulatorWidgetState
       'totalAmount': total,
       'status': status,
       'archived': false,
-      'notes': 'Quote created with ${items.length} items - Total: \$${total.toStringAsFixed(2)}',
+      'notes': '[MOCK] Quote created with ${items.length} items - Total: \$${total.toStringAsFixed(2)}',
       'createdAt': createdAt.toIso8601String(),
       'expiresAt': createdAt.add(const Duration(days: 30)).toIso8601String(),
       'createdBy': userId,
+      'isMockData': true, // Flag to identify mock data for undo
     };
 
     // Write directly to Firebase Realtime Database
     final database = rtdb.FirebaseDatabase.instance;
     final newQuoteRef = database.ref('quotes/$userId').push();
     await newQuoteRef.set(quoteData);
+    return newQuoteRef.key; // Return quote ID for tracking
   }
 
   String _getRandomQuoteStatus() {
@@ -467,23 +441,105 @@ class _ComprehensiveDataPopulatorWidgetState
     return _quoteStatuses[_random.nextInt(_quoteStatuses.length)];
   }
 
-  String _generateCompanyName() {
-    final prefixes = ['La', 'El', 'Las', 'Los', 'Grand', 'Royal', 'Premium', 'Elite'];
-    final suffixes = ['Palace', 'Plaza', 'Resort', 'Garden', 'Paradise', 'Bay', 'Coast', 'Beach'];
+  Future<void> _undoMockData() async {
+    if (_isUndoing || _generatedQuoteIds.isEmpty) return;
 
-    return '${prefixes[_random.nextInt(prefixes.length)]} ${suffixes[_random.nextInt(suffixes.length)]}';
-  }
+    // Confirm action
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Undo Mock Data'),
+        content: Text(
+          'This will delete ${_generatedQuoteIds.length} mock quotes that were generated. '
+          'This action cannot be undone. Continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Delete Mock Data'),
+          ),
+        ],
+      ),
+    );
 
-  String _generateStreetName() {
-    final streets = [
-      'Av. Kukulkán', 'Av. Tulum', 'Av. Bonampak', 'Calle Constituyentes',
-      'Av. Nichupté', 'Blvd. Luis Donaldo Colosio', 'Av. Cobá', 'Av. Yaxchilán',
-    ];
-    return streets[_random.nextInt(streets.length)];
-  }
+    if (confirmed != true) return;
 
-  String _generatePhoneNumber() {
-    return '+52-${_random.nextInt(900) + 100}-${_random.nextInt(900) + 100}-${_random.nextInt(9000) + 1000}';
+    setState(() {
+      _isUndoing = true;
+      _progressValue = 0;
+      _totalSteps = _generatedQuoteIds.length;
+      _progressMessage = 'Deleting mock quotes...';
+    });
+
+    try {
+      final database = rtdb.FirebaseDatabase.instance;
+      int deletedCount = 0;
+
+      // Delete quotes by user
+      for (final entry in _generatedQuotesByUser.entries) {
+        final userId = entry.key;
+        final quoteIds = entry.value;
+
+        for (final quoteId in quoteIds) {
+          try {
+            await database.ref('quotes/$userId/$quoteId').remove();
+            deletedCount++;
+
+            setState(() {
+              _progressValue++;
+              _progressMessage = 'Deleted $deletedCount/${_generatedQuoteIds.length} mock quotes...';
+            });
+          } catch (e) {
+            AppLogger.warning('Failed to delete quote', error: e, data: {'userId': userId, 'quoteId': quoteId});
+          }
+
+          await Future.delayed(const Duration(milliseconds: 30));
+        }
+      }
+
+      setState(() {
+        _isUndoing = false;
+        _progressMessage = 'Cleanup complete!';
+        _generatedQuoteIds.clear();
+        _generatedQuotesByUser.clear();
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully deleted $deletedCount mock quotes!'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+
+      AppLogger.info('Mock data cleanup completed', data: {
+        'quotes_deleted': deletedCount,
+      });
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to undo mock data', error: e, stackTrace: stackTrace);
+
+      setState(() {
+        _isUndoing = false;
+        _progressMessage = 'Error: $e';
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
   }
 }
 

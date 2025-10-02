@@ -432,18 +432,93 @@ final monitoringMetricsProvider = StreamProvider.autoDispose<MonitoringMetrics>(
       }
     }
 
-    // Client analytics (placeholder - would need client data structure)
-    final topClientsByRevenue = <ClientMetric>[];
-    final topClientsByProjects = <ClientMetric>[];
-    final newClientsThisMonth = 0;
-    final clientLifetimeValue = totalRevenue / users.length.clamp(1, double.infinity);
+    // Client analytics - Calculate from real data
+    final clientMetricsMap = <String, ClientMetric>{};
+    final firstDayOfMonth = DateTime(now.year, now.month, 1);
+    int newClientsThisMonth = 0;
+
+    for (final quote in allQuotes) {
+      if (quote.client != null) {
+        final clientId = quote.client!.id ?? quote.client!.email;
+
+        // Track new clients this month
+        if (quote.createdAt.isAfter(firstDayOfMonth)) {
+          // Check if this is client's first quote
+          final clientQuotes = allQuotes.where((q) =>
+            q.client?.id == clientId || q.client?.email == quote.client!.email
+          ).toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+          if (clientQuotes.first.id == quote.id) {
+            newClientsThisMonth++;
+          }
+        }
+
+        if (!clientMetricsMap.containsKey(clientId)) {
+          clientMetricsMap[clientId] = ClientMetric(
+            clientId: clientId,
+            companyName: quote.client!.company,
+            revenue: 0,
+            projectCount: 0,
+          );
+        }
+
+        // Add revenue for accepted/closed quotes
+        if (quote.status == 'accepted' || quote.status == 'closed' || quote.status == 'sold') {
+          clientMetricsMap[clientId] = ClientMetric(
+            clientId: clientId,
+            companyName: clientMetricsMap[clientId]!.companyName,
+            revenue: clientMetricsMap[clientId]!.revenue + quote.total,
+            projectCount: clientMetricsMap[clientId]!.projectCount + 1,
+          );
+        }
+      }
+    }
+
+    // Sort clients by revenue and projects
+    final topClientsByRevenue = clientMetricsMap.values.toList()
+      ..sort((a, b) => b.revenue.compareTo(a.revenue));
+    final topClientsByProjects = clientMetricsMap.values.toList()
+      ..sort((a, b) => b.projectCount.compareTo(a.projectCount));
+
+    final clientLifetimeValue = clientMetricsMap.isNotEmpty
+      ? totalRevenue / clientMetricsMap.length
+      : 0.0;
 
     // Average metrics
     final averageDealSize = acceptedQuotes > 0 ? totalRevenue / acceptedQuotes : 0.0;
-    final averageResponseTime = 24.0; // Placeholder - would need timestamp tracking
 
-    // Pending approvals (placeholder)
-    final pendingApprovalsCount = 0;
+    // Calculate average response time from quote timestamps
+    double averageResponseTime = 24.0; // Default fallback
+    if (allQuotes.length > 1) {
+      final responseTimes = <double>[];
+      for (int i = 1; i < allQuotes.length; i++) {
+        final timeDiff = allQuotes[i].createdAt.difference(allQuotes[i - 1].createdAt);
+        if (timeDiff.inHours > 0 && timeDiff.inHours < 168) { // Within 1 week
+          responseTimes.add(timeDiff.inHours.toDouble());
+        }
+      }
+      if (responseTimes.isNotEmpty) {
+        averageResponseTime = responseTimes.reduce((a, b) => a + b) / responseTimes.length;
+      }
+    }
+
+    // Get real pending approvals count
+    int pendingApprovalsCount = 0;
+    try {
+      final db = FirebaseDatabase.instance;
+      final approvalsSnapshot = await db.ref('user_approval_requests').get();
+      if (approvalsSnapshot.exists && approvalsSnapshot.value != null) {
+        final approvals = approvalsSnapshot.value as Map<dynamic, dynamic>;
+        pendingApprovalsCount = approvals.values.where((approval) {
+          if (approval is Map) {
+            return approval['status'] == 'pending';
+          }
+          return false;
+        }).length;
+      }
+    } catch (e) {
+      AppLogger.error('Error fetching pending approvals', error: e, category: LogCategory.business);
+    }
 
     yield MonitoringMetrics(
       totalRevenue: totalRevenue,

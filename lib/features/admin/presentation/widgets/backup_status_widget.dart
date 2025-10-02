@@ -17,23 +17,33 @@ final backupEntriesProvider = StreamProvider.autoDispose<List<BackupEntry>>((ref
 // Auto-refreshing provider for backup statistics
 final backupStatsProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) async* {
   final service = ref.watch(backupServiceProvider);
+  Map<String, dynamic>? lastGoodData;
 
   // Initial load
-  yield await service.getBackupStats();
+  try {
+    lastGoodData = await service.getBackupStats();
+    yield lastGoodData;
+  } catch (e) {
+    // If initial load fails, provide default data
+    lastGoodData = <String, dynamic>{
+      'totalBackups': 0,
+      'completedBackups': 0,
+      'failedBackups': 0,
+      'totalSize': 0,
+    };
+    yield lastGoodData;
+  }
 
   // Auto-refresh every 30 seconds
   await for (final _ in Stream.periodic(const Duration(seconds: 30))) {
     try {
-      yield await service.getBackupStats();
+      lastGoodData = await service.getBackupStats();
+      yield lastGoodData;
     } catch (e) {
-      // Continue with previous data on error, don't break the stream
-      // Use a default empty stats map to prevent UI breaks
-      yield <String, dynamic>{
-        'totalBackups': 0,
-        'completedBackups': 0,
-        'failedBackups': 0,
-        'totalSize': 0,
-      };
+      // Preserve last good data on error
+      if (lastGoodData != null) {
+        yield lastGoodData;
+      }
     }
   }
 });

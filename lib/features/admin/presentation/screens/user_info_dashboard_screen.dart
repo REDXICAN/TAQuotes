@@ -255,13 +255,17 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please log in to access this page'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please log in to access this page'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       });
       return;
     }
@@ -272,23 +276,29 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
     if (!hasPermission) {
       // No permission - BLOCK ACCESS
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Access Denied: SuperAdmin privileges required for User Dashboard.'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
-          ),
-        );
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Access Denied: SuperAdmin privileges required for User Dashboard.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
       });
       AppLogger.warning('Access denied to User Info Dashboard', data: {'user_email': user.email});
       return;
     }
 
     AppLogger.info('User Info Dashboard access granted', data: {'user_email': user.email});
-    setState(() {
-      _hasAccess = true;
-    });
+    if (mounted) {
+      setState(() {
+        _hasAccess = true;
+      });
+    }
   }
 
   @override
