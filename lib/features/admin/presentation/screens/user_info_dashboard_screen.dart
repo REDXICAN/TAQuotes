@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/utils/price_formatter.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -739,6 +740,7 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
                           value: _selectedRole,
                           items: const [
                             DropdownMenuItem(value: 'all', child: Text('All Roles')),
+                            DropdownMenuItem(value: 'superadmin', child: Text('SuperAdmin')),
                             DropdownMenuItem(value: 'admin', child: Text('Admin')),
                             DropdownMenuItem(value: 'sales', child: Text('Sales')),
                             DropdownMenuItem(value: 'distributor', child: Text('Distributor')),
@@ -784,17 +786,24 @@ class _UserInfoDashboardScreenState extends ConsumerState<UserInfoDashboardScree
     NumberFormat currencyFormat,
     DateFormat dateFormat,
   ) {
-    final roleColor = user.role == 'admin'
-        ? Colors.purple
-        : user.role == 'sales'
-            ? Colors.blue
-            : Colors.green;
+    final roleColor = user.role == 'superadmin'
+        ? Colors.red
+        : user.role == 'admin'
+            ? Colors.purple
+            : user.role == 'sales'
+                ? Colors.blue
+                : Colors.green;
 
     return Card(
       elevation: 2,
       child: InkWell(
         onTap: () {
-          _showUserDetailsDialog(user, theme, currencyFormat, dateFormat);
+          context.push('/admin/user-detail', extra: {
+            'userId': user.uid,
+            'userEmail': user.email,
+            'displayName': user.displayName,
+            'currentRole': user.role,
+          });
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(

@@ -112,15 +112,15 @@ class RoleHierarchy {
     return roles.reduce((a, b) => a.level < b.level ? a : b);
   }
 
-  /// Check if a user can manage another user (higher role can manage lower roles)
+  /// Check if a user can manage another user (role hierarchy)
   static bool canManageUser(UserRole managerRole, UserRole targetRole) {
-    // Super admins can manage everyone
+    // Super admins can manage everyone including other superadmins
     if (managerRole.isSuperAdmin) return true;
 
-    // Admins can manage sales and distributors, but not other admins
-    if (managerRole.isAdminOrAbove && !targetRole.isAdminOrAbove) return true;
+    // Admins can manage other admins, sales, and distributors, but NOT superadmins
+    if (managerRole == UserRole.admin && targetRole != UserRole.superAdmin) return true;
 
-    // Sales cannot manage anyone
+    // Sales and distributors cannot manage anyone
     return false;
   }
 
@@ -128,9 +128,11 @@ class RoleHierarchy {
   static List<UserRole> getAssignableRoles(UserRole userRole) {
     switch (userRole) {
       case UserRole.superAdmin:
-        return [UserRole.admin, UserRole.sales, UserRole.distributor];
+        // Superadmins can assign all roles including superadmin
+        return [UserRole.superAdmin, UserRole.admin, UserRole.sales, UserRole.distributor];
       case UserRole.admin:
-        return [UserRole.sales, UserRole.distributor];
+        // Admins can assign admin and below, but NOT superadmin
+        return [UserRole.admin, UserRole.sales, UserRole.distributor];
       case UserRole.sales:
       case UserRole.distributor:
         return []; // Cannot assign roles

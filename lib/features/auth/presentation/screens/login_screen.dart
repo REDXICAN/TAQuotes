@@ -448,6 +448,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                 ),
                               ),
+                              DropdownMenuItem(
+                                value: 'SuperAdmin',
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    'Super Administrator (Requires Approval)',
+                                    style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87),
+                                  ),
+                                ),
+                              ),
                             ],
                             onChanged: (value) {
                               setState(() {
@@ -563,27 +573,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ],
                         ),
 
-                        // First user info
+                        // Role approval info
                         if (_isSignUp) ...[
                           const SizedBox(height: 16),
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.purple.withValues(alpha: 0.1),
+                              color: Colors.blue.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                  color: Colors.purple.withValues(alpha: 0.3)),
+                                  color: Colors.blue.withValues(alpha: 0.3)),
                             ),
                             child: Row(
                               children: [
                                 const Icon(Icons.info_outline,
-                                    color: Colors.purple, size: 20),
+                                    color: Colors.blue, size: 20),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'First user to sign up becomes Super Admin',
+                                    'Admin and SuperAdmin roles require approval from existing administrators',
                                     style: TextStyle(
-                                      color: Colors.purple[700],
+                                      color: Colors.blue[700],
                                       fontSize: 12,
                                     ),
                                   ),

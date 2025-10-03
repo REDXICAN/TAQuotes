@@ -20,6 +20,7 @@ import '../../features/admin/presentation/screens/admin_panel_screen.dart';
 import '../../features/admin/presentation/screens/performance_dashboard_screen.dart';
 import '../../features/admin/presentation/screens/user_info_dashboard_screen.dart';
 import '../../features/admin/presentation/screens/user_details_screen.dart';
+import '../../features/admin/presentation/screens/user_detail_screen.dart';
 import '../../features/admin/presentation/screens/error_monitoring_dashboard_optimized.dart';
 import '../../features/admin/presentation/screens/database_management_v2_screen.dart';
 import '../../features/admin/presentation/screens/monitoring_dashboard_v2_screen.dart';
@@ -257,6 +258,18 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'database',
                 builder: (context, state) => const DatabaseManagementV2Screen(),
+              ),
+              GoRoute(
+                path: 'user-detail',
+                builder: (context, state) {
+                  final extras = state.extra as Map<String, String>;
+                  return UserDetailScreen(
+                    userId: extras['userId']!,
+                    userEmail: extras['userEmail']!,
+                    displayName: extras['displayName']!,
+                    currentRole: extras['currentRole']!,
+                  );
+                },
               ),
             ],
           ),
