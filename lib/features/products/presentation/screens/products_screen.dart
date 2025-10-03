@@ -558,24 +558,18 @@ Future<void> _handleExcelUpload() async {
         children: [
           // Search Bar
           Container(
-            color: theme.appBarTheme.backgroundColor,
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            color: theme.cardColor,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
             child: TextField(
               controller: _searchController,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onPrimary,
-              ),
+              style: theme.textTheme.bodyMedium,
               decoration: InputDecoration(
                 hintText: 'Search by SKU, category or description',
-                hintStyle: theme.inputDecorationTheme.hintStyle?.copyWith(
-                  color: theme.colorScheme.onPrimary.withValues(alpha: 0.7),
-                ),
-                prefixIcon: Icon(Icons.search,
-                  color: theme.colorScheme.onPrimary.withValues(alpha: 0.7)),
+                hintStyle: theme.inputDecorationTheme.hintStyle,
+                prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: Icon(Icons.clear,
-                          color: theme.colorScheme.onPrimary.withValues(alpha: 0.7)),
+                        icon: const Icon(Icons.clear),
                         onPressed: () {
                           _searchController.clear();
                           ref.read(searchQueryProvider.notifier).state = '';
@@ -584,7 +578,7 @@ Future<void> _handleExcelUpload() async {
                       )
                     : null,
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: theme.inputDecorationTheme.fillColor,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide.none,

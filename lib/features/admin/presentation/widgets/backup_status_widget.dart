@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/services/backup_service.dart';
+import '../../../../core/services/database_backup_service.dart';
+import '../../../../core/utils/download_helper.dart';
 
 // Provider for backup service
 final backupServiceProvider = Provider<BackupService>((ref) {
@@ -57,6 +59,51 @@ class BackupStatusWidget extends ConsumerStatefulWidget {
 
 class _BackupStatusWidgetState extends ConsumerState<BackupStatusWidget> {
   bool _isCreatingBackup = false;
+  bool _isDownloadingFullBackup = false;
+
+  Future<void> _downloadFullDatabaseBackup() async {
+    setState(() {
+      _isDownloadingFullBackup = true;
+    });
+
+    try {
+      final backupService = DatabaseBackupService();
+      final bytes = await backupService.createFullBackup();
+
+      // Generate filename with timestamp
+      final now = DateTime.now();
+      final filename = 'TAQuotes_Full_Backup_${DateFormat('yyyyMMdd_HHmmss').format(now)}.xlsx';
+
+      // Download the file
+      await DownloadHelper.downloadFile(
+        bytes: bytes,
+        filename: filename,
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Full database backup downloaded: $filename'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to download backup: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isDownloadingFullBackup = false;
+      });
+    }
+  }
 
   Future<void> _createManualBackup() async {
     setState(() {
@@ -217,6 +264,26 @@ class _BackupStatusWidgetState extends ConsumerState<BackupStatusWidget> {
                       label: Text(_isCreatingBackup ? 'Creating...' : 'Create Backup'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Download full database button
+                    ElevatedButton.icon(
+                      onPressed: _isDownloadingFullBackup ? null : _downloadFullDatabaseBackup,
+                      icon: _isDownloadingFullBackup
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Icon(Icons.download),
+                      label: Text(_isDownloadingFullBackup ? 'Downloading...' : 'Download Full DB as Excel'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
                       ),
                     ),

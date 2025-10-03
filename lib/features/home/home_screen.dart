@@ -314,9 +314,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 crossAxisSpacing: 12,
                 childAspectRatio: ResponsiveHelper.getValue(
                   context,
-                  mobile: 1.2,  // Smaller, more compact cards
-                  tablet: 1.5,
-                  desktop: 1.5,
+                  mobile: 1.4,  // More compact cards - wider aspect ratio
+                  tablet: 1.8,
+                  desktop: 1.8,
                 ),
                 children: [
                   // Products Card - Clickable to navigate to catalog
@@ -594,10 +594,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = ResponsiveHelper.isMobile(context);
-        final iconSize = isMobile ? 28.0 : 32.0; // Smaller icons
-        final valueSize = isMobile ? 20.0 : 24.0; // Smaller values
-        final titleSize = isMobile ? 11.0 : 12.0; // Smaller titles
-        final padding = isMobile ? 10.0 : 12.0; // Less padding
+        final iconSize = isMobile ? 24.0 : 28.0; // Even smaller icons
+        final valueSize = isMobile ? 18.0 : 20.0; // Even smaller values
+        final titleSize = isMobile ? 10.0 : 11.0; // Even smaller titles
+        final padding = isMobile ? 8.0 : 10.0; // Less padding for compact cards
 
         final cardContent = Container(
           padding: EdgeInsets.all(padding),
