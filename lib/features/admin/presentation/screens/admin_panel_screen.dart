@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -29,9 +30,16 @@ final adminDatabaseServiceProvider = Provider<HybridDatabaseService>((ref) {
   return HybridDatabaseService();
 });
 
-// Optimized Admin Dashboard Providers - Load only what's needed
-final adminDashboardProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) async* {
+// Optimized Admin Dashboard Provider - Cached for 60 seconds
+// Removed autoDispose to keep cache alive across navigation
+final adminDashboardProvider = StreamProvider<Map<String, dynamic>>((ref) async* {
   final dbService = ref.watch(adminDatabaseServiceProvider);
+
+  // Keep the provider alive for 60 seconds after last use
+  ref.keepAlive();
+  Timer(const Duration(seconds: 60), () {
+    ref.invalidateSelf();
+  });
 
   // Helper function to fetch dashboard data OPTIMIZED
   Future<Map<String, dynamic>> fetchDashboardData() async {
@@ -695,17 +703,24 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
 
 
   Widget _buildAnalytics() {
+    // Use the same provider - it's already optimized and cached
     return Consumer(
       builder: (context, ref, child) {
         final dashboardAsync = ref.watch(adminDashboardProvider);
 
         return dashboardAsync.when(
           data: (dashboardData) {
-            final totalQuotes = dashboardData['totalQuotes'] as int;
-            final totalRevenue = dashboardData['totalRevenue'] as double;
+            final totalQuotes = dashboardData['totalQuotes'];
+            final totalRevenue = dashboardData['totalRevenue'];
             final recentQuotes = dashboardData['recentQuotes'] as List<Quote>;
             final categoryRevenue = dashboardData['categoryRevenue'] as Map<String, double>;
             final monthlyQuotes = dashboardData['monthlyQuotes'] as Map<String, int>;
+            final loadTime = dashboardData['loadTime'] as int?;
+
+            // Show load time for debugging
+            if (loadTime != null) {
+              AppLogger.debug('Analytics loaded using cached data (${loadTime}ms)');
+            }
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(24),
