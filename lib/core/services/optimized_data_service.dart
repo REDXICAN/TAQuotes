@@ -1,6 +1,7 @@
 // lib/core/services/optimized_data_service.dart
 import 'dart:async';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/models.dart';
 import 'app_logger.dart';
 
@@ -191,8 +192,14 @@ class OptimizedDataService {
   }) async* {
     final database = FirebaseDatabase.instance;
 
-    // Enable Firebase persistence for faster loads
-    database.ref('products').keepSynced(true);
+    // Enable Firebase persistence for faster loads (not supported on web)
+    if (!kIsWeb) {
+      try {
+        database.ref('products').keepSynced(true);
+      } catch (e) {
+        AppLogger.debug('keepSynced not supported on this platform');
+      }
+    }
 
     await for (final event in database.ref('products').onValue) {
       try {

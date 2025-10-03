@@ -306,48 +306,6 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
       ),
       body: Column(
         children: [
-          // Selected Client Display
-          if (selectedClient != null)
-            Container(
-              padding: EdgeInsets.all(
-                ResponsiveHelper.getSpacing(context, medium: 12),
-              ),
-              color: Colors.green.withValues(alpha: 0.1),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.check_circle,
-                    color: Colors.green,
-                    size: ResponsiveHelper.getIconSize(context, baseSize: 20),
-                  ),
-                  SizedBox(
-                    width: ResponsiveHelper.getSpacing(context, medium: 8),
-                  ),
-                  Expanded(
-                    child: Text(
-                      'Selected: ${selectedClient.company}',
-                      style: TextStyle(
-                        color: Colors.green[700],
-                        fontWeight: FontWeight.w500,
-                        fontSize: ResponsiveHelper.getResponsiveFontSize(
-                          context,
-                          baseFontSize: 14,
-                          minFontSize: 12,
-                          maxFontSize: 16,
-                        ),
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      ref.read(selectedClientProvider.notifier).state = null;
-                    },
-                    child: Text('Clear', style: TextStyle(color: Colors.green[700])),
-                  ),
-                ],
-              ),
-            ),
           // Search Bar
           Container(
             padding: const EdgeInsets.all(16),

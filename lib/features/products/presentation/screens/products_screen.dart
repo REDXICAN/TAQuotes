@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
@@ -26,10 +27,16 @@ final productsProvider =
     StreamProvider.family<List<Product>, String?>((ref, category) {
   try {
     final database = FirebaseDatabase.instance;
-    
-    // Keep Firebase persistence synced for faster initial load
-    database.ref('products').keepSynced(true);
-    
+
+    // Keep Firebase persistence synced for faster initial load (not supported on web)
+    if (!kIsWeb) {
+      try {
+        database.ref('products').keepSynced(true);
+      } catch (e) {
+        AppLogger.debug('keepSynced not supported on this platform');
+      }
+    }
+
     // Return a stream that listens to products changes
     return database.ref('products').onValue.map((event) {
       final List<Product> products = [];

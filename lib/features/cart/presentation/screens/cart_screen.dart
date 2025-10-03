@@ -1,5 +1,6 @@
 // lib/features/cart/presentation/screens/cart_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -32,11 +33,13 @@ final cartProvider = StreamProvider.autoDispose<List<CartItem>>((ref) {
   final dbService = ref.watch(databaseServiceProvider);
   final database = FirebaseDatabase.instance;
 
-  // Keep cart synced for real-time updates (skip on web if causing issues)
-  try {
-    database.ref('cart_items/${user.uid}').keepSynced(true);
-  } catch (e) {
-    AppLogger.warning('Could not enable keepSynced for cart', error: e);
+  // Keep cart synced for real-time updates (not supported on web)
+  if (!kIsWeb) {
+    try {
+      database.ref('cart_items/${user.uid}').keepSynced(true);
+    } catch (e) {
+      AppLogger.debug('keepSynced not supported on this platform');
+    }
   }
 
   return database.ref('cart_items/${user.uid}').onValue
@@ -187,8 +190,14 @@ final clientsStreamProvider = StreamProvider<List<Client>>((ref) {
 
   final database = FirebaseDatabase.instance;
 
-  // Enable keepSynced for faster initial load from cache
-  database.ref('clients/${user.uid}').keepSynced(true);
+  // Enable keepSynced for faster initial load from cache (not supported on web)
+  if (!kIsWeb) {
+    try {
+      database.ref('clients/${user.uid}').keepSynced(true);
+    } catch (e) {
+      AppLogger.debug('keepSynced not supported on this platform');
+    }
+  }
 
   // Use real-time stream for clients
   return database.ref('clients/${user.uid}').onValue.map((event) {

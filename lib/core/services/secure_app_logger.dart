@@ -2,7 +2,7 @@
 // Secure logging service that sanitizes sensitive data
 
 import 'package:logger/logger.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -299,17 +299,21 @@ class SecureAppLogger {
       stackTrace: stackTrace,
     );
 
-    // Send to Crashlytics (already sanitized)
-    if (!kDebugMode) {
-      FirebaseCrashlytics.instance.recordError(
-        sanitizedError ?? sanitizedMessage,
-        stackTrace,
-        reason: sanitizedMessage,
-        information: [
-          'category: ${category.name}',
-          if (sanitizedData != null) 'data: ${sanitizedData.toString()}',
-        ],
-      );
+    // Send to Crashlytics (already sanitized, not supported on web)
+    if (!kDebugMode && !kIsWeb) {
+      try {
+        FirebaseCrashlytics.instance.recordError(
+          sanitizedError ?? sanitizedMessage,
+          stackTrace,
+          reason: sanitizedMessage,
+          information: [
+            'category: ${category.name}',
+            if (sanitizedData != null) 'data: ${sanitizedData.toString()}',
+          ],
+        );
+      } catch (e) {
+        // Crashlytics not available on this platform
+      }
     }
   }
 
@@ -330,14 +334,18 @@ class SecureAppLogger {
       stackTrace: stackTrace,
     );
 
-    // Send fatal errors to Crashlytics
-    if (!kDebugMode) {
-      FirebaseCrashlytics.instance.recordError(
-        sanitizedError ?? sanitizedMessage,
-        stackTrace,
-        reason: 'FATAL: $sanitizedMessage',
-        fatal: true,
-      );
+    // Send fatal errors to Crashlytics (not supported on web)
+    if (!kDebugMode && !kIsWeb) {
+      try {
+        FirebaseCrashlytics.instance.recordError(
+          sanitizedError ?? sanitizedMessage,
+          stackTrace,
+          reason: 'FATAL: $sanitizedMessage',
+          fatal: true,
+        );
+      } catch (e) {
+        // Crashlytics not available on this platform
+      }
     }
   }
 
