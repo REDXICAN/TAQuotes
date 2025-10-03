@@ -260,15 +260,6 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Menu Cards - Admin Functions only
-          Text(
-            'Admin Functions',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          
           // Menu Grid
           GridView.count(
             shrinkWrap: true,
