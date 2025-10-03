@@ -64,10 +64,7 @@ class _OptimizedErrorMonitoringDashboardState extends ConsumerState<OptimizedErr
   final _searchController = TextEditingController();
   bool _hasAccess = false;
   String _errorSortBy = 'timestamp'; // 'timestamp', 'severity', 'category'
-  int _currentPage = 0;
-  static const int _pageSize = 20;
-  // Loading flag kept for potential future state management
-  // ignore: unused_field
+  // Removed pagination - showing all errors in scrollable list
   bool _isLoading = false;
   bool _isPopulatingDemoData = false;
   // Last refresh kept for potential future refresh tracking
@@ -829,10 +826,7 @@ class _OptimizedErrorMonitoringDashboardState extends ConsumerState<OptimizedErr
     // Apply sorting
     filteredErrors = _sortErrors(filteredErrors);
 
-    // Apply pagination
-    final startIndex = _currentPage * _pageSize;
-    final endIndex = (startIndex + _pageSize).clamp(0, filteredErrors.length);
-    final paginatedErrors = filteredErrors.sublist(startIndex, endIndex);
+    // NO PAGINATION - Show all errors in scrollable list
 
     if (filteredErrors.isEmpty) {
       return Card(
@@ -898,13 +892,14 @@ class _OptimizedErrorMonitoringDashboardState extends ConsumerState<OptimizedErr
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header with count and sort
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Recent Errors (${filteredErrors.length})',
+                  'All Errors (${filteredErrors.length})',
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 Row(
@@ -932,25 +927,20 @@ class _OptimizedErrorMonitoringDashboardState extends ConsumerState<OptimizedErr
               ],
             ),
           ),
-          ...paginatedErrors.map((error) => _buildCompactErrorCard(error)),
-          if (filteredErrors.length > _pageSize)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton(
-                    onPressed: _currentPage > 0 ? () => setState(() => _currentPage--) : null,
-                    child: const Text('Previous'),
-                  ),
-                  Text('Page ${_currentPage + 1} of ${(filteredErrors.length / _pageSize).ceil()}'),
-                  TextButton(
-                    onPressed: endIndex < filteredErrors.length ? () => setState(() => _currentPage++) : null,
-                    child: const Text('Next'),
-                  ),
-                ],
-              ),
+          const Divider(height: 1),
+          // Scrollable list showing ALL errors (no pagination)
+          ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxHeight: 600, // Fixed height for scrollable area
             ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: filteredErrors.length,
+              itemBuilder: (context, index) {
+                return _buildCompactErrorCard(filteredErrors[index]);
+              },
+            ),
+          ),
         ],
       ),
     );
