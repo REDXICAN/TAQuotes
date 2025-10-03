@@ -227,7 +227,16 @@
       "Bash(then echo \"✓ .env file exists\")",
       "Bash(else echo \"✗ .env file not found\")",
       "Bash(awk:*)",
-      "Read(//c//**)"
+      "Read(//c//**)",
+      "Bash(then echo \"✅ Firebase admin key found\")",
+      "Bash(else echo \"❌ Firebase admin key not found - need to download it\")",
+      "Bash(start create_carlos_account.html)",
+      "Bash(wc:*)",
+      "Bash(start check_carlos_role.html)",
+      "Read(//c/Users/andre/**)",
+      "Bash(head:*)",
+      "Bash(start check_carlos_permissions.html)",
+      "Bash(start add_carlos.html)"
     ],
     "deny": [],
     "ask": [

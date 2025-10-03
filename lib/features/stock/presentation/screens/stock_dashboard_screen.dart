@@ -4,6 +4,7 @@ import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/models/models.dart';
 import '../../../../core/providers/test_mode_provider.dart';
 import '../../../../core/services/spare_parts_demo_service.dart';
+import '../../../../core/services/app_logger.dart';
 
 // Provider for stock data - uses test data if test mode is enabled - Changed to FutureProvider to prevent freezing
 final stockDataProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
@@ -17,7 +18,7 @@ final stockDataProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref)
   // Use real Firebase data in production - one-time fetch
   try {
     final event = await FirebaseDatabase.instance.ref('products').get();
-    final data = event.snapshot.value as Map<dynamic, dynamic>? ?? {};
+    final data = event.value as Map<dynamic, dynamic>? ?? {};
     final stockData = <String, dynamic>{};
 
     data.forEach((key, value) {
