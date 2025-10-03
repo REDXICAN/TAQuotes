@@ -10,7 +10,6 @@ import '../../../../core/services/app_logger.dart';
 import '../../../../core/services/error_demo_data_service.dart';
 import '../../../../core/services/spare_parts_demo_service.dart';
 import '../../../../core/utils/admin_client_checker.dart';
-import '../../../../core/providers/test_mode_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import '../../../admin/presentation/widgets/email_template_editor.dart';
@@ -232,13 +231,6 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   }
 
   Future<void> _populateDemoErrors() async {
-    // Check test mode before proceeding
-    final isTestMode = ref.read(testModeProvider);
-    if (!isTestMode) {
-      _showError('Test mode must be enabled to use demo data');
-      return;
-    }
-
     setState(() => _isLoading = true);
 
     try {
@@ -257,13 +249,6 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   }
 
   Future<void> _generateTestError() async {
-    // Check test mode before proceeding
-    final isTestMode = ref.read(testModeProvider);
-    if (!isTestMode) {
-      _showError('Test mode must be enabled to use demo data');
-      return;
-    }
-
     setState(() => _isLoading = true);
 
     try {
@@ -284,13 +269,6 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   }
 
   Future<void> _populateSparePartsData() async {
-    // Check test mode before proceeding
-    final isTestMode = ref.read(testModeProvider);
-    if (!isTestMode) {
-      _showError('Test mode must be enabled to use demo data');
-      return;
-    }
-
     setState(() => _isLoading = true);
 
     try {
@@ -370,13 +348,6 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   }
 
   Future<void> _clearDemoErrors() async {
-    // Check test mode before proceeding
-    final isTestMode = ref.read(testModeProvider);
-    if (!isTestMode) {
-      _showError('Test mode must be enabled to manage demo data');
-      return;
-    }
-
     // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
@@ -421,13 +392,6 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
 
   // Client Demo Data Methods
   Future<void> _populateClientDemoData() async {
-    // Check test mode before proceeding
-    final isTestMode = ref.read(testModeProvider);
-    if (!isTestMode) {
-      _showError('Test mode must be enabled to use demo data');
-      return;
-    }
-
     setState(() => _isLoading = true);
 
     try {
@@ -454,13 +418,6 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
   }
 
   Future<void> _clearClientDemoData() async {
-    // Check test mode before proceeding
-    final isTestMode = ref.read(testModeProvider);
-    if (!isTestMode) {
-      _showError('Test mode must be enabled to manage demo data');
-      return;
-    }
-
     // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
@@ -634,118 +591,6 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Test Mode Toggle (Admin/SuperAdmin only)
-            ref.watch(canAccessTestModeProvider).when(
-              data: (canAccess) {
-                if (!canAccess) {
-                  return const SizedBox.shrink();
-                }
-
-                final isTestMode = ref.watch(testModeProvider);
-
-                return Card(
-                  color: isTestMode
-                      ? Colors.orange.withAlpha(25)
-                      : null,
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.science,
-                              color: isTestMode ? Colors.orange : Colors.grey,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 12),
-                            const Text(
-                              'Test Mode',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Spacer(),
-                            Switch(
-                              value: isTestMode,
-                              onChanged: (value) async {
-                                final notifier = ref.read(testModeProvider.notifier);
-                                final success = await notifier.toggleTestMode();
-                                if (!mounted) return;
-                                if (!context.mounted) return;
-                                if (success) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        value
-                                            ? 'Test mode enabled - Demo data will be used'
-                                            : 'Test mode disabled - Using real data',
-                                      ),
-                                      backgroundColor: value ? Colors.orange : Colors.green,
-                                    ),
-                                  );
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Failed to toggle test mode'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              },
-                              activeThumbColor: Colors.orange,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          isTestMode
-                              ? '⚠️ Test mode is ON - Using demo data in dashboards'
-                              : 'Test mode is OFF - Using real production data',
-                          style: TextStyle(
-                            color: isTestMode ? Colors.orange[700] : Colors.grey[600],
-                            fontSize: 14,
-                          ),
-                        ),
-                        if (isTestMode) ...[
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.withAlpha(20),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: Colors.orange.withAlpha(100)),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.warning, color: Colors.orange[700], size: 16),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Demo data buttons are now available below. All dashboards will display test data.',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.orange[700],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                );
-              },
-              loading: () => const SizedBox.shrink(),
-              error: (e, s) => const SizedBox.shrink(),
-            ),
-            const SizedBox(height: 24),
-
             // Global System Settings (Admin only)
             hasSystemPermission.when(
               data: (hasPermission) {
@@ -916,16 +761,10 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
               error: (e, s) => const SizedBox.shrink(),
             ),
 
-            // Error Demo Data Section (Admin only + Test Mode)
+            // Error Demo Data Section (Admin only)
             hasSystemPermission.when(
               data: (hasPermission) {
                 if (!hasPermission) {
-                  return const SizedBox.shrink();
-                }
-
-                // Only show demo data buttons when test mode is enabled
-                final isTestMode = ref.watch(testModeProvider);
-                if (!isTestMode) {
                   return const SizedBox.shrink();
                 }
 

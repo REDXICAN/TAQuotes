@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import '../../../products/presentation/screens/products_screen.dart';
 import '../../../spareparts/presentation/screens/spareparts_screen.dart';
-import '../../../stock/presentation/screens/stock_dashboard_screen.dart';
+import '../../../stock/presentation/screens/stock_dashboard_screen_optimized.dart';
 
 /// Catalog Screen with Tabs - Groups Products, Spare Parts, and Stock
 ///
@@ -88,8 +88,8 @@ class _CatalogScreenState extends State<CatalogScreen>
           // Spare Parts Tab - Parts catalog
           SparePartsScreen(),
 
-          // Stock Tab - Warehouse inventory levels
-          StockDashboardScreen(showAppBar: false),
+          // Stock Tab - Warehouse inventory levels (optimized)
+          StockDashboardScreenOptimized(showAppBar: false),
         ],
       ),
     );
