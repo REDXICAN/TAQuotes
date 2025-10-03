@@ -341,3 +341,5 @@ emergency_*.py
 emergency_*.dart
 *_emergency_*
 *emergency*
+add_new_users.dart
+cleanup_products.dart

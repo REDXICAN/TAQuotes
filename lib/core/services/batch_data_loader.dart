@@ -118,7 +118,7 @@ class BatchDataLoader {
       );
 
       return BatchLoadResult(
-        users: results[0] as Map<String, dynamic>,
+        users: results[0],
         allQuotes: results[1] as Map<String, Map<String, dynamic>>,
         clientCounts: results[2] as Map<String, int>,
         loadTimeMs: stopwatch.elapsedMilliseconds,

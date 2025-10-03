@@ -489,42 +489,83 @@ class QuoteDetailScreen extends ConsumerWidget {
   Future<void> _sendQuoteEmail(BuildContext context, WidgetRef ref, Quote quote) async {
     // Show dialog to get recipient email
     final emailController = TextEditingController(text: quote.client?.email ?? '');
+    final messageController = TextEditingController();
     bool attachPdf = true;
     bool attachExcel = false;
-    
+    bool attachSpecSheets = false;
+    bool attachManuals = false;
+
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('Send Quote via Email'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Recipient Email',
-                  hintText: 'Enter email address',
-                  prefixIcon: Icon(Icons.email),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Recipient Email',
+                    hintText: 'Enter email address',
+                    prefixIcon: Icon(Icons.email),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
                 ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 16),
-              CheckboxListTile(
-                title: const Text('Attach PDF'),
-                subtitle: const Text('Include quote as PDF attachment'),
-                value: attachPdf,
-                onChanged: (value) => setState(() => attachPdf = value ?? true),
-                controlAffinity: ListTileControlAffinity.leading,
-              ),
-              CheckboxListTile(
-                title: const Text('Attach Excel'),
-                subtitle: const Text('Include quote as Excel spreadsheet'),
-                value: attachExcel,
-                onChanged: (value) => setState(() => attachExcel = value ?? false),
-                controlAffinity: ListTileControlAffinity.leading,
-              ),
-            ],
+                const SizedBox(height: 16),
+                TextField(
+                  controller: messageController,
+                  decoration: const InputDecoration(
+                    labelText: 'Custom Message (Optional)',
+                    hintText: 'Add a personal message...',
+                    prefixIcon: Icon(Icons.message),
+                  ),
+                  maxLines: 3,
+                  minLines: 2,
+                ),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+                const Text(
+                  'Attachments',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                CheckboxListTile(
+                  title: const Text('Quote PDF'),
+                  subtitle: const Text('Professional quote document'),
+                  value: attachPdf,
+                  onChanged: (value) => setState(() => attachPdf = value ?? true),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  dense: true,
+                ),
+                CheckboxListTile(
+                  title: const Text('Excel Spreadsheet'),
+                  subtitle: const Text('Detailed breakdown with formulas'),
+                  value: attachExcel,
+                  onChanged: (value) => setState(() => attachExcel = value ?? false),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  dense: true,
+                ),
+                CheckboxListTile(
+                  title: const Text('Product Spec Sheets'),
+                  subtitle: const Text('Technical specifications for all products'),
+                  value: attachSpecSheets,
+                  onChanged: (value) => setState(() => attachSpecSheets = value ?? false),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  dense: true,
+                ),
+                CheckboxListTile(
+                  title: const Text('Product Manuals'),
+                  subtitle: const Text('User guides and installation manuals'),
+                  value: attachManuals,
+                  onChanged: (value) => setState(() => attachManuals = value ?? false),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  dense: true,
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -534,8 +575,11 @@ class QuoteDetailScreen extends ConsumerWidget {
             ElevatedButton(
               onPressed: () => Navigator.pop(dialogContext, {
                 'email': emailController.text,
+                'message': messageController.text,
                 'attachPdf': attachPdf,
                 'attachExcel': attachExcel,
+                'attachSpecSheets': attachSpecSheets,
+                'attachManuals': attachManuals,
               }),
               child: const Text('Send Email'),
             ),
@@ -545,10 +589,13 @@ class QuoteDetailScreen extends ConsumerWidget {
     );
 
     if (result == null) return;
-    
+
     final email = result['email'] as String;
+    final customMessage = result['message'] as String?;
     final sendPDF = result['attachPdf'] as bool;
     final sendExcel = result['attachExcel'] as bool;
+    final sendSpecSheets = result['attachSpecSheets'] as bool;
+    final sendManuals = result['attachManuals'] as bool;
     
     // Validate email
     if (email.isEmpty || !email.contains('@')) {
@@ -595,11 +642,23 @@ class QuoteDetailScreen extends ConsumerWidget {
       // Generate HTML content for email body
       final dateFormat = DateFormat('MMMM dd, yyyy');
       final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
-      
+
+      // Add custom message if provided
+      String customMessageHtml = '';
+      if (customMessage != null && customMessage.isNotEmpty) {
+        customMessageHtml = '''
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <p style="margin: 0; color: #333;">${customMessage.replaceAll('\n', '<br/>')}</p>
+          </div>
+        ''';
+      }
+
       String htmlContent = '''
         <h2>Quote #${quote.quoteNumber}</h2>
         <p>Date: ${dateFormat.format(quote.createdAt)}</p>
-        
+
+        $customMessageHtml
+
         <h3>Client Information</h3>
         <p>
           ${quote.client?.company ?? 'N/A'}<br/>
@@ -651,12 +710,54 @@ class QuoteDetailScreen extends ConsumerWidget {
           <strong>Total: ${currencyFormat.format(quote.totalAmount)}</strong>
         </p>
       ''';
+
+      // Add attachment notes if spec sheets or manuals are requested
+      if (sendSpecSheets || sendManuals) {
+        htmlContent += '<hr/>';
+
+        if (sendSpecSheets) {
+          // List products with available spec sheets
+          final productsWithSpecs = quote.items
+              .where((item) => item.product?.pdfUrl != null && item.product!.pdfUrl!.isNotEmpty)
+              .map((item) => item.product!)
+              .toSet();
+
+          if (productsWithSpecs.isNotEmpty) {
+            htmlContent += '''
+              <h3>Available Specification Sheets</h3>
+              <p style="color: #666;">The following specification sheets are available for download:</p>
+              <ul>
+            ''';
+
+            for (final product in productsWithSpecs) {
+              final sku = product.sku ?? product.model;
+              final url = product.pdfUrl!;
+              htmlContent += '''
+                <li>
+                  <strong>$sku - ${product.displayName}</strong><br/>
+                  <a href="$url" style="color: #1976d2;">Download Specification Sheet</a>
+                </li>
+              ''';
+            }
+
+            htmlContent += '</ul>';
+          }
+        }
+
+        if (sendManuals) {
+          htmlContent += '''
+            <p style="color: #666; font-style: italic;">
+              Note: Product user manuals will be available soon. Please contact sales for immediate assistance.
+            </p>
+          ''';
+        }
+      }
       
       // Prepare attachments
       List<Attachment>? attachments;
-      if (sendPDF || sendExcel) {
+      if (sendPDF || sendExcel || sendSpecSheets || sendManuals) {
         attachments = [];
-        
+
         if (sendPDF) {
           try {
             final pdfBytes = await ExportService.generateQuotePDF(quote.id ?? '');
@@ -669,7 +770,7 @@ class QuoteDetailScreen extends ConsumerWidget {
             AppLogger.error('Failed to generate PDF', error: e, category: LogCategory.business);
           }
         }
-        
+
         if (sendExcel) {
           try {
             final excelBytes = await ExportService.generateQuoteExcel(quote.id ?? '');
@@ -681,6 +782,34 @@ class QuoteDetailScreen extends ConsumerWidget {
           } catch (e) {
             AppLogger.error('Failed to generate Excel', error: e, category: LogCategory.business);
           }
+        }
+
+        // Attach spec sheets for products with PDF URLs
+        if (sendSpecSheets) {
+          final productsWithSpecs = quote.items
+              .where((item) => item.product?.pdfUrl != null && item.product!.pdfUrl!.isNotEmpty)
+              .map((item) => item.product!)
+              .toSet(); // Use Set to avoid duplicates
+
+          for (final product in productsWithSpecs) {
+            try {
+              // For now, we'll add a note about spec sheets in the email
+              // In a real implementation, you would download the PDF from the URL
+              // and attach it to the email
+              AppLogger.info('Would attach spec sheet for ${product.sku}: ${product.pdfUrl}',
+                category: LogCategory.business);
+            } catch (e) {
+              AppLogger.error('Failed to attach spec sheet for ${product.sku}',
+                error: e, category: LogCategory.business);
+            }
+          }
+        }
+
+        // Attach manuals (placeholder for future implementation)
+        if (sendManuals) {
+          // When manualUrl is added to Product model, similar logic to spec sheets
+          AppLogger.info('Manual attachments requested but not yet implemented',
+            category: LogCategory.business);
         }
       }
       

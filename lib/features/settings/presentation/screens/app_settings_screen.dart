@@ -13,6 +13,7 @@ import '../../../../core/utils/admin_client_checker.dart';
 import '../../../../core/providers/test_mode_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
+import '../../../admin/presentation/widgets/email_template_editor.dart';
 
 // Provider for app settings
 final appSettingsProvider = StreamProvider<Map<String, dynamic>>((ref) {
@@ -1291,6 +1292,10 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
               ),
             ),
 
+            const SizedBox(height: 24),
+
+            // Email Template Editor Section (All Users)
+            const EmailTemplateEditor(),
             const SizedBox(height: 24),
 
             // Backup Management Section (All Users)

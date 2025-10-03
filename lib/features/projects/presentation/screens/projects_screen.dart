@@ -11,6 +11,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/projects_provider.dart';
 import '../widgets/project_card.dart';
 import '../widgets/project_form_dialog.dart';
+import 'project_detail_screen.dart';
 
 class ProjectsScreen extends ConsumerStatefulWidget {
   const ProjectsScreen({super.key});
@@ -23,6 +24,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
   String? _selectedStatus;
+  String? _selectedSalesperson;
   String _sortBy = 'date'; // date, name, value, client
 
   @override
@@ -57,6 +59,13 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
     // Filter by status
     if (_selectedStatus != null) {
       filtered = filtered.where((p) => p.status == _selectedStatus).toList();
+    }
+
+    // Filter by salesperson
+    if (_selectedSalesperson != null && _selectedSalesperson!.isNotEmpty) {
+      filtered = filtered.where((p) =>
+        p.personInCharge.toLowerCase().contains(_selectedSalesperson!.toLowerCase())
+      ).toList();
     }
 
     // Sort
@@ -153,6 +162,80 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
         );
       }
     }
+  }
+
+  void _showSalespersonFilterDialog() {
+    final projectsAsync = ref.read(projectsProvider);
+
+    projectsAsync.when(
+      data: (projects) {
+        // Extract unique salesperson names
+        final salespersons = projects
+            .map((p) => p.personInCharge)
+            .where((name) => name.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Filter by Salesperson'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    title: const Text('All Salespersons'),
+                    leading: Radio<String?>(
+                      value: null,
+                      // ignore: deprecated_member_use
+                      groupValue: _selectedSalesperson,
+                      // ignore: deprecated_member_use
+                      onChanged: (value) {
+                        setState(() => _selectedSalesperson = value);
+                        Navigator.pop(context);
+                      },
+                    ),
+                    onTap: () {
+                      setState(() => _selectedSalesperson = null);
+                      Navigator.pop(context);
+                    },
+                  ),
+                  ...salespersons.map((salesperson) {
+                    return ListTile(
+                      title: Text(salesperson),
+                      leading: Radio<String?>(
+                        value: salesperson,
+                        // ignore: deprecated_member_use
+                        groupValue: _selectedSalesperson,
+                        // ignore: deprecated_member_use
+                        onChanged: (value) {
+                          setState(() => _selectedSalesperson = value);
+                          Navigator.pop(context);
+                        },
+                      ),
+                      onTap: () {
+                        setState(() => _selectedSalesperson = salesperson);
+                        Navigator.pop(context);
+                      },
+                    );
+                  }),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () {},
+      error: (_, __) {},
+    );
   }
 
   Future<void> _deleteProject(Project project) async {
@@ -261,6 +344,15 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                       },
                     ),
 
+                    // Salesperson Filter
+                    FilterChip(
+                      label: Text(_selectedSalesperson ?? 'All Salespersons'),
+                      selected: _selectedSalesperson != null,
+                      onSelected: (selected) {
+                        _showSalespersonFilterDialog();
+                      },
+                    ),
+
                     // Sort Dropdown
                     DropdownButton<String>(
                       value: _sortBy,
@@ -358,9 +450,13 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                     return ProjectCard(
                       project: project,
                       onTap: () {
-                        // Navigate to project detail (if needed)
-                        // For now, open edit dialog
-                        _showProjectForm(project: project);
+                        // Navigate to project detail screen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ProjectDetailScreen(project: project),
+                          ),
+                        );
                       },
                       onEdit: () => _showProjectForm(project: project),
                       onDelete: () => _deleteProject(project),

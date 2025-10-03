@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/utils/input_validators.dart';
 import '../../../../core/services/validation_service.dart';
@@ -69,7 +71,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
 
         if (error == null && mounted) {
-          context.go('/');
+          // Check if user must change password
+          final user = FirebaseAuth.instance.currentUser;
+          if (user != null) {
+            final database = FirebaseDatabase.instance;
+            final userSnapshot = await database.ref('users/${user.uid}/mustChangePassword').get();
+
+            if (userSnapshot.exists && userSnapshot.value == true) {
+              // User must change password
+              if (mounted) context.go('/auth/force-password-change');
+            } else {
+              // Successfully signed in, navigate to home
+              if (mounted) context.go('/');
+            }
+          } else {
+            // Successfully signed in, navigate to home
+            if (mounted) context.go('/');
+          }
         }
       }
 

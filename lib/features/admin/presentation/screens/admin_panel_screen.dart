@@ -9,6 +9,8 @@ import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../widgets/backup_status_widget.dart';
+import '../widgets/enhanced_backup_widget.dart';
+import '../widgets/delete_product_lines_widget.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/services/export_service.dart';
 import '../../../../core/utils/download_helper.dart';
@@ -1071,6 +1073,10 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
           ),
           const SizedBox(height: 24),
 
+          // Enhanced Backup Widget - Full database export/import
+          const EnhancedBackupWidget(),
+          const SizedBox(height: 24),
+
           // Backup Status Section
           const BackupStatusWidget(),
           const SizedBox(height: 24),
@@ -1085,6 +1091,10 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
 
           // Shipment Tracking Import
           const TrackingImportWidget(),
+          const SizedBox(height: 24),
+
+          // Delete Product Lines Widget
+          const DeleteProductLinesWidget(),
           const SizedBox(height: 24),
 
           // Export data

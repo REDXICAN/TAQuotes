@@ -61,17 +61,7 @@ class InputValidators {
       return 'Password must contain uppercase, lowercase, numbers, and special characters';
     }
 
-    // Check for common weak passwords
-    final weakPasswords = [
-      'password', 'Password123!', '12345678', 'qwerty123',
-      'admin123', 'letmein123', 'welcome123'
-    ];
-
-    for (final weak in weakPasswords) {
-      if (value.toLowerCase().contains(weak.toLowerCase())) {
-        return 'Password is too common. Please choose a stronger password';
-      }
-    }
+    // Removed common password pattern check as requested
 
     return null;
   }

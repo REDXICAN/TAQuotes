@@ -18,6 +18,7 @@ import '../../../../core/utils/download_helper.dart';
 import '../../../../core/widgets/app_bar_with_client.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/providers/client_providers.dart'; // For selectedClientProvider and cartClientProvider
+import 'client_profile_screen.dart';
 
 // Clients provider using StreamProvider for real-time updates
 final clientsProvider = StreamProvider.autoDispose<List<Client>>((ref) {
@@ -921,6 +922,12 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     TextButton.icon(
+                                      onPressed: () => _viewClientProfile(client),
+                                      icon: const Icon(Icons.person, size: 18),
+                                      label: const Text('View Profile'),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    TextButton.icon(
                                       onPressed: () => _editClient(client),
                                       icon: const Icon(Icons.edit, size: 18),
                                       label: const Text('Edit'),
@@ -1474,6 +1481,20 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
           ),
         );
       }
+    }
+  }
+
+  void _viewClientProfile(Client client) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ClientProfileScreen(client: client),
+      ),
+    );
+
+    // If user chose to edit from profile, handle it
+    if (result != null && result is Map && result['action'] == 'edit') {
+      _editClient(result['client'] as Client);
     }
   }
 

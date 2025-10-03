@@ -1,11 +1,13 @@
 // lib/features/products/presentation/screens/products_screen.dart
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:excel/excel.dart' as excel;
 import '../../../../core/models/models.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/widgets/simple_image_widget.dart';
@@ -15,6 +17,7 @@ import '../../../../core/services/app_logger.dart';
 import '../../../../core/services/rbac_service.dart';
 import '../../../../core/utils/warehouse_utils.dart';
 import '../../../../core/providers/providers.dart';
+import '../../../../core/utils/download_helper.dart';
 import '../../widgets/excel_preview_dialog.dart';
 import '../../widgets/import_progress_dialog.dart';
 
@@ -297,6 +300,182 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> with SingleTick
     }).toList();
   }
 
+  Future<void> _handleCatalogExport(String exportType) async {
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: 16),
+              Text('Preparing $exportType export...'),
+            ],
+          ),
+          duration: const Duration(seconds: 30),
+        ),
+      );
+
+      final productsAsync = ref.read(productsProvider(null));
+
+      // Handle AsyncValue properly
+      final List<Product> products;
+      if (productsAsync is AsyncData<List<Product>>) {
+        products = productsAsync.value;
+      } else {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Products are still loading, please try again')),
+        );
+        return;
+      }
+
+      if (exportType == 'specs') {
+        // Create a list of products with spec sheet URLs
+        final productsWithSpecs = products
+            .where((p) => p.pdfUrl != null && p.pdfUrl!.isNotEmpty)
+            .toList();
+
+        if (productsWithSpecs.isEmpty) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No specification sheets available')),
+          );
+          return;
+        }
+
+        // Create HTML file with links to all spec sheets
+        String htmlContent = '''
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Product Specification Sheets</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    a { color: #1976d2; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>Available Product Specification Sheets</h1>
+  <p>Total: ${productsWithSpecs.length} products with spec sheets</p>
+  <table>
+    <tr>
+      <th>SKU</th>
+      <th>Product Name</th>
+      <th>Category</th>
+      <th>Download Link</th>
+    </tr>
+''';
+
+        for (final product in productsWithSpecs) {
+          final sku = product.sku ?? product.model;
+          htmlContent += '''
+    <tr>
+      <td>$sku</td>
+      <td>${product.displayName}</td>
+      <td>${product.category}</td>
+      <td><a href="${product.pdfUrl}" target="_blank">Download PDF</a></td>
+    </tr>
+''';
+        }
+
+        htmlContent += '''
+  </table>
+</body>
+</html>
+''';
+
+        // Download the HTML file
+        final bytes = htmlContent.codeUnits;
+        await DownloadHelper.downloadFile(
+          bytes: Uint8List.fromList(bytes),
+          filename: 'spec_sheets_catalog_${DateTime.now().millisecondsSinceEpoch}.html',
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Exported ${productsWithSpecs.length} specification sheets')),
+          );
+        }
+
+      } else if (exportType == 'manuals') {
+        // For now, show message that manuals are not yet available
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Product manuals catalog will be available soon'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+
+      } else if (exportType == 'catalog') {
+        // Export full product catalog as Excel
+        final excelFile = excel.Excel.createExcel();
+        final sheet = excelFile['Products'];
+
+        // Add headers
+        sheet.appendRow([
+          excel.TextCellValue('SKU'),
+          excel.TextCellValue('Model'),
+          excel.TextCellValue('Name'),
+          excel.TextCellValue('Category'),
+          excel.TextCellValue('Price'),
+          excel.TextCellValue('Stock'),
+          excel.TextCellValue('Spec Sheet'),
+          excel.TextCellValue('Description'),
+        ]);
+
+        // Add product data
+        for (final product in products) {
+          sheet.appendRow([
+            excel.TextCellValue(product.sku ?? ''),
+            excel.TextCellValue(product.model),
+            excel.TextCellValue(product.displayName),
+            excel.TextCellValue(product.category),
+            excel.DoubleCellValue(product.price),
+            excel.IntCellValue(product.stock),
+            excel.TextCellValue(product.pdfUrl ?? 'N/A'),
+            excel.TextCellValue(product.description),
+          ]);
+        }
+
+        // Generate Excel file
+        final excelBytes = excelFile.save();
+        if (excelBytes != null) {
+          await DownloadHelper.downloadFile(
+            bytes: Uint8List.fromList(excelBytes),
+            filename: 'product_catalog_${DateTime.now().millisecondsSinceEpoch}.xlsx',
+          );
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Exported ${products.length} products to Excel')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      AppLogger.error('Catalog export error', error: e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error exporting catalog: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   // Filter products by warehouse availability
   List<Product> _filterByWarehouse(List<Product> products, String? warehouse) {
     if (warehouse == null) return products;
@@ -524,6 +703,41 @@ Future<void> _handleExcelUpload() async {
         title: 'Products',
         elevation: 0,
         actions: [
+          // Catalog Export Button - Available to all users
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.download, color: Colors.white),
+            tooltip: 'Export Catalog',
+            onSelected: (value) => _handleCatalogExport(value),
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'specs',
+                child: ListTile(
+                  leading: Icon(Icons.article_outlined),
+                  title: Text('Download All Spec Sheets'),
+                  subtitle: Text('Export list of available specifications'),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'manuals',
+                child: ListTile(
+                  leading: Icon(Icons.menu_book_outlined),
+                  title: Text('Download All Manuals'),
+                  subtitle: Text('Export list of available manuals'),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'catalog',
+                child: ListTile(
+                  leading: Icon(Icons.library_books_outlined),
+                  title: Text('Export Product Catalog'),
+                  subtitle: Text('Excel file with all products'),
+                  dense: true,
+                ),
+              ),
+            ],
+          ),
           // Excel Import Button - Only for Admin and SuperAdmin
           FutureBuilder<bool>(
             future: RBACService.hasPermission('import_products'),
@@ -562,11 +776,15 @@ Future<void> _handleExcelUpload() async {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
             child: TextField(
               controller: _searchController,
-              style: theme.textTheme.bodyMedium,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.brightness == Brightness.light ? Colors.black : Colors.white,
+              ),
               decoration: InputDecoration(
                 hintText: 'Search by SKU, category or description',
-                hintStyle: theme.inputDecorationTheme.hintStyle,
-                prefixIcon: const Icon(Icons.search),
+                hintStyle: theme.inputDecorationTheme.hintStyle?.copyWith(
+                  color: theme.brightness == Brightness.light ? Colors.grey[600] : Colors.grey[400],
+                ),
+                prefixIcon: Icon(Icons.search, color: theme.brightness == Brightness.light ? Colors.grey[700] : Colors.grey[300]),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),

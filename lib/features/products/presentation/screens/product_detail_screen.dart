@@ -782,6 +782,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       const SizedBox(height: 16),
 
                       _buildSpecSection(product),
+                      const SizedBox(height: 24),
+
+                      // Document Downloads Section
+                      _buildDocumentDownloadsSection(product),
                               ],
                             ),
                           ),
@@ -1393,8 +1397,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           const SizedBox(height: 16),
 
                           _buildSpecSection(product),
+                          const SizedBox(height: 24),
+
+                          // Document Downloads Section
+                          _buildDocumentDownloadsSection(product),
                           const SizedBox(height: 32),
-                          
+
                           // Product Images section - placed below specifications
                           Text(
                             'Product Images',
@@ -1517,5 +1525,157 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         );
       }).toList(),
     );
+  }
+
+  Widget _buildDocumentDownloadsSection(Product product) {
+    final theme = Theme.of(context);
+
+    // Check if product has spec sheet or manual URLs
+    final hasSpecSheet = product.pdfUrl != null && product.pdfUrl!.isNotEmpty;
+    final hasManual = false; // We'll need to add a manualUrl field to Product model later
+
+    if (!hasSpecSheet && !hasManual) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.description, color: theme.primaryColor),
+            const SizedBox(width: 8),
+            Text(
+              'Product Documents',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                if (hasSpecSheet) ...[
+                  _buildDocumentDownloadTile(
+                    title: 'Specification Sheet',
+                    subtitle: 'Technical specifications and dimensions',
+                    icon: Icons.article_outlined,
+                    onTap: () => _downloadDocument(product.pdfUrl!, 'SpecSheet_${product.sku ?? product.model}.pdf'),
+                    color: Colors.blue,
+                  ),
+                ],
+                // Manual support will be added when manualUrl is available in Product model
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDocumentDownloadTile({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required VoidCallback onTap,
+    required Color color,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                Icons.download,
+                color: Theme.of(context).primaryColor,
+                size: 20,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _downloadDocument(String url, String fileName) async {
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              SizedBox(width: 16),
+              Text('Downloading document...'),
+            ],
+          ),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Try to launch the URL directly in browser for download
+      final Uri uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Could not download document';
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error downloading document: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

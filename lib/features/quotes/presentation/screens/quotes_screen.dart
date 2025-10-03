@@ -128,6 +128,12 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
   bool _groupByProject = false;
   bool _showArchived = false;
 
+  // Additional filter state
+  String? _selectedCustomerId;
+  String? _selectedCustomerName;
+  String? _selectedProjectId;
+  String? _selectedProjectName;
+
   // Multi-select state
   final Set<String> _selectedQuoteIds = <String>{};
   bool _isMultiSelectMode = false;
@@ -240,11 +246,190 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
+                          // Status filters
                           _buildFilterChip('All', 'all'),
                           const SizedBox(width: 8),
                           _buildFilterChip('Draft', 'draft'),
                           const SizedBox(width: 8),
                           _buildFilterChip('Sent', 'sent'),
+                          const SizedBox(width: 16),
+
+                          // Customer filter
+                          PopupMenuButton<String>(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: _selectedCustomerId != null
+                                    ? theme.primaryColor
+                                    : theme.dividerColor,
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                                color: _selectedCustomerId != null
+                                  ? theme.primaryColor.withValues(alpha: 0.1)
+                                  : null,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.person, size: 16),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _selectedCustomerName ?? 'All Customers',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: _selectedCustomerId != null
+                                        ? theme.primaryColor
+                                        : null,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.arrow_drop_down, size: 18),
+                                ],
+                              ),
+                            ),
+                            onSelected: (value) {
+                              setState(() {
+                                if (value == 'all') {
+                                  _selectedCustomerId = null;
+                                  _selectedCustomerName = null;
+                                } else {
+                                  _selectedCustomerId = value;
+                                  // Find customer name from quotes
+                                  final quotes = ref.read(quotesProvider(_showArchived)).value ?? [];
+                                  final quote = quotes.firstWhere(
+                                    (q) => q.clientId == value,
+                                    orElse: () => quotes.first,
+                                  );
+                                  _selectedCustomerName = quote.client?.company ?? 'Unknown';
+                                }
+                              });
+                            },
+                            itemBuilder: (context) {
+                              final quotes = ref.read(quotesProvider(_showArchived)).value ?? [];
+                              final uniqueClients = <String, String>{};
+
+                              for (final quote in quotes) {
+                                if (quote.client != null) {
+                                  uniqueClients[quote.clientId] = quote.client!.company;
+                                }
+                              }
+
+                              return [
+                                const PopupMenuItem(
+                                  value: 'all',
+                                  child: Text('All Customers'),
+                                ),
+                                const PopupMenuDivider(),
+                                ...uniqueClients.entries.map((entry) => PopupMenuItem(
+                                  value: entry.key,
+                                  child: Text(entry.value),
+                                )),
+                              ];
+                            },
+                          ),
+                          const SizedBox(width: 8),
+
+                          // Project filter
+                          PopupMenuButton<String>(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: _selectedProjectId != null
+                                    ? theme.primaryColor
+                                    : theme.dividerColor,
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                                color: _selectedProjectId != null
+                                  ? theme.primaryColor.withValues(alpha: 0.1)
+                                  : null,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.folder, size: 16),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _selectedProjectName ?? 'All Projects',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: _selectedProjectId != null
+                                        ? theme.primaryColor
+                                        : null,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.arrow_drop_down, size: 18),
+                                ],
+                              ),
+                            ),
+                            onSelected: (value) {
+                              setState(() {
+                                if (value == 'all') {
+                                  _selectedProjectId = null;
+                                  _selectedProjectName = null;
+                                } else {
+                                  _selectedProjectId = value;
+                                  // Find project name from quotes
+                                  final quotes = ref.read(quotesProvider(_showArchived)).value ?? [];
+                                  final quote = quotes.firstWhere(
+                                    (q) => q.projectId == value,
+                                    orElse: () => quotes.first,
+                                  );
+                                  _selectedProjectName = quote.projectName ?? 'Unknown';
+                                }
+                              });
+                            },
+                            itemBuilder: (context) {
+                              final quotes = ref.read(quotesProvider(_showArchived)).value ?? [];
+                              final uniqueProjects = <String, String>{};
+
+                              for (final quote in quotes) {
+                                if (quote.projectId != null && quote.projectName != null) {
+                                  uniqueProjects[quote.projectId!] = quote.projectName!;
+                                }
+                              }
+
+                              if (uniqueProjects.isEmpty) {
+                                return [
+                                  const PopupMenuItem(
+                                    value: 'all',
+                                    child: Text('No Projects'),
+                                  ),
+                                ];
+                              }
+
+                              return [
+                                const PopupMenuItem(
+                                  value: 'all',
+                                  child: Text('All Projects'),
+                                ),
+                                const PopupMenuDivider(),
+                                ...uniqueProjects.entries.map((entry) => PopupMenuItem(
+                                  value: entry.key,
+                                  child: Text(entry.value),
+                                )),
+                              ];
+                            },
+                          ),
+                          const SizedBox(width: 16),
+
+                          // Clear filters button
+                          if (_selectedCustomerId != null || _selectedProjectId != null)
+                            IconButton(
+                              icon: const Icon(Icons.clear_all, size: 20),
+                              onPressed: () {
+                                setState(() {
+                                  _selectedCustomerId = null;
+                                  _selectedCustomerName = null;
+                                  _selectedProjectId = null;
+                                  _selectedProjectName = null;
+                                });
+                              },
+                              tooltip: 'Clear all filters',
+                            ),
+
                           const SizedBox(width: 16),
                           // Group by project toggle
                           Container(
@@ -390,11 +575,23 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                 // Filter quotes
                 var filteredQuotes = quotes;
 
+                // Apply status filter
                 if (_filterStatus != 'all') {
                   filteredQuotes =
                       quotes.where((q) => q.status == _filterStatus).toList();
                 }
 
+                // Apply customer filter
+                if (_selectedCustomerId != null) {
+                  filteredQuotes = filteredQuotes.where((q) => q.clientId == _selectedCustomerId).toList();
+                }
+
+                // Apply project filter
+                if (_selectedProjectId != null) {
+                  filteredQuotes = filteredQuotes.where((q) => q.projectId == _selectedProjectId).toList();
+                }
+
+                // Keep the old _filterProjectId logic for backward compatibility
                 if (_filterProjectId != null) {
                   filteredQuotes = filteredQuotes.where((q) => q.projectId == _filterProjectId).toList();
                 }

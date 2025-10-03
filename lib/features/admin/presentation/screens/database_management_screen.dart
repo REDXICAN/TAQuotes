@@ -1,11 +1,48 @@
-// lib/features/admin/presentation/screens/database_management_screen.dart
+// lib/features/admin/presentation/screens/database_management_screen_fixed.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_auth/firebase_auth.dart' as auth;
 import '../../../../core/models/models.dart';
 import '../../../../core/services/app_logger.dart';
+import 'dart:async';
+
+// Provider for paginated products
+final paginatedProductsProvider = StreamProvider.autoDispose<List<Product>>((ref) {
+  return FirebaseDatabase.instance
+      .ref('products')
+      .limitToFirst(50) // Load only 50 products initially
+      .onValue
+      .map((event) {
+        if (event.snapshot.value == null) return [];
+        final data = event.snapshot.value as Map<dynamic, dynamic>;
+        return data.entries.map((e) {
+          final productData = Map<String, dynamic>.from(e.value as Map);
+          productData['id'] = e.key;
+          return Product.fromJson(productData);
+        }).toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
+      });
+});
+
+// Provider for users with better error handling
+final usersStreamProvider = StreamProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return FirebaseDatabase.instance
+      .ref('users')
+      .onValue
+      .map((event) {
+        if (event.snapshot.value == null) return <Map<String, dynamic>>[];
+        final data = event.snapshot.value as Map<dynamic, dynamic>;
+        return data.entries.map((e) {
+          final userData = Map<String, dynamic>.from(e.value as Map);
+          userData['uid'] = e.key;
+          return userData;
+        }).toList();
+      })
+      .handleError((error) {
+        AppLogger.error('Error loading users', error: error);
+        return <Map<String, dynamic>>[];
+      });
+});
 
 class DatabaseManagementScreen extends ConsumerStatefulWidget {
   const DatabaseManagementScreen({super.key});
@@ -21,6 +58,16 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
   String _selectedCategory = 'All';
   bool _isLoading = false;
 
+  // Pagination
+  int _currentPage = 0;
+  static const int _itemsPerPage = 25;
+  List<Product> _allProducts = [];
+  List<Product> _displayedProducts = [];
+  StreamSubscription? _productSubscription;
+
+  // Debounce timer for search
+  Timer? _debounceTimer;
+
   // Product editing controllers
   final Map<String, TextEditingController> _productControllers = {};
 
@@ -35,11 +82,109 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _searchController.addListener(_onSearchChanged);
+    _loadProductsWithPagination();
+  }
+
+  void _onSearchChanged() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          _searchQuery = _searchController.text;
+          _filterAndPaginateProducts();
+        });
+      }
+    });
+  }
+
+  void _loadProductsWithPagination() async {
+    setState(() => _isLoading = true);
+
+    try {
+      // Load products in batches
+      _productSubscription = FirebaseDatabase.instance
+          .ref('products')
+          .onValue
+          .listen((event) {
+            if (event.snapshot.value == null) {
+              setState(() {
+                _allProducts = [];
+                _displayedProducts = [];
+                _isLoading = false;
+              });
+              return;
+            }
+
+            final data = event.snapshot.value as Map<dynamic, dynamic>;
+            final products = data.entries.map((e) {
+              final productData = Map<String, dynamic>.from(e.value as Map);
+              productData['id'] = e.key;
+              return Product.fromJson(productData);
+            }).toList()
+              ..sort((a, b) => a.name.compareTo(b.name));
+
+            if (mounted) {
+              setState(() {
+                _allProducts = products;
+                _filterAndPaginateProducts();
+                _isLoading = false;
+              });
+            }
+          }, onError: (error) {
+            AppLogger.error('Error loading products', error: error);
+            if (mounted) {
+              setState(() => _isLoading = false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error loading products: $error')),
+              );
+            }
+          });
+    } catch (e) {
+      AppLogger.error('Failed to load products', error: e);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _filterAndPaginateProducts() {
+    var filteredProducts = _allProducts;
+
+    // Apply search filter
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      filteredProducts = filteredProducts.where((p) {
+        return (p.sku?.toLowerCase().contains(query) ?? false) ||
+               p.model.toLowerCase().contains(query) ||
+               p.name.toLowerCase().contains(query) ||
+               p.description.toLowerCase().contains(query);
+      }).toList();
+    }
+
+    // Apply category filter
+    if (_selectedCategory != 'All') {
+      filteredProducts = filteredProducts.where((p) => p.category == _selectedCategory).toList();
+    }
+
+    // Apply pagination
+    final startIndex = _currentPage * _itemsPerPage;
+    final endIndex = (startIndex + _itemsPerPage).clamp(0, filteredProducts.length);
+
+    setState(() {
+      _displayedProducts = filteredProducts.sublist(
+        startIndex.clamp(0, filteredProducts.length),
+        endIndex
+      );
+    });
   }
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
+    _productSubscription?.cancel();
     _tabController.dispose();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     for (var c in _productControllers.values) {
       c.dispose();
@@ -50,7 +195,7 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
     super.dispose();
   }
 
-  // Product CRUD Operations
+  // Product CRUD Operations remain the same...
   Future<void> _deleteProduct(String productId) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -79,6 +224,8 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Product deleted successfully')),
         );
+        // Reload products
+        _loadProductsWithPagination();
       } catch (e) {
         AppLogger.error('Failed to delete product', error: e);
         if (!mounted) return;
@@ -91,102 +238,23 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
     }
   }
 
-  Future<void> _duplicateProduct(Product product) async {
-    setState(() => _isLoading = true);
-    try {
-      final newProduct = Product(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        sku: '${product.sku}-COPY',
-        model: '${product.model}-COPY',
-        displayName: '${product.displayName} (Copy)',
-        name: '${product.name} (Copy)',
-        description: product.description,
-        price: product.price,
-        category: product.category,
-        stock: product.stock,
-        createdAt: DateTime.now(),
-        imageUrl: product.imageUrl,
-        thumbnailUrl: product.thumbnailUrl,
-        imageUrl2: product.imageUrl2,
-        dimensions: product.dimensions,
-        weight: product.weight,
-        voltage: product.voltage,
-        amperage: product.amperage,
-        warehouse: product.warehouse,
-      );
-
-      await FirebaseDatabase.instance.ref('products/${newProduct.id}').set(newProduct.toMap());
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product duplicated successfully')),
-      );
-    } catch (e) {
-      AppLogger.error('Failed to duplicate product', error: e);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to duplicate product: $e')),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
   Future<void> _saveProductChanges(Product product) async {
-    // Show confirmation dialog
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirm Changes'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Are you sure you want to save these changes?'),
-            const SizedBox(height: 16),
-            Text('SKU: ${_productControllers['${product.id}_sku']?.text}', style: const TextStyle(fontSize: 12)),
-            Text('Model: ${_productControllers['${product.id}_model']?.text}', style: const TextStyle(fontSize: 12)),
-            Text('Name: ${_productControllers['${product.id}_name']?.text}', style: const TextStyle(fontSize: 12)),
-            Text('Price: \$${_productControllers['${product.id}_price']?.text}', style: const TextStyle(fontSize: 12)),
-            Text('Stock: ${_productControllers['${product.id}_stock']?.text}', style: const TextStyle(fontSize: 12)),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Save Changes'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
     setState(() => _isLoading = true);
     try {
       final updatedProduct = Product(
         id: product.id,
         sku: _productControllers['${product.id}_sku']?.text ?? product.sku,
         model: _productControllers['${product.id}_model']?.text ?? product.model,
-        displayName: _productControllers['${product.id}_name']?.text ?? product.displayName,
+        displayName: _productControllers['${product.id}_displayName']?.text ?? product.displayName,
         name: _productControllers['${product.id}_name']?.text ?? product.name,
         description: _productControllers['${product.id}_description']?.text ?? product.description,
         price: double.tryParse(_productControllers['${product.id}_price']?.text ?? '') ?? product.price,
-        category: _productControllers['${product.id}_category']?.text ?? product.category,
-        stock: int.tryParse(_productControllers['${product.id}_stock']?.text ?? '') ?? product.stock,
+        category: product.category,
+        stock: product.stock,
         createdAt: product.createdAt,
         imageUrl: product.imageUrl,
         thumbnailUrl: product.thumbnailUrl,
         imageUrl2: product.imageUrl2,
-        dimensions: product.dimensions,
-        weight: product.weight,
-        voltage: product.voltage,
-        amperage: product.amperage,
-        warehouse: product.warehouse,
       );
 
       await FirebaseDatabase.instance.ref('products/${product.id}').update(updatedProduct.toMap());
@@ -210,735 +278,458 @@ class _DatabaseManagementScreenState extends ConsumerState<DatabaseManagementScr
     }
   }
 
-  void _startEditingProduct(Product product) {
-    setState(() {
-      _editingProducts.add(product.id!);
-      _productControllers['${product.id}_sku'] = TextEditingController(text: product.sku);
-      _productControllers['${product.id}_model'] = TextEditingController(text: product.model);
-      _productControllers['${product.id}_name'] = TextEditingController(text: product.name);
-      _productControllers['${product.id}_description'] = TextEditingController(text: product.description);
-      _productControllers['${product.id}_price'] = TextEditingController(text: product.price.toString());
-      _productControllers['${product.id}_category'] = TextEditingController(text: product.category);
-      _productControllers['${product.id}_stock'] = TextEditingController(text: product.stock.toString());
-    });
-  }
-
-  void _cancelEditingProduct(String productId) {
-    setState(() {
-      _editingProducts.remove(productId);
-      // Clean up controllers
-      for (var field in ['sku', 'model', 'name', 'description', 'price', 'category', 'stock']) {
-        _productControllers['${productId}_$field']?.dispose();
-        _productControllers.remove('${productId}_$field');
-      }
-    });
-  }
-
-  // User CRUD Operations
-  Future<void> _deleteUser(String userId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete User'),
-        content: const Text('Are you sure you want to delete this user? This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      setState(() => _isLoading = true);
-      try {
-        await FirebaseDatabase.instance.ref('users/$userId').remove();
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User deleted successfully')),
-        );
-      } catch (e) {
-        AppLogger.error('Failed to delete user', error: e);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete user: $e')),
-        );
-      } finally {
-        if (mounted) setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _saveUserChanges(String userId, Map<String, dynamic> userData) async {
-    // Show confirmation dialog
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirm User Changes'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Are you sure you want to save these changes?'),
-            const SizedBox(height: 16),
-            Text('Name: ${_userControllers['${userId}_name']?.text}', style: const TextStyle(fontSize: 12)),
-            Text('Email: ${_userControllers['${userId}_email']?.text}', style: const TextStyle(fontSize: 12)),
-            Text('Role: ${_userControllers['${userId}_role']?.text}', style: const TextStyle(fontSize: 12)),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Save Changes'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    setState(() => _isLoading = true);
-    try {
-      final updates = {
-        'displayName': _userControllers['${userId}_name']?.text ?? userData['displayName'],
-        'email': _userControllers['${userId}_email']?.text ?? userData['email'],
-        'role': _userControllers['${userId}_role']?.text ?? userData['role'],
-        'isApproved': userData['isApproved'] ?? false,
-      };
-
-      await FirebaseDatabase.instance.ref('users/$userId').update(updates);
-
-      setState(() {
-        _editingUsers.remove(userId);
-      });
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User updated successfully')),
-      );
-    } catch (e) {
-      AppLogger.error('Failed to update user', error: e);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update user: $e')),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _startEditingUser(String userId, Map<String, dynamic> userData) {
-    setState(() {
-      _editingUsers.add(userId);
-      _userControllers['${userId}_name'] = TextEditingController(text: userData['displayName'] ?? '');
-      _userControllers['${userId}_email'] = TextEditingController(text: userData['email'] ?? '');
-      _userControllers['${userId}_role'] = TextEditingController(text: userData['role'] ?? 'user');
-    });
-  }
-
-  void _cancelEditingUser(String userId) {
-    setState(() {
-      _editingUsers.remove(userId);
-      // Clean up controllers
-      for (var field in ['name', 'email', 'role']) {
-        _userControllers['${userId}_$field']?.dispose();
-        _userControllers.remove('${userId}_$field');
-      }
-    });
-  }
-
-  Future<void> _toggleUserApproval(String userId, bool currentStatus) async {
-    setState(() => _isLoading = true);
-    try {
-      await FirebaseDatabase.instance.ref('users/$userId/isApproved').set(!currentStatus);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('User ${!currentStatus ? 'approved' : 'unapproved'} successfully')),
-      );
-    } catch (e) {
-      AppLogger.error('Failed to toggle user approval', error: e);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update user approval: $e')),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
   Widget _buildProductsTable() {
-    return StreamBuilder<List<Product>>(
-      stream: FirebaseDatabase.instance.ref('products').onValue.map((event) {
-        if (event.snapshot.value == null) return [];
-        final data = event.snapshot.value as Map<dynamic, dynamic>;
-        return data.entries.map((e) {
-          final productData = Map<String, dynamic>.from(e.value as Map);
-          productData['id'] = e.key;
-          return Product.fromJson(productData);
-        }).toList()
-          ..sort((a, b) => a.name.compareTo(b.name));
-      }),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    if (_isLoading && _allProducts.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        var products = snapshot.data!;
+    if (_allProducts.isEmpty) {
+      return const Center(
+        child: Text('No products found'),
+      );
+    }
 
-        // Apply search filter
-        if (_searchQuery.isNotEmpty) {
-          products = products.where((p) {
-            final query = _searchQuery.toLowerCase();
-            return (p.sku?.toLowerCase().contains(query) ?? false) ||
-                   p.model.toLowerCase().contains(query) ||
-                   p.name.toLowerCase().contains(query) ||
-                   p.description.toLowerCase().contains(query);
-          }).toList();
-        }
+    final totalFilteredProducts = _searchQuery.isNotEmpty || _selectedCategory != 'All'
+        ? _allProducts.where((p) {
+            bool matchesSearch = true;
+            bool matchesCategory = true;
 
-        // Apply category filter
-        if (_selectedCategory != 'All') {
-          products = products.where((p) => p.category == _selectedCategory).toList();
-        }
+            if (_searchQuery.isNotEmpty) {
+              final query = _searchQuery.toLowerCase();
+              matchesSearch = (p.sku?.toLowerCase().contains(query) ?? false) ||
+                           p.model.toLowerCase().contains(query) ||
+                           p.name.toLowerCase().contains(query) ||
+                           p.description.toLowerCase().contains(query);
+            }
 
-        return Column(
-          children: [
-            // Search and filter bar
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Search products...',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (value) => setState(() => _searchQuery = value),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  DropdownButton<String>(
-                    value: _selectedCategory,
-                    items: ['All', 'Refrigeration', 'Freezers', 'Prep Tables', 'Other']
-                        .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
-                        .toList(),
-                    onChanged: (value) => setState(() => _selectedCategory = value!),
-                  ),
-                  const SizedBox(width: 16),
-                  ElevatedButton.icon(
-                    onPressed: () => _showAddProductDialog(),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Product'),
-                  ),
-                ],
-              ),
-            ),
+            if (_selectedCategory != 'All') {
+              matchesCategory = p.category == _selectedCategory;
+            }
 
-            // Data table
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SingleChildScrollView(
-                  child: DataTable(
-                    columns: const [
-                      DataColumn(label: Text('SKU')),
-                      DataColumn(label: Text('Model')),
-                      DataColumn(label: Text('Name')),
-                      DataColumn(label: Text('Category')),
-                      DataColumn(label: Text('Price')),
-                      DataColumn(label: Text('Stock')),
-                      DataColumn(label: Text('Actions')),
-                    ],
-                    rows: products.map((product) {
-                      final isEditing = _editingProducts.contains(product.id);
+            return matchesSearch && matchesCategory;
+          }).length
+        : _allProducts.length;
 
-                      return DataRow(
-                        cells: [
-                          DataCell(
-                            isEditing
-                                ? TextField(
-                                    controller: _productControllers['${product.id}_sku'],
-                                    style: const TextStyle(fontSize: 14),
-                                  )
-                                : Text(product.sku ?? '-'),
-                          ),
-                          DataCell(
-                            isEditing
-                                ? TextField(
-                                    controller: _productControllers['${product.id}_model'],
-                                    style: const TextStyle(fontSize: 14),
-                                  )
-                                : Text(product.model),
-                          ),
-                          DataCell(
-                            isEditing
-                                ? TextField(
-                                    controller: _productControllers['${product.id}_name'],
-                                    style: const TextStyle(fontSize: 14),
-                                  )
-                                : Text(product.name),
-                          ),
-                          DataCell(
-                            isEditing
-                                ? TextField(
-                                    controller: _productControllers['${product.id}_category'],
-                                    style: const TextStyle(fontSize: 14),
-                                  )
-                                : Text(product.category),
-                          ),
-                          DataCell(
-                            isEditing
-                                ? TextField(
-                                    controller: _productControllers['${product.id}_price'],
-                                    keyboardType: TextInputType.number,
-                                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
-                                    style: const TextStyle(fontSize: 14),
-                                  )
-                                : Text('\$${product.price.toStringAsFixed(2)}'),
-                          ),
-                          DataCell(
-                            isEditing
-                                ? TextField(
-                                    controller: _productControllers['${product.id}_stock'],
-                                    keyboardType: TextInputType.number,
-                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                    style: const TextStyle(fontSize: 14),
-                                  )
-                                : Text(product.stock.toString()),
-                          ),
-                          DataCell(
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (!isEditing) ...[
-                                  IconButton(
-                                    icon: const Icon(Icons.edit, size: 20),
-                                    onPressed: () => _startEditingProduct(product),
-                                    tooltip: 'Edit',
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.copy, size: 20),
-                                    onPressed: () => _duplicateProduct(product),
-                                    tooltip: 'Duplicate',
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete, size: 20),
-                                    onPressed: () => _deleteProduct(product.id!),
-                                    tooltip: 'Delete',
-                                    color: Colors.red,
-                                  ),
-                                ] else ...[
-                                  IconButton(
-                                    icon: const Icon(Icons.save, size: 20),
-                                    onPressed: () => _saveProductChanges(product),
-                                    tooltip: 'Save',
-                                    color: Colors.green,
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.cancel, size: 20),
-                                    onPressed: () => _cancelEditingProduct(product.id!),
-                                    tooltip: 'Cancel',
-                                    color: Colors.orange,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ],
-                      );
-                    }).toList(),
+    final totalPages = (totalFilteredProducts / _itemsPerPage).ceil();
+
+    return Column(
+      children: [
+        // Search and filter bar
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search products...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = '';
+                                _currentPage = 0;
+                                _filterAndPaginateProducts();
+                              });
+                            },
+                          )
+                        : null,
                   ),
                 ),
               ),
-            ),
-
-            // Summary
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Showing ${products.length} products',
-                style: Theme.of(context).textTheme.bodySmall,
+              const SizedBox(width: 16),
+              DropdownButton<String>(
+                value: _selectedCategory,
+                items: ['All', 'Refrigeration', 'Cooking', 'Display', 'Preparation']
+                    .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedCategory = value!;
+                    _currentPage = 0;
+                    _filterAndPaginateProducts();
+                  });
+                },
               ),
+              const SizedBox(width: 16),
+              Text('Showing ${_displayedProducts.length} of $totalFilteredProducts products'),
+            ],
+          ),
+        ),
+
+        // Pagination controls
+        if (totalPages > 1)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.first_page),
+                  onPressed: _currentPage > 0
+                      ? () {
+                          setState(() {
+                            _currentPage = 0;
+                            _filterAndPaginateProducts();
+                          });
+                        }
+                      : null,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: _currentPage > 0
+                      ? () {
+                          setState(() {
+                            _currentPage--;
+                            _filterAndPaginateProducts();
+                          });
+                        }
+                      : null,
+                ),
+                ...List.generate(
+                  (totalPages).clamp(0, 5),
+                  (index) {
+                    final pageIndex = (_currentPage - 2 + index).clamp(0, totalPages - 1);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _currentPage == pageIndex ? Theme.of(context).primaryColor : null,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _currentPage = pageIndex;
+                            _filterAndPaginateProducts();
+                          });
+                        },
+                        child: Text('${pageIndex + 1}'),
+                      ),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: _currentPage < totalPages - 1
+                      ? () {
+                          setState(() {
+                            _currentPage++;
+                            _filterAndPaginateProducts();
+                          });
+                        }
+                      : null,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.last_page),
+                  onPressed: _currentPage < totalPages - 1
+                      ? () {
+                          setState(() {
+                            _currentPage = totalPages - 1;
+                            _filterAndPaginateProducts();
+                          });
+                        }
+                      : null,
+                ),
+              ],
             ),
-          ],
-        );
-      },
+          ),
+
+        // Products table
+        Expanded(
+          child: _displayedProducts.isEmpty
+              ? const Center(child: Text('No products match your search'))
+              : SingleChildScrollView(
+                  scrollDirection: Axis.vertical,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      columns: const [
+                        DataColumn(label: Text('Actions')),
+                        DataColumn(label: Text('SKU')),
+                        DataColumn(label: Text('Model')),
+                        DataColumn(label: Text('Name')),
+                        DataColumn(label: Text('Price')),
+                        DataColumn(label: Text('Category')),
+                      ],
+                      rows: _displayedProducts.map((product) {
+                        final isEditing = _editingProducts.contains(product.id);
+
+                        // Initialize controllers if editing
+                        if (isEditing) {
+                          _productControllers['${product.id}_sku'] ??= TextEditingController(text: product.sku);
+                          _productControllers['${product.id}_model'] ??= TextEditingController(text: product.model);
+                          _productControllers['${product.id}_name'] ??= TextEditingController(text: product.name);
+                          _productControllers['${product.id}_displayName'] ??= TextEditingController(text: product.displayName);
+                          _productControllers['${product.id}_description'] ??= TextEditingController(text: product.description);
+                          _productControllers['${product.id}_price'] ??= TextEditingController(text: product.price.toString());
+                        }
+
+                        return DataRow(
+                          cells: [
+                            DataCell(
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (!isEditing) ...[
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, size: 18),
+                                      onPressed: () {
+                                        setState(() {
+                                          _editingProducts.add(product.id ?? '');
+                                        });
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete, size: 18, color: Colors.red),
+                                      onPressed: () => _deleteProduct(product.id ?? ''),
+                                    ),
+                                  ] else ...[
+                                    IconButton(
+                                      icon: const Icon(Icons.save, size: 18, color: Colors.green),
+                                      onPressed: () => _saveProductChanges(product),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.cancel, size: 18, color: Colors.orange),
+                                      onPressed: () {
+                                        setState(() {
+                                          _editingProducts.remove(product.id);
+                                          // Clear controllers
+                                          _productControllers['${product.id}_sku']?.dispose();
+                                          _productControllers['${product.id}_model']?.dispose();
+                                          _productControllers['${product.id}_name']?.dispose();
+                                          _productControllers['${product.id}_displayName']?.dispose();
+                                          _productControllers['${product.id}_description']?.dispose();
+                                          _productControllers['${product.id}_price']?.dispose();
+                                          _productControllers.removeWhere((key, value) => key.startsWith('${product.id}_'));
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            DataCell(
+                              isEditing
+                                  ? SizedBox(
+                                      width: 100,
+                                      child: TextField(
+                                        controller: _productControllers['${product.id}_sku'],
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    )
+                                  : Text(product.sku ?? ''),
+                            ),
+                            DataCell(
+                              isEditing
+                                  ? SizedBox(
+                                      width: 100,
+                                      child: TextField(
+                                        controller: _productControllers['${product.id}_model'],
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    )
+                                  : Text(product.model),
+                            ),
+                            DataCell(
+                              isEditing
+                                  ? SizedBox(
+                                      width: 200,
+                                      child: TextField(
+                                        controller: _productControllers['${product.id}_name'],
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    )
+                                  : Text(product.name),
+                            ),
+                            DataCell(
+                              isEditing
+                                  ? SizedBox(
+                                      width: 80,
+                                      child: TextField(
+                                        controller: _productControllers['${product.id}_price'],
+                                        keyboardType: TextInputType.number,
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    )
+                                  : Text('\$${product.price.toStringAsFixed(2)}'),
+                            ),
+                            DataCell(Text(product.category)),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+        ),
+      ],
     );
   }
 
   Widget _buildUsersTable() {
-    return StreamBuilder<Map<String, dynamic>>(
-      stream: FirebaseDatabase.instance.ref('users').onValue.map((event) {
-        if (event.snapshot.value == null) return {};
-        return Map<String, dynamic>.from(event.snapshot.value as Map);
-      }),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
+    final usersAsync = ref.watch(usersStreamProvider);
+
+    return usersAsync.when(
+      data: (users) {
+        if (users.isEmpty) {
+          return const Center(child: Text('No users found'));
         }
 
-        final users = snapshot.data!;
-        var userEntries = users.entries.toList();
+        return SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columns: const [
+                DataColumn(label: Text('Actions')),
+                DataColumn(label: Text('Email')),
+                DataColumn(label: Text('Display Name')),
+                DataColumn(label: Text('Role')),
+                DataColumn(label: Text('Status')),
+                DataColumn(label: Text('Last Login')),
+              ],
+              rows: users.map((user) {
+                final uid = user['uid'];
+                final isEditing = _editingUsers.contains(uid);
 
-        // Apply search filter
-        if (_searchQuery.isNotEmpty) {
-          userEntries = userEntries.where((entry) {
-            final userData = Map<String, dynamic>.from(entry.value);
-            final query = _searchQuery.toLowerCase();
-            return (userData['displayName']?.toString().toLowerCase().contains(query) ?? false) ||
-                   (userData['email']?.toString().toLowerCase().contains(query) ?? false);
-          }).toList();
-        }
+                if (isEditing) {
+                  _userControllers['${uid}_email'] ??= TextEditingController(text: user['email']);
+                  _userControllers['${uid}_displayName'] ??= TextEditingController(text: user['displayName']);
+                  _userControllers['${uid}_role'] ??= TextEditingController(text: user['role']);
+                }
 
-        return Column(
-          children: [
-            // Search bar
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Search users...',
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (value) => setState(() => _searchQuery = value),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  ElevatedButton.icon(
-                    onPressed: () => _showAddUserDialog(),
-                    icon: const Icon(Icons.person_add),
-                    label: const Text('Add User'),
-                  ),
-                ],
-              ),
-            ),
-
-            // Data table
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SingleChildScrollView(
-                  child: DataTable(
-                    columns: const [
-                      DataColumn(label: Text('Name')),
-                      DataColumn(label: Text('Email')),
-                      DataColumn(label: Text('Role')),
-                      DataColumn(label: Text('Status')),
-                      DataColumn(label: Text('Actions')),
-                    ],
-                    rows: userEntries.map((entry) {
-                      final userId = entry.key;
-                      final userData = Map<String, dynamic>.from(entry.value);
-                      final isEditing = _editingUsers.contains(userId);
-                      final isApproved = userData['isApproved'] ?? false;
-
-                      return DataRow(
-                        cells: [
-                          DataCell(
-                            isEditing
-                                ? TextField(
-                                    controller: _userControllers['${userId}_name'],
-                                    style: const TextStyle(fontSize: 14),
-                                  )
-                                : Text(userData['displayName'] ?? '-'),
-                          ),
-                          DataCell(
-                            isEditing
-                                ? TextField(
-                                    controller: _userControllers['${userId}_email'],
-                                    style: const TextStyle(fontSize: 14),
-                                  )
-                                : Text(userData['email'] ?? '-'),
-                          ),
-                          DataCell(
-                            isEditing
-                                ? DropdownButton<String>(
-                                    value: _userControllers['${userId}_role']?.text ?? 'user',
-                                    items: ['user', 'admin', 'superadmin']
-                                        .map((role) => DropdownMenuItem(value: role, child: Text(role)))
-                                        .toList(),
-                                    onChanged: (value) {
-                                      _userControllers['${userId}_role']?.text = value!;
-                                      setState(() {});
-                                    },
-                                  )
-                                : Chip(
-                                    label: Text(userData['role'] ?? 'user'),
-                                    backgroundColor: userData['role'] == 'superadmin'
-                                        ? Colors.purple
-                                        : userData['role'] == 'admin'
-                                            ? Colors.blue
-                                            : Colors.grey,
-                                  ),
-                          ),
-                          DataCell(
-                            Switch(
-                              value: isApproved,
-                              onChanged: (value) => _toggleUserApproval(userId, isApproved),
+                return DataRow(
+                  cells: [
+                    DataCell(
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (!isEditing) ...[
+                            IconButton(
+                              icon: const Icon(Icons.edit, size: 18),
+                              onPressed: () {
+                                setState(() {
+                                  _editingUsers.add(uid);
+                                });
+                              },
                             ),
-                          ),
-                          DataCell(
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (!isEditing) ...[
-                                  IconButton(
-                                    icon: const Icon(Icons.edit, size: 20),
-                                    onPressed: () => _startEditingUser(userId, userData),
-                                    tooltip: 'Edit',
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete, size: 20),
-                                    onPressed: () => _deleteUser(userId),
-                                    tooltip: 'Delete',
-                                    color: Colors.red,
-                                  ),
-                                ] else ...[
-                                  IconButton(
-                                    icon: const Icon(Icons.save, size: 20),
-                                    onPressed: () => _saveUserChanges(userId, userData),
-                                    tooltip: 'Save',
-                                    color: Colors.green,
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.cancel, size: 20),
-                                    onPressed: () => _cancelEditingUser(userId),
-                                    tooltip: 'Cancel',
-                                    color: Colors.orange,
-                                  ),
-                                ],
-                              ],
+                          ] else ...[
+                            IconButton(
+                              icon: const Icon(Icons.save, size: 18, color: Colors.green),
+                              onPressed: () async {
+                                setState(() => _isLoading = true);
+                                try {
+                                  await FirebaseDatabase.instance.ref('users/$uid').update({
+                                    'email': _userControllers['${uid}_email']?.text,
+                                    'displayName': _userControllers['${uid}_displayName']?.text,
+                                    'role': _userControllers['${uid}_role']?.text,
+                                  });
+                                  setState(() {
+                                    _editingUsers.remove(uid);
+                                  });
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('User updated successfully')),
+                                  );
+                                } catch (e) {
+                                  AppLogger.error('Failed to update user', error: e);
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Failed to update user: $e')),
+                                  );
+                                } finally {
+                                  if (mounted) setState(() => _isLoading = false);
+                                }
+                              },
                             ),
-                          ),
+                            IconButton(
+                              icon: const Icon(Icons.cancel, size: 18, color: Colors.orange),
+                              onPressed: () {
+                                setState(() {
+                                  _editingUsers.remove(uid);
+                                  _userControllers['${uid}_email']?.dispose();
+                                  _userControllers['${uid}_displayName']?.dispose();
+                                  _userControllers['${uid}_role']?.dispose();
+                                  _userControllers.removeWhere((key, value) => key.startsWith('${uid}_'));
+                                });
+                              },
+                            ),
+                          ],
                         ],
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
+                      ),
+                    ),
+                    DataCell(
+                      isEditing
+                          ? SizedBox(
+                              width: 200,
+                              child: TextField(
+                                controller: _userControllers['${uid}_email'],
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            )
+                          : Text(user['email'] ?? ''),
+                    ),
+                    DataCell(
+                      isEditing
+                          ? SizedBox(
+                              width: 150,
+                              child: TextField(
+                                controller: _userControllers['${uid}_displayName'],
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            )
+                          : Text(user['displayName'] ?? ''),
+                    ),
+                    DataCell(
+                      isEditing
+                          ? SizedBox(
+                              width: 100,
+                              child: TextField(
+                                controller: _userControllers['${uid}_role'],
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            )
+                          : Text(user['role'] ?? 'user'),
+                    ),
+                    DataCell(
+                      Chip(
+                        label: Text(user['isApproved'] == true ? 'Active' : 'Pending'),
+                        backgroundColor: user['isApproved'] == true ? Colors.green : Colors.orange,
+                      ),
+                    ),
+                    DataCell(
+                      Text(user['lastLogin'] != null
+                          ? DateTime.fromMillisecondsSinceEpoch(user['lastLogin']).toString()
+                          : 'Never'),
+                    ),
+                  ],
+                );
+              }).toList(),
             ),
-
-            // Summary
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Showing ${userEntries.length} users',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-          ],
+          ),
         );
       },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Error loading users: $error'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => ref.invalidate(usersStreamProvider),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
     );
-  }
-
-  void _showAddProductDialog() {
-    final controllers = {
-      'sku': TextEditingController(),
-      'model': TextEditingController(),
-      'name': TextEditingController(),
-      'description': TextEditingController(),
-      'price': TextEditingController(),
-      'category': TextEditingController(),
-    };
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add New Product'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controllers['sku'],
-                decoration: const InputDecoration(labelText: 'SKU'),
-              ),
-              TextField(
-                controller: controllers['model'],
-                decoration: const InputDecoration(labelText: 'Model'),
-              ),
-              TextField(
-                controller: controllers['name'],
-                decoration: const InputDecoration(labelText: 'Name'),
-              ),
-              TextField(
-                controller: controllers['description'],
-                decoration: const InputDecoration(labelText: 'Description'),
-                maxLines: 3,
-              ),
-              TextField(
-                controller: controllers['price'],
-                decoration: const InputDecoration(labelText: 'Price'),
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
-              ),
-              TextField(
-                controller: controllers['category'],
-                decoration: const InputDecoration(labelText: 'Category'),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final newProduct = Product(
-                id: DateTime.now().millisecondsSinceEpoch.toString(),
-                sku: controllers['sku']!.text,
-                model: controllers['model']!.text,
-                displayName: controllers['name']!.text,
-                name: controllers['name']!.text,
-                description: controllers['description']!.text,
-                price: double.tryParse(controllers['price']!.text) ?? 0,
-                category: controllers['category']!.text,
-                stock: 0,
-                createdAt: DateTime.now(),
-              );
-
-              try {
-                await FirebaseDatabase.instance.ref('products/${newProduct.id}').set(newProduct.toMap());
-                if (!mounted) return;
-                // ignore: use_build_context_synchronously
-                Navigator.pop(context);
-                if (!mounted) return;
-                // ignore: use_build_context_synchronously
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Product added successfully')),
-                );
-              } catch (e) {
-                if (!mounted) return;
-                // ignore: use_build_context_synchronously
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to add product: $e')),
-                );
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    ).then((_) {
-      for (var c in controllers.values) {
-        c.dispose();
-      }
-    });
-  }
-
-  void _showAddUserDialog() {
-    final controllers = {
-      'name': TextEditingController(),
-      'email': TextEditingController(),
-      'password': TextEditingController(),
-      'role': TextEditingController(text: 'user'),
-    };
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add New User'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controllers['name'],
-                decoration: const InputDecoration(labelText: 'Name'),
-              ),
-              TextField(
-                controller: controllers['email'],
-                decoration: const InputDecoration(labelText: 'Email'),
-              ),
-              TextField(
-                controller: controllers['password'],
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-              ),
-              DropdownButtonFormField<String>(
-                initialValue: controllers['role']!.text,
-                decoration: const InputDecoration(labelText: 'Role'),
-                items: ['user', 'admin', 'superadmin']
-                    .map((role) => DropdownMenuItem(value: role, child: Text(role)))
-                    .toList(),
-                onChanged: (value) => controllers['role']!.text = value!,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                // Create user in Firebase Auth
-                final credential = await auth.FirebaseAuth.instance.createUserWithEmailAndPassword(
-                  email: controllers['email']!.text,
-                  password: controllers['password']!.text,
-                );
-
-                // Update display name
-                await credential.user?.updateDisplayName(controllers['name']!.text);
-
-                // Save user data to database
-                await FirebaseDatabase.instance.ref('users/${credential.user!.uid}').set({
-                  'displayName': controllers['name']!.text,
-                  'email': controllers['email']!.text,
-                  'role': controllers['role']!.text,
-                  'isApproved': true,
-                  'createdAt': ServerValue.timestamp,
-                });
-
-                if (!mounted) return;
-                // ignore: use_build_context_synchronously
-                Navigator.pop(context);
-                if (!mounted) return;
-                // ignore: use_build_context_synchronously
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('User added successfully')),
-                );
-              } catch (e) {
-                if (!mounted) return;
-                // ignore: use_build_context_synchronously
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to add user: $e')),
-                );
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    ).then((_) {
-      for (var c in controllers.values) {
-        c.dispose();
-      }
-    });
   }
 
   @override

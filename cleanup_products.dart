@@ -1,5 +1,6 @@
 // cleanup_products.dart
 // Script to delete unwanted product models from Firebase
+// NOTE: This is a utility script, not part of the production app
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -27,20 +28,20 @@ void main() async {
 Future<void> cleanupProducts() async {
   final database = FirebaseDatabase.instance;
 
-  print('Starting product cleanup...');
-  print('Fetching products from database...');
+  // Starting product cleanup...
+  // Fetching products from database...
 
   try {
     // Get all products
     final snapshot = await database.ref('products').get();
 
     if (!snapshot.exists || snapshot.value == null) {
-      print('No products found in database');
+      // No products found in database
       return;
     }
 
     final products = Map<String, dynamic>.from(snapshot.value as Map);
-    print('Found ${products.length} total products');
+    // Found products in database
 
     // Track products to delete
     final productsToDelete = <String>[];
@@ -53,16 +54,16 @@ Future<void> cleanupProducts() async {
       final productData = Map<String, dynamic>.from(entry.value);
       final model = productData['model']?.toString() ?? '';
       final sku = productData['sku']?.toString() ?? '';
-      final displayName = productData['displayName']?.toString() ?? '';
+      // final displayName = productData['displayName']?.toString() ?? '';
 
       bool shouldDelete = false;
-      String reason = '';
+      // String reason = '';
 
       // Check if model starts with any unwanted prefix
       for (final prefix in modelsToDelete) {
         if (model.startsWith(prefix)) {
           shouldDelete = true;
-          reason = 'Model starts with $prefix';
+          // reason = 'Model starts with $prefix';
           break;
         }
       }
@@ -72,7 +73,7 @@ Future<void> cleanupProducts() async {
         for (final prefix in prefixesToDelete) {
           if (model.startsWith(prefix)) {
             shouldDelete = true;
-            reason = 'E. series model';
+            // reason = 'E. series model';
             break;
           }
         }
@@ -83,7 +84,7 @@ Future<void> cleanupProducts() async {
         for (final prefix in modelsToDelete) {
           if (sku.startsWith(prefix)) {
             shouldDelete = true;
-            reason = 'SKU starts with $prefix';
+            // reason = 'SKU starts with $prefix';
             break;
           }
         }
@@ -91,36 +92,34 @@ Future<void> cleanupProducts() async {
 
       if (shouldDelete) {
         productsToDelete.add(productId);
-        print('  - Will delete: $model ($sku) - $displayName - Reason: $reason');
+        // Product marked for deletion
       }
     }
 
     if (productsToDelete.isEmpty) {
-      print('No products found matching deletion criteria');
+      // No products found matching deletion criteria
       return;
     }
 
-    print('\nFound ${productsToDelete.length} products to delete');
-    print('Proceeding with deletion...');
+    // Found products to delete
+    // Proceeding with deletion...
 
     // Delete products
-    int deletedCount = 0;
     for (final productId in productsToDelete) {
       try {
         await database.ref('products/$productId').remove();
-        deletedCount++;
-        print('Deleted product $productId ($deletedCount/${productsToDelete.length})');
+        // Deleted product
       } catch (e) {
-        print('Error deleting product $productId: $e');
+        // Error deleting product: $e
+        debugPrint('Error deleting product $productId: $e');
       }
     }
 
-    print('\nCleanup completed!');
-    print('Deleted $deletedCount products out of ${productsToDelete.length} identified');
-    print('Remaining products: ${products.length - deletedCount}');
+    // Cleanup completed!
+    // Deleted products from database
 
     // Alphabetize remaining products by updating their timestamps
-    print('\nAlphabetizing remaining products...');
+    // Alphabetizing remaining products...
 
     // Get updated list of products
     final updatedSnapshot = await database.ref('products').get();
@@ -148,14 +147,14 @@ Future<void> cleanupProducts() async {
 
         index++;
         if (index % 50 == 0) {
-          print('Alphabetized $index products...');
+          // Alphabetized products...
         }
       }
 
-      print('Alphabetization complete! Processed ${sortedEntries.length} products');
+      // Alphabetization complete!
     }
 
   } catch (e) {
-    print('Error during cleanup: $e');
+    debugPrint('Error during cleanup: $e');
   }
 }

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_database/firebase_database.dart';
 import '../../../../core/config/env_config.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
@@ -231,10 +232,28 @@ class AccountScreen extends ConsumerWidget {
                 );
 
                 if (confirmed == true && context.mounted) {
-                  // Perform logout - use Firebase Auth directly
-                  ref.read(signOutProvider);
-                  if (context.mounted) {
-                    context.go('/auth/login');
+                  try {
+                    // Perform logout - use Firebase Auth directly
+                    final signOut = ref.read(signOutProvider);
+                    await signOut();
+
+                    // Clear any cached data
+                    await FirebaseDatabase.instance.goOffline();
+                    await FirebaseDatabase.instance.goOnline();
+
+                    if (context.mounted) {
+                      // Navigate to login screen
+                      context.go('/auth/login');
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error signing out: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   }
                 }
               },
