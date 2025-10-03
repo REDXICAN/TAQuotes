@@ -353,8 +353,14 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
             color: theme.cardColor,
             child: TextField(
               controller: _searchController,
+              style: TextStyle(
+                color: theme.textTheme.bodyLarge?.color ?? Colors.black87,
+              ),
               decoration: InputDecoration(
                 hintText: 'Search by company, contact, email, or phone...',
+                hintStyle: TextStyle(
+                  color: theme.hintColor,
+                ),
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(

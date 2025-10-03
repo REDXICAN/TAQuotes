@@ -210,8 +210,14 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
               children: [
                 // Search field
                 TextField(
+                  style: TextStyle(
+                    color: theme.textTheme.bodyLarge?.color ?? Colors.black87,
+                  ),
                   decoration: InputDecoration(
                     hintText: 'Search by quote #, company, contact, date...',
+                    hintStyle: TextStyle(
+                      color: theme.hintColor,
+                    ),
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),

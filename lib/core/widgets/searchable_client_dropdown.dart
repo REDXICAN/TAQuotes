@@ -271,8 +271,15 @@ class _SearchableClientDropdownState extends ConsumerState<SearchableClientDropd
       child: TextFormField(
         controller: _searchController,
         focusNode: _focusNode,
+        style: TextStyle(
+          color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87,
+          fontSize: 16,
+        ),
         decoration: InputDecoration(
           hintText: widget.hintText,
+          hintStyle: TextStyle(
+            color: Theme.of(context).hintColor,
+          ),
           prefixIcon: const Icon(Icons.search),
           suffixIcon: Row(
             mainAxisSize: MainAxisSize.min,

@@ -178,20 +178,27 @@ final cartProvider = StreamProvider.autoDispose<List<CartItem>>((ref) {
   });
 });
 
-// Clients provider with real-time updates - fixed to prevent infinite loading
+// Clients provider with real-time updates - fixed to load immediately without reload
 final clientsStreamProvider = StreamProvider.autoDispose<List<Client>>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user == null) {
     return Stream.value([]);
   }
-  
+
+  // Keep the provider alive to prevent disposal during navigation
+  ref.keepAlive();
+
   final database = FirebaseDatabase.instance;
+
+  // Enable keepSynced for faster initial load from cache
+  database.ref('clients/${user.uid}').keepSynced(true);
+
   return database.ref('clients/${user.uid}').onValue
     .map((event) {
       if (!event.snapshot.exists || event.snapshot.value == null) {
         return <Client>[];
       }
-      
+
       try {
         final data = Map<String, dynamic>.from(event.snapshot.value as Map);
         return data.entries.map((e) {
