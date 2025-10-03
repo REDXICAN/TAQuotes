@@ -374,9 +374,12 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                   context.go(routes[index]);
                 }
               },
-              labelType: ResponsiveHelper.isTablet(context) 
-                  ? NavigationRailLabelType.selected 
-                  : NavigationRailLabelType.all,
+              // When extended is true, labelType must be null or none
+              labelType: ResponsiveHelper.isLargeDesktop(context)
+                  ? null
+                  : (ResponsiveHelper.isTablet(context)
+                      ? NavigationRailLabelType.selected
+                      : NavigationRailLabelType.all),
               extended: ResponsiveHelper.isLargeDesktop(context),
               minWidth: ResponsiveHelper.isTablet(context) ? 56 : 72,
               destinations: _buildNavigationRailDestinations(routes, cartItemCount),

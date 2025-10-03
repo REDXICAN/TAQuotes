@@ -1,7 +1,6 @@
 // lib/core/widgets/app_bar_with_client.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/client_providers.dart';
 
 class AppBarWithClient extends ConsumerWidget implements PreferredSizeWidget {
   final String title;

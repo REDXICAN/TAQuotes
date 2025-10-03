@@ -1,6 +1,7 @@
 // lib/core/utils/error_handler.dart
+import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import '../services/logging_service.dart';
 
@@ -22,10 +23,10 @@ class ErrorHandler {
       return true;
     };
 
-    // Initialize Crashlytics for production
-    if (!kDebugMode) {
+    // Initialize Crashlytics for production (not supported on web)
+    if (!kDebugMode && !kIsWeb) {
       await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
-      
+
       // Pass uncaught errors to Crashlytics
       FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
     }
@@ -52,8 +53,8 @@ class ErrorHandler {
       stackTrace: stackTrace,
     );
 
-    // Send to Crashlytics in production
-    if (!kDebugMode) {
+    // Send to Crashlytics in production (not supported on web)
+    if (!kDebugMode && !kIsWeb) {
       FirebaseCrashlytics.instance.recordFlutterError(details);
     }
 
@@ -74,8 +75,8 @@ class ErrorHandler {
       stackTrace: stack,
     );
 
-    // Send to Crashlytics in production
-    if (!kDebugMode) {
+    // Send to Crashlytics in production (not supported on web)
+    if (!kDebugMode && !kIsWeb) {
       FirebaseCrashlytics.instance.recordError(error, stack);
     }
   }
@@ -104,8 +105,8 @@ class ErrorHandler {
       _showErrorToUser(context, message);
     }
 
-    // Send to Crashlytics in production
-    if (!kDebugMode && error != null) {
+    // Send to Crashlytics in production (not supported on web)
+    if (!kDebugMode && !kIsWeb && error != null) {
       FirebaseCrashlytics.instance.recordError(
         error,
         stackTrace,
@@ -171,8 +172,8 @@ class ErrorHandler {
       );
     }
 
-    // Send to Crashlytics
-    if (!kDebugMode) {
+    // Send to Crashlytics (not supported on web)
+    if (!kDebugMode && !kIsWeb) {
       FirebaseCrashlytics.instance.recordError(
         error,
         stackTrace,

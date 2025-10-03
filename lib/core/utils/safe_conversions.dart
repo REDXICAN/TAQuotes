@@ -33,22 +33,39 @@ class SafeConversions {
 
     try {
       if (value is int) return value;
-      if (value is double) return value.round();
+      if (value is double) {
+        // Handle infinity and NaN
+        if (value.isInfinite || value.isNaN) return defaultValue;
+        return value.round();
+      }
       if (value is String) {
         // Try parsing as double first (handles "1.0" style strings)
         final doubleValue = double.tryParse(value);
-        if (doubleValue != null) return doubleValue.round();
+        if (doubleValue != null) {
+          // Handle infinity and NaN
+          if (doubleValue.isInfinite || doubleValue.isNaN) return defaultValue;
+          return doubleValue.round();
+        }
 
         // Try direct int parse
         return int.tryParse(value) ?? defaultValue;
       }
-      if (value is num) return value.round();
+      if (value is num) {
+        // Handle infinity and NaN
+        final doubleVal = value.toDouble();
+        if (doubleVal.isInfinite || doubleVal.isNaN) return defaultValue;
+        return value.round();
+      }
 
       // Try to convert via toString() as last resort
       final stringValue = value.toString();
       if (stringValue.isNotEmpty && stringValue != 'null') {
         final parsed = double.tryParse(stringValue);
-        if (parsed != null) return parsed.round();
+        if (parsed != null) {
+          // Handle infinity and NaN
+          if (parsed.isInfinite || parsed.isNaN) return defaultValue;
+          return parsed.round();
+        }
       }
     } catch (_) {
       // Return default on any conversion error
@@ -60,6 +77,8 @@ class SafeConversions {
   /// Safely converts price/money values with proper rounding
   static double toPrice(dynamic value, {double defaultValue = 0.0}) {
     final doubleValue = toDouble(value, defaultValue: defaultValue);
+    // Handle infinity and NaN
+    if (doubleValue.isInfinite || doubleValue.isNaN) return defaultValue;
     // Round to 2 decimal places for money values
     return (doubleValue * 100).round() / 100;
   }

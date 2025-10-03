@@ -29,14 +29,28 @@ class SafeTypeConverter {
   static int? toIntOrNull(dynamic value) {
     if (value == null) return null;
     if (value is int) return value;
-    if (value is double) return value.toInt();
+    if (value is double) {
+      // Handle infinity and NaN
+      if (value.isInfinite || value.isNaN) {
+        AppLogger.debug('Cannot convert Infinity or NaN to int: $value');
+        return null;
+      }
+      return value.toInt();
+    }
     if (value is String) {
       final parsed = int.tryParse(value);
       if (parsed != null) return parsed;
 
       // Try parsing as double first then convert
       final doubleValue = double.tryParse(value);
-      if (doubleValue != null) return doubleValue.toInt();
+      if (doubleValue != null) {
+        // Handle infinity and NaN
+        if (doubleValue.isInfinite || doubleValue.isNaN) {
+          AppLogger.debug('Cannot convert Infinity or NaN to int: $value');
+          return null;
+        }
+        return doubleValue.toInt();
+      }
     }
 
     AppLogger.debug('Could not convert value to int: $value');
@@ -94,6 +108,17 @@ class SafeTypeConverter {
     if (value == null) return null;
     if (value is DateTime) return value;
     if (value is String) {
+      // Check if string is a numeric timestamp
+      final numValue = int.tryParse(value);
+      if (numValue != null) {
+        try {
+          return DateTime.fromMillisecondsSinceEpoch(numValue);
+        } catch (e) {
+          AppLogger.debug('Invalid timestamp value: $value', error: e);
+          return null;
+        }
+      }
+
       try {
         return DateTime.parse(value);
       } catch (e) {
@@ -131,8 +156,13 @@ class SafeTypeConverter {
       }
     }
     if (value is int) {
-      // Assume milliseconds since epoch
-      return DateTime.fromMillisecondsSinceEpoch(value);
+      try {
+        // Assume milliseconds since epoch
+        return DateTime.fromMillisecondsSinceEpoch(value);
+      } catch (e) {
+        AppLogger.debug('Invalid timestamp value: $value', error: e);
+        return null;
+      }
     }
 
     AppLogger.debug('Could not convert value to DateTime: $value');

@@ -289,8 +289,8 @@ class _ImageWithFallbackState extends State<_ImageWithFallback> {
       width: widget.width,
       height: widget.height,
       fit: widget.fit,
-      cacheWidth: widget.width?.toInt(),
-      cacheHeight: widget.height?.toInt(),
+      cacheWidth: widget.width != null && widget.width!.isFinite ? widget.width!.toInt() : null,
+      cacheHeight: widget.height != null && widget.height!.isFinite ? widget.height!.toInt() : null,
       frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
         if (frame != null) {
           // Cache positive result
