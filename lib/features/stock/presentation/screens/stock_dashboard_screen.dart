@@ -5,17 +5,18 @@ import '../../../../core/models/models.dart';
 import '../../../../core/providers/test_mode_provider.dart';
 import '../../../../core/services/spare_parts_demo_service.dart';
 
-// Provider for stock data - uses test data if test mode is enabled
-final stockDataProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) {
+// Provider for stock data - uses test data if test mode is enabled - Changed to FutureProvider to prevent freezing
+final stockDataProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   final isTestMode = ref.watch(testModeProvider);
 
   if (isTestMode) {
     // Use demo data in test mode
-    return Stream.value(_generateDemoStockData());
+    return _generateDemoStockData();
   }
 
-  // Use real Firebase data in production
-  return FirebaseDatabase.instance.ref('products').onValue.map((event) {
+  // Use real Firebase data in production - one-time fetch
+  try {
+    final event = await FirebaseDatabase.instance.ref('products').get();
     final data = event.snapshot.value as Map<dynamic, dynamic>? ?? {};
     final stockData = <String, dynamic>{};
 
@@ -62,7 +63,10 @@ final stockDataProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref)
     });
 
     return stockData;
-  });
+  } catch (error) {
+    AppLogger.error('Error loading stock data', error: error);
+    return _generateDemoStockData();
+  }
 });
 
 // Generate demo stock data for test mode
@@ -84,18 +88,19 @@ Map<String, dynamic> _generateDemoStockData() {
   return stockData;
 }
 
-// Provider for products - uses test data if test mode is enabled
-final productsForStockProvider = StreamProvider.autoDispose<List<Product>>((ref) {
+// Provider for products - uses test data if test mode is enabled - Changed to FutureProvider to prevent freezing
+final productsForStockProvider = FutureProvider.autoDispose<List<Product>>((ref) async {
   final isTestMode = ref.watch(testModeProvider);
 
   if (isTestMode) {
     // Use demo products in test mode
-    return Stream.value(_generateDemoProducts());
+    return _generateDemoProducts();
   }
 
-  // Use real Firebase data in production
-  return FirebaseDatabase.instance.ref('products').onValue.map((event) {
-    final data = event.snapshot.value as Map<dynamic, dynamic>? ?? {};
+  // Use real Firebase data in production - one-time fetch
+  try {
+    final event = await FirebaseDatabase.instance.ref('products').get();
+    final data = event.value as Map<dynamic, dynamic>? ?? {};
     final products = <Product>[];
 
     data.forEach((key, value) {
@@ -109,7 +114,10 @@ final productsForStockProvider = StreamProvider.autoDispose<List<Product>>((ref)
     // Sort by stock volume descending
     products.sort((a, b) => b.stock.compareTo(a.stock));
     return products;
-  });
+  } catch (error) {
+    AppLogger.error('Error loading products for stock', error: error);
+    return _generateDemoProducts();
+  }
 });
 
 // Generate demo products for test mode

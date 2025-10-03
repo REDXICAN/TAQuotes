@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/services/offline_service.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/services/storage_service.dart';
@@ -809,13 +810,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
+              Navigator.pop(context); // Close dialog first
+
               await ref.read(authServiceProvider).signOut();
 
               if (context.mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/login',
-                  (route) => false,
-                );
+                context.go('/auth/login');
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),

@@ -40,38 +40,36 @@ class EditingState {
   }
 }
 
-/// Provider for all products (sorted by SKU)
-final allProductsProvider = StreamProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
-  return FirebaseDatabase.instance
-      .ref('products')
-      .onValue
-      .map((event) {
-        if (!event.snapshot.exists) return <Map<String, dynamic>>[];
+/// Provider for all products (sorted by SKU) - Changed to FutureProvider to prevent freezing
+final allProductsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  try {
+    final snapshot = await FirebaseDatabase.instance.ref('products').get();
 
-        final data = event.snapshot.value as Map<dynamic, dynamic>;
-        final products = <Map<String, dynamic>>[];
+    if (!snapshot.exists) return <Map<String, dynamic>>[];
 
-        data.forEach((key, value) {
-          if (value is Map) {
-            final product = Map<String, dynamic>.from(value);
-            product['id'] = key.toString();
-            products.add(product);
-          }
-        });
+    final data = snapshot.value as Map<dynamic, dynamic>;
+    final products = <Map<String, dynamic>>[];
 
-        // Sort by SKU (same as Firebase Realtime Database)
-        products.sort((a, b) {
-          final skuA = a['sku']?.toString() ?? a['model']?.toString() ?? '';
-          final skuB = b['sku']?.toString() ?? b['model']?.toString() ?? '';
-          return skuA.compareTo(skuB);
-        });
+    data.forEach((key, value) {
+      if (value is Map) {
+        final product = Map<String, dynamic>.from(value);
+        product['id'] = key.toString();
+        products.add(product);
+      }
+    });
 
-        return products;
-      })
-      .handleError((error) {
-        AppLogger.error('Error loading products', error: error);
-        return <Map<String, dynamic>>[];
-      });
+    // Sort by SKU (same as Firebase Realtime Database)
+    products.sort((a, b) {
+      final skuA = a['sku']?.toString() ?? a['model']?.toString() ?? '';
+      final skuB = b['sku']?.toString() ?? b['model']?.toString() ?? '';
+      return skuA.compareTo(skuB);
+    });
+
+    return products;
+  } catch (error) {
+    AppLogger.error('Error loading products', error: error);
+    return <Map<String, dynamic>>[];
+  }
 });
 
 // ============================================================================
