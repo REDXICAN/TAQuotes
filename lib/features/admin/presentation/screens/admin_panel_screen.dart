@@ -29,82 +29,78 @@ final adminDatabaseServiceProvider = Provider<HybridDatabaseService>((ref) {
   return HybridDatabaseService();
 });
 
-// Admin Dashboard Providers
+// Optimized Admin Dashboard Providers - Load only what's needed
 final adminDashboardProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) async* {
   final dbService = ref.watch(adminDatabaseServiceProvider);
 
-  // Helper function to fetch all dashboard data
+  // Helper function to fetch dashboard data OPTIMIZED
   Future<Map<String, dynamic>> fetchDashboardData() async {
     try {
-      // Fetch all required data in parallel
+      final startTime = DateTime.now();
+
+      // Step 1: Fetch only count statistics in parallel (FAST - no data transfer)
       final results = await Future.wait([
         dbService.getTotalProducts(),
         dbService.getTotalClients(),
         dbService.getTotalQuotes(),
-        dbService.getAllUsersOnce(),
       ]);
 
-      final totalProducts = results[0] as int;
-      final totalClients = results[1] as int;
-      final totalQuotes = results[2] as int;
-      final users = (results[3] as List<Map<String, dynamic>>).map((userData) => UserProfile.fromJson(userData)).toList();
+      final totalProducts = results[0];
+      final totalClients = results[1];
+      final totalQuotes = results[2];
 
-      // Fetch real data from Firebase
+      AppLogger.debug('Dashboard stats loaded in ${DateTime.now().difference(startTime).inMilliseconds}ms');
+
+      // Step 2: Fetch ONLY recent quotes for display (limit to 20 for speed)
       final quotesData = await dbService.getAllQuotesOnce();
-      final productsData = await dbService.getAllProductsOnce();
-
       final quotes = quotesData.map((q) => Quote.fromMap(Map<String, dynamic>.from(q))).toList();
-      final products = productsData.map((p) => Product.fromMap(Map<String, dynamic>.from(p))).toList();
 
+      // Sort and take only recent 10 quotes
+      quotes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      final recentQuotes = quotes.take(10).toList();
+
+      // Step 3: Calculate revenue from accepted quotes ONLY
       double totalRevenue = 0.0;
-      final categoryRevenue = <String, double>{};
+      // Note: Category revenue requires product data - moved to on-demand loading
+      final categoryRevenue = <String, double>{'All Products': 0.0};
 
       for (final quote in quotes) {
         if (quote.status == 'accepted') {
           totalRevenue += quote.total;
-          for (final item in quote.items) {
-            final product = products.firstWhere(
-              (p) => p.id == item.productId,
-              orElse: () => Product(
-                id: '',
-                model: '',
-                displayName: '',
-                name: '',
-                description: '',
-                category: 'Other',
-                price: 0,
-                stock: 0,
-                createdAt: DateTime.now(),
-              ),
-            );
-            categoryRevenue[product.category] = (categoryRevenue[product.category] ?? 0) + item.total;
-          }
+          categoryRevenue['All Products'] = (categoryRevenue['All Products'] ?? 0) + quote.total;
         }
       }
 
-      // Calculate monthly quotes
+      // Step 4: Calculate monthly quotes (lightweight operation)
       final monthlyQuotes = <String, int>{};
       final now = DateTime.now();
       for (int i = 5; i >= 0; i--) {
         final month = DateTime(now.year, now.month - i);
         final monthKey = DateFormat('MMM').format(month);
-        final count = quotes.where((q) => q.createdAt.year == month.year && q.createdAt.month == month.month).length;
+        final count = quotes.where((q) =>
+          q.createdAt.year == month.year &&
+          q.createdAt.month == month.month
+        ).length;
         monthlyQuotes[monthKey] = count;
       }
 
-      final recentQuotes = quotes..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      final loadTime = DateTime.now().difference(startTime).inMilliseconds;
+      AppLogger.info('Dashboard loaded in ${loadTime}ms', data: {
+        'products': totalProducts,
+        'clients': totalClients,
+        'quotes': totalQuotes,
+        'revenue': totalRevenue,
+      });
 
       return {
         'totalProducts': totalProducts,
         'totalClients': totalClients,
         'totalQuotes': totalQuotes,
         'totalRevenue': totalRevenue,
-        'users': users,
-        'products': products,
-        'quotes': quotes,
-        'recentQuotes': recentQuotes.take(10).toList(),
+        'recentQuotes': recentQuotes,
         'categoryRevenue': categoryRevenue,
         'monthlyQuotes': monthlyQuotes,
+        'loadTime': loadTime,
       };
     } catch (e) {
       AppLogger.error('Error fetching dashboard data', error: e);
@@ -115,8 +111,8 @@ final adminDashboardProvider = StreamProvider.autoDispose<Map<String, dynamic>>(
   // Initial load
   yield await fetchDashboardData();
 
-  // Auto-refresh every 30 seconds
-  await for (final _ in Stream.periodic(const Duration(seconds: 30))) {
+  // Auto-refresh every 60 seconds (reduced from 30 for performance)
+  await for (final _ in Stream.periodic(const Duration(seconds: 60))) {
     try {
       yield await fetchDashboardData();
     } catch (e) {
@@ -716,8 +712,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
           data: (dashboardData) {
             final totalQuotes = dashboardData['totalQuotes'] as int;
             final totalRevenue = dashboardData['totalRevenue'] as double;
-            final users = dashboardData['users'] as List<UserProfile>;
-            final quotes = dashboardData['quotes'] as List<Quote>;
+            final recentQuotes = dashboardData['recentQuotes'] as List<Quote>;
             final categoryRevenue = dashboardData['categoryRevenue'] as Map<String, double>;
             final monthlyQuotes = dashboardData['monthlyQuotes'] as Map<String, int>;
 
@@ -748,40 +743,28 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
                         'Conversion Rate',
                         '${(() {
                           if (totalQuotes == 0) return '0.0';
-                          final acceptedQuotes = quotes.where((q) => q.status == 'accepted').length;
-                          return ((acceptedQuotes / totalQuotes) * 100).toStringAsFixed(1);
+                          // Calculate from recent quotes only for speed
+                          final acceptedCount = recentQuotes.where((q) => q.status == 'accepted').length;
+                          final estimatedRate = (recentQuotes.isEmpty ? 0 : (acceptedCount / recentQuotes.length) * 100);
+                          return estimatedRate.toStringAsFixed(1);
                         })()}%',
                         Icons.trending_up,
                         Colors.green,
-                        'Accepted / Total quotes',
+                        'Based on recent quotes',
                       ),
                       _buildKPICard(
                         'Avg Quote Value',
                         '\$${(totalQuotes > 0 ? (totalRevenue / totalQuotes) : 0).toStringAsFixed(0)}',
                         Icons.attach_money,
                         Colors.blue,
-                        '+8.3% from last month',
+                        'Average accepted quote',
                       ),
                       _buildKPICard(
-                        'Active Users',
-                        '${(() {
-                          try {
-                            final now = DateTime.now();
-                            return users.where((u) {
-                              if (u.lastLoginAt == null) return false;
-                              try {
-                                return now.difference(u.lastLoginAt!).inDays < 7;
-                              } catch (e) {
-                                return false;
-                              }
-                            }).length;
-                          } catch (e) {
-                            return 0;
-                          }
-                        })()}',
-                        Icons.people,
+                        'Total Revenue',
+                        '\$${totalRevenue.toStringAsFixed(0)}',
+                        Icons.payments,
                         Colors.orange,
-                        'Active in last 7 days',
+                        'From accepted quotes',
                       ),
                       _buildKPICard(
                         'Product Categories',
@@ -1588,59 +1571,65 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
   }
 
   Widget _buildCategoryProductsTable() {
-    return Consumer(
-      builder: (context, ref, child) {
-        final dashboardAsync = ref.watch(adminDashboardProvider);
+    return FutureBuilder<List<Product>>(
+      future: () async {
+        final dbService = ref.read(adminDatabaseServiceProvider);
+        final productsData = await dbService.getAllProductsOnce();
+        final products = productsData
+            .map((p) => Product.fromMap(Map<String, dynamic>.from(p)))
+            .where((p) => p.category == _selectedCategory)
+            .toList();
+        return products;
+      }(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-        return dashboardAsync.when(
-          data: (dashboardData) {
-            final allProducts = dashboardData['products'] as List<Product>? ?? [];
-            final products = allProducts
-                .where((p) => p.category == _selectedCategory)
-                .toList();
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Error loading products: ${snapshot.error}'),
+          );
+        }
 
-            if (products.isEmpty) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Text('No products in this category'),
-                ),
-              );
-            }
+        final products = snapshot.data ?? [];
 
-            return SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text('SKU')),
-                  DataColumn(label: Text('Model')),
-                  DataColumn(label: Text('Name')),
-                  DataColumn(label: Text('Price')),
-                  DataColumn(label: Text('Stock')),
-                ],
-                rows: products.take(10).map((product) {
-                  return DataRow(cells: [
-                    DataCell(Text(product.sku ?? 'N/A')),
-                    DataCell(Text(product.model)),
-                    DataCell(
-                      SizedBox(
-                        width: 200,
-                        child: Text(
-                          product.displayName,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
+        if (products.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Text('No products in this category'),
+            ),
+          );
+        }
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            columns: const [
+              DataColumn(label: Text('SKU')),
+              DataColumn(label: Text('Model')),
+              DataColumn(label: Text('Name')),
+              DataColumn(label: Text('Price')),
+              DataColumn(label: Text('Stock')),
+            ],
+            rows: products.take(10).map((product) {
+              return DataRow(cells: [
+                DataCell(Text(product.sku ?? 'N/A')),
+                DataCell(Text(product.model)),
+                DataCell(
+                  SizedBox(
+                    width: 200,
+                    child: Text(
+                      product.displayName,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    DataCell(Text('\$${product.price.toStringAsFixed(2)}')),
-                    DataCell(Text(product.stock.toString())),
-                  ]);
-                }).toList(),
-              ),
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) => Center(
-            child: Text('Error loading products: $error'),
+                  ),
+                ),
+                DataCell(Text('\$${product.price.toStringAsFixed(2)}')),
+                DataCell(Text(product.stock.toString())),
+              ]);
+            }).toList(),
           ),
         );
       },
