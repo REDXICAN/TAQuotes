@@ -1,6 +1,7 @@
 // lib/core/services/excel_upload_service.dart
 import 'dart:typed_data';
 import 'dart:async';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:excel/excel.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -59,24 +60,20 @@ class ExcelUploadService {
     return user?.email == EnvConfig.adminEmail;
   }
 
-  // Parse Excel and return preview data without saving
-  static Future<Map<String, dynamic>> previewExcel(Uint8List bytes) async {
-    if (!isSuperAdmin) {
-      throw Exception('Only super admin can preview products');
-    }
-
+  // Static method for isolate - processes Excel in background
+  static Map<String, dynamic> _parseExcelInIsolate(Uint8List bytes) {
     try {
       var excel = Excel.decodeBytes(bytes);
       List<Map<String, dynamic>> products = [];
       List<String> errors = [];
-      
+
       for (var table in excel.tables.keys) {
         var sheet = excel.tables[table];
         if (sheet == null) continue;
 
         // Get headers from first row
         var headers = sheet.rows.first.map((cell) => cell?.value?.toString() ?? '').toList();
-        
+
         // Map headers to indices
         Map<String, int> headerIndex = {};
         for (int i = 0; i < headers.length; i++) {
@@ -87,14 +84,14 @@ class ExcelUploadService {
         for (int i = 1; i < sheet.maxRows; i++) {
           try {
             var row = sheet.rows[i];
-            
+
             // Extract data based on headers
             String sku = _getCellValue(row, headerIndex['SKU']);
             if (sku.isEmpty) continue; // Skip rows without SKU
 
             String description = _getCellValue(row, headerIndex['Description']);
             String name = description.isEmpty ? sku : description.split(',').first.trim();
-            
+
             Map<String, dynamic> productData = {
               'sku': sku,
               'model': sku, // Use SKU as model
@@ -146,16 +143,44 @@ class ExcelUploadService {
             };
 
             // Remove empty fields
-            productData.removeWhere((key, value) => 
+            productData.removeWhere((key, value) =>
               value == null || value == '' || (value is String && value.isEmpty));
 
             products.add(productData);
 
           } catch (e) {
             errors.add('Row ${i + 1}: ${e.toString()}');
-            AppLogger.warning('Error processing row $i: $e', category: LogCategory.excel);
           }
         }
+      }
+
+      return {
+        'products': products,
+        'errors': errors,
+      };
+    } catch (e) {
+      return {
+        'products': <Map<String, dynamic>>[],
+        'errors': ['Failed to decode Excel file: ${e.toString()}'],
+      };
+    }
+  }
+
+  // Parse Excel and return preview data without saving
+  static Future<Map<String, dynamic>> previewExcel(Uint8List bytes) async {
+    if (!isSuperAdmin) {
+      throw Exception('Only super admin can preview products');
+    }
+
+    try {
+      // Move Excel parsing to background isolate
+      final result = await compute(_parseExcelInIsolate, bytes);
+      final products = result['products'] as List<Map<String, dynamic>>;
+      final errors = result['errors'] as List<String>;
+
+      // Log any errors from parsing
+      for (final error in errors) {
+        AppLogger.warning('Excel parsing error: $error', category: LogCategory.excel);
       }
 
       return {

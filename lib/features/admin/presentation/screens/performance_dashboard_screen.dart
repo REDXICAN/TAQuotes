@@ -134,6 +134,15 @@ Future<List<UserPerformanceMetrics>> _fetchUserPerformanceMetrics(String period,
     if (!usersSnapshot.exists) return [];
 
     final users = Map<String, dynamic>.from(usersSnapshot.value as Map);
+    final userIds = users.keys.toList();
+
+    // PERFORMANCE FIX: Batch fetch all quotes and clients in parallel
+    final quotesFutures = userIds.map((uid) => database.ref('quotes/$uid').get());
+    final clientsFutures = userIds.map((uid) => database.ref('clients/$uid').get());
+
+    final quotesSnapshots = await Future.wait(quotesFutures);
+    final clientsSnapshots = await Future.wait(clientsFutures);
+
     final List<UserPerformanceMetrics> metrics = [];
 
     final now = DateTime.now();
@@ -167,13 +176,14 @@ Future<List<UserPerformanceMetrics>> _fetchUserPerformanceMetrics(String period,
 
     final weekAgo = now.subtract(const Duration(days: 7));
     final monthAgo = DateTime(now.year, now.month - 1, now.day);
-    
-    for (final entry in users.entries) {
-      final userId = entry.key;
-      final userData = Map<String, dynamic>.from(entry.value);
-      
-      // Get user's quotes and filter by period
-      final quotesSnapshot = await database.ref('quotes/$userId').get();
+
+    for (int i = 0; i < userIds.length; i++) {
+      final userId = userIds[i];
+      final userData = Map<String, dynamic>.from(users[userId]);
+      final quotesSnapshot = quotesSnapshots[i];
+      final clientsSnapshot = clientsSnapshots[i];
+
+      // Process quotes using pre-fetched data (no more await)
       final quotes = <Quote>[];
       final allQuotes = <Quote>[]; // Store all quotes for chart data
 
@@ -197,16 +207,15 @@ Future<List<UserPerformanceMetrics>> _fetchUserPerformanceMetrics(String period,
           }
         }
       }
-      
-      // Get user's clients
-      final clientsSnapshot = await database.ref('clients/$userId').get();
+
+      // Process clients using pre-fetched data (no more await)
       int totalClients = 0;
       int newClientsThisMonth = 0;
-      
+
       if (clientsSnapshot.exists) {
         final clientsData = Map<String, dynamic>.from(clientsSnapshot.value as Map);
         totalClients = clientsData.length;
-        
+
         for (final clientEntry in clientsData.values) {
           final clientData = Map<String, dynamic>.from(clientEntry as Map);
           final createdAt = safeParseDateTimeWithFallback(clientData['created_at'] ?? clientData['createdAt']);

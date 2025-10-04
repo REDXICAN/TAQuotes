@@ -42,29 +42,71 @@ final quotesProvider = StreamProvider.autoDispose.family<List<Quote>, bool>((ref
         ...Map<String, dynamic>.from(e.value),
         'id': e.key,
       }).toList();
-      
-      // Fetch additional data for each quote
+
+      // PERFORMANCE FIX: Collect all unique IDs first
+      final clientIds = <String>{};
+      final productIds = <String>{};
+
+      for (final quoteData in quotesList) {
+        if (quoteData['client_id'] != null) {
+          clientIds.add(quoteData['client_id']);
+        }
+
+        if (quoteData['quote_items'] != null) {
+          final quoteItems = quoteData['quote_items'] is List
+              ? quoteData['quote_items'] as List
+              : (quoteData['quote_items'] as Map).values.toList();
+
+          for (final itemData in quoteItems) {
+            if (itemData is Map && itemData['product_id'] != null) {
+              productIds.add(itemData['product_id']);
+            }
+          }
+        }
+      }
+
+      // PERFORMANCE FIX: Fetch all data in parallel
+      final clientFutures = clientIds.map((id) => dbService.getClient(id));
+      final productFutures = productIds.map((id) => dbService.getProduct(id));
+
+      final clientResults = await Future.wait(clientFutures);
+      final productResults = await Future.wait(productFutures);
+
+      // PERFORMANCE FIX: Create lookup maps for instant access
+      final clientsMap = <String, Map<String, dynamic>>{};
+      final clientIdsList = clientIds.toList();
+      for (int i = 0; i < clientResults.length; i++) {
+        if (clientResults[i] != null) {
+          clientsMap[clientIdsList[i]] = clientResults[i]!;
+        }
+      }
+
+      final productsMap = <String, Map<String, dynamic>>{};
+      final productIdsList = productIds.toList();
+      for (int i = 0; i < productResults.length; i++) {
+        if (productResults[i] != null) {
+          productsMap[productIdsList[i]] = productResults[i]!;
+        }
+      }
+
+      // Build quotes using lookup maps (no await - instant lookups)
       final List<Quote> quotes = [];
 
       for (final quoteData in quotesList) {
-        // Fetch client data
-        Map<String, dynamic>? clientData;
-        if (quoteData['client_id'] != null) {
-          clientData = await dbService.getClient(quoteData['client_id']);
-        }
+        final clientId = quoteData['client_id'];
+        final clientData = clientId != null ? clientsMap[clientId] : null;
 
-        // Fetch quote items
         final List<QuoteItem> items = [];
         if (quoteData['quote_items'] != null) {
-          final quoteItems = quoteData['quote_items'] is List 
+          final quoteItems = quoteData['quote_items'] is List
               ? quoteData['quote_items'] as List
               : (quoteData['quote_items'] as Map).values.toList();
-              
+
           for (final itemData in quoteItems) {
             if (itemData is Map) {
-              // Fetch product data for each item
-              final productData =
-                  await dbService.getProduct(itemData['product_id']);
+              final productId = itemData['product_id'];
+              final productData = productId != null ? productsMap[productId] : null;
+
               items.add(QuoteItem(
                 productId: itemData['product_id'] ?? '',
                 productName: productData?['name'] ?? productData?['description'] ?? 'Unknown Product',
@@ -1949,10 +1991,7 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
           ),
         );
       }
-      
-      // Add delay to ensure dialog renders
-      await Future.delayed(const Duration(milliseconds: 100));
-      
+
       // Generate PDF with error handling
       Uint8List? pdfBytes;
       if (sendPDF) {
@@ -2442,9 +2481,6 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
                 ),
               );
             }
-
-            // Add small delay to prevent overwhelming the system
-            await Future.delayed(const Duration(milliseconds: 500));
           }
 
           // Close progress dialog
@@ -2540,9 +2576,6 @@ class _QuotesScreenState extends ConsumerState<QuotesScreen> {
           ),
         );
       }
-
-      // Add delay to ensure dialog is rendered
-      await Future.delayed(const Duration(milliseconds: 100));
 
       Uint8List bytes;
       String filename;

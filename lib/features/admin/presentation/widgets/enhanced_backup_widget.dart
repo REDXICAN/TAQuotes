@@ -153,11 +153,24 @@ class _EnhancedBackupWidgetState extends ConsumerState<EnhancedBackupWidget> {
       int productsAdded = 0;
       int clientsProcessed = 0;
 
+      // Prepare batch updates
+      Map<String, dynamic> batchUpdates = {};
+
       // Process Products Sheet
       if (excel.tables.containsKey('Products')) {
-        setState(() => _statusMessage = 'Importing products...');
+        setState(() => _statusMessage = 'Preparing products for import...');
 
         final sheet = excel.tables['Products']!;
+
+        // First, get all existing products in one query
+        final existingProductsSnapshot = await database.ref('products').get();
+        final Set<String> existingProductIds = {};
+
+        if (existingProductsSnapshot.exists && existingProductsSnapshot.value != null) {
+          final data = existingProductsSnapshot.value as Map<dynamic, dynamic>;
+          existingProductIds.addAll(data.keys.map((k) => k.toString()));
+        }
+
         for (int i = 1; i < sheet.rows.length; i++) {
           final row = sheet.rows[i];
           if (row.isEmpty) continue;
@@ -186,25 +199,24 @@ class _EnhancedBackupWidgetState extends ConsumerState<EnhancedBackupWidget> {
                 'updatedAt': ServerValue.timestamp,
               };
 
-              // Check if product exists
-              final snapshot = await database.ref('products/$productId').get();
-              if (snapshot.exists) {
-                await database.ref('products/$productId').update(productData);
+              // Add to batch
+              batchUpdates['products/$productId'] = productData;
+
+              if (existingProductIds.contains(productId)) {
                 productsUpdated++;
               } else {
-                await database.ref('products/$productId').set(productData);
                 productsAdded++;
               }
             }
           } catch (e) {
-            AppLogger.error('Error importing product row $i', error: e);
+            AppLogger.error('Error preparing product row $i', error: e);
           }
         }
       }
 
       // Process Clients Sheet
       if (excel.tables.containsKey('Clients')) {
-        setState(() => _statusMessage = 'Importing clients...');
+        setState(() => _statusMessage = 'Preparing clients for import...');
 
         final sheet = excel.tables['Clients']!;
         for (int i = 1; i < sheet.rows.length; i++) {
@@ -231,18 +243,19 @@ class _EnhancedBackupWidgetState extends ConsumerState<EnhancedBackupWidget> {
                 'updatedAt': ServerValue.timestamp,
               };
 
-              await database.ref('clients/$userId/$clientId').set(clientData);
+              // Add to batch
+              batchUpdates['clients/$userId/$clientId'] = clientData;
               clientsProcessed++;
             }
           } catch (e) {
-            AppLogger.error('Error importing client row $i', error: e);
+            AppLogger.error('Error preparing client row $i', error: e);
           }
         }
       }
 
       // Process Warehouse Stock Sheet
       if (excel.tables.containsKey('Warehouse Stock')) {
-        setState(() => _statusMessage = 'Importing warehouse stock...');
+        setState(() => _statusMessage = 'Preparing warehouse stock for import...');
 
         final sheet = excel.tables['Warehouse Stock']!;
         final warehouseData = <String, Map<String, dynamic>>{};
@@ -268,13 +281,25 @@ class _EnhancedBackupWidgetState extends ConsumerState<EnhancedBackupWidget> {
               };
             }
           } catch (e) {
-            AppLogger.error('Error importing stock row $i', error: e);
+            AppLogger.error('Error preparing stock row $i', error: e);
           }
         }
 
-        // Update warehouse stock in database
+        // Add warehouse stock to batch
         for (final entry in warehouseData.entries) {
-          await database.ref('warehouse_stock/${entry.key}').set(entry.value);
+          batchUpdates['warehouse_stock/${entry.key}'] = entry.value;
+        }
+      }
+
+      // Execute all batch updates in a single atomic operation
+      if (batchUpdates.isNotEmpty) {
+        setState(() => _statusMessage = 'Applying all changes to database...');
+        try {
+          await database.ref().update(batchUpdates);
+          AppLogger.info('Batch import completed: ${batchUpdates.length} entries');
+        } catch (e) {
+          AppLogger.error('Batch import failed', error: e);
+          throw Exception('Failed to import data: $e');
         }
       }
 

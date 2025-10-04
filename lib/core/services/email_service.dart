@@ -993,8 +993,13 @@ $userSignature
     List<Attachment> attachments = [];
 
     try {
-      // Generate PDF attachment
-      final pdfBytes = await ExportService.generateQuotePDF(quoteId);
+      // Generate PDF and Excel in parallel
+      final results = await Future.wait([
+        ExportService.generateQuotePDF(quoteId),
+        ExportService.generateQuoteExcel(quoteId),
+      ]);
+      final pdfBytes = results[0];
+      final excelBytes = results[1];
 
       final pdfAttachment = StreamAttachment(
         Stream.value(pdfBytes),
@@ -1002,9 +1007,6 @@ $userSignature
         fileName: 'Quote_$quoteNumber.pdf',
       );
       attachments.add(pdfAttachment);
-
-      // Generate Excel attachment
-      final excelBytes = await ExportService.generateQuoteExcel(quoteId);
 
       final excelAttachment = StreamAttachment(
         Stream.value(excelBytes),

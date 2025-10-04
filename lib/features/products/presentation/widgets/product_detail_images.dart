@@ -272,6 +272,10 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
               child: Image.network(
                 firebaseUrl,
                 fit: BoxFit.contain,
+                // Optimize image decoding for performance
+                // Since these are detail images, use higher resolution cache
+                cacheWidth: 1200,  // Max width for detail view
+                cacheHeight: 1200, // Max height for detail view
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
                   return Center(
@@ -386,6 +390,21 @@ class _ProductDetailImagesState extends State<ProductDetailImages> {
                       ? Image.network(
                           imageUrl,
                           fit: BoxFit.contain,
+                          // Optimize image decoding for zoomed view
+                          // Use higher resolution for zoom capability
+                          cacheWidth: 2400,  // High resolution for zooming
+                          cacheHeight: 2400, // High resolution for zooming
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                  : null,
+                              ),
+                            );
+                          },
                           errorBuilder: (context, error, stackTrace) {
                             return _buildAssetImageForZoom(sku, pageNumber);
                           },

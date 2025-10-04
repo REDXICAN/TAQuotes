@@ -90,6 +90,7 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
   String _searchQuery = '';
   int _currentPage = 0;
   int _itemsPerPage = 50; // Show 50 products per page to prevent browser freeze
+  double _importProgress = 0.0; // Track import progress
 
   @override
   void dispose() {
@@ -899,35 +900,78 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
       if (!mounted) return;
       if (confirmed != true) return;
 
-      // Show loading
+      // Reset progress and show loading
+      if (mounted) {
+        setState(() {
+          _importProgress = 0.0;
+        });
+      }
+
       if (!mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Importing products...'),
-            ],
-          ),
+        builder: (context) => StatefulBuilder(
+          builder: (context, setDialogState) {
+            // Update dialog when progress changes
+            if (_importProgress > 0) {
+              setDialogState(() {});
+            }
+            return AlertDialog(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_importProgress == 0)
+                    const CircularProgressIndicator()
+                  else
+                    LinearProgressIndicator(value: _importProgress),
+                  const SizedBox(height: 16),
+                  Text(_importProgress == 0
+                    ? 'Preparing import...'
+                    : 'Importing products... ${(_importProgress * 100).toInt()}%'),
+                ],
+              ),
+            );
+          }
         ),
       );
 
-      // Import products
-      int imported = 0;
-      for (final product in products) {
-        final productId = product['id'] as String?;
+      // Prepare batch updates
+      Map<String, dynamic> updates = {};
+      int total = products.length;
+      final database = FirebaseDatabase.instance;
+
+      for (int i = 0; i < products.length; i++) {
+        final product = Map<String, dynamic>.from(products[i]);
+        String? productId = product['id'] as String?;
         product.remove('id'); // Don't store id in database
 
-        if (productId != null && productId.isNotEmpty) {
-          await FirebaseDatabase.instance.ref('products/$productId').set(product);
-        } else {
-          await FirebaseDatabase.instance.ref('products').push().set(product);
+        // Generate ID if not provided
+        if (productId == null || productId.isEmpty) {
+          productId = database.ref('products').push().key;
         }
-        imported++;
+
+        updates['products/$productId'] = product;
+
+        // Update progress every 10 items (don't block UI)
+        if (i % 10 == 0 || i == products.length - 1) {
+          if (mounted) {
+            setState(() {
+              _importProgress = (i + 1) / total;
+            });
+          }
+          // Allow UI to render
+          await Future.delayed(Duration.zero);
+        }
+      }
+
+      // Single atomic write (much faster than loop)
+      await database.ref().update(updates);
+
+      if (mounted) {
+        setState(() {
+          _importProgress = 1.0;
+        });
       }
 
       // Close loading
@@ -935,13 +979,28 @@ class _DatabaseManagementV2ScreenState extends ConsumerState<DatabaseManagementV
       if (!context.mounted) return;
       Navigator.of(context).pop();
 
+      // Reset progress
+      if (mounted) {
+        setState(() {
+          _importProgress = 0.0;
+        });
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Imported $imported products successfully')),
+        SnackBar(content: Text('Imported ${products.length} products successfully')),
       );
     } catch (e) {
       if (!mounted) return;
       if (!context.mounted) return;
       Navigator.of(context).pop(); // Close loading if open
+
+      // Reset progress on error
+      if (mounted) {
+        setState(() {
+          _importProgress = 0.0;
+        });
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error importing: $e')),
       );

@@ -1,5 +1,6 @@
 // lib/features/admin/presentation/widgets/tracking_import_widget.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart' as excel_pkg;
 import 'dart:typed_data';
@@ -24,6 +25,84 @@ class _TrackingImportWidgetState extends State<TrackingImportWidget> {
   // File bytes kept for potential future direct upload feature
   // ignore: unused_field
   Uint8List? _fileBytes;
+
+  // Static isolate function for Excel parsing
+  static Map<String, dynamic> _parseExcelInIsolate(Map<String, dynamic> params) {
+    final bytes = params['bytes'] as Uint8List;
+    final columnMapping = params['columnMapping'] as Map<String, String>;
+
+    try {
+      final excel = excel_pkg.Excel.decodeBytes(bytes);
+
+      if (excel.tables.isEmpty) {
+        return {'error': 'No sheets found in Excel file'};
+      }
+
+      // Get first sheet
+      final sheet = excel.tables[excel.tables.keys.first];
+      if (sheet == null || sheet.rows.isEmpty) {
+        return {'error': 'Sheet is empty'};
+      }
+
+      final rows = sheet.rows;
+      if (rows.length < 2) {
+        return {'error': 'File must have at least a header row and one data row'};
+      }
+
+      // Parse header row
+      final headers = rows[0].map((cell) => cell?.value?.toString() ?? '').toList();
+
+      // Find column indices
+      final columnIndices = <String, int>{};
+      for (var entry in columnMapping.entries) {
+        final index = headers.indexWhere((h) =>
+          h.toLowerCase().contains(entry.value.toLowerCase()) ||
+          h.toLowerCase().replaceAll(' ', '').contains(entry.key.toLowerCase())
+        );
+        if (index != -1) {
+          columnIndices[entry.key] = index;
+        }
+      }
+
+      // Check required columns
+      if (!columnIndices.containsKey('trackingNumber')) {
+        return {'error': 'Missing required column: Tracking Number'};
+      }
+
+      // Parse data rows
+      final data = <Map<String, dynamic>>[];
+      for (var i = 1; i < rows.length; i++) {
+        final row = rows[i];
+        final rowData = <String, dynamic>{};
+
+        for (var entry in columnIndices.entries) {
+          final cellValue = row[entry.value]?.value;
+          if (cellValue != null) {
+            rowData[entry.key] = cellValue.toString();
+          }
+        }
+
+        // Skip empty rows
+        if (rowData.isEmpty || rowData['trackingNumber']?.toString().trim().isEmpty == true) {
+          continue;
+        }
+
+        data.add(rowData);
+      }
+
+      if (data.isEmpty) {
+        return {'error': 'No valid data rows found'};
+      }
+
+      return {
+        'data': data,
+        'rowCount': rows.length,
+        'recordCount': data.length,
+      };
+    } catch (e) {
+      return {'error': 'Failed to parse Excel: ${e.toString()}'};
+    }
+  }
 
   // Column mapping configuration
   final Map<String, String> _columnMapping = {
@@ -345,68 +424,19 @@ class _TrackingImportWidgetState extends State<TrackingImportWidget> {
 
   Future<void> _processExcelFile(Uint8List bytes, String fileName) async {
     try {
-      final excel = excel_pkg.Excel.decodeBytes(bytes);
+      // Move Excel parsing to background isolate
+      final result = await compute(_parseExcelInIsolate, {
+        'bytes': bytes,
+        'columnMapping': _columnMapping,
+      });
 
-      if (excel.tables.isEmpty) {
-        _showError('No sheets found in Excel file');
+      // Check for errors
+      if (result.containsKey('error')) {
+        _showError(result['error']);
         return;
       }
 
-      // Get first sheet
-      final sheet = excel.tables[excel.tables.keys.first];
-      if (sheet == null || sheet.rows.isEmpty) {
-        _showError('Sheet is empty');
-        return;
-      }
-
-      final rows = sheet.rows;
-      if (rows.length < 2) {
-        _showError('File must have at least a header row and one data row');
-        return;
-      }
-
-      // Parse header row
-      final headers = rows[0].map((cell) => cell?.value?.toString() ?? '').toList();
-
-      // Find column indices
-      final columnIndices = <String, int>{};
-      for (var entry in _columnMapping.entries) {
-        final index = headers.indexWhere((h) =>
-          h.toLowerCase().contains(entry.value.toLowerCase()) ||
-          h.toLowerCase().replaceAll(' ', '').contains(entry.key.toLowerCase())
-        );
-        if (index != -1) {
-          columnIndices[entry.key] = index;
-        }
-      }
-
-      // Check required columns
-      if (!columnIndices.containsKey('trackingNumber')) {
-        _showError('Missing required column: Tracking Number');
-        return;
-      }
-
-      // Parse data rows
-      final data = <Map<String, dynamic>>[];
-      for (var i = 1; i < rows.length; i++) {
-        final row = rows[i];
-        final rowData = <String, dynamic>{};
-
-        for (var entry in columnIndices.entries) {
-          final cellValue = row[entry.value]?.value;
-          if (cellValue != null) {
-            rowData[entry.key] = cellValue.toString();
-          }
-        }
-
-        // Skip empty rows
-        if (rowData.isEmpty || rowData['trackingNumber']?.toString().trim().isEmpty == true) {
-          continue;
-        }
-
-        data.add(rowData);
-      }
-
+      final data = result['data'] as List<Map<String, dynamic>>;
       if (data.isEmpty) {
         _showError('No valid data rows found');
         return;

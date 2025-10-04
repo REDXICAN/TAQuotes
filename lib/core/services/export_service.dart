@@ -1,5 +1,6 @@
 // lib/core/services/export_service.dart
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
@@ -16,6 +17,14 @@ class ExportService {
   static final _database = FirebaseDatabase.instance;
   static final _currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
   static final _dateFormat = DateFormat('MMMM dd, yyyy');
+
+  // Helper method to convert PDF bytes synchronously in background
+  // This allows the heavy byte conversion to happen in an isolate
+  static Uint8List _convertPdfBytesInIsolate(List<int> bytes) {
+    // Simply convert the list of integers to Uint8List
+    // This operation can be heavy for large PDFs
+    return Uint8List.fromList(bytes);
+  }
 
   // Generate PDF for a quote with comprehensive error handling
   static Future<Uint8List> generateQuotePDF(String quoteId) async {
@@ -92,33 +101,70 @@ class ExportService {
             },
           );
 
-          // Fetch product details for each item
+          // PERFORMANCE FIX: Parallel fetch all products
+          // Collect all product IDs
+          final productIds = items
+            .map((item) => SafeTypeConverter.toStr(item['product_id']))
+            .where((id) => id.isNotEmpty)
+            .toList();
+
+          // Parallel fetch
+          final productSnapshots = await Future.wait(
+            productIds.map((id) => _database.ref('products/$id').get())
+          );
+
+          // Create lookup map
+          final productsMap = <String, dynamic>{};
+          for (int i = 0; i < productIds.length; i++) {
+            if (productSnapshots[i].exists) {
+              productsMap[productIds[i]] = SafeTypeConverter.toMap(productSnapshots[i].value);
+            }
+          }
+
+          // Attach products to items
           for (var item in items) {
             final productId = SafeTypeConverter.toStr(item['product_id']);
-            if (productId.isNotEmpty) {
-              final productSnapshot = await _database.ref('products/$productId').get();
-              if (productSnapshot.exists) {
-                item['product'] = SafeTypeConverter.toMap(productSnapshot.value);
-              }
+            if (productsMap.containsKey(productId)) {
+              item['product'] = productsMap[productId];
             }
           }
         } else if (quoteData['quote_items'] is Map) {
           // Items stored as map
           final itemsMap = SafeTypeConverter.toMap(quoteData['quote_items']);
+
+          // First, collect all items
           for (var entry in itemsMap.entries) {
             if (entry.value != null) {
               final item = SafeTypeConverter.toMap(entry.value);
-
-              // Fetch product details
-              final productId = SafeTypeConverter.toStr(item['product_id']);
-              if (productId.isNotEmpty) {
-                final productSnapshot = await _database.ref('products/$productId').get();
-                if (productSnapshot.exists) {
-                  item['product'] = SafeTypeConverter.toMap(productSnapshot.value);
-                }
-              }
-
               items.add(item);
+            }
+          }
+
+          // PERFORMANCE FIX: Parallel fetch all products for map items
+          // Collect all product IDs
+          final productIds = items
+            .map((item) => SafeTypeConverter.toStr(item['product_id']))
+            .where((id) => id.isNotEmpty)
+            .toList();
+
+          // Parallel fetch
+          final productSnapshots = await Future.wait(
+            productIds.map((id) => _database.ref('products/$id').get())
+          );
+
+          // Create lookup map
+          final productsMap = <String, dynamic>{};
+          for (int i = 0; i < productIds.length; i++) {
+            if (productSnapshots[i].exists) {
+              productsMap[productIds[i]] = SafeTypeConverter.toMap(productSnapshots[i].value);
+            }
+          }
+
+          // Attach products to items
+          for (var item in items) {
+            final productId = SafeTypeConverter.toStr(item['product_id']);
+            if (productsMap.containsKey(productId)) {
+              item['product'] = productsMap[productId];
             }
           }
         }
@@ -430,7 +476,23 @@ class ExportService {
       );
       
       AppLogger.logTimer('PDF generation completed', stopwatch);
-      return pdf.save();
+
+      // Convert PDF to bytes - this is the heavy operation
+      try {
+        // Save PDF to bytes (this is asynchronous)
+        final pdfBytes = await pdf.save();
+
+        // If the PDF is large, we can optionally process it in an isolate
+        if (pdfBytes.length > 100000) { // Over 100KB
+          AppLogger.debug('Large PDF detected, processing in isolate');
+          return await compute(_convertPdfBytesInIsolate, pdfBytes);
+        }
+
+        return pdfBytes;
+      } catch (e) {
+        AppLogger.error('Error saving PDF', error: e);
+        rethrow;
+      }
     } catch (e, stackTrace) {
       AppLogger.error('Error generating PDF for quote $quoteId', 
           error: e, stackTrace: stackTrace, category: LogCategory.business);
@@ -754,40 +816,56 @@ class ExportService {
         }
         
         AppLogger.info('Excel Generation: Processing ${items.length} items', category: LogCategory.business);
-            
-        for (final itemData in items) {
-          if (itemData is Map) {
-            // Fetch product details
-            Map<String, dynamic>? productData;
-            if (itemData['product_id'] != null) {
-              final productSnapshot = await _database.ref('products/${itemData['product_id']}').get();
-              if (productSnapshot.exists) {
-                productData = Map<String, dynamic>.from(productSnapshot.value as Map);
-              }
-            }
-            
-            final itemRowData = [
-              productData?['sku'] ?? 'N/A',
-              productData?['name'] ?? 'Unknown Product',
-              itemData['quantity']?.toString() ?? '1',
-              _currencyFormat.format(itemData['unit_price'] ?? 0),
-              itemData['discount'] != null && itemData['discount'] > 0 
-                ? '${itemData['discount']}%' 
-                : '-',
-              _currencyFormat.format(itemData['total_price'] ?? 0),
-            ];
-            
-            for (int i = 0; i < itemRowData.length; i++) {
-              final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: currentRow));
-              cell.value = TextCellValue(itemRowData[i]);
-              // Highlight discount cell if there's a discount
-              if (i == 4 && itemData['discount'] != null && itemData['discount'] > 0) {
-                cell.cellStyle = CellStyle(fontColorHex: ExcelColor.fromHexString('#00AA00'));
-              }
-            }
-            
-            currentRow++;
+
+        // PERFORMANCE FIX: Parallel fetch all products for Excel
+        // Collect all product IDs from valid items
+        final validItems = items.whereType<Map>().toList();
+        final productIds = validItems
+          .where((item) => item['product_id'] != null)
+          .map((item) => item['product_id'].toString())
+          .toList();
+
+        // Parallel fetch all products
+        final productSnapshots = await Future.wait(
+          productIds.map((id) => _database.ref('products/$id').get())
+        );
+
+        // Create lookup map
+        final productsMap = <String, Map<String, dynamic>>{};
+        for (int i = 0; i < productIds.length; i++) {
+          if (productSnapshots[i].exists) {
+            productsMap[productIds[i]] = Map<String, dynamic>.from(productSnapshots[i].value as Map);
           }
+        }
+
+        for (final itemData in validItems) {
+          // Get product from pre-fetched map
+          Map<String, dynamic>? productData;
+          if (itemData['product_id'] != null) {
+            productData = productsMap[itemData['product_id'].toString()];
+          }
+
+          final itemRowData = [
+            productData?['sku'] ?? 'N/A',
+            productData?['name'] ?? 'Unknown Product',
+            itemData['quantity']?.toString() ?? '1',
+            _currencyFormat.format(itemData['unit_price'] ?? 0),
+            itemData['discount'] != null && itemData['discount'] > 0
+              ? '${itemData['discount']}%'
+              : '-',
+            _currencyFormat.format(itemData['total_price'] ?? 0),
+          ];
+
+          for (int i = 0; i < itemRowData.length; i++) {
+            final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: currentRow));
+            cell.value = TextCellValue(itemRowData[i]);
+            // Highlight discount cell if there's a discount
+            if (i == 4 && itemData['discount'] != null && itemData['discount'] > 0) {
+              cell.cellStyle = CellStyle(fontColorHex: ExcelColor.fromHexString('#00AA00'));
+            }
+          }
+
+          currentRow++;
         }
       }
       
@@ -1573,7 +1651,23 @@ class ExportService {
       );
 
       AppLogger.logTimer('Project PDF generation completed', stopwatch);
-      return pdf.save();
+
+      // Convert PDF to bytes - this is the heavy operation
+      try {
+        // Save PDF to bytes (this is asynchronous)
+        final pdfBytes = await pdf.save();
+
+        // If the PDF is large, we can optionally process it in an isolate
+        if (pdfBytes.length > 100000) { // Over 100KB
+          AppLogger.debug('Large project PDF detected, processing in isolate');
+          return await compute(_convertPdfBytesInIsolate, pdfBytes);
+        }
+
+        return pdfBytes;
+      } catch (e) {
+        AppLogger.error('Error saving project PDF', error: e);
+        rethrow;
+      }
     } catch (e, stackTrace) {
       AppLogger.error('Error generating project PDF',
           error: e, stackTrace: stackTrace, category: LogCategory.business);

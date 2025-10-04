@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:excel/excel.dart';
 import '../models/models.dart';
 import 'app_logger.dart';
@@ -13,6 +15,139 @@ class ExcelInventoryService {
   static Map<String, Map<String, dynamic>>? _cachedProductStock;
   static List<Map<String, String>>? _cachedWarehouses;
   static Map<String, int>? _cachedWarehouseTotals;
+
+  // Static method for isolate - reads file in background
+  static Uint8List _readFileIsolate(String path) {
+    return File(path).readAsBytesSync();
+  }
+
+  // Static method for isolate - processes Excel in background
+  static Map<String, dynamic> _parseExcelInIsolate(Uint8List bytes) {
+    try {
+      final excel = Excel.decodeBytes(bytes);
+
+      // Get the first sheet
+      Sheet? sheet;
+      for (var table in excel.tables.keys) {
+        sheet = excel.tables[table];
+        break;
+      }
+
+      if (sheet == null) {
+        return {'error': 'No sheets found in Excel file'};
+      }
+
+      // Parse headers from first row
+      final headers = <String, int>{};
+      final firstRow = sheet.rows.first;
+      for (int i = 0; i < firstRow.length; i++) {
+        final cell = firstRow[i];
+        if (cell?.value != null) {
+          final headerName = cell!.value.toString().trim().toUpperCase();
+          headers[headerName] = i;
+        }
+      }
+
+      // Expected column mappings
+      final columnMappings = {
+        'sku': ['CÓDIGO', 'SKU', 'CODIGO', 'MODEL', 'MODELO'],
+        'name': ['NOMBRE (PRODUCTO)', 'NAME', 'NOMBRE', 'DESCRIPCION', 'DESCRIPCIÓN', 'DESCRIPTION', 'PRODUCTO'],
+        'warehouse': ['WAREHOUSE', 'ALMACEN', 'ALMACÉN', 'BODEGA', 'SUCURSAL'],
+        'stock': ['EXISTENCIA', 'STOCK', 'CANTIDAD', 'QTY', 'QUANTITY', 'INVENTARIO'],
+      };
+
+      // Find actual column indices
+      final columnIndices = <String, int>{};
+      for (var mapping in columnMappings.entries) {
+        for (var possibleHeader in mapping.value) {
+          if (headers.containsKey(possibleHeader)) {
+            columnIndices[mapping.key] = headers[possibleHeader]!;
+            break;
+          }
+        }
+      }
+
+      // Parse data rows
+      final warehouses = <String, Map<String, String>>{};
+      final warehouseTotals = <String, int>{};
+      final productStock = <String, Map<String, dynamic>>{};
+      int totalProducts = 0;
+      int totalInventory = 0;
+
+      // Find header row first
+      int headerRowIndex = -1;
+      for (int i = 0; i < sheet.rows.length; i++) {
+        final row = sheet.rows[i];
+        if (row.isNotEmpty && row[0]?.value?.toString().toUpperCase().contains('CÓDIGO') == true) {
+          headerRowIndex = i;
+          break;
+        }
+      }
+
+      if (headerRowIndex == -1) {
+        return {'error': 'Header row not found in Excel file'};
+      }
+
+      // Default warehouse
+      String currentWarehouse = '999';
+      warehouses[currentWarehouse] = {
+        'code': currentWarehouse,
+        'name': 'MERCANCIA APARTADA',
+      };
+      warehouseTotals[currentWarehouse] = 0;
+
+      // Parse data rows starting after header
+      for (int rowIndex = headerRowIndex + 1; rowIndex < sheet.rows.length; rowIndex++) {
+        final row = sheet.rows[rowIndex];
+        if (row.isEmpty) continue;
+
+        try {
+          // Extract values from the row (continue with existing logic)
+          final skuValue = row.isNotEmpty ? row[0]?.value?.toString().trim() : null;
+          final nameValue = row.length > 1 ? row[1]?.value?.toString().trim() : null;
+          final stockValue = row.length > 2 ? row[2]?.value?.toString() : null;
+
+          if (skuValue != null && skuValue.isNotEmpty && stockValue != null) {
+            final stock = int.tryParse(stockValue) ?? 0;
+
+            if (stock > 0) {
+              if (!productStock.containsKey(skuValue)) {
+                productStock[skuValue] = {
+                  'sku': skuValue,
+                  'name': nameValue ?? skuValue,
+                  'totalStock': 0,
+                  'warehouses': {},
+                };
+                totalProducts++;
+              }
+
+              productStock[skuValue]!['warehouses'][currentWarehouse] = stock;
+              productStock[skuValue]!['totalStock'] =
+                (productStock[skuValue]!['totalStock'] as int) + stock;
+
+              warehouseTotals[currentWarehouse] =
+                (warehouseTotals[currentWarehouse] ?? 0) + stock;
+              totalInventory += stock;
+            }
+          }
+        } catch (e) {
+          // Skip rows with errors
+        }
+      }
+
+      return {
+        'warehouses': warehouses.values.toList(),
+        'productStock': productStock,
+        'warehouseTotals': warehouseTotals,
+        'totalProducts': totalProducts,
+        'totalInventory': totalInventory,
+        'rowCount': sheet.rows.length,
+        'headerRow': headerRowIndex,
+      };
+    } catch (e) {
+      return {'error': 'Failed to parse Excel: ${e.toString()}'};
+    }
+  }
 
   /// Load inventory data from the Excel file
   static Future<Map<String, dynamic>> loadInventoryData() async {
@@ -60,171 +195,19 @@ class ExcelInventoryService {
         return {};
       }
 
-      final bytes = file.readAsBytesSync();
-      final excel = Excel.decodeBytes(bytes);
+      // Read file asynchronously in isolate
+      final bytes = await compute(_readFileIsolate, excelPath);
 
-      // Get the first sheet
-      Sheet? sheet;
-      for (var table in excel.tables.keys) {
-        sheet = excel.tables[table];
-        break;
-      }
+      // Move Excel parsing to background isolate
+      final result = await compute(_parseExcelInIsolate, bytes);
 
-      if (sheet == null) {
-        AppLogger.warning('No sheets found in Excel file', category: LogCategory.business);
+      // Check for errors
+      if (result.containsKey('error')) {
+        AppLogger.warning(result['error'], category: LogCategory.business);
         return {};
       }
 
-      AppLogger.info('Found Excel sheet with ${sheet.rows.length} rows', category: LogCategory.business);
-
-      // Parse headers from first row
-      final headers = <String, int>{};
-      final firstRow = sheet.rows.first;
-      for (int i = 0; i < firstRow.length; i++) {
-        final cell = firstRow[i];
-        if (cell?.value != null) {
-          final headerName = cell!.value.toString().trim().toUpperCase();
-          headers[headerName] = i;
-        }
-      }
-
-      AppLogger.debug('Excel headers found', data: {'headers': headers.keys.toList()});
-
-      // Expected column mappings (based on actual Excel structure)
-      final columnMappings = {
-        'sku': ['CÓDIGO', 'SKU', 'CODIGO', 'MODEL', 'MODELO'],
-        'name': ['NOMBRE (PRODUCTO)', 'NAME', 'NOMBRE', 'DESCRIPCION', 'DESCRIPCIÓN', 'DESCRIPTION', 'PRODUCTO'],
-        'warehouse': ['WAREHOUSE', 'ALMACEN', 'ALMACÉN', 'BODEGA', 'SUCURSAL'],
-        'stock': ['EXISTENCIA', 'STOCK', 'CANTIDAD', 'QTY', 'QUANTITY', 'INVENTARIO'],
-      };
-
-      // Find actual column indices
-      final columnIndices = <String, int>{};
-      for (var mapping in columnMappings.entries) {
-        for (var possibleHeader in mapping.value) {
-          if (headers.containsKey(possibleHeader)) {
-            columnIndices[mapping.key] = headers[possibleHeader]!;
-            break;
-          }
-        }
-      }
-
-      AppLogger.debug('Column mappings', data: {'mappings': columnIndices});
-
-      // Parse data rows based on actual Excel structure
-      final warehouses = <String, Map<String, String>>{};
-      final warehouseTotals = <String, int>{};
-      final productStock = <String, Map<String, dynamic>>{};
-      int totalProducts = 0;
-      int totalInventory = 0;
-
-      // Find header row first
-      int headerRowIndex = -1;
-      for (int i = 0; i < sheet.rows.length; i++) {
-        final row = sheet.rows[i];
-        if (row.isNotEmpty && row[0]?.value?.toString().toUpperCase().contains('CÓDIGO') == true) {
-          headerRowIndex = i;
-          break;
-        }
-      }
-
-      if (headerRowIndex == -1) {
-        AppLogger.warning('Header row not found in Excel file', category: LogCategory.business);
-        return {};
-      }
-
-      AppLogger.info('Header found at row $headerRowIndex', category: LogCategory.business);
-
-      // Default warehouse (based on Excel structure)
-      String currentWarehouse = '999';
-      warehouses[currentWarehouse] = {
-        'code': currentWarehouse,
-        'name': 'MERCANCIA APARTADA',
-      };
-      warehouseTotals[currentWarehouse] = 0;
-
-      // Parse data rows starting after header
-      for (int rowIndex = headerRowIndex + 1; rowIndex < sheet.rows.length; rowIndex++) {
-        final row = sheet.rows[rowIndex];
-        if (row.isEmpty) continue;
-
-        try {
-          // Check if this row defines a warehouse
-          final firstCell = row[0]?.value?.toString().trim();
-          if (firstCell != null && firstCell.startsWith('\'') && row.isNotEmpty) {
-            // This is a warehouse definition row
-            final warehouseCode = firstCell.substring(1).trim();
-            final warehouseName = row.length > 1 ? (row[1]?.value?.toString().trim() ?? warehouseCode) : warehouseCode;
-            currentWarehouse = warehouseCode;
-
-            if (!warehouses.containsKey(currentWarehouse)) {
-              warehouses[currentWarehouse] = {
-                'code': currentWarehouse,
-                'name': warehouseName,
-              };
-              warehouseTotals[currentWarehouse] = 0;
-            }
-            continue;
-          }
-
-          // Extract SKU (column 0)
-          String? sku;
-          if (row.isNotEmpty && row[0]?.value != null) {
-            sku = row[0]!.value.toString().trim();
-          }
-
-          // Extract product name (column 1)
-          String? productName;
-          if (row.length > 1 && row[1]?.value != null) {
-            productName = row[1]!.value.toString().trim();
-          }
-
-          // Extract stock quantity (column 2)
-          int stockQty = 0;
-          if (row.length > 2 && row[2]?.value != null) {
-            final stockValue = row[2]!.value.toString().trim();
-            stockQty = int.tryParse(stockValue.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-          }
-
-          // Only process rows with valid SKU and stock
-          if (sku != null && sku.isNotEmpty && stockQty > 0 && !sku.startsWith('Almacén')) {
-            // Update warehouse totals
-            warehouseTotals[currentWarehouse] = (warehouseTotals[currentWarehouse] ?? 0) + stockQty;
-            totalInventory += stockQty;
-
-            // Add to product stock
-            if (!productStock.containsKey(sku)) {
-              productStock[sku] = {
-                'name': productName ?? sku,
-                'stock': <String, int>{},
-              };
-              totalProducts++;
-            }
-
-            final currentStock = productStock[sku]!['stock'] as Map<String, int>;
-            currentStock[currentWarehouse] = (currentStock[currentWarehouse] ?? 0) + stockQty;
-          }
-        } catch (e) {
-          AppLogger.warning('Error parsing row $rowIndex', error: e, category: LogCategory.business);
-          continue;
-        }
-      }
-
-      // Cache the parsed data
-      _cachedProductStock = productStock;
-      _cachedWarehouses = warehouses.values.toList();
-      _cachedWarehouseTotals = warehouseTotals;
-
-      return {
-        'warehouses': warehouses.values.toList(),
-        'warehouse_totals': warehouseTotals,
-        'products': productStock,
-        'summary': {
-          'total_warehouses': warehouses.length,
-          'total_products': totalProducts,
-          'total_inventory': totalInventory,
-        }
-      };
+      return result;
     } catch (e) {
       AppLogger.error('Error parsing Excel file', error: e, category: LogCategory.business);
       return {};

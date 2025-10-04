@@ -47,19 +47,28 @@ final searchHistoryProvider = StreamProvider.autoDispose<List<Product>>((ref) {
           return timestampB.compareTo(timestampA);
         });
       
-      // Get product details for each search history item
-      for (final entry in sortedEntries.take(5)) { // Show only 5 most recent
-        final productId = entry.value['product_id'];
-        if (productId != null) {
-          final productSnapshot = await database.ref('products/$productId').get();
-          if (productSnapshot.exists && productSnapshot.value != null) {
-            final productData = Map<String, dynamic>.from(productSnapshot.value as Map);
-            productData['id'] = productId;
-            try {
-              products.add(Product.fromMap(productData));
-            } catch (e) {
-              AppLogger.error('Error parsing search history product', error: e);
-            }
+      // PERFORMANCE FIX: Batch fetch all products in parallel
+      final recentEntries = sortedEntries.take(5).toList();
+      final productIds = recentEntries
+        .where((entry) => entry.value['product_id'] != null)
+        .map((entry) => entry.value['product_id'] as String)
+        .toList();
+
+      // Fetch all products in parallel
+      final productFutures = productIds.map((id) =>
+        database.ref('products/$id').get()
+      );
+      final productSnapshots = await Future.wait(productFutures);
+
+      // Process results
+      for (int i = 0; i < productSnapshots.length; i++) {
+        if (productSnapshots[i].exists && productSnapshots[i].value != null) {
+          final productData = Map<String, dynamic>.from(productSnapshots[i].value as Map);
+          productData['id'] = productIds[i];
+          try {
+            products.add(Product.fromMap(productData));
+          } catch (e) {
+            AppLogger.error('Error parsing search history product', error: e);
           }
         }
       }

@@ -362,9 +362,6 @@ class _OptimizedErrorMonitoringDashboardState extends ConsumerState<OptimizedErr
     ref.invalidate(errorStatisticsProvider);
     ref.invalidate(errorsStreamProvider);
 
-    // Wait a moment to show loading state
-    await Future.delayed(const Duration(milliseconds: 500));
-
     if (mounted) {
       setState(() => _isLoading = false);
     }

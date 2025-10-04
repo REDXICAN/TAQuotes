@@ -80,6 +80,13 @@ class _SimpleImageWidgetState extends State<SimpleImageWidget> {
         width: widget.width,
         height: widget.height,
         fit: widget.fit,
+        // Optimize image decoding for performance
+        cacheWidth: widget.width != null && widget.width!.isFinite
+          ? (widget.width! * 2).toInt()  // 2x for high DPI displays
+          : null,
+        cacheHeight: widget.height != null && widget.height!.isFinite
+          ? (widget.height! * 2).toInt()
+          : null,
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
           return Container(

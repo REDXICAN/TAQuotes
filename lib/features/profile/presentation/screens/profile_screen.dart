@@ -90,6 +90,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       width: 100,
                                       height: 100,
                                       fit: BoxFit.cover,
+                                      // Optimize image decoding for profile avatars
+                                      cacheWidth: 200,  // 2x for high DPI displays
+                                      cacheHeight: 200,
                                     ),
                                   )
                                 : Text(

@@ -210,33 +210,65 @@ class TrackingService {
     int successCount = 0;
     int errorCount = 0;
     final errors = <String>[];
+    Map<String, dynamic> batchUpdates = {};
 
     try {
+      // First, check all existing tracking numbers in a single batch read
+      final trackingNumbers = trackingsData.map((data) =>
+        data['trackingNumber'] ?? data['tracking_number'] ?? ''
+      ).where((num) => num.isNotEmpty).toList();
+
+      // Get all existing trackings in one query
+      final existingTrackingsSnapshot = await _database.ref(_trackingPath).get();
+      final Map<String, String> existingTrackingIds = {};
+
+      if (existingTrackingsSnapshot.exists && existingTrackingsSnapshot.value != null) {
+        final data = existingTrackingsSnapshot.value as Map<dynamic, dynamic>;
+        data.forEach((key, value) {
+          if (value is Map) {
+            final trackingNum = value['trackingNumber'] ?? value['tracking_number'] ?? '';
+            if (trackingNumbers.contains(trackingNum)) {
+              existingTrackingIds[trackingNum] = key.toString();
+            }
+          }
+        });
+      }
+
+      // Prepare batch updates
       for (var i = 0; i < trackingsData.length; i++) {
         try {
-          final trackingData = trackingsData[i];
+          final trackingData = Map<String, dynamic>.from(trackingsData[i]);
+          final trackingNum = trackingData['trackingNumber'] ?? trackingData['tracking_number'] ?? '';
 
-          // Check if tracking number already exists
-          final existingTracking = await searchByTrackingNumber(
-            trackingData['trackingNumber'] ?? trackingData['tracking_number'] ?? ''
-          );
-
-          if (existingTracking != null) {
+          String trackingPath;
+          if (existingTrackingIds.containsKey(trackingNum)) {
             // Update existing tracking
-            await updateTracking(existingTracking.id!, trackingData);
+            trackingPath = '$_trackingPath/${existingTrackingIds[trackingNum]}';
+            trackingData['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
           } else {
             // Create new tracking
-            final tracking = ShipmentTracking.fromMap(trackingData);
-            await createTracking(tracking);
+            final newKey = _database.ref(_trackingPath).push().key;
+            trackingPath = '$_trackingPath/$newKey';
+            trackingData['id'] = newKey;
+            trackingData['createdAt'] = DateTime.now().millisecondsSinceEpoch;
+            trackingData['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
           }
 
+          batchUpdates[trackingPath] = trackingData;
           successCount++;
         } catch (e) {
           errorCount++;
           errors.add('Row ${i + 1}: ${e.toString()}');
-          AppLogger.error('Error importing tracking row ${i + 1}',
+          AppLogger.error('Error preparing tracking row ${i + 1}',
             error: e, category: LogCategory.data);
         }
+      }
+
+      // Execute batch update
+      if (batchUpdates.isNotEmpty) {
+        await _database.ref().update(batchUpdates);
+        AppLogger.info('Batch tracking import completed: ${batchUpdates.length} entries',
+          category: LogCategory.business);
       }
 
       AppLogger.info('Bulk import completed: $successCount success, $errorCount errors',

@@ -1383,9 +1383,6 @@ class RealtimeDatabaseService {
         }
       });
 
-      // Wait a bit for async client name fetches to complete
-      await Future.delayed(const Duration(milliseconds: 500));
-
       // Convert to list and sort by total revenue
       final topClients = clientRevenue.values.toList();
       topClients.sort((a, b) => (b['totalRevenue'] as double).compareTo(a['totalRevenue'] as double));

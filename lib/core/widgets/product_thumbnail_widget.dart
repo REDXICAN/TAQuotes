@@ -29,6 +29,13 @@ class ProductThumbnailWidget extends StatelessWidget {
           width: width,
           height: height,
           fit: fit,
+          // Optimize image decoding for thumbnails
+          cacheWidth: width != null && width!.isFinite
+            ? (width! * 2).toInt()  // 2x for high DPI displays
+            : 200, // Default thumbnail cache width
+          cacheHeight: height != null && height!.isFinite
+            ? (height! * 2).toInt()
+            : 200, // Default thumbnail cache height
           errorBuilder: (context, error, stackTrace) => _buildFallback(context),
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;

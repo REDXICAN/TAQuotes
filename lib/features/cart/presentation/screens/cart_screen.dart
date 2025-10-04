@@ -59,77 +59,123 @@ final cartProvider = StreamProvider.autoDispose<List<CartItem>>((ref) {
 
       final List<CartItem> cartItems = [];
 
+      // PERFORMANCE FIX: Prepare all cart items first
+      final List<Map<String, dynamic>> itemsToProcess = [];
       for (final entry in data.entries) {
-        try {
-          // Defensive null check for entry value
-          if (entry.value == null) {
-            AppLogger.warning('Null cart item value for key: ${entry.key}');
-            continue;
-          }
+        if (entry.value == null) {
+          AppLogger.warning('Null cart item value for key: ${entry.key}');
+          continue;
+        }
+        final itemMap = Map<String, dynamic>.from(entry.value as Map);
+        itemMap['id'] = entry.key;
 
-          // Safely convert entry to map
-          final itemMap = Map<String, dynamic>.from(entry.value as Map);
-          itemMap['id'] = entry.key;  // Add the Firebase key as id
+        if (itemMap['product_id'] == null && itemMap['productId'] == null) {
+          AppLogger.warning('Cart item missing product_id/productId: ${entry.key}');
+          continue;
+        }
 
-          // Validate required fields before processing
-          if (itemMap['product_id'] == null && itemMap['productId'] == null) {
-            AppLogger.warning('Cart item missing product_id/productId: ${entry.key}');
-            continue;
-          }
+        itemsToProcess.add(itemMap);
+      }
 
+      // PERFORMANCE FIX: Collect all unique product and spare part IDs
+      final regularProductIds = <String>{};
+      final sparePartIds = <String>{};
+
+      for (final itemMap in itemsToProcess) {
+        final productId = itemMap['product_id'] ?? itemMap['productId'];
+        if (productId != null) {
           final itemType = itemMap['type'] ?? 'product';
+          if (itemType == 'spare_part') {
+            sparePartIds.add(productId);
+          } else {
+            regularProductIds.add(productId);
+          }
+        }
+      }
+
+      // PERFORMANCE FIX: Parallel fetch all products and spare parts
+      final productFutures = regularProductIds.map((id) =>
+        dbService.getProduct(id).timeout(const Duration(seconds: 5),
+          onTimeout: () => null,
+        ).catchError((e) {
+          AppLogger.warning('Failed to fetch product $id', error: e);
+          return null;
+        })
+      );
+
+      final sparePartFutures = sparePartIds.map((id) async {
+        try {
+          return await database.ref('spareparts/$id')
+            .get()
+            .timeout(const Duration(seconds: 5));
+        } catch (e) {
+          AppLogger.warning('Failed to fetch spare part $id', error: e);
+          return null;
+        }
+      }
+      );
+
+      // Wait for all fetches to complete in parallel
+      final productResults = await Future.wait(productFutures);
+      final sparePartResults = await Future.wait(sparePartFutures);
+
+      // PERFORMANCE FIX: Create lookup maps for instant access
+      final productsMap = <String, Map<String, dynamic>>{};
+      final productIdsList = regularProductIds.toList();
+      for (int i = 0; i < productResults.length; i++) {
+        if (productResults[i] != null) {
+          productsMap[productIdsList[i]] = productResults[i]!;
+        }
+      }
+
+      final sparePartsMap = <String, Map<String, dynamic>>{};
+      final sparePartIdsList = sparePartIds.toList();
+      for (int i = 0; i < sparePartResults.length; i++) {
+        final snapshot = sparePartResults[i];
+        if (snapshot != null && snapshot.exists && snapshot.value != null) {
+          sparePartsMap[sparePartIdsList[i]] = Map<String, dynamic>.from(snapshot.value as Map);
+        }
+      }
+
+      // Process cart items using the maps (no await needed - instant lookups)
+      for (final itemMap in itemsToProcess) {
+        try {
+          final itemType = itemMap['type'] ?? 'product';
+          final productId = itemMap['product_id'] ?? itemMap['productId'];
           Product? product;
 
-          if (itemType == 'spare_part') {
-            // Handle spare parts with timeout and defensive checks
-            try {
-              final productId = itemMap['product_id'] ?? itemMap['productId'];
-              if (productId != null) {
-                final sparePartSnapshot = await database.ref('spareparts/$productId')
-                  .get()
-                  .timeout(const Duration(seconds: 5));
-                if (sparePartSnapshot.exists && sparePartSnapshot.value != null) {
-                  final sparePartData = Map<String, dynamic>.from(sparePartSnapshot.value as Map);
-                  // Merge spare part data into item map for consistent processing
-                  itemMap['productName'] = itemMap['productName'] ?? itemMap['product_name'] ?? itemMap['name'] ?? sparePartData['name'] ?? '';
-                  itemMap['unitPrice'] = itemMap['unitPrice'] ?? itemMap['unit_price'] ?? itemMap['price'] ?? sparePartData['price'] ?? 0;
+          if (itemType == 'spare_part' && productId != null) {
+            // Handle spare parts using the map
+            final sparePartData = sparePartsMap[productId];
+            if (sparePartData != null) {
+              // Merge spare part data into item map for consistent processing
+              itemMap['productName'] = itemMap['productName'] ?? itemMap['product_name'] ?? itemMap['name'] ?? sparePartData['name'] ?? '';
+              itemMap['unitPrice'] = itemMap['unitPrice'] ?? itemMap['unit_price'] ?? itemMap['price'] ?? sparePartData['price'] ?? 0;
 
-                  // Create a minimal product object for spare parts
-                  product = Product(
-                    id: productId,
-                    sku: itemMap['sku'] ?? productId,
-                    model: itemMap['sku'] ?? productId,
-                    displayName: itemMap['productName'],
-                    name: itemMap['productName'],
-                    description: itemMap['productName'],
-                    price: SafeConversions.toPrice(itemMap['unitPrice']),
-                    category: 'Spare Parts',
-                    stock: SafeConversions.toInt(sparePartData['stock']),
-                    createdAt: DateTime.now(),
-                  );
-                }
-              }
-            } catch (e) {
-              AppLogger.warning('Failed to fetch spare part data', error: e);
+              // Create a minimal product object for spare parts
+              product = Product(
+                id: productId,
+                sku: itemMap['sku'] ?? productId,
+                model: itemMap['sku'] ?? productId,
+                displayName: itemMap['productName'],
+                name: itemMap['productName'],
+                description: itemMap['productName'],
+                price: SafeConversions.toPrice(itemMap['unitPrice']),
+                category: 'Spare Parts',
+                stock: SafeConversions.toInt(sparePartData['stock']),
+                createdAt: DateTime.now(),
+              );
             }
-          } else {
-            // Handle regular products with timeout
-            try {
-              final productId = itemMap['product_id'] ?? itemMap['productId'];
-              if (productId != null) {
-                final productData = await Future.value(dbService.getProduct(productId))
-                  .timeout(const Duration(seconds: 5));
-                if (productData != null) {
-                  product = Product.fromMap(productData);
-                  // DEBUG: Log image URLs to identify issue
-                  AppLogger.info('Cart product image data: productId=$productId, thumbnailUrl=${product.thumbnailUrl}, imageUrl=${product.imageUrl}', category: LogCategory.business);
-                  // Update item map with product data for consistency
-                  itemMap['productName'] = itemMap['productName'] ?? itemMap['product_name'] ?? product.description;
-                  itemMap['unitPrice'] = itemMap['unitPrice'] ?? itemMap['unit_price'] ?? product.price;
-                }
-              }
-            } catch (e) {
-              AppLogger.warning('Failed to fetch product data', error: e);
+          } else if (productId != null) {
+            // Handle regular products using the map
+            final productData = productsMap[productId];
+            if (productData != null) {
+              product = Product.fromMap(productData);
+              // DEBUG: Log image URLs to identify issue
+              AppLogger.info('Cart product image data: productId=$productId, thumbnailUrl=${product.thumbnailUrl}, imageUrl=${product.imageUrl}', category: LogCategory.business);
+              // Update item map with product data for consistency
+              itemMap['productName'] = itemMap['productName'] ?? itemMap['product_name'] ?? product.description;
+              itemMap['unitPrice'] = itemMap['unitPrice'] ?? itemMap['unit_price'] ?? product.price;
             }
           }
 
@@ -163,7 +209,7 @@ final cartProvider = StreamProvider.autoDispose<List<CartItem>>((ref) {
           ));
 
         } catch (e) {
-          AppLogger.warning('Failed to process cart item ${entry.key}', error: e);
+          AppLogger.warning('Failed to process cart item ${itemMap['id']}', error: e);
           // Continue with other items instead of failing the entire cart
           continue;
         }
@@ -2265,25 +2311,64 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                 return;
               }
               
+              // Generate temporary ID for optimistic update
+              final tempClientId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+
+              // Create optimistic client object
+              final newClient = Client(
+                id: tempClientId,
+                company: companyController.text.trim(),
+                contactName: contactNameController.text.trim(),
+                name: contactNameController.text.trim(),
+                email: emailController.text.trim(),
+                phone: '',
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              );
+
+              // IMMEDIATELY select and close dialog (optimistic UI)
+              if (mounted) {
+                ref.read(cartClientProvider.notifier).state = newClient;
+                Navigator.pop(dialogContext);
+
+                // Show subtle saving indicator
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Row(
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        ),
+                        SizedBox(width: 12),
+                        Text('Saving client...'),
+                      ],
+                    ),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+
+              // Save to database in background
               try {
                 final dbService = ref.read(databaseServiceProvider);
-                final clientId = await dbService.addClient({
+                final clientData = {
                   'company': companyController.text.trim(),
                   'contact_name': contactNameController.text.trim(),
                   'name': contactNameController.text.trim(),
                   'email': emailController.text.trim(),
-                  'phone': '', // Can be added later
-                });
-                
-                // Refresh clients list
-                ref.invalidate(clientsStreamProvider);
-                
-                // Get the newly created client
-                final clientsAsync = await ref.read(clientsStreamProvider.future);
-                if (!mounted) return;
-                final newClient = clientsAsync.firstWhere(
-                  (c) => c.id == clientId,
-                  orElse: () => Client(
+                  'phone': '',
+                  'address': '',
+                  'created_at': DateTime.now().toIso8601String(),
+                  'updated_at': DateTime.now().toIso8601String(),
+                };
+
+                final clientId = await dbService.addClient(clientData);
+
+                // Update with real ID from database
+                if (mounted) {
+                  final realClient = Client(
                     id: clientId,
                     company: companyController.text.trim(),
                     contactName: contactNameController.text.trim(),
@@ -2291,29 +2376,42 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                     email: emailController.text.trim(),
                     phone: '',
                     createdAt: DateTime.now(),
-                  ),
-                );
+                    updatedAt: DateTime.now(),
+                  );
+                  ref.read(cartClientProvider.notifier).state = realClient;
 
-                // Select the new client
-                ref.read(cartClientProvider.notifier).state = newClient;
+                  // Invalidate provider to refresh source of truth
+                  ref.invalidate(clientsStreamProvider);
 
-                if (!context.mounted) return;
-                Navigator.pop(dialogContext);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Client "${companyController.text}" added and selected'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              } catch (e) {
-                if (!context.mounted) return;
-                Navigator.pop(dialogContext);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error adding client: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                  // Show success
+                  ScaffoldMessenger.of(context).clearSnackBars();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Client "${companyController.text.trim()}" added successfully'),
+                      backgroundColor: Colors.green,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              } catch (error) {
+                // Rollback optimistic update on error
+                if (mounted) {
+                  ref.read(cartClientProvider.notifier).state = null;
+
+                  ScaffoldMessenger.of(context).clearSnackBars();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to add client: ${error.toString()}'),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 4),
+                      action: SnackBarAction(
+                        label: 'Retry',
+                        textColor: Colors.white,
+                        onPressed: () => _addNewClient(),
+                      ),
+                    ),
+                  );
+                }
               }
             },
           ),
@@ -2457,25 +2555,44 @@ class _CartScreenState extends ConsumerState<CartScreen> with AutomaticKeepAlive
                               
                               // Get products from quote items
                               if (quoteData['quote_items'] != null) {
-                                final items = quoteData['quote_items'] is List 
+                                final items = quoteData['quote_items'] is List
                                   ? quoteData['quote_items'] as List
                                   : (quoteData['quote_items'] as Map).values.toList();
-                                  
+
+                                // PERFORMANCE FIX: Batch fetch all product IDs in parallel
+                                final productIds = items
+                                  .where((item) => item != null && item is Map && item['product_id'] != null)
+                                  .map((item) => item['product_id'] as String)
+                                  .toList();
+
+                                // Fetch all products in parallel
+                                final productFutures = productIds.map((id) =>
+                                  database.ref('products/$id').get()
+                                );
+                                final productSnapshots = await Future.wait(productFutures);
+
+                                // Create product lookup map
+                                final productsMap = <String, Map<String, dynamic>>{};
+                                for (int i = 0; i < productIds.length; i++) {
+                                  if (productSnapshots[i].exists) {
+                                    productsMap[productIds[i]] = Map<String, dynamic>.from(productSnapshots[i].value as Map);
+                                  }
+                                }
+
                                 for (var item in items) {
                                   if (item != null && item is Map) {
-                                    // Get product details
+                                    // Get product details from pre-fetched map
                                     String productName = 'Unknown Product';
                                     String productSku = 'N/A';
-                                    
+
                                     if (item['product_id'] != null) {
-                                      final productSnapshot = await database.ref('products/${item['product_id']}').get();
-                                      if (productSnapshot.exists) {
-                                        final productData = Map<String, dynamic>.from(productSnapshot.value as Map);
+                                      final productData = productsMap[item['product_id']];
+                                      if (productData != null) {
                                         productName = productData['name'] ?? productData['display_name'] ?? 'Unknown Product';
                                         productSku = productData['sku'] ?? productData['model'] ?? 'N/A';
                                       }
                                     }
-                                    
+
                                     productsList.add({
                                       'name': productName,
                                       'sku': productSku,

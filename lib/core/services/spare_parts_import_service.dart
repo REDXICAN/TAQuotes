@@ -27,26 +27,81 @@ class SparePartsImportService {
       AppLogger.info('Found ${sparePartsData.length} spare parts to import',
                     category: LogCategory.database);
 
-      // Process each spare part
+      // Prepare batch updates for all spare parts
+      Map<String, dynamic> batchUpdates = {};
       int successCount = 0;
       int errorCount = 0;
+      List<String> errors = [];
 
       for (var partData in sparePartsData) {
         try {
-          final success = await _importSingleSparePart(partData);
-          if (success) {
-            successCount++;
-          } else {
-            errorCount++;
+          final sku = partData['sku'] as String;
+
+          // Create the product data structure for Firebase
+          final productData = {
+            'sku': sku,
+            'name': partData['name'],
+            'category': 'Spare Parts',
+            'subcategory': 'Components',
+            'price': partData['price'] ?? 0.0,
+            'description': partData['description'],
+            'brand': 'TurboAir',
+            'model': sku, // Use SKU as model for spare parts
+            'isActive': true,
+            'createdAt': ServerValue.timestamp,
+            'updatedAt': ServerValue.timestamp,
+            // Additional spare parts specific fields
+            'isSparepart': true,
+            'originalRow': partData['original_row'],
+            'warehouseStock': partData['warehouse_stock'],
+          };
+
+          // Add product to batch
+          batchUpdates['products/$sku'] = productData;
+
+          // Add warehouse stock data to batch
+          final warehouseStock = partData['warehouse_stock'] as Map<String, dynamic>;
+          for (var warehouseEntry in warehouseStock.entries) {
+            final warehouse = warehouseEntry.key;
+            final stock = warehouseEntry.value;
+
+            if (stock > 0) { // Only import non-zero stock
+              batchUpdates['warehouse_stock/$warehouse/$sku'] = {
+                'available': stock,
+                'reserved': 0,
+                'total': stock,
+                'lastUpdated': ServerValue.timestamp,
+                'location': warehouse,
+                'sku': sku,
+                'productName': partData['name'],
+                'category': 'Spare Parts',
+              };
+            }
           }
+
+          successCount++;
         } catch (e) {
-          AppLogger.error('Failed to import spare part: ${partData['sku']}',
+          AppLogger.error('Failed to prepare spare part: ${partData['sku']}',
                          error: e, category: LogCategory.database);
           errorCount++;
+          errors.add('${partData['sku']}: ${e.toString()}');
         }
+      }
 
-        // Add small delay to avoid overwhelming Firebase
-        await Future.delayed(Duration(milliseconds: 100));
+      // Execute batch update in a single atomic operation
+      try {
+        if (batchUpdates.isNotEmpty) {
+          await _db.ref().update(batchUpdates);
+          AppLogger.info('Batch update completed: ${batchUpdates.length} entries',
+                        category: LogCategory.database);
+        }
+      } catch (e) {
+        AppLogger.error('Batch update failed', error: e, category: LogCategory.database);
+        // Log first 5 errors for debugging
+        for (var error in errors.take(5)) {
+          AppLogger.error('Import error: $error', category: LogCategory.database);
+        }
+        return false;
       }
 
       AppLogger.info('Spare parts import completed. Success: $successCount, Errors: $errorCount',
@@ -59,94 +114,87 @@ class SparePartsImportService {
     }
   }
 
-  /// Import a single spare part into Firebase
-  Future<bool> _importSingleSparePart(Map<String, dynamic> partData) async {
-    try {
-      final sku = partData['sku'] as String;
-
-      // Create the product data structure for Firebase
-      final productData = {
-        'sku': sku,
-        'name': partData['name'],
-        'category': 'Spare Parts',
-        'subcategory': 'Components',
-        'price': partData['price'] ?? 0.0,
-        'description': partData['description'],
-        'brand': 'TurboAir',
-        'model': sku, // Use SKU as model for spare parts
-        'isActive': true,
-        'createdAt': ServerValue.timestamp,
-        'updatedAt': ServerValue.timestamp,
-        // Additional spare parts specific fields
-        'isSparepart': true,
-        'originalRow': partData['original_row'],
-        'warehouseStock': partData['warehouse_stock'],
-      };
-
-      // Import to products collection
-      final productRef = _db.ref('products').child(sku);
-      await productRef.set(productData);
-
-      // Import warehouse stock data
-      final warehouseStock = partData['warehouse_stock'] as Map<String, dynamic>;
-      for (var warehouseEntry in warehouseStock.entries) {
-        final warehouse = warehouseEntry.key;
-        final stock = warehouseEntry.value;
-
-        if (stock > 0) { // Only import non-zero stock
-          final stockRef = _db.ref('warehouse_stock')
-                              .child(warehouse)
-                              .child(sku);
-
-          await stockRef.set({
-            'available': stock,
-            'reserved': 0,
-            'total': stock,
-            'lastUpdated': ServerValue.timestamp,
-            'location': warehouse,
-            'sku': sku,
-            'productName': partData['name'],
-            'category': 'Spare Parts',
-          });
-        }
-      }
-
-      AppLogger.debug('Successfully imported spare part: $sku',
-                     category: LogCategory.database);
-      return true;
-
-    } catch (e) {
-      AppLogger.error('Failed to import spare part: ${partData['sku']}',
-                     error: e, category: LogCategory.database);
-      return false;
-    }
-  }
-
   /// Import spare parts data directly from Map (for testing)
   Future<bool> importSparePartsFromData(List<Map<String, dynamic>> sparePartsData) async {
     try {
       AppLogger.info('Starting spare parts import from data (${sparePartsData.length} items)',
                     category: LogCategory.database);
 
+      // Prepare batch updates for all spare parts
+      Map<String, dynamic> batchUpdates = {};
       int successCount = 0;
       int errorCount = 0;
+      List<String> errors = [];
 
       for (var partData in sparePartsData) {
         try {
-          final success = await _importSingleSparePart(partData);
-          if (success) {
-            successCount++;
-          } else {
-            errorCount++;
+          final sku = partData['sku'] as String;
+
+          // Create the product data structure for Firebase
+          final productData = {
+            'sku': sku,
+            'name': partData['name'],
+            'category': 'Spare Parts',
+            'subcategory': 'Components',
+            'price': partData['price'] ?? 0.0,
+            'description': partData['description'],
+            'brand': 'TurboAir',
+            'model': sku, // Use SKU as model for spare parts
+            'isActive': true,
+            'createdAt': ServerValue.timestamp,
+            'updatedAt': ServerValue.timestamp,
+            // Additional spare parts specific fields
+            'isSparepart': true,
+            'originalRow': partData['original_row'],
+            'warehouseStock': partData['warehouse_stock'],
+          };
+
+          // Add product to batch
+          batchUpdates['products/$sku'] = productData;
+
+          // Add warehouse stock data to batch
+          final warehouseStock = partData['warehouse_stock'] as Map<String, dynamic>;
+          for (var warehouseEntry in warehouseStock.entries) {
+            final warehouse = warehouseEntry.key;
+            final stock = warehouseEntry.value;
+
+            if (stock > 0) { // Only import non-zero stock
+              batchUpdates['warehouse_stock/$warehouse/$sku'] = {
+                'available': stock,
+                'reserved': 0,
+                'total': stock,
+                'lastUpdated': ServerValue.timestamp,
+                'location': warehouse,
+                'sku': sku,
+                'productName': partData['name'],
+                'category': 'Spare Parts',
+              };
+            }
           }
+
+          successCount++;
         } catch (e) {
-          AppLogger.error('Failed to import spare part: ${partData['sku']}',
+          AppLogger.error('Failed to prepare spare part: ${partData['sku']}',
                          error: e, category: LogCategory.database);
           errorCount++;
+          errors.add('${partData['sku']}: ${e.toString()}');
         }
+      }
 
-        // Add small delay to avoid overwhelming Firebase
-        await Future.delayed(Duration(milliseconds: 100));
+      // Execute batch update in a single atomic operation
+      try {
+        if (batchUpdates.isNotEmpty) {
+          await _db.ref().update(batchUpdates);
+          AppLogger.info('Batch update completed: ${batchUpdates.length} entries',
+                        category: LogCategory.database);
+        }
+      } catch (e) {
+        AppLogger.error('Batch update failed', error: e, category: LogCategory.database);
+        // Log first 5 errors for debugging
+        for (var error in errors.take(5)) {
+          AppLogger.error('Import error: $error', category: LogCategory.database);
+        }
+        return false;
       }
 
       AppLogger.info('Spare parts import completed. Success: $successCount, Errors: $errorCount',

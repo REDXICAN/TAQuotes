@@ -1,6 +1,7 @@
 // lib/core/services/invoice_service.dart
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:excel/excel.dart';
@@ -198,6 +199,11 @@ class InvoiceService {
   // ignore: unused_field
   static final int _invoiceCounter = 1;
 
+  // Helper method to convert PDF bytes in isolate for large PDFs
+  static Uint8List _convertPdfBytesInIsolate(List<int> bytes) {
+    return Uint8List.fromList(bytes);
+  }
+
   /// Create invoice from quote
   Future<InvoiceResult> createInvoiceFromQuote({
     required String quoteId,
@@ -338,7 +344,21 @@ class InvoiceService {
         ),
       );
 
-      return await pdf.save();
+      // Convert PDF to bytes - optimize for large PDFs
+      try {
+        final pdfBytes = await pdf.save();
+
+        // If the PDF is large, process it in an isolate
+        if (pdfBytes.length > 100000) { // Over 100KB
+          AppLogger.debug('Large invoice PDF detected, processing in isolate');
+          return await compute(_convertPdfBytesInIsolate, pdfBytes);
+        }
+
+        return pdfBytes;
+      } catch (e) {
+        AppLogger.error('Error saving invoice PDF', error: e);
+        rethrow;
+      }
 
     } catch (e) {
       AppLogger.error('Error generating invoice PDF', error: e, category: LogCategory.business);

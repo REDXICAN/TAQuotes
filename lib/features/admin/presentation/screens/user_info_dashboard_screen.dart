@@ -62,14 +62,25 @@ Future<List<UserInfo>> _fetchAllUsers() async {
     }
 
     final users = Map<String, dynamic>.from(usersSnapshot.value as Map);
+    final userIds = users.keys.toList();
+
+    // PERFORMANCE FIX: Batch fetch all quotes and clients in parallel
+    final quotesFutures = userIds.map((uid) => database.ref('quotes/$uid').get());
+    final clientsFutures = userIds.map((uid) => database.ref('clients/$uid').get());
+
+    final quotesSnapshots = await Future.wait(quotesFutures);
+    final clientsSnapshots = await Future.wait(clientsFutures);
+
+    // Build user info list using pre-fetched data
     final List<UserInfo> userInfoList = [];
 
-    for (final entry in users.entries) {
-      final userId = entry.key;
-      final userData = Map<String, dynamic>.from(entry.value);
+    for (int i = 0; i < userIds.length; i++) {
+      final userId = userIds[i];
+      final userData = Map<String, dynamic>.from(users[userId]);
+      final quotesSnapshot = quotesSnapshots[i];
+      final clientsSnapshot = clientsSnapshots[i];
 
-      // Get user's quotes count and calculate detailed metrics
-      final quotesSnapshot = await database.ref('quotes/$userId').get();
+      // Process quotes data (no more await - using pre-fetched data)
       int quotesCount = 0;
       double totalRevenue = 0;
       List<Map<String, dynamic>> latestQuotes = [];
@@ -130,8 +141,7 @@ Future<List<UserInfo>> _fetchAllUsers() async {
         'count': entry.value,
       }).toList();
 
-      // Get user's clients count
-      final clientsSnapshot = await database.ref('clients/$userId').get();
+      // Process clients data (no more await - using pre-fetched data)
       int clientsCount = 0;
       if (clientsSnapshot.exists) {
         final clientsData = Map<String, dynamic>.from(clientsSnapshot.value as Map);

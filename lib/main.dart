@@ -30,9 +30,6 @@ void main() async {
   final dbService = RealtimeDatabaseService();
   await dbService.enableOfflinePersistence();
 
-  // Give Firebase a moment to connect
-  await Future.delayed(const Duration(seconds: 1));
-
   // Product cache service stub (Firebase handles caching)
   await ProductCacheService.instance.initialize();
 

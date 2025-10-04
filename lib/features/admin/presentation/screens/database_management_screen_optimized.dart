@@ -128,13 +128,8 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    // Simulate initial loading with error handling
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        setState(() => _initialLoadComplete = true);
-      }
-    }).catchError((error) {
-      AppLogger.error('Error in initial load', error: error);
+    // Set initial load complete immediately
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         setState(() => _initialLoadComplete = true);
       }
@@ -415,11 +410,9 @@ class _OptimizedDatabaseManagementScreenState extends ConsumerState<OptimizedDat
                   setState(() {
                     _initialLoadComplete = false;
                   });
-                  Future.delayed(const Duration(milliseconds: 500), () {
-                    if (mounted) {
-                      setState(() => _initialLoadComplete = true);
-                    }
-                  });
+                  if (mounted) {
+                    setState(() => _initialLoadComplete = true);
+                  }
                 },
                 child: const Text('Retry'),
               ),

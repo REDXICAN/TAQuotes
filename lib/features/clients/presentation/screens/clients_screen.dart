@@ -1593,6 +1593,9 @@ class _ClientsScreenState extends ConsumerState<ClientsScreen> with SingleTicker
                   child: Image.network(
                     client.profilePictureUrl!,
                     fit: BoxFit.contain,
+                    // Optimize image decoding for profile pictures
+                    cacheWidth: 1200,  // Good resolution for viewing
+                    cacheHeight: 1200,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
                       return Center(

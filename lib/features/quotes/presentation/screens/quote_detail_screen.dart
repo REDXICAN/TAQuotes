@@ -48,14 +48,34 @@ final quoteDetailProvider =
         clientData = await dbService.getClient(quoteData['client_id']);
       }
 
-      // Fetch quote items with product details
+      // PERFORMANCE FIX: Batch fetch all product details in parallel
       final List<QuoteItem> items = [];
       if (quoteData['quote_items'] != null) {
-        for (final itemData in quoteData['quote_items']) {
-          // Fetch product data for each item
-          final productData = await dbService.getProduct(itemData['product_id']);
+        final quoteItems = quoteData['quote_items'] as List;
+
+        // Collect all product IDs
+        final productIds = quoteItems
+          .where((itemData) => itemData['product_id'] != null)
+          .map((itemData) => itemData['product_id'] as String)
+          .toList();
+
+        // Fetch all products in parallel
+        final productFutures = productIds.map((id) => dbService.getProduct(id));
+        final productsData = await Future.wait(productFutures);
+
+        // Create product lookup map
+        final productsMap = <String, Map<String, dynamic>?>{};
+        for (int i = 0; i < productIds.length; i++) {
+          productsMap[productIds[i]] = productsData[i];
+        }
+
+        // Build items using pre-fetched product data
+        for (final itemData in quoteItems) {
+          final productId = itemData['product_id'] ?? '';
+          final productData = productsMap[productId];
+
           items.add(QuoteItem(
-            productId: itemData['product_id'] ?? '',
+            productId: productId,
             productName: productData?['name'] ?? 'Unknown Product',
             quantity: itemData['quantity'] ?? 1,
             unitPrice: SafeConversions.toPrice(itemData['unit_price']),
