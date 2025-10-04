@@ -263,20 +263,23 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
   }
 
   Widget _buildCardMenu(ThemeData theme) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Menu Grid
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: ResponsiveHelper.isMobile(context) ? 2 : 3,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.2,
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 900), // Limit menu width
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Menu Grid - Responsive columns
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: _getMenuColumns(context),
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: _getMenuCardAspectRatio(context),
+                children: [
               _buildMenuCard(
                 icon: Icons.dashboard,
                 title: 'Dashboard',
@@ -342,11 +345,29 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
               ),
             ],
           ),
-          
-          const SizedBox(height: 32),
+
+          const SizedBox(height: 24),
         ],
       ),
+        ),
+      ),
     );
+  }
+
+  // Helper method to determine number of columns based on screen size
+  int _getMenuColumns(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width < 600) return 2;        // Mobile: 2 columns
+    if (width < 900) return 3;        // Tablet: 3 columns
+    return 3;                         // Desktop: 3 columns (max)
+  }
+
+  // Helper method to determine card aspect ratio based on screen size
+  double _getMenuCardAspectRatio(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width < 600) return 1.0;      // Mobile: Square cards
+    if (width < 900) return 1.1;      // Tablet: Slightly wider
+    return 1.2;                       // Desktop: Wider cards
   }
   
   Widget _buildMenuCard({
@@ -356,45 +377,51 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
     return Card(
       elevation: 2,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(isMobile ? 12 : 16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(isMobile ? 8 : 12),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   icon,
-                  size: 32,
+                  size: isMobile ? 24 : 32,
                   color: color,
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: isMobile ? 8 : 12),
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 16,
+                style: TextStyle(
+                  fontSize: isMobile ? 14 : 16,
                   fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 4),
               Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: isMobile ? 11 : 12,
                   color: Colors.grey[600],
                 ),
                 textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
