@@ -17,16 +17,9 @@ import '../../features/cart/presentation/screens/cart_screen.dart';
 import '../../features/quotes/presentation/screens/quotes_with_tracking_screen.dart';
 import '../../features/quotes/presentation/screens/quote_detail_screen.dart';
 import '../../features/quotes/presentation/screens/create_quote_screen.dart';
-import '../../features/admin/presentation/screens/admin_panel_screen.dart';
-import '../../features/admin/presentation/screens/performance_dashboard_screen.dart';
-import '../../features/admin/presentation/screens/user_info_dashboard_screen.dart';
-import '../../features/admin/presentation/screens/user_details_screen.dart';
-import '../../features/admin/presentation/screens/user_detail_screen.dart';
-import '../../features/admin/presentation/screens/error_monitoring_dashboard_optimized.dart';
-import '../../features/admin/presentation/screens/database_management_v2_screen.dart';
-import '../../features/admin/presentation/screens/monitoring_dashboard_v2_screen.dart';
+// Admin screens are deferred loaded to reduce initial bundle size
+import 'deferred_admin_loader.dart';
 import '../../features/settings/presentation/screens/app_settings_screen.dart';
-import '../../features/settings/presentation/screens/backup_management_screen.dart';
 // Architecture A: New grouped screens
 import '../../features/catalog/presentation/screens/catalog_screen.dart';
 import '../../features/customers/presentation/screens/customers_screen.dart';
@@ -220,33 +213,44 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: 'backup',
-                builder: (context, state) => const BackupManagementScreen(),
+                builder: (context, state) => DeferredAdminScreen(
+                  builder: () => DeferredAdminLoader.buildBackupManagement(),
+                  screenName: 'Backup Management',
+                ),
               ),
             ],
           ),
 
-          // Admin
+          // Admin - Using deferred loading for faster initial load
           GoRoute(
             path: '/admin',
-            builder: (context, state) => const AdminPanelScreen(),
+            builder: (context, state) => DeferredAdminScreen(
+              builder: () => DeferredAdminLoader.buildAdminPanel(),
+              screenName: 'Admin Panel',
+            ),
             routes: [
               GoRoute(
                 path: 'performance',
-                builder: (context, state) => const PerformanceDashboardScreen(),
+                builder: (context, state) => DeferredAdminScreen(
+                  builder: () => DeferredAdminLoader.buildPerformanceDashboard(),
+                  screenName: 'Performance Dashboard',
+                ),
               ),
               GoRoute(
                 path: 'users',
-                builder: (context, state) => const UserInfoDashboardScreen(),
+                builder: (context, state) => DeferredAdminScreen(
+                  builder: () => DeferredAdminLoader.buildUserInfoDashboard(),
+                  screenName: 'User Dashboard',
+                ),
                 routes: [
                   GoRoute(
                     path: ':userId',
                     builder: (context, state) {
                       final userId = state.pathParameters['userId']!;
                       final extras = state.extra as Map<String, String>?;
-                      return UserDetailsScreen(
-                        userId: userId,
-                        userEmail: extras?['email'] ?? '',
-                        userName: extras?['name'] ?? '',
+                      return DeferredAdminScreen(
+                        builder: () => DeferredAdminLoader.buildUserDetailsScreen(),
+                        screenName: 'User Details',
                       );
                     },
                   ),
@@ -254,25 +258,33 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: 'monitoring',
-                builder: (context, state) => const MonitoringDashboardV2Screen(),
+                builder: (context, state) => DeferredAdminScreen(
+                  builder: () => DeferredAdminLoader.buildMonitoringDashboard(),
+                  screenName: 'Monitoring Dashboard',
+                ),
               ),
               GoRoute(
                 path: 'errors',
-                builder: (context, state) => const OptimizedErrorMonitoringDashboard(),
+                builder: (context, state) => DeferredAdminScreen(
+                  builder: () => DeferredAdminLoader.buildErrorMonitoring(),
+                  screenName: 'Error Monitoring',
+                ),
               ),
               GoRoute(
                 path: 'database',
-                builder: (context, state) => const DatabaseManagementV2Screen(),
+                builder: (context, state) => DeferredAdminScreen(
+                  builder: () => DeferredAdminLoader.buildDatabaseManagement(),
+                  screenName: 'Database Management',
+                ),
               ),
               GoRoute(
                 path: 'user-detail',
                 builder: (context, state) {
                   final extras = state.extra as Map<String, String>;
-                  return UserDetailScreen(
-                    userId: extras['userId']!,
-                    userEmail: extras['userEmail']!,
-                    displayName: extras['displayName']!,
-                    currentRole: extras['currentRole']!,
+                  final userId = extras['userId']!;
+                  return DeferredAdminScreen(
+                    builder: () => DeferredAdminLoader.buildUserDetailScreen(userId),
+                    screenName: 'User Detail',
                   );
                 },
               ),

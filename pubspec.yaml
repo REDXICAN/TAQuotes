@@ -52,5 +52,6 @@ flutter:
   - .env
   - assets/logos/turbo_air_logo.png
   - assets/icons/default_product.png
-  - assets/thumbnails/
-  - assets/screenshots/
+  # Removed local thumbnails and screenshots - using Firebase Storage instead
+  # - assets/thumbnails/
+  # - assets/screenshots/

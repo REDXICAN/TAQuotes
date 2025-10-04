@@ -236,7 +236,9 @@
       "Read(//c/Users/andre/**)",
       "Bash(head:*)",
       "Bash(start check_carlos_permissions.html)",
-      "Bash(start add_carlos.html)"
+      "Bash(start add_carlos.html)",
+      "Bash(then echo \"⚠️ firebase_options.dart exists locally\")",
+      "Bash(else echo \"✅ firebase_options.dart not found\")"
     ],
     "deny": [],
     "ask": [
